@@ -17,7 +17,8 @@
       buildDreDfsRealTableMarkup,
       initAllReportTableResizers,
       initDreGerDrilldown,
-      initDreSocDrilldown
+      initDreSocDrilldown,
+      isAccessRestricted
     } = deps;
 
     const REPORT_HANDLERS = {
@@ -62,7 +63,7 @@
 
       tableWrap.innerHTML = buildDreGerRealTableMarkup(report);
       initAllReportTableResizers();
-      initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
+      if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
     }
 
     function renderDreDfsReal(detailPanel) {
@@ -145,7 +146,7 @@
 
       tableWrap.innerHTML = buildDreGerRealTableMarkup(report);
       initAllReportTableResizers();
-      initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "budget");
+      if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "budget");
     }
 
     function renderDreSocBudget(detailPanel) {
