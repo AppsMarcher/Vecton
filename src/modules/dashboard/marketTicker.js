@@ -443,13 +443,32 @@
   // Mantém today/prev separados para calcular variação entre dias.
   // Se o dia mudou: today vira prev antes de ser sobrescrito.
   // Múltiplos fetches no mesmo dia atualizam today sem tocar em prev.
+  // Fallback entry.prev garante que seeds manuais (today=null) não sejam descartados.
   function updateCepeaEntry(cache, id, dateStr, value) {
     const entry = cache[id] || {};
     if (entry.today?.date === dateStr) {
       cache[id] = { today: { date: dateStr, value }, prev: entry.prev || null };
     } else {
-      cache[id] = { today: { date: dateStr, value }, prev: entry.today || null };
+      cache[id] = { today: { date: dateStr, value }, prev: entry.today || entry.prev || null };
     }
+  }
+
+  // Seed inicial: preços de referência para a primeira variação antes do cache acumular dados reais.
+  // Remove as entradas de seed quando o app já tiver valores reais (today preenchido).
+  function initCepeaPrevCache() {
+    const cache = loadCepeaPrevCache();
+    const seeds = {
+      soy:  { date: "2026-06-22", value: 132.84 },
+      corn: { date: "2026-06-22", value: 62.97 }
+    };
+    let changed = false;
+    for (const [id, seed] of Object.entries(seeds)) {
+      if (!cache[id]) {
+        cache[id] = { today: null, prev: seed };
+        changed = true;
+      }
+    }
+    if (changed) saveCepeaPrevCache(cache);
   }
 
   async function fetchCepea(items) {
@@ -589,6 +608,7 @@
   }
 
   function startMarketTicker() {
+    initCepeaPrevCache();
     renderMarketTicker();
     bindTickerInteractions();
     void fetchTickerLive();
