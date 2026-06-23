@@ -463,8 +463,10 @@
     };
     let changed = false;
     for (const [id, seed] of Object.entries(seeds)) {
-      if (!cache[id]) {
-        cache[id] = { today: null, prev: seed };
+      // Semeia se prev está ausente — cobre tanto localStorage vazio quanto
+      // entradas existentes com prev:null deixadas por versões anteriores do código.
+      if (!cache[id]?.prev) {
+        cache[id] = { today: cache[id]?.today || null, prev: seed };
         changed = true;
       }
     }
