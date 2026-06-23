@@ -725,7 +725,10 @@ const reportsDreModule = createReportsDreModule({
   buildDreDfsRealTableMarkup,
   initAllReportTableResizers,
   initDreGerDrilldown,
-  initDreSocDrilldown
+  initDreSocDrilldown,
+  getAllowedCcNumbers,
+  fetchActualsLedgerFullForYear,
+  fetchBudgetLedgerFullForYear
 });
 const { createReportsOpexModule } = window.VECTON_REPORTS_OPEX;
 const reportsOpexModule = createReportsOpexModule({
