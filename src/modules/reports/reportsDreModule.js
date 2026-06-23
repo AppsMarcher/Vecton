@@ -117,7 +117,8 @@
 
       tableWrap.innerHTML = buildDreSocRealTableMarkup(report);
       initAllReportTableResizers();
-      initDreSocDrilldown(tableWrap, year);
+      const drillReal = initDreSocDrilldown(tableWrap, year);
+      setTimeout(() => drillReal.prefetch(), 300);
     }
 
     function renderDreGerBudget(detailPanel) {
@@ -171,7 +172,8 @@
 
       tableWrap.innerHTML = buildDreSocRealTableMarkup(report);
       initAllReportTableResizers();
-      initDreSocDrilldown(tableWrap, year, "budget");
+      const drillBudget = initDreSocDrilldown(tableWrap, year, "budget");
+      setTimeout(() => drillBudget.prefetch(), 300);
     }
 
     function renderDreDfsBudget(detailPanel) {
