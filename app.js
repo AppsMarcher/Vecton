@@ -2661,7 +2661,7 @@ function sumArrays(arrays) {
   }, zeroMonthArray());
 }
 
-function buildDreGerRealTableMarkup(report) {
+function buildDreGerRealTableMarkup(report, allowDrilldown = true) {
   const R = '<span class="col-resizer" aria-hidden="true"></span>';
   const headerCells = MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("");
   const bodyRows = report.lines.map((line) => {
@@ -2677,7 +2677,7 @@ function buildDreGerRealTableMarkup(report) {
       return formatSignedCurrency(val);
     };
 
-    const canDrilldown = !isPercent && line.kind !== "result-final" && resolveGerCodes(line.id).length > 0;
+    const canDrilldown = allowDrilldown && !isPercent && line.kind !== "result-final" && resolveGerCodes(line.id).length > 0;
     const valueCells = line.months.map((v, i) => {
       if (canDrilldown) {
         return `<td class="reports-value-cell ger-drillable" data-line-id="${escapeHtml(line.id)}" data-month-idx="${i}">${escapeHtml(formatCell(v))}</td>`;
