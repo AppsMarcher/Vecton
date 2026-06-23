@@ -142,7 +142,14 @@
     }
 
     function rebuildTrees(panel, user, role, mgmt) {
-      const fakeUser = { ...user, access_role: role, management: mgmt };
+      const mgmtChanged = mgmt !== (user.management || "");
+      const fakeUser = {
+        ...user,
+        access_role: role,
+        management: mgmt,
+        extra_cc_ids: mgmtChanged ? [] : user.extra_cc_ids,
+        extra_managements: mgmtChanged ? [] : user.extra_managements
+      };
       const old = panel.querySelector(".ue-trees");
       if (old) old.replaceWith(renderAccessTrees(fakeUser));
     }
