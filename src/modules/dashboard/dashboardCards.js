@@ -16,6 +16,7 @@
       fetchActualsLedgerWithCcForYear,
       fetchActualsLedgerForCcIds,
       getAllowedManagements,
+      getPartialManagements,
       buildOpexCostCenterFilter,
       matchesOpexCostCenterFilter,
       renderNavigation,
@@ -823,10 +824,11 @@
     }
 
     function navigateToOpexReport(mgmt, anchorEl) {
-      // Gestor/Analista só drilla nas gestões permitidas (principal + complementares).
+      // Gestor/Analista só drilla nas gestões permitidas (principal + complementares + parciais).
       // Clicar numa fatia de outra área mostra aviso de acesso em vez de navegar.
       const allowedMgmts = getAllowedManagements();
-      if (allowedMgmts && !allowedMgmts.includes(mgmt)) {
+      const partialMgmts = getPartialManagements();
+      if (allowedMgmts && !allowedMgmts.includes(mgmt) && !partialMgmts.has(mgmt)) {
         showOpexNoAccessPopover(mgmt, anchorEl);
         return;
       }
