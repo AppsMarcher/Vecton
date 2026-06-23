@@ -374,7 +374,16 @@
     const percentMatch = text.match(/([+\-−]?\d+,\d{2})\s*%/);
 
     const value = parsePtBrNumber(currencyMatch?.[1] || numberMatches[0]);
-    const pct = parsePtBrNumber(percentMatch?.[1] || "0");
+
+    // Tenta usar o % explícito do widget; se não houver (ou for zero), calcula
+    // a variação a partir dos dois primeiros preços exibidos (atual vs. anterior).
+    let pct = parsePtBrNumber(percentMatch?.[1] || "0");
+    if ((!Number.isFinite(pct) || pct === 0) && numberMatches.length >= 2) {
+      const prev = parsePtBrNumber(numberMatches[1]);
+      if (Number.isFinite(value) && Number.isFinite(prev) && prev !== 0 && value !== prev) {
+        pct = ((value - prev) / prev) * 100;
+      }
+    }
 
     if (!Number.isFinite(value)) return null;
     return {
