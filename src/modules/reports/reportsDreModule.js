@@ -17,7 +17,10 @@
       buildDreDfsRealTableMarkup,
       initAllReportTableResizers,
       initDreGerDrilldown,
-      initDreSocDrilldown
+      initDreSocDrilldown,
+      getAllowedCcNumbers,
+      fetchActualsLedgerFullForYear,
+      fetchBudgetLedgerFullForYear
     } = deps;
 
     const REPORT_HANDLERS = {
@@ -99,22 +102,50 @@
       if (!tableWrap) return;
 
       const year = getCurrentYear();
-      const cacheEntry = reportsLedgerCache.get(year);
-      const report = buildDreSocRealReport(year, cacheEntry?.rows || []);
+      const allowedCcs = getAllowedCcNumbers();
 
-      if (getReportsErrorMessage() && !cacheEntry && getReportsLoadingYear() !== year) {
-        tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(getReportsErrorMessage())}</div>`;
+      if (!allowedCcs) {
+        // Admin: usa cache pré-agregado (sem CC, mas sem restrição)
+        const cacheEntry = reportsLedgerCache.get(year);
+        if (getReportsErrorMessage() && !cacheEntry && getReportsLoadingYear() !== year) {
+          tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(getReportsErrorMessage())}</div>`;
+          return;
+        }
+        if (getReportsLoadingYear() === year && !cacheEntry) {
+          tableWrap.innerHTML = window.vpSkeletonTable();
+          return;
+        }
+        const report = buildDreSocRealReport(year, cacheEntry?.rows || []);
+        if (!report.rows.length) {
+          tableWrap.innerHTML = `<div class="actuals-empty">Nenhuma linha de DRE disponivel para ${year}.</div>`;
+          return;
+        }
+        tableWrap.innerHTML = buildDreSocRealTableMarkup(report);
+        initAllReportTableResizers();
+        initDreSocDrilldown(tableWrap, year);
         return;
       }
-      if (getReportsLoadingYear() === year && !cacheEntry) {
+
+      // Gestor/Analista: precisa do ledger com CC para filtrar
+      const ccCacheKey = `soc-real-cc-${year}`;
+      const ccCached = reportsLedgerCache.get(ccCacheKey);
+      if (!ccCached) {
         tableWrap.innerHTML = window.vpSkeletonTable();
+        fetchActualsLedgerFullForYear(year).then((fullRows) => {
+          const filtered = fullRows.filter(r => allowedCcs.has(String(r.cost_center_number ?? "").trim()));
+          reportsLedgerCache.set(ccCacheKey, { rows: filtered });
+          renderDreSocReal(detailPanel);
+        }).catch(() => {
+          tableWrap.innerHTML = `<div class="actuals-empty">Erro ao carregar DRE Societário.</div>`;
+        });
         return;
       }
+
+      const report = buildDreSocRealReport(year, ccCached.rows);
       if (!report.rows.length) {
         tableWrap.innerHTML = `<div class="actuals-empty">Nenhuma linha de DRE disponivel para ${year}.</div>`;
         return;
       }
-
       tableWrap.innerHTML = buildDreSocRealTableMarkup(report);
       initAllReportTableResizers();
       initDreSocDrilldown(tableWrap, year);
@@ -153,22 +184,50 @@
       if (!tableWrap) return;
 
       const year = getCurrentYear();
-      const cacheEntry = reportsBudgetCache.get(year);
-      if (getBudgetReportsLoadingYear() === year && !cacheEntry) {
-        tableWrap.innerHTML = window.vpSkeletonTable();
-        return;
-      }
-      if (getBudgetReportsErrorMessage() && !cacheEntry) {
-        tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(getBudgetReportsErrorMessage())}</div>`;
+      const allowedCcs = getAllowedCcNumbers();
+
+      if (!allowedCcs) {
+        // Admin: usa cache pré-agregado (sem restrição)
+        const cacheEntry = reportsBudgetCache.get(year);
+        if (getBudgetReportsLoadingYear() === year && !cacheEntry) {
+          tableWrap.innerHTML = window.vpSkeletonTable();
+          return;
+        }
+        if (getBudgetReportsErrorMessage() && !cacheEntry) {
+          tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(getBudgetReportsErrorMessage())}</div>`;
+          return;
+        }
+        const report = buildDreSocRealReport(year, cacheEntry?.rows || []);
+        if (!report.rows.length) {
+          tableWrap.innerHTML = `<div class="actuals-empty">Nenhuma linha de DRE de planejado disponivel para ${year}.</div>`;
+          return;
+        }
+        tableWrap.innerHTML = buildDreSocRealTableMarkup(report);
+        initAllReportTableResizers();
+        initDreSocDrilldown(tableWrap, year, "budget");
         return;
       }
 
-      const report = buildDreSocRealReport(year, cacheEntry?.rows || []);
+      // Gestor/Analista: precisa do ledger com CC para filtrar
+      const ccCacheKey = `soc-budget-cc-${year}`;
+      const ccCached = reportsLedgerCache.get(ccCacheKey);
+      if (!ccCached) {
+        tableWrap.innerHTML = window.vpSkeletonTable();
+        fetchBudgetLedgerFullForYear(year).then((fullRows) => {
+          const filtered = fullRows.filter(r => allowedCcs.has(String(r.cost_center_number ?? "").trim()));
+          reportsLedgerCache.set(ccCacheKey, { rows: filtered });
+          renderDreSocBudget(detailPanel);
+        }).catch(() => {
+          tableWrap.innerHTML = `<div class="actuals-empty">Erro ao carregar DRE Societário Budget.</div>`;
+        });
+        return;
+      }
+
+      const report = buildDreSocRealReport(year, ccCached.rows);
       if (!report.rows.length) {
         tableWrap.innerHTML = `<div class="actuals-empty">Nenhuma linha de DRE de planejado disponivel para ${year}.</div>`;
         return;
       }
-
       tableWrap.innerHTML = buildDreSocRealTableMarkup(report);
       initAllReportTableResizers();
       initDreSocDrilldown(tableWrap, year, "budget");
