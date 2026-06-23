@@ -3034,8 +3034,11 @@ function renderOpexBudgetReport(detailPanel) {
   const allOption = "Marcher";
   const baseMgmtOptions = [allOption, ...managements];
   const prevMgmt = detailPanel.dataset.opexMgmt || allOption;
+  // "Marcher" (consolidado) só para admin/super_admin ou perfis sem restrição.
+  // Gestor/Analista com gestões extras vê só as gestões permitidas — sem "Marcher",
+  // pois o OPEX não exibe dados consolidados para perfis restritos.
   const { selectedMgmt, locked: mgmtLocked, allowedMgmts } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
-  const mgmtOptions = mgmtLocked ? [selectedMgmt] : (allowedMgmts ? [allOption, ...allowedMgmts] : baseMgmtOptions);
+  const mgmtOptions = mgmtLocked ? [selectedMgmt] : (allowedMgmts ? [...allowedMgmts] : baseMgmtOptions);
 
   const opexSlot = document.querySelector("#opex-gestao-slot");
   if (opexSlot) {
