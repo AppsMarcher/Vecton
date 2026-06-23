@@ -17,7 +17,6 @@
       fetchActualsLedgerForCcIds,
       getAllowedManagements,
       getPartialManagements,
-      getExtraCcIds,
       buildOpexCostCenterFilter,
       matchesOpexCostCenterFilter,
       renderNavigation,
@@ -59,9 +58,12 @@
 
       // "Marcher" (consolidado) é sempre visível. Gestões específicas são
       // restritas às permitidas para Gestor/Analista; Admin vê todas.
+      // Gestões parciais (extra_cc_ids) aparecem no dropdown com sufixo "· parcial".
       const allowedMgmts = getAllowedManagements();
+      const hcPartialMgmts = getPartialManagements();
+      const partialMgmtNames = [...hcPartialMgmts.keys()].filter((m) => allManagementsInCcs.includes(m));
       const mgmtOptions = allowedMgmts
-        ? ["Marcher", ...allowedMgmts.filter((m) => allManagementsInCcs.includes(m))]
+        ? ["Marcher", ...allowedMgmts.filter((m) => allManagementsInCcs.includes(m)), ...partialMgmtNames]
         : ["Marcher", ...allManagementsInCcs];
 
       // Garante que dashHcMgmt aponte para uma opção válida
@@ -93,7 +95,7 @@
       }
 
       renderDashOpexDonut(year, monthIdx, allRealRows, allOpexAccounts, allManagementsInCcs, _opexAccum);
-      renderDashHcCard(year, monthIdx, allRealRows, pessoalAccounts, mgmtOptions);
+      renderDashHcCard(year, monthIdx, allRealRows, pessoalAccounts, mgmtOptions, hcPartialMgmts);
     }
 
     function renderDashOpexDonut(year, monthIdx, allRealRows, allOpexAccounts, managements, accum = false) {
@@ -332,20 +334,23 @@
       });
     }
 
-    function renderDashHcCard(year, monthIdx, allRealRows, pessoalAccounts, mgmtOptions) {
+    function renderDashHcCard(year, monthIdx, allRealRows, pessoalAccounts, mgmtOptions, partialMgmts = new Map()) {
       const filterSlot = document.querySelector("#dash-hc-filter");
       if (filterSlot) {
         const existing = filterSlot.querySelector("select");
         if (!existing || existing.dataset.opts !== mgmtOptions.join(",")) {
           filterSlot.innerHTML = `<select class="dash-opex-filter-select">
-            ${mgmtOptions.map((mgmt) => `<option value="${escapeHtml(mgmt)}" ${mgmt === dashHcMgmt ? "selected" : ""}>${escapeHtml(mgmt)}</option>`).join("")}
+            ${mgmtOptions.map((mgmt) => {
+              const label = partialMgmts.has(mgmt) ? `${mgmt} · parcial` : mgmt;
+              return `<option value="${escapeHtml(mgmt)}" ${mgmt === dashHcMgmt ? "selected" : ""}>${escapeHtml(label)}</option>`;
+            }).join("")}
           </select>`;
           const selectEl = filterSlot.querySelector("select");
           selectEl.dataset.opts = mgmtOptions.join(",");
           selectEl.addEventListener("change", (event) => {
             dashHcMgmt = event.target.value;
             const freshReal = reportsLedgerCache.get(year)?.rows || [];
-            renderDashHcCard(year, monthIdx, freshReal, pessoalAccounts, mgmtOptions);
+            renderDashHcCard(year, monthIdx, freshReal, pessoalAccounts, mgmtOptions, partialMgmts);
           });
         } else {
           existing.value = dashHcMgmt;
@@ -369,7 +374,7 @@
               reportsLedgerCache.set(hcMgmtCacheKey, { rows: fetched });
               hcDashLoadingKey = null;
               const freshReal = reportsLedgerCache.get(year)?.rows || [];
-              renderDashHcCard(year, monthIdx, freshReal, pessoalAccounts, mgmtOptions);
+              renderDashHcCard(year, monthIdx, freshReal, pessoalAccounts, mgmtOptions, partialMgmts);
             })
             .catch(() => { hcDashLoadingKey = null; });
           pessoalSource = [];
@@ -419,9 +424,22 @@
         const cc = state.costCenters.find((costCenter) => costCenter.number === row.cost_center_number);
         return { ...row, management: (cc?.management || "Sem area").trim() };
       });
-      const filtered = dashHcMgmt === "Marcher"
-        ? enriched
-        : enriched.filter((row) => row.management === dashHcMgmt);
+
+      // Para gestão parcial: filtra pelos CCs específicos, não pela gestão inteira.
+      const kpiPartialMgmts = getPartialManagements();
+      const filtered = (() => {
+        if (dashHcMgmt === "Marcher") return enriched;
+        if (kpiPartialMgmts.has(dashHcMgmt)) {
+          const partialCcUuids = new Set((kpiPartialMgmts.get(dashHcMgmt) || []).map(String));
+          const partialCcNums = new Set(
+            (state.costCenters || [])
+              .filter((cc) => partialCcUuids.has(String(cc.id)))
+              .map((cc) => String(cc.number))
+          );
+          return enriched.filter((row) => partialCcNums.has(String(row.cost_center_number)));
+        }
+        return enriched.filter((row) => row.management === dashHcMgmt);
+      })();
 
       const headcount = filtered.length > 0 ? filtered.length : (data.real > 0 ? data.real : 0);
       totalEl.textContent = headcount > 0 ? headcount.toLocaleString("pt-BR") : "—";
@@ -438,22 +456,11 @@
       }
 
       // Drill: Gestor/Analista só podem detalhar nas suas gestões permitidas.
-      // Se estiver no consolidado "Marcher" sem gestão nem CCs extras, mostra aviso.
+      // "Marcher" consolidado → mostra aviso pedindo para filtrar.
       const _hcRole = state.profile?.accessRole || "admin";
       const isRestricted = (_hcRole === "manager" || _hcRole === "analyst");
       const allowedHcMgmts = getAllowedManagements();
-      // extra_cc_ids são UUIDs; mapeia para números via costCenters (mesmo que getAllowedCcNumbers).
-      const hcExtraCcUuids = new Set((getExtraCcIds ? (getExtraCcIds() || []) : []).map(String));
-      const hcExtraCcNumbers = new Set(
-        (state.costCenters || [])
-          .filter((cc) => hcExtraCcUuids.has(String(cc.id)))
-          .map((cc) => String(cc.number))
-      );
-      const hasExtraCcs = hcExtraCcNumbers.size > 0;
-
-      // Usuário parcial (management=null + extra_cc_ids): fica preso em "Marcher"
-      // mas ainda pode detalhar os seus CCs avulsos — não bloqueia com o aviso.
-      const showNoAccessPop = isRestricted && dashHcMgmt === "Marcher" && !hasExtraCcs;
+      const showNoAccessPop = isRestricted && dashHcMgmt === "Marcher";
 
       const kpiBlock = totalEl.closest(".dash-hc-kpi-block");
       if (kpiBlock && headcount > 0) {
@@ -478,13 +485,13 @@
             setTimeout(() => { pop.remove(); document.removeEventListener("click", dismiss, true); }, 4500);
           });
         } else {
-          // Para usuário parcial em "Marcher": filtra só os CCs extras.
-          // Para Gestor/Analista normal: filtra pelas gestões permitidas.
-          // Para admin: usa tudo.
+          // Gestão parcial: filtered já está filtrado pelos CCs certos — usa direto.
+          // Gestor/Analista com gestão plena: filtra pelas gestões permitidas.
+          // Admin: usa tudo.
           let drillSource;
-          if (isRestricted && dashHcMgmt === "Marcher" && hasExtraCcs) {
-            drillSource = filtered.filter((row) => hcExtraCcNumbers.has(String(row.cost_center_number)));
-          } else if (isRestricted && allowedHcMgmts) {
+          if (isRestricted && kpiPartialMgmts.has(dashHcMgmt)) {
+            drillSource = filtered;
+          } else if (isRestricted && allowedHcMgmts && allowedHcMgmts.length > 0) {
             drillSource = filtered.filter((row) => allowedHcMgmts.includes((row.management || "").trim()));
           } else {
             drillSource = filtered;
