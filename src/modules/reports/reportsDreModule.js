@@ -16,6 +16,7 @@
       buildDreDfsRealReport,
       buildDreDfsRealTableMarkup,
       initAllReportTableResizers,
+      initFloatingScrollbar,
       initDreGerDrilldown,
       initDreSocDrilldown,
       isAccessRestricted
@@ -36,6 +37,8 @@
         return false;
       }
       handler(detailPanel);
+      const wrap = detailPanel.querySelector(".reports-table-wrap");
+      if (wrap) initFloatingScrollbar(wrap);
       return true;
     }
 
