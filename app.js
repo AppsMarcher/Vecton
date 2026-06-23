@@ -1132,7 +1132,7 @@ async function hydrateFromSupabase() {
     const organizationId = await resolveOrganizationId();
     await ensureSeedBranchesInSupabase(organizationId);
     const [profileRows, branches, accounts, costCenters, dreNodes, ccNodes, actualsBatches, budgetBatches, hcBatches, managementRows] = await Promise.all([
-      fetchSupabaseRowsSafe("user_profiles", `organization_id=eq.${organizationId}&user_id=eq.${currentUser.id}&select=full_name,email,phone,department,profile_label,access_role,management,matrix_accounts,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,photo_kind,photo_value&limit=1`),
+      fetchSupabaseRowsSafe("user_profiles", `organization_id=eq.${organizationId}&user_id=eq.${currentUser.id}&select=full_name,email,phone,department,profile_label,access_role,management,matrix_accounts,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,extra_managements,photo_kind,photo_value&limit=1`),
       fetchSupabaseRowsSafe("branches", `organization_id=eq.${organizationId}&select=id,branch_code,branch_name,note,origin&order=branch_code.asc`),
       fetchSupabaseRows("accounts", `organization_id=eq.${organizationId}&select=id,registration_control,account_number,account_name`),
       fetchSupabaseRows("cost_centers", `organization_id=eq.${organizationId}&select=id,cost_center_number,cost_center_name,cost_center_type,cost_center_management`),
@@ -1161,6 +1161,7 @@ async function hydrateFromSupabase() {
         extraCcIds: profile.extra_cc_ids || [],
         extraAccountCodes: profile.extra_account_codes || [],
         extraReportIds: profile.extra_report_ids || [],
+        extraManagements: profile.extra_managements || [],
         photoKind: profile.photo_kind || "none",
         photoValue: profile.photo_value || ""
       };
@@ -1386,9 +1387,14 @@ function getMatrixAccounts()  { return state.profile?.matrixAccounts || []; }
 // ── Controle de acesso por perfil (extra_* dos user_profiles) ───────────────
 // Apenas Gestor/Analista são restritos; admin/super_admin enxergam tudo.
 function isAccessRestricted()   { return ["manager", "analyst"].includes(getAccessRole()); }
-function getExtraReportIds()    { return state.profile?.extraReportIds   || []; }
-function getExtraCcIds()        { return state.profile?.extraCcIds        || []; }
-function getExtraAccountCodes() { return state.profile?.extraAccountCodes || []; }
+function getExtraReportIds()    { return state.profile?.extraReportIds    || []; }
+function getExtraCcIds()        { return state.profile?.extraCcIds         || []; }
+function getExtraAccountCodes() { return state.profile?.extraAccountCodes  || []; }
+function getExtraManagements()  { return state.profile?.extraManagements   || []; }
+function getAllowedManagements() {
+  if (!isAccessRestricted()) return null;
+  return [getUserManagement(), ...getExtraManagements()].filter(Boolean);
+}
 
 // Relatórios "consolidados" da empresa (DREs). Analista NÃO vê; Gestor vê.
 // Demais (OPEX, Headcount) são por área/CC e ficam limitados pela gestão no drill-down.
@@ -1421,28 +1427,38 @@ function canSeeAccount(code) {
 function getAllowedCcNumbers() {
   if (!isAccessRestricted()) return null;
   const mgmt = (getUserManagement() || "").trim();
+  const extraMgmts = new Set(getExtraManagements().map(m => m.trim()));
   const extraIds = new Set((getExtraCcIds() || []).map(String));
   const allowed = new Set();
   (state.costCenters || []).forEach((cc) => {
-    const byMgmt = mgmt && (cc.management || "").trim() === mgmt;
+    const ccMgmt = (cc.management || "").trim();
+    const byMgmt = mgmt && ccMgmt === mgmt;
+    const byExtraMgmt = extraMgmts.size > 0 && extraMgmts.has(ccMgmt);
     const byExtra = extraIds.has(String(cc.id));
-    if (byMgmt || byExtra) allowed.add(String(cc.number).trim());
+    if (byMgmt || byExtraMgmt || byExtra) allowed.add(String(cc.number).trim());
   });
   return allowed;
 }
 
-// Retorna { selectedMgmt, locked } para uso nos filtros de gestão
+// Retorna { selectedMgmt, locked, allowedMgmts } para uso nos filtros de gestão.
+// allowedMgmts: array de gestões visíveis no dropdown quando o usuário tem extras;
+// null significa sem restrição (admin) ou restrição total via locked.
 function resolveManagementFilter(prevMgmt, mgmtOptions, allOption) {
   const userMgmt = getUserManagement();
   if (isManager() || isAnalyst()) {
-    // Fail-closed: Gestor/Analista ficam SEMPRE travados na própria gestão.
-    // Se a gestão não tiver CCs (ou o perfil não tiver gestão), o relatório
-    // vem vazio — nunca cai em "todas as gestões". O sentinela "__no_cc__" garante
-    // que um perfil sem gestão não case com nenhum CC (em vez de liberar tudo).
-    return { selectedMgmt: userMgmt || "__no_cc__", locked: true };
+    const extraMgmts = getExtraManagements();
+    if (extraMgmts.length > 0 && userMgmt) {
+      // Gestor com gestões extras: pode alternar entre as suas gestões no dropdown.
+      const allowedMgmts = [userMgmt, ...extraMgmts];
+      const selected = allowedMgmts.includes(prevMgmt) ? prevMgmt : userMgmt;
+      return { selectedMgmt: selected, locked: false, allowedMgmts };
+    }
+    // Fail-closed: travado na própria gestão. Sentinela "__no_cc__" garante
+    // que um perfil sem gestão não case com nenhum CC.
+    return { selectedMgmt: userMgmt || "__no_cc__", locked: true, allowedMgmts: null };
   }
   const selectedMgmt = mgmtOptions.includes(prevMgmt) ? prevMgmt : allOption;
-  return { selectedMgmt, locked: false };
+  return { selectedMgmt, locked: false, allowedMgmts: null };
 }
 
 // Gera as <option> do select de gestão, aplicando disabled quando locked
@@ -1644,14 +1660,26 @@ async function fetchHeadcountRealForYear(year) {
 }
 
 // Fonte do custo (ledger com CC) do relatório de Headcount. Gestor/Analista
-// buscam SÓ a sua gestão no servidor (cache próprio, evita puxar o ano inteiro
-// de todas as áreas); Admin busca tudo. Espelha a lógica do OPEX.
+// buscam apenas os CCs permitidos no servidor; Admin busca tudo.
+// Considera: gestão própria + gestões extras + CCs avulsos (extra_cc_ids).
 function hcCostSource(year, isBudget) {
   if (isAccessRestricted()) {
-    const mgmt = (getUserManagement() || "").trim() || "__no_cc__";
+    const allMgmts = getAllowedManagements();
+    const mgmtFilter = buildOpexCostCenterFilter(allMgmts);
+    const ccIds = new Set([...(mgmtFilter?.ids || [])]);
+    (getExtraCcIds() || []).forEach(id => {
+      if ((state.costCenters || []).some(cc => String(cc.id) === String(id))) ccIds.add(String(id));
+    });
+    if (!ccIds.size) {
+      return {
+        key: `${isBudget ? "budget" : "opex"}-cc-empty-${year}`,
+        fetchFn: async () => []
+      };
+    }
+    const mgmtKey = (allMgmts || []).join(",") || "__no_cc__";
     return {
-      key: `${isBudget ? "budget" : "opex"}-cc-mgmt-${year}-${mgmt}`,
-      fetchFn: () => (isBudget ? fetchBudgetLedgerForManagementYear : fetchActualsLedgerForManagementYear)(year, mgmt)
+      key: `${isBudget ? "budget" : "opex"}-cc-mgmt-${year}-${mgmtKey}`,
+      fetchFn: () => (isBudget ? fetchBudgetLedgerForCcIds : fetchActualsLedgerForCcIds)(year, [...ccIds])
     };
   }
   return {
@@ -2023,8 +2051,8 @@ const REPORT_TITLES = {
     const allOption = "Marcher";
     const baseMgmtOptions = [allOption, ...managements];
     const prevMgmt = detailPanel.dataset.opexMgmt || allOption;
-    const { selectedMgmt, locked: mgmtLocked } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
-    const mgmtOptions = mgmtLocked ? [selectedMgmt] : baseMgmtOptions;
+    const { selectedMgmt, locked: mgmtLocked, allowedMgmts } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
+    const mgmtOptions = mgmtLocked ? [selectedMgmt] : (allowedMgmts || baseMgmtOptions);
 
     const validCcFilter = buildOpexCostCenterFilter(selectedMgmt);
 
@@ -3216,14 +3244,15 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false) 
 }
 // ─── FIM OPEX REAL ────────────────────────────────────────────────────────────
 
+// management: string (única) ou array de strings. null/"Marcher" = sem filtro.
 function buildOpexCostCenterFilter(management) {
-  if (!management || management === "Marcher") {
-    return null;
-  }
+  if (!management || management === "Marcher") return null;
+  const mgmtList = Array.isArray(management) ? management : [management];
+  if (!mgmtList.length) return null;
   const ids = new Set();
   const numbers = new Set();
   state.costCenters
-    .filter((cc) => (cc.management || "").trim() === management)
+    .filter((cc) => mgmtList.includes((cc.management || "").trim()))
     .forEach((cc) => {
       if (cc.id) ids.add(String(cc.id).trim());
       const normalizedNumber = normalizeCode(cc.number);
@@ -4087,20 +4116,12 @@ async function fetchBudgetLedgerFullForYear(year) {
   return rows;
 }
 
-// Espelho budget do fetchActualsLedgerForManagementYear: busca só os CCs da
-// gestão no servidor (keyset). Fail-closed: gestão sem CCs → [].
-async function fetchBudgetLedgerForManagementYear(year, management) {
+async function fetchBudgetLedgerForCcIds(year, ccIds) {
   const organizationId = await resolveOrganizationId();
-  const filter = buildOpexCostCenterFilter(management);
-  const costCenterIds = [...(filter?.ids || [])].filter(Boolean);
-  if (!costCenterIds.length) {
-    return [];
-  }
-
+  const encodedIds = [...ccIds].join(",");
+  if (!encodedIds) return [];
   const pageSize = 1000;
   const rows = [];
-  const encodedIds = costCenterIds.join(",");
-
   for (let month = 1; month <= 12; month += 1) {
     let lastId = "00000000-0000-0000-0000-000000000000";
     while (true) {
@@ -4114,6 +4135,13 @@ async function fetchBudgetLedgerForManagementYear(year, management) {
     }
   }
   return rows;
+}
+
+async function fetchBudgetLedgerForManagementYear(year, management) {
+  const filter = buildOpexCostCenterFilter(management);
+  const ccIds = [...(filter?.ids || [])].filter(Boolean);
+  if (!ccIds.length) return [];
+  return fetchBudgetLedgerForCcIds(year, ccIds);
 }
 
 async function fetchActualsLedgerEntriesForYear(year) {
@@ -4160,18 +4188,12 @@ async function fetchActualsLedgerWithCcForYear(year) {
   return rows;
 }
 
-async function fetchActualsLedgerForManagementYear(year, management) {
+async function fetchActualsLedgerForCcIds(year, ccIds) {
   const organizationId = await resolveOrganizationId();
-  const filter = buildOpexCostCenterFilter(management);
-  const costCenterIds = [...(filter?.ids || [])].filter(Boolean);
-  if (!costCenterIds.length) {
-    return [];
-  }
-
+  const encodedIds = [...ccIds].join(",");
+  if (!encodedIds) return [];
   const pageSize = 1000;
   const rows = [];
-  const encodedIds = costCenterIds.join(",");
-
   for (let month = 1; month <= 12; month += 1) {
     let lastId = "00000000-0000-0000-0000-000000000000";
     while (true) {
@@ -4184,8 +4206,14 @@ async function fetchActualsLedgerForManagementYear(year, management) {
       lastId = page[page.length - 1].id;
     }
   }
-
   return rows;
+}
+
+async function fetchActualsLedgerForManagementYear(year, management) {
+  const filter = buildOpexCostCenterFilter(management);
+  const ccIds = [...(filter?.ids || [])].filter(Boolean);
+  if (!ccIds.length) return [];
+  return fetchActualsLedgerForCcIds(year, ccIds);
 }
 
 async function buildLocalLedgerEntriesForYear(year) {
