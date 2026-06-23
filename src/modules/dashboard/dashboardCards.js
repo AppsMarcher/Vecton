@@ -442,8 +442,14 @@
       const _hcRole = state.profile?.accessRole || "admin";
       const isRestricted = (_hcRole === "manager" || _hcRole === "analyst");
       const allowedHcMgmts = getAllowedManagements();
-      const hcExtraCcIds = getExtraCcIds ? (getExtraCcIds() || []).map(String) : [];
-      const hasExtraCcs = hcExtraCcIds.length > 0;
+      // extra_cc_ids são UUIDs; mapeia para números via costCenters (mesmo que getAllowedCcNumbers).
+      const hcExtraCcUuids = new Set((getExtraCcIds ? (getExtraCcIds() || []) : []).map(String));
+      const hcExtraCcNumbers = new Set(
+        (state.costCenters || [])
+          .filter((cc) => hcExtraCcUuids.has(String(cc.id)))
+          .map((cc) => String(cc.number))
+      );
+      const hasExtraCcs = hcExtraCcNumbers.size > 0;
 
       // Usuário parcial (management=null + extra_cc_ids): fica preso em "Marcher"
       // mas ainda pode detalhar os seus CCs avulsos — não bloqueia com o aviso.
@@ -477,7 +483,7 @@
           // Para admin: usa tudo.
           let drillSource;
           if (isRestricted && dashHcMgmt === "Marcher" && hasExtraCcs) {
-            drillSource = filtered.filter((row) => hcExtraCcIds.includes(String(row.cost_center_number)));
+            drillSource = filtered.filter((row) => hcExtraCcNumbers.has(String(row.cost_center_number)));
           } else if (isRestricted && allowedHcMgmts) {
             drillSource = filtered.filter((row) => allowedHcMgmts.includes((row.management || "").trim()));
           } else {
