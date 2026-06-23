@@ -823,12 +823,10 @@
     }
 
     function navigateToOpexReport(mgmt, anchorEl) {
-      // Gestor/Analista só drilla na própria gestão. Clicar numa fatia de outra
-      // área mostra aviso de acesso em vez de navegar (e evita o spinner infinito,
-      // já que o relatório travaria em RH e o re-render nunca casaria a gestão).
-      const role = state.profile?.accessRole || "admin";
-      const userMgmt = (state.profile?.management || "").trim();
-      if ((role === "manager" || role === "analyst") && mgmt !== userMgmt) {
+      // Gestor/Analista só drilla nas gestões permitidas (principal + complementares).
+      // Clicar numa fatia de outra área mostra aviso de acesso em vez de navegar.
+      const allowedMgmts = getAllowedManagements();
+      if (allowedMgmts && !allowedMgmts.includes(mgmt)) {
         showOpexNoAccessPopover(mgmt, anchorEl);
         return;
       }
