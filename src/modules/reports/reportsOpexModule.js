@@ -109,6 +109,7 @@
           const tableEl = detailPanel.querySelector(".reports-opex-table");
           if (tableEl) initOpexDrilldown(tableEl, cached.rows, null);
         } else {
+          detailPanel.dataset.opexMgmt = selectedMgmt;
           detailPanel.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-table-inner">${window.vpSkeletonTable()}</div></div>`;
           fetchActualsLedgerForManagementYear(year, selectedMgmt).then((rows) => {
             reportsLedgerCache.set(mgmtCacheKey, { rows });
