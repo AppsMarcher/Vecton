@@ -15,6 +15,7 @@
       fetchSupabaseRowsSafe,
       fetchActualsLedgerWithCcForYear,
       fetchActualsLedgerForCcIds,
+      getAllowedManagements,
       buildOpexCostCenterFilter,
       matchesOpexCostCenterFilter,
       renderNavigation,
@@ -50,14 +51,21 @@
         opexStructure.flatMap((section) => section.groups.flatMap((group) => group.accounts))
       );
 
-      const managements = [...new Set(
+      const allManagementsInCcs = [...new Set(
         state.costCenters.map((cc) => (cc.management || "").trim()).filter(Boolean)
       )].sort();
 
-      // Exibição primária do dashboard é SEMPRE consolidada (empresa toda),
-      // inclusive para Gestor/Analista. A restrição por gestão vale só no
-      // drill-down (clique pra detalhar).
-      const mgmtOptions = ["Marcher", ...managements];
+      // "Marcher" (consolidado) é sempre visível. Gestões específicas são
+      // restritas às permitidas para Gestor/Analista; Admin vê todas.
+      const allowedMgmts = getAllowedManagements();
+      const mgmtOptions = allowedMgmts
+        ? ["Marcher", ...allowedMgmts.filter((m) => allManagementsInCcs.includes(m))]
+        : ["Marcher", ...allManagementsInCcs];
+
+      // Garante que dashHcMgmt aponte para uma opção válida
+      if (!mgmtOptions.includes(dashHcMgmt)) {
+        dashHcMgmt = mgmtOptions[0] || "Marcher";
+      }
 
       // toggle Mês / Acumulado no card de Opex
       let opexToggle = document.querySelector("#dash-opex-mode-toggle");
