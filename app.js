@@ -3529,25 +3529,32 @@ function initDreSocDrilldown(tableWrap, year, source = "real") {
   // Cache de ledger rico — busca na primeira interação
   let richRows = normalized;
   let richFetched = false;
+  let richFetchPromise = null;
 
   const ensureRichRows = async (year) => {
     if (richFetched) return;
-    richFetched = true;
-    try {
-      const rows = await (source === "budget" ? fetchBudgetLedgerFullForYear : fetchActualsLedgerFullForYear)(year);
-      richRows = rows.map((row) => ({
-        code:    normalizeCode(row.account_number ?? ""),
-        branch:  String(row.branch_code ?? ""),
-        cc:      String(row.cost_center_number ?? ""),
-        date:    String(row.entry_date ?? ""),
-        history: String(row.history ?? ""),
-        lot:     String(row.lot_code ?? ""),
-        amount:  Number(row.amount),
-        month:   Number(row.reference_month)
-      })).filter((r) => r.code && r.month >= 1 && r.month <= 12 && Number.isFinite(r.amount));
-    } catch (e) {
-      console.warn("Falha ao buscar ledger detalhado para drilldown societário", e);
+    if (!richFetchPromise) {
+      richFetchPromise = (async () => {
+        try {
+          const rows = await (source === "budget" ? fetchBudgetLedgerFullForYear : fetchActualsLedgerFullForYear)(year);
+          richRows = rows.map((row) => ({
+            code:    normalizeCode(row.account_number ?? ""),
+            branch:  String(row.branch_code ?? ""),
+            cc:      String(row.cost_center_number ?? ""),
+            date:    String(row.entry_date ?? ""),
+            history: String(row.history ?? ""),
+            lot:     String(row.lot_code ?? ""),
+            amount:  Number(row.amount),
+            month:   Number(row.reference_month)
+          })).filter((r) => r.code && r.month >= 1 && r.month <= 12 && Number.isFinite(r.amount));
+        } catch (e) {
+          console.warn("Falha ao buscar ledger detalhado para drilldown societário", e);
+        } finally {
+          richFetched = true;
+        }
+      })();
     }
+    return richFetchPromise;
   };
 
   tableWrap.addEventListener("click", async (event) => {
