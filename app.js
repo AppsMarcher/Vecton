@@ -3034,8 +3034,8 @@ function renderOpexBudgetReport(detailPanel) {
   const allOption = "Marcher";
   const baseMgmtOptions = [allOption, ...managements];
   const prevMgmt = detailPanel.dataset.opexMgmt || allOption;
-  const { selectedMgmt, locked: mgmtLocked } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
-  const mgmtOptions = mgmtLocked ? [selectedMgmt] : baseMgmtOptions;
+  const { selectedMgmt, locked: mgmtLocked, allowedMgmts } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
+  const mgmtOptions = mgmtLocked ? [selectedMgmt] : (allowedMgmts ? [allOption, ...allowedMgmts] : baseMgmtOptions);
 
   const opexSlot = document.querySelector("#opex-gestao-slot");
   if (opexSlot) {
