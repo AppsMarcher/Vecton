@@ -3562,12 +3562,27 @@ function initDreSocDrilldown(tableWrap, year, source = "real") {
     }
     closeSocPopover();
 
-    // Garantir dados ricos
-    await ensureRichRows(year);
-
     const lineName = td.closest("tr")?.querySelector(".soc-label-col span")?.textContent || code;
     const monthLabel = MONTH_LABELS[monthIdx] || String(monthIdx + 1);
     const rect = td.getBoundingClientRect();
+
+    // Abre loading imediatamente — usuário sabe que a ação foi disparada
+    let loadingPop = null;
+    if (!richFetched) {
+      loadingPop = buildSocDrillLoadingPopover(lineName, monthLabel, code, monthIdx);
+      _socPopover = loadingPop;
+      document.body.appendChild(_socPopover);
+      positionAuditPopover(_socPopover, rect);
+    }
+
+    // Garantir dados ricos
+    await ensureRichRows(year);
+
+    // Se o usuário fechou o loading enquanto esperava, não abre o popover real
+    if (loadingPop && !document.body.contains(loadingPop)) return;
+
+    // Remove o loading (será substituído pelo popover real abaixo)
+    if (loadingPop) { loadingPop.remove(); _socPopover = null; }
 
     // Drill-down respeita o acesso do perfil: Gestor/Analista só veem
     // lançamentos dos CCs da sua gestão (null = sem restrição → admin).
@@ -3610,6 +3625,41 @@ function onDocClickCloseSoc(event) {
   if (!_socPopover.contains(event.target) && !event.target.closest(".soc-drillable")) {
     closeSocPopover();
   }
+}
+
+function buildSocDrillLoadingPopover(lineName, monthLabel, code, monthIdx) {
+  const pop = document.createElement("div");
+  pop.dataset.code = code;
+  pop.dataset.monthIdx = String(monthIdx);
+  pop.dataset.loading = "1";
+  pop.style.cssText = "position:fixed;z-index:9800;background:var(--panel);border:0.5px solid var(--line);border-radius:12px;padding:16px 20px;min-width:300px;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,0.55)";
+  pop.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <p style="font-size:0.65rem;color:var(--text-faint);letter-spacing:0.07em;text-transform:uppercase;margin:0 0 3px">${escapeHtml(monthLabel)} · ${escapeHtml(code)}</p>
+        <h4 style="font-size:0.9rem;font-weight:600;color:var(--text);margin:0">${escapeHtml(lineName)}</h4>
+      </div>
+      <button onclick="this.closest('[data-code]').remove()" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:18px;padding:0 0 0 12px;line-height:1">×</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 0 4px">
+      <svg viewBox="0 0 60 20" width="60" height="20" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="10" r="4" fill="var(--accent)">
+          <animate attributeName="opacity" values="0.25;1;0.25" dur="1.1s" begin="0s" repeatCount="indefinite"/>
+          <animate attributeName="r" values="4;5.2;4" dur="1.1s" begin="0s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="30" cy="10" r="4" fill="var(--accent)">
+          <animate attributeName="opacity" values="0.25;1;0.25" dur="1.1s" begin="0.22s" repeatCount="indefinite"/>
+          <animate attributeName="r" values="4;5.2;4" dur="1.1s" begin="0.22s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="50" cy="10" r="4" fill="var(--accent)">
+          <animate attributeName="opacity" values="0.25;1;0.25" dur="1.1s" begin="0.44s" repeatCount="indefinite"/>
+          <animate attributeName="r" values="4;5.2;4" dur="1.1s" begin="0.44s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+      <span style="font-size:0.75rem;color:var(--text-faint)">Carregando detalhes…</span>
+    </div>
+  `;
+  return pop;
 }
 
 function buildSocDrillEmptyPopover(lineName, monthLabel, code, monthIdx, message) {
