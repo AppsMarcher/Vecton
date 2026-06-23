@@ -725,10 +725,7 @@ const reportsDreModule = createReportsDreModule({
   buildDreDfsRealTableMarkup,
   initAllReportTableResizers,
   initDreGerDrilldown,
-  initDreSocDrilldown,
-  getAllowedCcNumbers,
-  fetchActualsLedgerFullForYear,
-  fetchBudgetLedgerFullForYear
+  initDreSocDrilldown
 });
 const { createReportsOpexModule } = window.VECTON_REPORTS_OPEX;
 const reportsOpexModule = createReportsOpexModule({
@@ -3614,6 +3611,8 @@ function initDreSocDrilldown(tableWrap, year, source = "real") {
   });
 
   document.addEventListener("click", onDocClickCloseSoc, true);
+
+  return { prefetch: () => ensureRichRows(year) };
 }
 
 let _socPopover = null;
