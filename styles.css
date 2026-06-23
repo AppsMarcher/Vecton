@@ -3869,6 +3869,24 @@ textarea[disabled] {
   letter-spacing: -0.01em;
 }
 
+/* ─── SCROLLBAR FLUTUANTE (tabelas DRE) ─────────────────────────────────── */
+.floating-hscroll {
+  position: fixed;
+  bottom: 0;
+  z-index: 100;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 10px;
+  display: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.floating-hscroll-inner { height: 1px; }
+.floating-hscroll::-webkit-scrollbar { height: 6px; }
+.floating-hscroll::-webkit-scrollbar-track { background: transparent; }
+.floating-hscroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.floating-hscroll::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
 /* ─── TRILHA DE AUDITORIA — DRE GERENCIAL ────────────────────────────────── */
 .ger-drillable {
   cursor: pointer;
