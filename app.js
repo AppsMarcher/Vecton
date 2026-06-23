@@ -785,6 +785,7 @@ const { renderDashOpexCards } = createDashboardCardsModule({
   resolveOrganizationId,
   fetchSupabaseRowsSafe,
   fetchActualsLedgerWithCcForYear,
+  fetchActualsLedgerForCcIds,
   buildOpexCostCenterFilter,
   matchesOpexCostCenterFilter,
   renderNavigation,
