@@ -83,14 +83,14 @@
           opexToggle.querySelectorAll(".dre-mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === (_opexAccum ? "acumulado" : "mes")));
           if (_lastOpexParams) {
             const { year: y, monthIdx: mi, allRealRows: rr } = _lastOpexParams;
-            renderDashOpexDonut(y, mi, rr, allOpexAccounts, managements, _opexAccum);
+            renderDashOpexDonut(y, mi, rr, allOpexAccounts, allManagementsInCcs, _opexAccum);
           }
         });
       } else {
         opexToggle.querySelectorAll(".dre-mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === (_opexAccum ? "acumulado" : "mes")));
       }
 
-      renderDashOpexDonut(year, monthIdx, allRealRows, allOpexAccounts, managements, _opexAccum);
+      renderDashOpexDonut(year, monthIdx, allRealRows, allOpexAccounts, allManagementsInCcs, _opexAccum);
       renderDashHcCard(year, monthIdx, allRealRows, pessoalAccounts, mgmtOptions);
     }
 
