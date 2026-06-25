@@ -1119,7 +1119,7 @@
       const sel = document.querySelector("#budget-scenario-select");
       if (!sel) return;
       sel.innerHTML = [
-        `<option value="budget">Budget (Orçamento)</option>`,
+        `<option value="budget">Budget</option>`,
         ...(availableScenarios || []).map(s =>
           `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`
         )
