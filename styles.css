@@ -2842,6 +2842,20 @@ thead .col-frozen-3 {
   cursor: pointer;
 }
 
+.budget-target-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.budget-target-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding-left: 2px;
+}
+
 .actuals-scope-panel {
   display: none;
 }
