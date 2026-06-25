@@ -20,7 +20,15 @@
       "#f97316", "#eab308", "#22c55e", "#14b8a6",
       "#3b82f6", "#64748b",
     ];
-    const PRESET_ICONS = ["📊", "🎯", "📈", "🔮", "⚡", "🌿", "🏗️", "💡", "🧭", "🚀"];
+    const PRESET_ICONS = [
+      "vp-icon-cost", "vp-icon-trend-up", "vp-icon-activity", "vp-icon-dollar",
+      "vp-icon-pie", "vp-icon-target", "vp-icon-layers", "vp-icon-sliders",
+      "vp-icon-briefcase", "vp-icon-reports", "vp-icon-planning", "vp-icon-dashboard",
+    ];
+
+    function iconSvg(key) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${key || "vp-icon-cost"}"></use></svg>`;
+    }
 
     // ── Supabase ─────────────────────────────────────────────────────────────
     async function loadScenarios(year) {
@@ -151,7 +159,7 @@
           style="border-top-color:${escapeHtml(color)};--fc-accent:${escapeHtml(color)}">
           <div class="rrc-top">
             <span class="rrc-icon-wrap" style="background:${hexToRgba(color, 0.12)};border-color:${hexToRgba(color, 0.25)};color:${escapeHtml(color)}">
-              <span style="font-size:1rem;line-height:1">${escapeHtml(s.icon || "📊")}</span>
+              ${iconSvg(s.icon)}
             </span>
           </div>
           <strong>${escapeHtml(s.name)}</strong>
@@ -227,7 +235,7 @@
             <div class="fc-field">
               <label class="fc-flabel">Ícone</label>
               <div class="fc-swatches" id="fc-icons">
-                ${PRESET_ICONS.map((ic, i) => `<button type="button" class="fc-icon-btn${i === 0 ? " fc-active" : ""}" data-icon="${ic}">${ic}</button>`).join("")}
+                ${PRESET_ICONS.map((ic, i) => `<button type="button" class="fc-icon-btn${i === 0 ? " fc-active" : ""}" data-icon="${ic}">${iconSvg(ic)}</button>`).join("")}
               </div>
               <input id="fc-icon" type="hidden" value="${PRESET_ICONS[0]}">
             </div>
@@ -332,7 +340,7 @@
           <div class="fc-detail-header">
             <button class="fc-back-btn" id="fc-detail-back" type="button">← Cenários</button>
             <div class="fc-detail-title-row">
-              <span class="fc-detail-icon" style="background:${escapeHtml(scenario.color || "#6366f1")}">${escapeHtml(scenario.icon || "📊")}</span>
+              <span class="fc-detail-icon" style="background:${escapeHtml(scenario.color || "#6366f1")};color:#fff">${iconSvg(scenario.icon)}</span>
               <div>
                 <h2 class="fc-detail-name">${escapeHtml(scenario.name)}</h2>
                 <span class="fc-detail-meta">Realizado até ${escapeHtml(MONTH_LABELS[(scenario.cutoff_month || 1) - 1])} · ${scenario.reference_year}</span>
