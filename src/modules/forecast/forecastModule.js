@@ -7,6 +7,7 @@
       resolveOrganizationId,
       fetchSupabaseRowsSafe,
       upsertSupabaseRows,
+      deleteSupabaseRows,
       isAdmin,
     } = deps;
 
@@ -164,6 +165,11 @@
           </div>
           <strong>${escapeHtml(s.name)}</strong>
           <span class="rrc-subtitle">Corte: ${escapeHtml(MONTH_LABELS[(s.cutoff_month || 1) - 1])} · ${s.reference_year}</span>
+          <div class="fc-card-actions" role="toolbar">
+            <button class="fc-card-action-btn" type="button" data-fc-action="edit" data-action-scenario="${escapeHtml(s.id)}">Editar</button>
+            <button class="fc-card-action-btn" type="button" data-fc-action="copy" data-action-scenario="${escapeHtml(s.id)}">Copiar</button>
+            <button class="fc-card-action-btn fc-card-action-btn--danger" type="button" data-fc-action="remove" data-action-scenario="${escapeHtml(s.id)}">Remover</button>
+          </div>
         </button>`;
       }).join("");
 
@@ -185,7 +191,19 @@
         renderNewForm(container);
       });
 
-      container.querySelector(".fc-card-grid")?.addEventListener("click", e => {
+      container.querySelector(".reports-card-grid")?.addEventListener("click", e => {
+        const actionBtn = e.target.closest("[data-fc-action]");
+        if (actionBtn) {
+          e.stopPropagation();
+          const scenarioId = actionBtn.dataset.actionScenario;
+          const scenario = (scenarios || []).find(s => s.id === scenarioId);
+          if (!scenario) return;
+          const action = actionBtn.dataset.fcAction;
+          if (action === "edit") renderEditForm(container, scenario);
+          else if (action === "copy") handleCopyScenario(container, scenario);
+          else if (action === "remove") handleRemoveScenario(container, scenario);
+          return;
+        }
         const card = e.target.closest("[data-scenario-id]");
         if (!card) return;
         selectedId = card.dataset.scenarioId;
@@ -330,6 +348,149 @@
           saveBtn.textContent = "Criar cenário";
         }
       });
+    }
+
+    function renderEditForm(container, scenario) {
+      const year = scenario.reference_year;
+      const activeColor = scenario.color || PRESET_COLORS[0];
+      const activeIcon  = scenario.icon  || PRESET_ICONS[0];
+
+      container.innerHTML = `
+        <div class="fc-wrap fc-form-wrap">
+          <div class="fc-form-header">
+            <button class="fc-back-btn" id="fc-back" type="button">← Cenários</button>
+            <h2 class="fc-form-title">Editar cenário · ${year}</h2>
+          </div>
+          <form id="fc-form" class="fc-form" autocomplete="off">
+            <div class="fc-field">
+              <label class="fc-flabel">Nome</label>
+              <input id="fc-name" class="fc-input" type="text" required maxlength="80" value="${escapeHtml(scenario.name)}">
+            </div>
+            <div class="fc-field">
+              <label class="fc-flabel">Cor</label>
+              <div class="fc-swatches" id="fc-colors">
+                ${PRESET_COLORS.map(c => `<button type="button" class="fc-swatch${c === activeColor ? " fc-active" : ""}" data-color="${c}" style="background:${c}"></button>`).join("")}
+              </div>
+              <input id="fc-color" type="hidden" value="${escapeHtml(activeColor)}">
+            </div>
+            <div class="fc-field">
+              <label class="fc-flabel">Ícone</label>
+              <div class="fc-swatches" id="fc-icons">
+                ${PRESET_ICONS.map(ic => `<button type="button" class="fc-icon-btn${ic === activeIcon ? " fc-active" : ""}" data-icon="${ic}">${iconSvg(ic)}</button>`).join("")}
+              </div>
+              <input id="fc-icon" type="hidden" value="${escapeHtml(activeIcon)}">
+            </div>
+            <div class="fc-field">
+              <label class="fc-flabel">Realizado até</label>
+              <select id="fc-cutoff" class="fc-input" style="max-width:160px">
+                ${MONTH_LABELS.map((l, i) => `<option value="${i + 1}"${(i + 1) === scenario.cutoff_month ? " selected" : ""}>${escapeHtml(l)}</option>`).join("")}
+              </select>
+              <span class="fc-fhint">Meses até este serão puxados do realizado no relatório.</span>
+            </div>
+            <div class="fc-form-actions">
+              <button type="button" class="fc-btn-cancel" id="fc-cancel">Cancelar</button>
+              <button type="submit" class="fc-btn-save" id="fc-save">Salvar alterações</button>
+            </div>
+          </form>
+        </div>`;
+
+      container.querySelector("#fc-colors").addEventListener("click", e => {
+        const btn = e.target.closest("[data-color]");
+        if (!btn) return;
+        container.querySelectorAll(".fc-swatch").forEach(s => s.classList.remove("fc-active"));
+        btn.classList.add("fc-active");
+        container.querySelector("#fc-color").value = btn.dataset.color;
+      });
+
+      container.querySelector("#fc-icons").addEventListener("click", e => {
+        const btn = e.target.closest("[data-icon]");
+        if (!btn) return;
+        container.querySelectorAll(".fc-icon-btn").forEach(s => s.classList.remove("fc-active"));
+        btn.classList.add("fc-active");
+        container.querySelector("#fc-icon").value = btn.dataset.icon;
+      });
+
+      const goBack = () => renderGrid(container);
+      container.querySelector("#fc-back").addEventListener("click", goBack);
+      container.querySelector("#fc-cancel").addEventListener("click", goBack);
+
+      container.querySelector("#fc-form").addEventListener("submit", async e => {
+        e.preventDefault();
+        const name    = container.querySelector("#fc-name").value.trim();
+        const color   = container.querySelector("#fc-color").value;
+        const icon    = container.querySelector("#fc-icon").value;
+        const cutoff  = Number(container.querySelector("#fc-cutoff").value);
+        const saveBtn = container.querySelector("#fc-save");
+        if (!name) return;
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Salvando…";
+        try {
+          const orgId = await resolveOrganizationId();
+          await upsertSupabaseRows("forecast_scenarios", [{
+            id: scenario.id,
+            organization_id: orgId,
+            name,
+            color,
+            icon,
+            reference_year: year,
+            cutoff_month: cutoff,
+          }], ["id"]);
+          scenarios = null;
+          await loadScenarios(year);
+          renderGrid(container);
+        } catch (err) {
+          console.error("Erro ao salvar cenário:", err);
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Salvar alterações";
+        }
+      });
+    }
+
+    async function handleCopyScenario(container, scenario) {
+      const year = Number(state.currentPeriod?.year || 2026);
+      try {
+        await createScenario({
+          name:          `Cópia de ${scenario.name}`,
+          color:         scenario.color,
+          icon:          scenario.icon,
+          referenceYear: scenario.reference_year,
+          cutoffMonth:   scenario.cutoff_month,
+        });
+        scenarios = null;
+        await loadScenarios(year);
+        renderGrid(container);
+      } catch (err) {
+        console.error("Erro ao copiar cenário:", err);
+      }
+    }
+
+    function handleRemoveScenario(container, scenario) {
+      document.querySelector(".vp-delete-confirm")?.remove();
+      const pop = document.createElement("div");
+      pop.className = "vp-delete-confirm";
+      pop.innerHTML = `
+        <span>Remover <strong>${escapeHtml(scenario.name)}</strong>?</span>
+        <button class="vp-delete-confirm-yes" type="button">Remover</button>
+        <button class="vp-delete-confirm-no" type="button">Cancelar</button>
+      `;
+      document.body.appendChild(pop);
+      pop.querySelector(".vp-delete-confirm-yes").addEventListener("click", async () => {
+        pop.remove();
+        try {
+          const orgId = await resolveOrganizationId();
+          await deleteSupabaseRows("forecast_scenarios", `id=eq.${scenario.id}&organization_id=eq.${orgId}`);
+          scenarios = null;
+          const year = Number(state.currentPeriod?.year || 2026);
+          await loadScenarios(year);
+          renderGrid(container);
+        } catch (err) {
+          console.error("Erro ao remover cenário:", err);
+        }
+      });
+      pop.querySelector(".vp-delete-confirm-no").addEventListener("click", () => pop.remove());
+      setTimeout(() => {
+        document.addEventListener("click", (ev) => { if (!pop.contains(ev.target)) pop.remove(); }, { once: true });
+      }, 0);
     }
 
     function renderDetail(container, scenario) {
