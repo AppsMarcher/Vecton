@@ -2095,6 +2095,7 @@ body.can-edit-reports .reports-report-card .rrc-edit-btn { display: inline-flex;
 .fc-card-menu-btn svg { width: 13px; height: 13px; pointer-events: none; }
 .fc-card-menu-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.12); }
 body.can-edit-reports .fc-scenario-card .fc-card-menu-btn { display: inline-flex; }
+body.can-edit-reports [data-custom-report="true"] .fc-card-menu-btn { display: inline-flex; }
 
 /* Botão Reorganizar */
 #reports-reorder-btn {
