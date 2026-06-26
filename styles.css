@@ -5780,36 +5780,33 @@ table th,
 }
 .fc-new-btn:hover { background: var(--hover); }
 
-.fc-card-actions {
-  display: flex;
-  margin-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 6px;
+.fc-action-menu {
+  position: fixed;
+  z-index: 9000;
+  background: var(--panel-hover);
+  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  min-width: 140px;
+  overflow: hidden;
 }
 
-.fc-card-action-btn {
-  flex: 1;
+.fc-action-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 16px;
   background: transparent;
   border: none;
-  color: var(--text-faint);
-  font-size: 0.7rem;
-  padding: 4px 0;
+  color: var(--text-1, #f3f4f6);
+  font-size: 0.83rem;
   cursor: pointer;
-  border-radius: 4px;
-  transition: color .12s, background .12s;
-  letter-spacing: 0.02em;
+  transition: background .1s;
 }
 
-.fc-card-action-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-main);
-}
+.fc-action-menu-item:hover { background: rgba(255, 255, 255, 0.06); }
 
-.fc-card-action-btn + .fc-card-action-btn {
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.fc-card-action-btn--danger:hover { color: #f87171; }
+.fc-action-menu-item--danger { color: #f87171; }
 
 .fc-empty {
   color: var(--text-faint);
