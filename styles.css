@@ -3206,6 +3206,11 @@ thead .col-frozen-3 {
   display: block;
 }
 
+.table-icon-button-only.refresh-ok {
+  color: #22c55e;
+  transition: color 0.3s;
+}
+
 .vp-delete-confirm {
   position: fixed;
   top: 50%;
