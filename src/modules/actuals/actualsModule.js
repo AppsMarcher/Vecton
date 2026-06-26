@@ -329,7 +329,7 @@
         if (!deleteButton) {
           return;
         }
-        await deleteActualsRow(deleteButton.dataset.deleteRow);
+        showDeleteConfirm(() => deleteActualsRow(deleteButton.dataset.deleteRow));
       });
 
       document.querySelector("#actuals-revalidate-batch")?.addEventListener("click", handleRevalidateActualsBatch);
@@ -933,16 +933,47 @@
       batch.status = rows.length === 0 ? "draft" : (batch.errorRows > 0 ? "error" : "ready");
     }
 
+    function showDeleteConfirm(onConfirm) {
+      document.querySelector(".vp-delete-confirm")?.remove();
+      const pop = document.createElement("div");
+      pop.className = "vp-delete-confirm";
+      pop.innerHTML = `
+        <span>Excluir esta linha?</span>
+        <button class="vp-delete-confirm-yes" type="button">Excluir</button>
+        <button class="vp-delete-confirm-no" type="button">Cancelar</button>
+      `;
+      document.body.appendChild(pop);
+      pop.querySelector(".vp-delete-confirm-yes").addEventListener("click", () => { pop.remove(); onConfirm(); });
+      pop.querySelector(".vp-delete-confirm-no").addEventListener("click", () => pop.remove());
+      setTimeout(() => document.addEventListener("click", (e) => { if (!pop.contains(e.target)) pop.remove(); }, { once: true }), 0);
+    }
+
     async function handleRefreshActualsRow(rowId) {
       const batch = getSelectedActualsBatch();
       const row = getSelectedActualsRows().find((r) => r.id === rowId);
       if (!batch || !row) return;
+      const btn = document.querySelector(`[data-refresh-row="${rowId}"]`);
+      btn?.classList.add("refreshing");
       try {
         await saveActualsRows(batch.id, [row]);
+        if (isSupabaseConfigured()) {
+          const [fresh] = await fetchSupabaseRowsSafe(
+            "actuals_import_rows",
+            `id=eq.${encodeURIComponent(rowId)}&select=id,row_number,entry_date,branch_code,account_number,cost_center_number,history,lot_code,amount,validation_status,validation_errors,raw_payload&limit=1`
+          );
+          if (fresh) {
+            const normalized = normalizeActualsRow(fresh);
+            state.actualsRowsByBatch[batch.id] = (state.actualsRowsByBatch[batch.id] || []).map((r) =>
+              r.id === rowId ? normalized : r
+            );
+          }
+        }
         renderView();
       } catch (error) {
         console.error(error);
         setUploadFeedback(String(error?.message || error || "Falha ao revalidar linha."), "error");
+      } finally {
+        btn?.classList.remove("refreshing");
       }
     }
 
