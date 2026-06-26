@@ -969,6 +969,12 @@
           }
         }
         renderView();
+        const freshBtn = document.querySelector(`[data-refresh-row="${rowId}"]`);
+        if (freshBtn) {
+          freshBtn.classList.add("refresh-ok");
+          setTimeout(() => freshBtn.classList.remove("refresh-ok"), 1000);
+        }
+        setUploadFeedback("Linha revalidada.", "ok");
       } catch (error) {
         console.error(error);
         setUploadFeedback(String(error?.message || error || "Falha ao revalidar linha."), "error");
