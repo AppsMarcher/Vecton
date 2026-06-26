@@ -1116,7 +1116,7 @@
 
       if (!accountNumber) {
         errors.push("Conta obrigatoria");
-      } else if (!state.accounts.some((account) => account.number === accountNumber)) {
+      } else if (!state.accounts.some((account) => normalizeCode(account.number) === accountNumber)) {
         errors.push("Conta nao cadastrada");
       }
 
