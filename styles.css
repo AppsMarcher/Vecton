@@ -3188,10 +3188,13 @@ thead .col-frozen-3 {
 }
 
 .actuals-col-action {
-  width: 68px;
-  min-width: 68px;
-  padding-left: 2px;
+  width: 1px;
+  padding: 0 8px 0 4px;
   white-space: nowrap;
+}
+
+.actuals-col-action .table-icon-button-only + .table-icon-button-only {
+  margin-left: 8px;
 }
 
 .actuals-field-date {
