@@ -1463,7 +1463,11 @@ function getExtraAccountCodes() { return state.profile?.extraAccountCodes  || []
 function getExtraManagements()  { return state.profile?.extraManagements   || []; }
 function getAllowedManagements() {
   if (!isAccessRestricted()) return null;
-  return [getUserManagement(), ...getExtraManagements()].filter(Boolean);
+  const mgmts = [getUserManagement(), ...getExtraManagements()].filter(Boolean);
+  // Gestor/Analista sem nenhuma gestao atribuida (nem primaria, nem extra):
+  // em vez de travar em "nenhuma", enxerga tudo (igual admin, sem acesso a
+  // upload/parametros). Se atribuir uma gestao, volta a restringir a ela.
+  return mgmts.length > 0 ? mgmts : null;
 }
 
 // Gestões onde o acesso é parcial: usuário tem extra_cc_ids de CCs daquela gestão,
@@ -1517,6 +1521,8 @@ function getAllowedCcNumbers() {
   const mgmt = (getUserManagement() || "").trim();
   const extraMgmts = new Set(getExtraManagements().map(m => m.trim()));
   const extraIds = new Set((getExtraCcIds() || []).map(String));
+  // Sem gestao primaria nem nenhuma concessao extra: enxerga tudo (igual admin).
+  if (!mgmt && extraMgmts.size === 0 && extraIds.size === 0) return null;
   const allowed = new Set();
   (state.costCenters || []).forEach((cc) => {
     const ccMgmt = (cc.management || "").trim();
@@ -1545,9 +1551,14 @@ function resolveManagementFilter(prevMgmt, mgmtOptions, allOption) {
       const locked = allAccessible.length === 1;
       return { selectedMgmt: selected, locked, allowedMgmts: allAccessible, partialMgmts };
     }
-    // Fail-closed: travado na própria gestão. Sentinela "__no_cc__" garante
-    // que um perfil sem gestão não case com nenhum CC.
-    return { selectedMgmt: userMgmt || "__no_cc__", locked: true, allowedMgmts: null, partialMgmts };
+    if (userMgmt) {
+      // Uma única gestão, sem extras: trava nela.
+      return { selectedMgmt: userMgmt, locked: true, allowedMgmts: null, partialMgmts };
+    }
+    // Sem nenhuma gestão atribuída (nem primária, nem extra, nem parcial):
+    // enxerga tudo, igual admin. Atribuir uma gestão volta a restringir.
+    const openSelected = mgmtOptions.includes(prevMgmt) ? prevMgmt : allOption;
+    return { selectedMgmt: openSelected, locked: false, allowedMgmts: null, partialMgmts };
   }
   const selectedMgmt = mgmtOptions.includes(prevMgmt) ? prevMgmt : allOption;
   return { selectedMgmt, locked: false, allowedMgmts: null, partialMgmts: new Map() };
@@ -1758,9 +1769,17 @@ async function fetchHeadcountRealForYear(year) {
 function hcCostSource(year, isBudget) {
   if (isAccessRestricted()) {
     const allMgmts = getAllowedManagements();
+    const extraCcIdList = getExtraCcIds() || [];
+    if (allMgmts === null && extraCcIdList.length === 0) {
+      // Sem nenhuma gestão/CC atribuído: enxerga tudo, igual admin.
+      return {
+        key: `${isBudget ? "budget" : "opex"}-cc-${year}`,
+        fetchFn: () => (isBudget ? fetchBudgetLedgerWithCcForYear : fetchActualsLedgerWithCcForYear)(year)
+      };
+    }
     const mgmtFilter = buildOpexCostCenterFilter(allMgmts);
     const ccIds = new Set([...(mgmtFilter?.ids || [])]);
-    (getExtraCcIds() || []).forEach(id => {
+    extraCcIdList.forEach(id => {
       if ((state.costCenters || []).some(cc => String(cc.id) === String(id))) ccIds.add(String(id));
     });
     if (!ccIds.size) {
