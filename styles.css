@@ -5369,7 +5369,7 @@ body.auth-only .content-view {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 960px;
+  max-width: 1100px;
   padding: 20px 24px;
 }
 
@@ -5409,6 +5409,11 @@ body.auth-only .content-view {
   width: 1%;
 }
 
+.users-table th:first-child,
+.users-table td:first-child {
+  min-width: 220px;
+}
+
 .users-col-actions { width: 1%; }
 
 .users-avatar {
@@ -5431,7 +5436,7 @@ body.auth-only .content-view {
   gap: 10px;
 }
 
-.users-name-text { font-weight: 500; color: var(--text); }
+.users-name-text { font-weight: 500; color: var(--text); white-space: nowrap; }
 .users-email-text { font-size: 0.78rem; color: var(--text-soft); }
 
 .users-badge {
@@ -5829,6 +5834,38 @@ table th,
 .fc-action-menu-item:hover { background: rgba(255, 255, 255, 0.06); }
 
 .fc-action-menu-item--danger { color: #f87171; }
+
+.vp-source-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  flex-shrink: 0;
+}
+
+.vp-source-label {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.vp-source-sel {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--panel-hover);
+  color: var(--text);
+  cursor: pointer;
+  max-width: 240px;
+}
+
+.vp-source-sel:focus {
+  outline: none;
+  border-color: var(--blue);
+}
 
 .fc-empty {
   grid-column: 1 / -1;
