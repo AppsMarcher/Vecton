@@ -130,6 +130,10 @@ let activeHcErrorRowId = null;
 let selectedHeadcountLoadType = null;
 let headcountReturnView = null;
 let opexHideZeros = false;
+let _opexBudgetSource = "budget";
+let _opexScenariosCache = null;
+let _hcBudgetSource = "budget";
+let _hcScenariosCache = null;
 const loadingHeadcountBatchIds = new Set();
 const hcDashCache = new Map();
 let hcDashLoadingKey = null;
@@ -746,7 +750,10 @@ const reportsDreModule = createReportsDreModule({
   initFloatingScrollbar,
   initDreGerDrilldown,
   initDreSocDrilldown,
-  isAccessRestricted
+  isAccessRestricted,
+  fetchScenariosForYear,
+  fetchScenarioLedgerForYear,
+  getCurrentYear: () => Number(state.currentPeriod?.year || 2026),
 });
 const { createReportsOpexModule } = window.VECTON_REPORTS_OPEX;
 const reportsOpexModule = createReportsOpexModule({
@@ -770,11 +777,15 @@ const reportsOpexModule = createReportsOpexModule({
   renderReportsView,
   renderOpexBudgetReport,
   resolveManagementFilter,
-  getPartialManagements
+  getPartialManagements,
+  fetchScenariosForYear,
+  fetchScenarioLedgerForYear,
 });
 const { createReportsHeadcountModule } = window.VECTON_REPORTS_HEADCOUNT;
 const reportsHeadcountModule = createReportsHeadcountModule({
-  renderHcReport
+  renderHcReport,
+  fetchScenariosForYear,
+  getCurrentYear: () => Number(state.currentPeriod?.year || 2026),
 });
 const headcountRenderModule = createHeadcountRenderModule({
   escapeHtml,
@@ -882,6 +893,7 @@ const reportsBuilderModule = createReportsBuilderModule ? createReportsBuilderMo
   setSelectedReportId: (value) => { selectedReportId = value; },
   renderReportsView,
   getReportTitles: () => REPORT_TITLES,
+  initFloatingScrollbar,
 }) : _noop;
 
 bootstrap();
@@ -1190,8 +1202,8 @@ async function hydrateFromSupabase() {
     const [profileRows, branches, accounts, costCenters, dreNodes, ccNodes, actualsBatches, budgetBatches, hcBatches, managementRows] = await Promise.all([
       fetchSupabaseRowsSafe("user_profiles", `organization_id=eq.${organizationId}&user_id=eq.${currentUser.id}&select=full_name,email,phone,department,profile_label,access_role,management,matrix_accounts,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,extra_managements,photo_kind,photo_value&limit=1`),
       fetchSupabaseRowsSafe("branches", `organization_id=eq.${organizationId}&select=id,branch_code,branch_name,note,origin&order=branch_code.asc`),
-      fetchSupabaseRows("accounts", `organization_id=eq.${organizationId}&select=id,registration_control,account_number,account_name`),
-      fetchSupabaseRows("cost_centers", `organization_id=eq.${organizationId}&select=id,cost_center_number,cost_center_name,cost_center_type,cost_center_management`),
+      fetchAllSupabaseRows("accounts", `organization_id=eq.${organizationId}&select=id,registration_control,account_number,account_name`),
+      fetchAllSupabaseRows("cost_centers", `organization_id=eq.${organizationId}&select=id,cost_center_number,cost_center_name,cost_center_type,cost_center_management`),
       fetchSupabaseRows("dre_plan_nodes", `organization_id=eq.${organizationId}&select=id,node_code,node_name,node_class,parent_node_id,sort_order,origin,note,account_id&order=sort_order.asc,node_code.asc`),
       fetchSupabaseRows("cc_plan_nodes", `organization_id=eq.${organizationId}&select=id,node_code,node_name,node_class,node_type,parent_node_id,sort_order,origin,note,cost_center_id&order=sort_order.asc,node_code.asc`),
       fetchSupabaseRowsSafe("actuals_import_batches", `organization_id=eq.${organizationId}&select=id,reference_year,reference_month,load_mode,source_type,source_file_name,status,total_rows,error_rows,valid_rows,uploaded_at,applied_at&order=uploaded_at.desc`),
@@ -2039,16 +2051,86 @@ function renderHcReport(kind) {
     });
   }
 
+  // Barra de fonte apenas no Headcount Planejado
+  let contentDiv = detailPanel;
+  if (isBudget) {
+    detailPanel.innerHTML = `
+      <div class="vp-source-bar">
+        <span class="vp-source-label">Fonte</span>
+        <select class="vp-source-sel" id="hc-budget-source-sel">
+          <option value="budget">Budget</option>
+        </select>
+      </div>
+      <div id="hc-budget-content"></div>`;
+    contentDiv = detailPanel.querySelector("#hc-budget-content");
+
+    const srcSel = detailPanel.querySelector("#hc-budget-source-sel");
+    if (srcSel) {
+      if (_hcScenariosCache) {
+        _hcScenariosCache.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = `scenario:${s.id}`;
+          opt.textContent = s.name;
+          srcSel.appendChild(opt);
+        });
+        srcSel.value = _hcBudgetSource;
+      } else {
+        fetchScenariosForYear(year).then(scenarios => {
+          _hcScenariosCache = scenarios;
+          scenarios.forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = `scenario:${s.id}`;
+            opt.textContent = s.name;
+            srcSel.appendChild(opt);
+          });
+          srcSel.value = _hcBudgetSource;
+        });
+      }
+      srcSel.addEventListener("change", () => {
+        _hcBudgetSource = srcSel.value;
+        renderReportsView();
+      });
+    }
+  }
+
   const hcCache = reportsLedgerCache.get(hcKey);
   const ccCache = reportsLedgerCache.get(ccKey);
 
+  // Cenário selecionado: quadro de pessoas do cenário + custos do cenário
+  if (isBudget && _hcBudgetSource !== "budget") {
+    const scenarioId = _hcBudgetSource.slice("scenario:".length);
+    contentDiv.innerHTML = `<div class="reports-table-wrap">${vpSkeletonTable(8, 12)}</div>`;
+    Promise.all([
+      fetchScenarioHeadcountForYear(scenarioId, year),
+      fetchScenarioLedgerForYear(scenarioId, year),
+    ]).then(([fcHcRows, fcLedgerRows]) => {
+      // Se não houver dados de headcount no cenário, cai para o budget como fallback
+      const rawHcRows = fcHcRows.length > 0 ? fcHcRows : (hcCache?.rows || []);
+      const allowedCcs = getAllowedCcNumbers();
+      const ccOf = (r) => String(r.cost_center_number ?? r.costCenterNumber ?? "").trim();
+      const hcRows = allowedCcs ? rawHcRows.filter(r => allowedCcs.has(ccOf(r))) : rawHcRows;
+      const scRows = allowedCcs ? fcLedgerRows.filter(r => allowedCcs.has(ccOf(r))) : fcLedgerRows;
+      const hcReport = buildHcRealReport(year, hcRows, scRows);
+      if (!hcReport.sections.length) {
+        contentDiv.innerHTML = `<div class="reports-table-wrap"><div class="actuals-empty">Nenhum headcount planejado disponível para ${year}.</div></div>`;
+        return;
+      }
+      contentDiv.innerHTML = `<div class="reports-table-wrap reports-hc-wrap">${buildHcRealTableMarkup(hcReport, mode, expandedSet)}</div>`;
+      initAllReportTableResizers();
+      initHcDrilldown(contentDiv, hcRows, year, mode, expandedSet);
+    }).catch(() => {
+      contentDiv.innerHTML = `<div class="reports-table-wrap"><div class="actuals-empty">Erro ao carregar dados do cenário.</div></div>`;
+    });
+    return;
+  }
+
   if (!hcCache || !ccCache) {
-    detailPanel.innerHTML = `<div class="reports-table-wrap">${vpSkeletonTable(8, 12)}</div>`;
+    contentDiv.innerHTML = `<div class="reports-table-wrap">${vpSkeletonTable(8, 12)}</div>`;
     void ensureFn(year);
     return;
   }
   if (errorMsg) {
-    detailPanel.innerHTML = `<div class="reports-table-wrap"><div class="actuals-empty">${escapeHtml(errorMsg)}</div></div>`;
+    contentDiv.innerHTML = `<div class="reports-table-wrap"><div class="actuals-empty">${escapeHtml(errorMsg)}</div></div>`;
     return;
   }
   // Acesso por perfil: Gestor/Analista veem só os CCs da sua gestão (fail-closed:
@@ -2061,12 +2143,12 @@ function renderHcReport(kind) {
 
   const hcReport = buildHcRealReport(year, hcRows, ccRows);
   if (!hcReport.sections.length) {
-    detailPanel.innerHTML = `<div class="reports-table-wrap"><div class="actuals-empty">Nenhum headcount ${periodoLabel} disponível para ${year}.</div></div>`;
+    contentDiv.innerHTML = `<div class="reports-table-wrap"><div class="actuals-empty">Nenhum headcount ${periodoLabel} disponível para ${year}.</div></div>`;
     return;
   }
-  detailPanel.innerHTML = `<div class="reports-table-wrap reports-hc-wrap">${buildHcRealTableMarkup(hcReport, mode, expandedSet)}</div>`;
+  contentDiv.innerHTML = `<div class="reports-table-wrap reports-hc-wrap">${buildHcRealTableMarkup(hcReport, mode, expandedSet)}</div>`;
   initAllReportTableResizers();
-  initHcDrilldown(detailPanel, hcRows, year, mode, expandedSet);
+  initHcDrilldown(contentDiv, hcRows, year, mode, expandedSet);
 }
 
 const REPORT_TITLES = {
@@ -3109,9 +3191,6 @@ function renderOpexBudgetReport(detailPanel) {
   const allOption = "Marcher";
   const baseMgmtOptions = [allOption, ...managements];
   const prevMgmt = detailPanel.dataset.opexMgmt || allOption;
-  // "Marcher" (consolidado) só para admin/super_admin ou perfis sem restrição.
-  // Gestor/Analista com gestões extras vê só as gestões permitidas — sem "Marcher",
-  // pois o OPEX não exibe dados consolidados para perfis restritos.
   const { selectedMgmt, locked: mgmtLocked, allowedMgmts, partialMgmts } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
   const mgmtOptions = mgmtLocked ? [selectedMgmt] : (allowedMgmts ? [...allowedMgmts] : baseMgmtOptions);
 
@@ -3141,25 +3220,71 @@ function renderOpexBudgetReport(detailPanel) {
     });
   }
 
+  // Barra de fonte no detailPanel (fora do slot do header)
+  detailPanel.innerHTML = `
+    <div class="vp-source-bar">
+      <span class="vp-source-label">Fonte</span>
+      <select class="vp-source-sel" id="opex-budget-source-sel">
+        <option value="budget">Budget</option>
+      </select>
+    </div>
+    <div id="opex-budget-content"></div>`;
+  const contentDiv = detailPanel.querySelector("#opex-budget-content");
+
+  const srcSel = detailPanel.querySelector("#opex-budget-source-sel");
+  if (srcSel) {
+    if (_opexScenariosCache) {
+      _opexScenariosCache.forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = `scenario:${s.id}`;
+        opt.textContent = s.name;
+        srcSel.appendChild(opt);
+      });
+      srcSel.value = _opexBudgetSource;
+    } else {
+      fetchScenariosForYear(year).then(scenarios => {
+        _opexScenariosCache = scenarios;
+        scenarios.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = `scenario:${s.id}`;
+          opt.textContent = s.name;
+          srcSel.appendChild(opt);
+        });
+        srcSel.value = _opexBudgetSource;
+      });
+    }
+    srcSel.addEventListener("change", () => {
+      _opexBudgetSource = srcSel.value;
+      if (_opexBudgetSource !== "budget") {
+        renderOpexScenario(contentDiv, year, _opexBudgetSource.slice("scenario:".length));
+      } else {
+        renderReportsView();
+      }
+    });
+  }
+
+  // Cenário selecionado
+  if (_opexBudgetSource !== "budget") {
+    renderOpexScenario(contentDiv, year, _opexBudgetSource.slice("scenario:".length));
+    return;
+  }
+
   const ccCacheKey = `budget-cc-${year}`;
 
   if (selectedMgmt === allOption) {
-    // Tabela a partir dos totais já carregados pelo ensureBudgetReportsDataForYear
     const cacheEntry = reportsBudgetCache.get(year);
     const rows = cacheEntry?.rows || [];
     const tableMarkup = buildOpexRealTableMarkup(rows, null, opexHideZeros);
-    detailPanel.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${tableMarkup}</div></div>`;
-    // Drilldown: busca silenciosa com CC em background
+    contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${tableMarkup}</div></div>`;
     const cachedCc = reportsLedgerCache.get(ccCacheKey);
     if (cachedCc) {
-      const tableEl = detailPanel.querySelector(".reports-opex-table");
+      const tableEl = contentDiv.querySelector(".reports-opex-table");
       if (tableEl) initOpexDrilldown(tableEl, cachedCc.rows, null);
     } else {
-      // Anexa click handler imediatamente — mostra loading até dados chegarem
       const ccFetchPromise = fetchBudgetLedgerWithCcForYear(year)
         .then((rowsWithCc) => { reportsLedgerCache.set(ccCacheKey, { rows: rowsWithCc }); return rowsWithCc; })
         .catch(() => []);
-      const tableEl = detailPanel.querySelector(".reports-opex-table");
+      const tableEl = contentDiv.querySelector(".reports-opex-table");
       if (tableEl) initOpexDrilldown(tableEl, null, null, ccFetchPromise);
     }
   } else {
@@ -3171,12 +3296,12 @@ function renderOpexBudgetReport(detailPanel) {
     const cached = reportsLedgerCache.get(mgmtCacheKey);
     if (cached) {
       const tableMarkup = buildOpexRealTableMarkup(cached.rows, null, opexHideZeros);
-      detailPanel.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${tableMarkup}</div></div>`;
-      const tableEl = detailPanel.querySelector(".reports-opex-table");
+      contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${tableMarkup}</div></div>`;
+      const tableEl = contentDiv.querySelector(".reports-opex-table");
       if (tableEl) initOpexDrilldown(tableEl, cached.rows, null);
     } else {
       detailPanel.dataset.opexMgmt = selectedMgmt;
-      detailPanel.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${vpSkeletonTable()}</div></div>`;
+      contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${vpSkeletonTable()}</div></div>`;
       const fetchPromise = isPartial
         ? fetchBudgetLedgerForCcIds(year, partialCcIds)
         : fetchBudgetLedgerForManagementYear(year, selectedMgmt);
@@ -3185,7 +3310,7 @@ function renderOpexBudgetReport(detailPanel) {
         if (selectedReportId === "opexBudget" && detailPanel.dataset.opexMgmt === selectedMgmt) renderReportsView();
       }).catch(() => {
         if (selectedReportId === "opexBudget" && detailPanel.dataset.opexMgmt === selectedMgmt) {
-          const inner = detailPanel.querySelector("#opex-budget-table-inner");
+          const inner = contentDiv.querySelector("#opex-budget-table-inner");
           if (inner) inner.innerHTML = `<div class="actuals-empty">Erro ao carregar dados de planejado.</div>`;
         }
       });
@@ -3194,6 +3319,19 @@ function renderOpexBudgetReport(detailPanel) {
   }
 
   initAllReportTableResizers();
+}
+
+function renderOpexScenario(contentDiv, year, scenarioId) {
+  contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${vpSkeletonTable()}</div></div>`;
+  fetchScenarioLedgerForYear(scenarioId, year).then(rows => {
+    const inner = contentDiv.querySelector("#opex-budget-table-inner");
+    if (!inner) return;
+    inner.innerHTML = buildOpexRealTableMarkup(rows, null, opexHideZeros);
+    initAllReportTableResizers();
+  }).catch(() => {
+    const inner = contentDiv.querySelector("#opex-budget-table-inner");
+    if (inner) inner.innerHTML = `<div class="actuals-empty">Erro ao carregar dados do cenário.</div>`;
+  });
 }
 
 
@@ -4961,6 +5099,21 @@ async function fetchSupabaseRowsSafe(table, query) {
   }
 }
 
+async function fetchAllSupabaseRows(table, query, pageSize = 1000) {
+  const rows = [];
+  let lastId = "00000000-0000-0000-0000-000000000000";
+  while (true) {
+    const page = await fetchSupabaseRowsSafe(
+      table,
+      `${query}&id=gt.${lastId}&order=id.asc&limit=${pageSize}`
+    );
+    rows.push(...page);
+    if (page.length < pageSize) break;
+    lastId = page[page.length - 1].id;
+  }
+  return rows;
+}
+
 async function upsertSupabaseRows(table, rows, conflictKeys) {
   const response = await authenticatedFetch(
     `${supabaseConfig.projectUrl}/rest/v1/${table}?on_conflict=${conflictKeys.join(",")}`,
@@ -5291,6 +5444,15 @@ function ensureHeadcountViewShell() {
           <strong>Orçado</strong>
           <p>Quadro de colaboradores orçados por CC no período.</p>
         </button>
+        <div class="actuals-catalog-card" style="cursor:default;display:flex;flex-direction:column;gap:8px">
+          <span class="actuals-catalog-kicker">03</span>
+          <strong>Cenário</strong>
+          <p>Quadro de colaboradores planejados por cenário de forecast.</p>
+          <select id="hc-scenario-select" class="vp-source-sel" style="width:100%;margin-top:4px">
+            <option value="">Carregando cenários...</option>
+          </select>
+          <button id="hc-open-scenario" class="primary-button" type="button" style="width:100%">Abrir</button>
+        </div>
       </div>
     </div>
 
@@ -5307,6 +5469,12 @@ function ensureHeadcountViewShell() {
               <option value="complete">Carga completa</option>
               <option value="additional">Carga adicional</option>
             </select>
+            <div class="budget-target-wrap" id="hc-scenario-target-wrap" style="display:none">
+              <span class="budget-target-label">Destino</span>
+              <select id="hc-scenario-target" class="actuals-mode-select">
+                <option value="budget">Budget</option>
+              </select>
+            </div>
           </div>
           <a href="https://jwjnvxshtdekzcprmsyl.supabase.co/storage/v1/object/public/Vecton_Templates/modelo-carga-headcount.xlsx" download="modelo-carga-headcount.xlsx" title="Baixar modelo de carga" style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-alt);color:var(--text-faint);font-size:0.72rem;text-decoration:none;flex-shrink:0;transition:color .15s,border-color .15s" onmouseover="this.style.color='var(--blue)';this.style.borderColor='var(--blue)'" onmouseout="this.style.color='var(--text-faint)';this.style.borderColor='var(--line)'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Modelo</a>
         </div>
@@ -5431,10 +5599,26 @@ function bindHeadcountEvents() {
       renderHeadcountView();
       return;
     }
+    if (event.target.closest("#hc-open-scenario")) {
+      const sel = hcView.querySelector("#hc-scenario-select");
+      if (!sel?.value) return;
+      selectedHeadcountLoadType = `cenario:${sel.value}`;
+      renderHeadcountCatalog();
+      renderHeadcountView();
+      return;
+    }
     if (event.target.closest("[data-back-to-hc-catalog]")) {
       returnFromHeadcountDetail();
       return;
     }
+  });
+
+  // Seletor de cenário no form de planejado
+  document.querySelector("#hc-scenario-target")?.addEventListener("change", (e) => {
+    const val = e.target.value;
+    selectedHeadcountLoadType = val === "budget" ? "orcado" : val;
+    renderHeadcountCatalog();
+    renderHeadcountView();
   });
 
   // Período
@@ -5635,13 +5819,69 @@ function renderHeadcountCatalog() {
     catalog.style.display = "none";
     detail.style.display = "";
     const label = document.querySelector("#hc-load-type-label");
-    const hcName = selectedHeadcountLoadType === "orcado" ? "Planejado" : "Realizado";
-    if (label) label.textContent = `HEADCOUNT — ${hcName.toUpperCase()}`;
+    const isPlanned = selectedHeadcountLoadType === "orcado" || selectedHeadcountLoadType.startsWith("cenario:");
+    const hcName = isPlanned
+      ? (selectedHeadcountLoadType.startsWith("cenario:") ? "Cenário" : "Planejado")
+      : "Realizado";
+    if (label) {
+      // No planejado o select "Destino" já identifica o tipo — label é redundante
+      label.textContent = isPlanned ? "" : `HEADCOUNT — ${hcName.toUpperCase()}`;
+    }
     if (viewTitle && activeView === "headcountLoad") viewTitle.textContent = `Carga de Headcount ${hcName}`;
+
+    // Seletor de cenário no form (apenas para planejado)
+    const scenarioTarget = document.querySelector("#hc-scenario-target");
+    const scenarioWrap = document.querySelector("#hc-scenario-target-wrap");
+    if (scenarioTarget && scenarioWrap) {
+      if (isPlanned) {
+        scenarioWrap.style.display = "";
+        // Popula cenários se ainda não foram carregados
+        if (scenarioTarget.options.length <= 1) {
+          const year = Number(state.currentPeriod?.year || 2026);
+          fetchScenariosForYear(year).then(scenarios => {
+            // Mantém opção "Budget" e adiciona cenários
+            while (scenarioTarget.options.length > 1) scenarioTarget.remove(1);
+            scenarios.forEach(s => {
+              const opt = document.createElement("option");
+              opt.value = `cenario:${s.id}`;
+              opt.textContent = s.name;
+              scenarioTarget.appendChild(opt);
+            });
+            // Sincroniza valor com loadType atual
+            const currentVal = selectedHeadcountLoadType.startsWith("cenario:")
+              ? selectedHeadcountLoadType : "budget";
+            if ([...scenarioTarget.options].some(o => o.value === currentVal)) {
+              scenarioTarget.value = currentVal;
+            }
+          });
+        } else {
+          // Já populado — apenas sincroniza
+          const currentVal = selectedHeadcountLoadType.startsWith("cenario:")
+            ? selectedHeadcountLoadType : "budget";
+          if ([...scenarioTarget.options].some(o => o.value === currentVal)) {
+            scenarioTarget.value = currentVal;
+          }
+        }
+      } else {
+        scenarioWrap.style.display = "none";
+      }
+    }
   } else {
     catalog.style.display = "";
     detail.style.display = "none";
     if (viewTitle && activeView === "headcountLoad") viewTitle.textContent = "Carga de Headcount";
+    // Popula select de cenários no catálogo
+    const scenarioSel = catalog.querySelector("#hc-scenario-select");
+    if (scenarioSel) {
+      const year = Number(state.currentPeriod?.year || 2026);
+      fetchScenariosForYear(year).then(scenarios => {
+        scenarioSel.innerHTML = scenarios.length
+          ? scenarios.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("")
+          : `<option value="">Nenhum cenário disponível</option>`;
+      }).catch(() => {
+        scenarioSel.innerHTML = `<option value="">Erro ao carregar cenários</option>`;
+      });
+    }
   }
 }
 
@@ -6075,30 +6315,60 @@ async function autoApplyHeadcountBatch(batchId, { auto = false } = {}) {
   const organizationId = await resolveOrganizationId();
   setSyncStatus(auto ? "Aplicando carga de headcount no BD..." : "Aplicando lote de headcount no BD...", "warn");
 
-  // Carga completa — remove registros do período/tipo antes
-  if (refreshed.loadMode === "complete") {
-    await deleteSupabaseRows("headcount_entries",
-      `organization_id=eq.${organizationId}&reference_year=eq.${refreshed.referenceYear}&reference_month=eq.${refreshed.referenceMonth}&load_type=eq.${refreshed.loadType}`);
-  }
-
   const rows = state.headcountRowsByBatch[batchId] || [];
   const entryRows = dedupeHeadcountRowsForApply(rows, refreshed);
-  if (entryRows.length) {
-    const chunks = [];
-    for (let i = 0; i < entryRows.length; i += 500) chunks.push(entryRows.slice(i, i + 500));
-    for (const chunk of chunks) {
-      await upsertSupabaseRows("headcount_entries", chunk.map(r => ({
-        id: crypto.randomUUID(),
-        organization_id: organizationId,
-        reference_year: refreshed.referenceYear,
-        reference_month: refreshed.referenceMonth,
-        load_type: refreshed.loadType,
-        branch_code: r.branchCode,
-        cost_center_number: r.costCenterNumber,
-        matricula: r.matricula,
-        colab: r.colab,
-        cargo: r.cargo
-      })), ["organization_id", "reference_year", "reference_month", "load_type", "matricula"]);
+
+  if (refreshed.loadType?.startsWith("cenario:")) {
+    const scenarioId = refreshed.loadType.slice("cenario:".length);
+    // Carga completa — remove registros do cenário/período antes
+    if (refreshed.loadMode === "complete") {
+      await deleteSupabaseRows("forecast_headcount_entries",
+        `organization_id=eq.${organizationId}&scenario_id=eq.${scenarioId}&reference_year=eq.${refreshed.referenceYear}&reference_month=eq.${refreshed.referenceMonth}`);
+    }
+    if (entryRows.length) {
+      const chunks = [];
+      for (let i = 0; i < entryRows.length; i += 500) chunks.push(entryRows.slice(i, i + 500));
+      for (const chunk of chunks) {
+        await upsertSupabaseRows("forecast_headcount_entries", chunk.map(r => ({
+          id: crypto.randomUUID(),
+          organization_id: organizationId,
+          scenario_id: scenarioId,
+          reference_year: refreshed.referenceYear,
+          reference_month: refreshed.referenceMonth,
+          branch_code: r.branchCode,
+          cost_center_number: r.costCenterNumber,
+          matricula: r.matricula,
+          colab: r.colab,
+          cargo: r.cargo
+        })), ["organization_id", "reference_year", "reference_month", "scenario_id", "matricula"]);
+      }
+    }
+    // Invalida cache do cenário para forçar re-fetch no relatório
+    const cacheKey = `fc-hc-${scenarioId}-${refreshed.referenceYear}`;
+    reportsLedgerCache.delete(cacheKey);
+  } else {
+    // Carga completa — remove registros do período/tipo antes
+    if (refreshed.loadMode === "complete") {
+      await deleteSupabaseRows("headcount_entries",
+        `organization_id=eq.${organizationId}&reference_year=eq.${refreshed.referenceYear}&reference_month=eq.${refreshed.referenceMonth}&load_type=eq.${refreshed.loadType}`);
+    }
+    if (entryRows.length) {
+      const chunks = [];
+      for (let i = 0; i < entryRows.length; i += 500) chunks.push(entryRows.slice(i, i + 500));
+      for (const chunk of chunks) {
+        await upsertSupabaseRows("headcount_entries", chunk.map(r => ({
+          id: crypto.randomUUID(),
+          organization_id: organizationId,
+          reference_year: refreshed.referenceYear,
+          reference_month: refreshed.referenceMonth,
+          load_type: refreshed.loadType,
+          branch_code: r.branchCode,
+          cost_center_number: r.costCenterNumber,
+          matricula: r.matricula,
+          colab: r.colab,
+          cargo: r.cargo
+        })), ["organization_id", "reference_year", "reference_month", "load_type", "matricula"]);
+      }
     }
   }
 
@@ -6283,4 +6553,173 @@ function setHcFeedback(message, type) {
 // ── Normalizers & validators ────────────────────────────────────────────────
 
 // FIM CARGA DE PLANEJADO
+
+// ── Fontes de cenário para relatórios Budget ─────────────────────────────────
+
+async function fetchScenariosForYear(year) {
+  const orgId = await resolveOrganizationId();
+  const res = await authenticatedFetch(
+    `${supabaseConfig.projectUrl}/rest/v1/forecast_scenarios` +
+    `?organization_id=eq.${orgId}&reference_year=eq.${year}` +
+    `&order=sort_order.asc,created_at.asc&select=id,name,color`
+  );
+  return res.ok ? await res.json() : [];
+}
+
+async function fetchScenarioLedgerForYear(scenarioId, year) {
+  const orgId  = await resolveOrganizationId();
+  const pgSize = 1000;
+  const rows   = [];
+  let lastId   = "00000000-0000-0000-0000-000000000000";
+  while (true) {
+    const res  = await authenticatedFetch(
+      `${supabaseConfig.projectUrl}/rest/v1/forecast_ledger_entries` +
+      `?organization_id=eq.${orgId}&scenario_id=eq.${scenarioId}&reference_year=eq.${year}` +
+      `&id=gt.${lastId}&select=id,reference_month,reference_year,account_number,cost_center_number,amount` +
+      `&order=id.asc&limit=${pgSize}`
+    );
+    const page = res.ok ? await res.json() : [];
+    rows.push(...page);
+    if (page.length < pgSize) break;
+    lastId = page[page.length - 1].id;
+  }
+  return rows;
+}
+
+// Busca headcount de pessoas de um cenário (forecast_headcount_entries)
+// Retorna [] silenciosamente se a tabela ainda não existir (404).
+async function fetchScenarioHeadcountForYear(scenarioId, year) {
+  const cacheKey = `fc-hc-${scenarioId}-${year}`;
+  if (reportsLedgerCache.has(cacheKey)) return reportsLedgerCache.get(cacheKey).rows;
+
+  const orgId  = await resolveOrganizationId();
+  const pgSize = 1000;
+  const rows   = [];
+  let lastId   = "00000000-0000-0000-0000-000000000000";
+  while (true) {
+    const res = await authenticatedFetch(
+      `${supabaseConfig.projectUrl}/rest/v1/forecast_headcount_entries` +
+      `?organization_id=eq.${orgId}&scenario_id=eq.${scenarioId}&reference_year=eq.${year}` +
+      `&id=gt.${lastId}&select=id,reference_month,cost_center_number,matricula,colab,cargo` +
+      `&order=id.asc&limit=${pgSize}`
+    );
+    if (!res.ok) break; // tabela não existe ainda → retorna o que coletou até aqui
+    const page = await res.json();
+    rows.push(...page);
+    if (page.length < pgSize) break;
+    lastId = page[page.length - 1].id;
+  }
+  reportsLedgerCache.set(cacheKey, { rows });
+  return rows;
+}
+
+// ── Gerador de template DRE Societário para o builder ────────────────────────
+// Uso: await window.vpGenerateDreSocTemplate()  (chamar uma vez no console)
+window.vpGenerateDreSocTemplate = async function () {
+  function lc(i) {
+    let s = "", n = i;
+    do { s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) - 1; } while (n >= 0);
+    return s;
+  }
+
+  function children(parentCode) {
+    const norm = parentCode === ROOT_DRE_NODE.code ? null : parentCode;
+    return state.dreNodes
+      .filter(n => (n.parentCode || null) === norm)
+      .sort((a, b) => a.code.localeCompare(b.code, "pt-BR", { numeric: true }));
+  }
+
+  function leaves(code) {
+    const ch = children(code);
+    if (!ch.length) return [code];
+    return ch.flatMap(c => leaves(c.code));
+  }
+
+  const rows = [];
+  const idxByCode = new Map();
+
+  function traverse(node, depth) {
+    const ch = children(node.code);
+    const isSint = node.class === "Sintetica" || ch.length > 0;
+    idxByCode.set(node.code, rows.length);
+    rows.push({ _node: node, _depth: depth, _isSint: isSint });
+    ch.forEach(c => traverse(c, depth + 1));
+  }
+
+  children(ROOT_DRE_NODE.code).forEach(c => traverse(c, 0));
+
+  const allAnalitic = state.dreNodes.filter(n => n.class === "Analitica");
+
+  const finalRows = rows.map((r, ri) => {
+    const { _node: node, _depth: depth, _isSint: isSint } = r;
+    const base = {
+      source: ["actual"],
+      filters: { accountNumbers: [], ccNumbers: [], managements: [] },
+      period: { type: "base" },
+      formula: "",
+      formulaType: "define",
+      numberFmt: "",
+    };
+    if (!isSint) {
+      return { ...base, type: "data", name: node.name,
+        filters: { accountNumbers: [node.code], ccNumbers: [], managements: [] },
+        style: { bold: false, italic: false, underline: false, color: "", bg: "", indent: depth, height: null, verticalAlign: "middle", fontSize: "md" } };
+    }
+    let leafCodes;
+    if (node.code === "51401001") {
+      leafCodes = allAnalitic.filter(n => n.code !== "51401001").map(n => n.code);
+    } else if (node.code === "425001004") {
+      leafCodes = [];
+    } else {
+      leafCodes = leaves(node.code);
+    }
+    const expr = leafCodes
+      .map(c => idxByCode.get(c))
+      .filter(i => i !== undefined && i !== ri)
+      .map(i => `<${lc(i)}>`)
+      .join(" + ") || "0";
+    return { ...base, type: "formula", name: node.name, formula: expr,
+      isTotalRow: node.code === "51401001",
+      style: { bold: true, italic: false, underline: false, color: "", bg: "", indent: depth, height: null, verticalAlign: "middle", fontSize: "md" } };
+  });
+
+  const year = new Date().getFullYear();
+  const MONTHS = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const cols = [
+    ...MONTHS.map((name, i) => ({
+      type: "data", name,
+      period: { month: i + 1, year },
+      source: [], filters: { accountNumbers: [], ccNumbers: [], managements: [] },
+      formula: "", formulaType: "define", numberFmt: "",
+      style: { bold: false, italic: false, underline: false, color: "", bg: "", width: 90 }
+    })),
+    {
+      type: "formula", name: "Acumulado",
+      formula: MONTHS.map((_, i) => `<${lc(i)}>`).join(" + "),
+      period: { type: "base" }, source: [],
+      filters: { accountNumbers: [], ccNumbers: [], managements: [] },
+      formulaType: "define", numberFmt: "",
+      style: { bold: true, italic: false, underline: false, color: "", bg: "", width: 110 }
+    }
+  ];
+
+  const cfg = {
+    version: 2, label: "DRE Societário", description: "",
+    icon: "document", color: "#4f7cff",
+    options: { showDataInEditor: false, hideZeroRows: true, hideZeroCols: false, negativeRed: true, negativeParens: false, rowLabelWidth: 260 },
+    rows: finalRows, cols,
+    access: { managements: [], ccNumbers: [] }
+  };
+
+  const orgId = await resolveOrganizationId();
+  const res   = await authenticatedFetch(`${supabaseConfig.projectUrl}/rest/v1/custom_reports`, {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ organization_id: orgId, created_by: currentUser?.id, label: cfg.label, config: cfg }),
+  });
+  if (!res.ok) { console.error("Erro:", await res.text()); return; }
+  const [saved] = await res.json();
+  console.log("✅ DRE Societário criado no builder — id:", saved.id);
+  return saved;
+};
 // ═══════════════════════════════════════════════════════════════════════════════
