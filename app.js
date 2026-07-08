@@ -4368,7 +4368,6 @@ function invalidateReportsForYear(year) {
   const normalizedYear = Number(year || state.currentPeriod?.year || 2026);
   reportsLedgerCache.delete(normalizedYear);
   reportsLedgerCache.delete(`opex-cc-${normalizedYear}`);
-  _socFullLedgerCache.delete(normalizedYear);
   [...reportsLedgerCache.keys()]
     .filter((key) => typeof key === "string" && key.startsWith(`opex-mgmt-${normalizedYear}-`))
     .forEach((key) => reportsLedgerCache.delete(key));
