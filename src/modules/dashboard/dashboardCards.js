@@ -896,8 +896,19 @@
       setTimeout(() => { pop.remove(); document.removeEventListener("click", dismiss, true); }, 4500);
     }
 
+    function clearOpexDonutCache(year) {
+      if (year == null) {
+        opexDonutCache.clear();
+        return;
+      }
+      [...opexDonutCache.keys()]
+        .filter((key) => key.startsWith(`${year}-`))
+        .forEach((key) => opexDonutCache.delete(key));
+    }
+
     return {
-      renderDashOpexCards
+      renderDashOpexCards,
+      clearOpexDonutCache
     };
   }
 
