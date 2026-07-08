@@ -1258,6 +1258,12 @@ async function hydrateFromSupabase() {
       profileDraft = { ...state.profile };
     }
 
+    // Perfis sem acesso ao Dashboard (Analista) não podem cair nele ao logar;
+    // manda direto para Relatórios, a tela que ele efetivamente enxerga.
+    if (!canAccessDashboard()) {
+      activeView = "reports";
+    }
+
     if (branches.length) {
       state.branches = branches.map((row) => ({
         id: row.id || crypto.randomUUID(),
