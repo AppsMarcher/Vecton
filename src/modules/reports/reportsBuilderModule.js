@@ -8,7 +8,7 @@
       fetchSupabaseRowsSafe, isSupabaseConfigured,
       resolveOrganizationId, getAllowedCcNumbers, getAccessRole,
       getCurrentUser, supabaseApiUrl, authenticatedFetch,
-      setSelectedReportId, renderReportsView, getReportTitles,
+      setSelectedReportId, renderReportsView, getReportTitles, initFloatingScrollbar,
     } = deps;
 
     // ── Cenários disponíveis ──────────────────────────────────────────
@@ -121,6 +121,20 @@
     async function fetchSourceYear(sourceId, year) {
       const key = `${sourceId}:${year}`;
       if (_sourceCache.has(key)) return _sourceCache.get(key);
+
+      // Fonte de cenário: "scenario:<uuid>"
+      if (sourceId.startsWith("scenario:")) {
+        const scenarioId = sourceId.slice("scenario:".length);
+        const orgId = await resolveOrganizationId();
+        const url   = `${supabaseApiUrl}/rest/v1/forecast_ledger_entries` +
+          `?organization_id=eq.${orgId}&scenario_id=eq.${scenarioId}&reference_year=eq.${year}` +
+          `&select=reference_month,reference_year,account_number,cost_center_number,amount`;
+        const res   = await authenticatedFetch(url);
+        const raw   = res.ok ? await res.json() : [];
+        const enriched = applyRbac(enrichLedger(raw));
+        _sourceCache.set(key, enriched);
+        return enriched;
+      }
 
       const src = DATA_SOURCES.find(s => s.id === sourceId);
       if (!src) return [];
@@ -329,7 +343,7 @@
         }
 
         const esc = (v) => v ? escapeHtml(String(v)) : "";
-        let html = `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%"><thead><tr>`;
+        let html = `<div class="reports-table-wrap" style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%"><thead><tr>`;
         const rlw = options?.rowLabelWidth || 200;
         html += `<th style="${H};text-align:left;font-weight:400;color:var(--text-faint);min-width:${rlw}px;width:${rlw}px"></th>`;
         for (const ci of visFinalCols) {
@@ -386,8 +400,28 @@
           }
           html += `</tr>`;
         }
-        html += `</tbody></table></div>`;
+        const lastDataRi = visRows.find(ri => rows[ri].isTotalRow)
+          ?? [...visRows].reverse().find(ri => rows[ri].type !== "blank");
+        if (lastDataRi !== undefined) {
+          html += `</tbody><tfoot><tr>`;
+          const TF = "padding:6px 12px;border-top:2px solid var(--line);font-size:12px;font-weight:600;white-space:nowrap;background:var(--panel-hover)";
+          html += `<td style="${TF};text-align:left;color:var(--text-soft)">${esc(rows[lastDataRi].name)}</td>`;
+          for (const ci of visFinalCols) {
+            const c = cols[ci];
+            const cW = c.width || (c.type === "blank" ? 18 : 120);
+            if (c.type === "blank") { html += `<td style="${TF};width:${cW}px;min-width:${cW}px"></td>`; continue; }
+            const v = matrix[lastDataRi][ci] ?? 0;
+            const negRed = options?.negativeRed && v < 0;
+            const effectiveFmt = c.numberFmt || rows[lastDataRi].numberFmt || "n0";
+            html += `<td style="${TF};border-left:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;
+              color:${negRed ? "var(--neg)" : "var(--text)"};width:${cW}px;min-width:${cW}px">${esc(fmtNumber(v, effectiveFmt, options))}</td>`;
+          }
+          html += `</tr></tfoot>`;
+        }
+        html += `</table></div>`;
         container.innerHTML = html;
+        const wrap = container.querySelector(".reports-table-wrap");
+        if (wrap && initFloatingScrollbar) initFloatingScrollbar(wrap);
       } catch (err) {
         container.innerHTML = `<span style="font-size:12px;color:var(--neg)">${escapeHtml("Erro: " + err.message)}</span>`;
       }
@@ -436,6 +470,7 @@
       const { managements = [], ccNumbers = [] } = cfg?.access || {};
       if (!managements.length && !ccNumbers.length) return true;
       if (isAdmin()) return true;
+      if (getAllowedCcNumbers() === null) return true; // sem gestão/extras: igual admin
       const userMgmt  = (state.costCenters || []).find(c => getAllowedCcNumbers()?.has(String(c.number)))?.management || "";
       const allowedCc = getAllowedCcNumbers();
       if (managements.includes(userMgmt)) return true;
