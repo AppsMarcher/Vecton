@@ -806,7 +806,7 @@ const headcountRenderModule = createHeadcountRenderModule({
   getActiveHcErrorRowId: () => activeHcErrorRowId,
   renderHcRowsTableRef: () => renderHcRowsTable()
 });
-const { renderDashOpexCards } = createDashboardCardsModule({
+const { renderDashOpexCards, clearOpexDonutCache } = createDashboardCardsModule({
   MONTH_LABELS,
   HC_PESSOAL_ACCOUNTS,
   getOpexStructure: () => OPEX_STRUCTURE,
@@ -4371,6 +4371,7 @@ function invalidateReportsForYear(year) {
   [...reportsLedgerCache.keys()]
     .filter((key) => typeof key === "string" && key.startsWith(`opex-mgmt-${normalizedYear}-`))
     .forEach((key) => reportsLedgerCache.delete(key));
+  clearOpexDonutCache(normalizedYear);
   reportsErrorMessage = "";
   if (reportsLastLoadedYear === normalizedYear) {
     reportsLastLoadedYear = null;
