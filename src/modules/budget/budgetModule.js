@@ -859,8 +859,12 @@
 
       try {
         if (isSupabaseConfigured()) {
-          await deleteSupabaseRows("budget_import_rows", `batch_id=eq.${encodeURIComponent(batch.id)}`);
-          await deleteSupabaseRows("budget_import_batches", `id=eq.${encodeURIComponent(batch.id)}`);
+          if (batch.status === "applied") {
+            await callSupabaseRpc("delete_budget_import_batch", { target_batch_id: batch.id });
+          } else {
+            await deleteSupabaseRows("budget_import_rows", `batch_id=eq.${encodeURIComponent(batch.id)}`);
+            await deleteSupabaseRows("budget_import_batches", `id=eq.${encodeURIComponent(batch.id)}`);
+          }
         }
         delete state.budgetRowsByBatch[batch.id];
         state.budgetBatches = state.budgetBatches.filter((item) => item.id !== batch.id);
@@ -870,7 +874,7 @@
         setUploadFeedback("Lote excluido com sucesso.", "ok");
       } catch (error) {
         console.error(error);
-        setUploadFeedback("Nao foi possivel excluir o lote.", "error");
+        setUploadFeedback(String(error?.message || error || "Falha ao excluir lote."), "error");
       }
     }
 
