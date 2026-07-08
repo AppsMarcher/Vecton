@@ -460,7 +460,8 @@
       const _hcRole = state.profile?.accessRole || "admin";
       const isRestricted = (_hcRole === "manager" || _hcRole === "analyst");
       const allowedHcMgmts = getAllowedManagements();
-      const showNoAccessPop = isRestricted && dashHcMgmt === "Marcher";
+      // allowedHcMgmts === null: sem gestão/extras nenhuma → enxerga tudo, igual admin (sem trava de drill).
+      const showNoAccessPop = isRestricted && dashHcMgmt === "Marcher" && allowedHcMgmts !== null;
 
       const kpiBlock = totalEl.closest(".dash-hc-kpi-block");
       if (kpiBlock && headcount > 0) {
