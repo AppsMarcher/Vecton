@@ -465,7 +465,10 @@
                 <button class="users-action-btn users-action-resend" type="button" title="Reenviar senha" data-action="resend" data-uid="${escapeHtml(user.id)}">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M4.6 9A9 9 0 1 1 4 15"/></svg>
                 </button>
-                ${canEdit ? `<button class="users-action-btn" type="button" title="Editar usuário" data-action="edit" data-uid="${escapeHtml(user.id)}">
+                ${canEdit ? `<button class="users-action-btn" type="button" title="Definir nova senha" data-action="setpassword" data-uid="${escapeHtml(user.id)}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                </button>
+                <button class="users-action-btn" type="button" title="Editar usuário" data-action="edit" data-uid="${escapeHtml(user.id)}">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
                 <button class="users-action-btn users-action-delete" type="button" title="Excluir usuário" data-action="delete" data-uid="${escapeHtml(user.id)}">
@@ -482,9 +485,10 @@
             const uid  = btn.dataset.uid;
             const user = allUsers.find((u) => u.id === uid);
             if (!user) return;
-            if (btn.dataset.action === "edit")   openEditPanel(user);
-            if (btn.dataset.action === "resend") handleResend(user);
-            if (btn.dataset.action === "delete") handleDelete(user);
+            if (btn.dataset.action === "edit")        openEditPanel(user);
+            if (btn.dataset.action === "resend")      handleResend(user);
+            if (btn.dataset.action === "delete")      handleDelete(user);
+            if (btn.dataset.action === "setpassword") openSetPasswordModal(user);
           });
         });
     }
@@ -512,6 +516,79 @@
         console.error(err);
         alert("Erro ao excluir usuário.");
       }
+    }
+
+    // ── Definir nova senha (modal + Edge Function) ────────────────────────────
+    function openSetPasswordModal(user) {
+      document.querySelector("#users-setpassword-overlay")?.remove();
+
+      const nome = user.full_name || user.email || "este usuário";
+      const overlay = document.createElement("div");
+      overlay.id = "users-setpassword-overlay";
+      overlay.className = "users-invite-overlay";
+      overlay.innerHTML = `
+        <div class="users-invite-modal">
+          <div class="users-invite-header">
+            <div>
+              <p class="users-invite-kicker">DEFINIR NOVA SENHA</p>
+              <h3 class="users-invite-title">${escapeHtml(nome)}</h3>
+            </div>
+            <button type="button" class="users-invite-close" aria-label="Fechar">✕</button>
+          </div>
+          <div class="users-invite-body">
+            <p class="users-invite-note">O usuário poderá entrar imediatamente com a nova senha.</p>
+            <label class="ui-field">Nova senha <span style="color:var(--red)">*</span>
+              <input id="sp-password" type="password" minlength="6" autocomplete="new-password" placeholder="Mínimo de 6 caracteres">
+            </label>
+            <label class="ui-field">Confirmar senha <span style="color:var(--red)">*</span>
+              <input id="sp-password-confirm" type="password" minlength="6" autocomplete="new-password" placeholder="Repita a nova senha">
+            </label>
+            <p id="sp-feedback" class="users-invite-feedback"></p>
+          </div>
+          <div class="users-invite-actions">
+            <button type="button" class="ghost-button" id="sp-cancel">Cancelar</button>
+            <button type="button" class="primary-button" id="sp-save">Salvar nova senha</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+
+      const feedback = overlay.querySelector("#sp-feedback");
+      const saveBtn = overlay.querySelector("#sp-save");
+      const close = () => overlay.remove();
+
+      overlay.querySelector(".users-invite-close").addEventListener("click", close);
+      overlay.querySelector("#sp-cancel").addEventListener("click", close);
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+      saveBtn.addEventListener("click", async () => {
+        const password = overlay.querySelector("#sp-password").value;
+        const confirm  = overlay.querySelector("#sp-password-confirm").value;
+        if (password.length < 6) {
+          feedback.textContent = "A senha deve ter pelo menos 6 caracteres.";
+          feedback.className = "users-invite-feedback is-error";
+          return;
+        }
+        if (password !== confirm) {
+          feedback.textContent = "A confirmação da senha não confere.";
+          feedback.className = "users-invite-feedback is-error";
+          return;
+        }
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Salvando...";
+        feedback.textContent = ""; feedback.className = "users-invite-feedback";
+        try {
+          await callEdgeFunction("set-user-password", { user_id: user.user_id, new_password: password });
+          close();
+        } catch (err) {
+          console.error(err);
+          feedback.textContent = String(err?.message || "Erro ao definir a nova senha.");
+          feedback.className = "users-invite-feedback is-error";
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Salvar nova senha";
+        }
+      });
+
+      overlay.querySelector("#sp-password").focus();
     }
 
     // ── Convidar usuário (modal + Edge Function) ──────────────────────────────
