@@ -726,7 +726,11 @@
 
       try {
         if (isSupabaseConfigured()) {
-          await deleteSupabaseRows("actuals_import_batches", `id=eq.${encodeURIComponent(batch.id)}`);
+          if (batch.status === "applied") {
+            await callSupabaseRpc("delete_actuals_import_batch", { target_batch_id: batch.id });
+          } else {
+            await deleteSupabaseRows("actuals_import_batches", `id=eq.${encodeURIComponent(batch.id)}`);
+          }
         }
 
         delete state.actualsRowsByBatch[batch.id];
@@ -740,7 +744,7 @@
         setUploadFeedback("Lote excluido com sucesso.", "ok");
       } catch (error) {
         console.error(error);
-        setUploadFeedback("Nao foi possivel excluir o lote. Se ele ja foi aplicado, remova primeiro os lancamentos oficiais.", "error");
+        setUploadFeedback(String(error?.message || error || "Falha ao excluir lote."), "error");
       }
     }
 
