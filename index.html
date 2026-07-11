@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260708i">
+  <link rel="stylesheet" href="styles.css?v=20260711q">
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -238,6 +238,15 @@
               <button class="submenu-button" type="button" data-view="ccPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg><span>Centro de Custos</span></button>
               <button class="submenu-button" type="button" data-view="actualsLoad"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-upload"></use></svg><span>Carga de Realizado</span></button>
               <button class="submenu-button" type="button" data-view="budgetLoad"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-upload"></use></svg><span>Carga de Planejado</span></button>
+              <div class="submenu-section-label">Comercial</div>
+              <button class="submenu-button" type="button" data-view="comProdutos"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-briefcase"></use></svg><span>Produtos</span></button>
+              <button class="submenu-button" type="button" data-view="comClientes"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-users-plus"></use></svg><span>Clientes</span></button>
+              <button class="submenu-button" type="button" data-view="comTerritorios"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-branch"></use></svg><span>Território</span></button>
+              <button class="submenu-button" type="button" data-view="comCoordenacoes"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-layers"></use></svg><span>Coordenação</span></button>
+              <button class="submenu-button" type="button" data-view="comTipos"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-target"></use></svg><span>Tipo</span></button>
+              <button class="submenu-button" type="button" data-view="comCulturas"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-activity"></use></svg><span>Cultura</span></button>
+              <button class="submenu-button" type="button" data-view="comLinhasNegocio"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-pie"></use></svg><span>Linha de Negócio</span></button>
+              <button class="submenu-button" type="button" data-view="comAtribuicao"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-sliders"></use></svg><span>Atribuição</span></button>
             </div>
           </div>
         </div>
@@ -423,6 +432,16 @@
               </div>
             </div>
             <div id="reports-card-grid" class="reports-card-grid">
+
+              <button class="reports-report-card" type="button" data-report-id="comercialPainel">
+                <div class="rrc-top">
+                  <span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-pie"></use></svg></span>
+                  <span class="rrc-fav" role="button" data-fav-id="comercialPainel" aria-label="Favoritar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                </div>
+                <strong class="rrc-label">Painel de Vendas</strong>
+                <span class="rrc-subtitle">Comercial · coordenações</span>
+                <span class="rrc-edit-btn" role="button" data-edit-card="comercialPainel" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+              </button>
 
               <button class="reports-report-card" type="button" data-report-id="dreSocReal">
                 <div class="rrc-top">
@@ -657,6 +676,156 @@
         </div>
       </section>
 
+      <section id="comProdutos-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Produtos</h2>
+              <p class="cadastro-subtitle">Catálogo de produtos: código, descrição, tipo e cultura.</p>
+            </div>
+            <button id="com-produtos-add-btn" class="primary-button" type="button">+ Novo produto</button>
+          </div>
+          <div class="cadastro-search">
+            <input id="com-produtos-search" type="text" placeholder="Buscar por código ou descrição...">
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table">
+              <thead><tr><th>Código</th><th>Descrição</th><th>Tipo</th><th>Cultura</th><th></th></tr></thead>
+              <tbody id="com-produtos-table-body"><tr><td colspan="5" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="comClientes-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Clientes</h2>
+              <p class="cadastro-subtitle">Cadastro de clientes: código, descrição, cidade, UF e código IBGE.</p>
+            </div>
+            <button id="com-clientes-add-btn" class="primary-button" type="button">+ Novo cliente</button>
+          </div>
+          <div class="cadastro-search">
+            <input id="com-clientes-search" type="text" placeholder="Buscar por código ou descrição...">
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table">
+              <thead><tr><th>Código</th><th>Descrição</th><th>Cidade</th><th>UF</th><th>Código IBGE</th><th></th></tr></thead>
+              <tbody id="com-clientes-table-body"><tr><td colspan="6" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="comTerritorios-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Território</h2>
+              <p class="cadastro-subtitle">Territórios de venda com responsável próprio atribuído.</p>
+            </div>
+            <button id="com-territorios-add-btn" class="primary-button" type="button">+ Novo território</button>
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table">
+              <thead><tr><th>Nome</th><th></th></tr></thead>
+              <tbody id="com-territorios-table-body"><tr><td colspan="2" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="comCoordenacoes-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Coordenação</h2>
+              <p class="cadastro-subtitle">Agrupamento de negócio acima do território (Sul, Norte, Oeste, Pecuária, Exportação, Peças).</p>
+            </div>
+            <button id="com-coordenacoes-add-btn" class="primary-button" type="button">+ Nova coordenação</button>
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table">
+              <thead><tr><th>Nome</th><th>Gestor</th><th></th></tr></thead>
+              <tbody id="com-coordenacoes-table-body"><tr><td colspan="3" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="comTipos-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Tipo</h2>
+              <p class="cadastro-subtitle">Classificação de produto (Máquinas, Peças, Transgrain, Acessórios).</p>
+            </div>
+            <button id="com-tipos-add-btn" class="primary-button" type="button">+ Novo tipo</button>
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table">
+              <thead><tr><th>Nome</th><th></th></tr></thead>
+              <tbody id="com-tipos-table-body"><tr><td colspan="2" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="comCulturas-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Cultura</h2>
+              <p class="cadastro-subtitle">Grãos ou Pecuária.</p>
+            </div>
+            <button id="com-culturas-add-btn" class="primary-button" type="button">+ Nova cultura</button>
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table">
+              <thead><tr><th>Nome</th><th></th></tr></thead>
+              <tbody id="com-culturas-table-body"><tr><td colspan="2" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="comLinhasNegocio-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Linha de Negócio</h2>
+              <p class="cadastro-subtitle">Grão, Pecuária, Peças, Exportação, Outros — cadastro extensível.</p>
+            </div>
+            <button id="com-linhas-negocio-add-btn" class="primary-button" type="button">+ Nova linha</button>
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table">
+              <thead><tr><th>Nome</th><th></th></tr></thead>
+              <tbody id="com-linhas-negocio-table-body"><tr><td colspan="2" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="comAtribuicao-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Atribuição Território → Responsável → Coordenação</h2>
+              <p class="cadastro-subtitle">Define quem é responsável por cada território+linha de negócio e a qual coordenação isso soma, com vigência histórica.</p>
+            </div>
+            <button id="com-atribuicao-add-btn" class="primary-button" type="button">+ Nova atribuição</button>
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table">
+              <thead><tr><th>Território</th><th>Linha de Negócio</th><th>Coordenação</th><th>Responsável</th><th>Início</th><th>Fim</th><th></th></tr></thead>
+              <tbody id="com-atribuicao-table-body"><tr><td colspan="7" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <section id="ccPlan-view" class="content-view">
         <div class="dre-workspace cc-workspace">
           <div class="content-card tree-panel">
@@ -732,6 +901,8 @@
       </section>
 
             <section id="actualsLoad-view" class="content-view"></section>
+      <section id="comercialVendas-view" class="content-view"></section>
+      <section id="comercialPlanejado-view" class="content-view"></section>
 
       <section id="budgetLoad-view" class="content-view"></section>
       <section id="headcountLoad-view" class="content-view"></section>
@@ -989,41 +1160,45 @@
   <!-- ── FIM POPOVER PERFIL ──────────────────────────────────────────── -->
 
   <!-- v=YYYYMMDD — atualize esta data a cada deploy para invalidar o cache do browser -->
-  <script src="seed-data.js?v=20260708i"></script>
-  <script src="dre-structure.js?v=20260708i"></script>
-  <script src="cc-structure.js?v=20260708i"></script>
-  <script src="supabase-config.js?v=20260708i"></script>
+  <script src="seed-data.js?v=20260710f"></script>
+  <script src="dre-structure.js?v=20260710f"></script>
+  <script src="cc-structure.js?v=20260710f"></script>
+  <script src="supabase-config.js?v=20260710f"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="src/core/constants.js?v=20260708i"></script>
-  <script src="src/core/utils.js?v=20260708i"></script>
-  <script src="src/core/storage.js?v=20260708i"></script>
-  <script src="src/modules/auth/authSession.js?v=20260708i"></script>
-  <script src="src/modules/actuals/actualsModule.js?v=20260708i"></script>
-  <script src="src/modules/budget/budgetModule.js?v=20260708i"></script>
-  <script src="src/modules/navigation/navigationModule.js?v=20260708i"></script>
-  <script src="src/modules/ui/headerModule.js?v=20260708i"></script>
-  <script src="src/modules/ui/branchTreeModule.js?v=20260708i"></script>
-  <script src="src/modules/ui/dreTreeModule.js?v=20260708i"></script>
-  <script src="src/modules/ui/ccTreeModule.js?v=20260708i"></script>
-  <script src="src/modules/ui/renderModule.js?v=20260708i"></script>
-  <script src="src/modules/ui/profileDialogModule.js?v=20260708i"></script>
-  <script src="src/modules/reports/reportsDreModule.js?v=20260708i"></script>
-  <script src="src/modules/reports/reportsOpexModule.js?v=20260708i"></script>
-  <script src="src/modules/forecast/forecastModule.js?v=20260708i"></script>
-  <script src="src/modules/reports/reportsHeadcountModule.js?v=20260708i"></script>
-  <script src="src/modules/headcount/headcountRenderModule.js?v=20260708i"></script>
-  <script src="src/modules/ui/shellEventsModule.js?v=20260708i"></script>
-  <script src="src/modules/ui/editorEventsModule.js?v=20260708i"></script>
-  <script src="src/modules/ui/dialogs.js?v=20260708i"></script>
-  <script src="src/modules/reports/reportsHelpersModule.js?v=20260708i"></script>
-  <script src="src/modules/reports/reportsBuilderModule.js?v=20260708i"></script>
-  <script src="src/modules/users/usersModule.js?v=20260708i"></script>
-  <script src="src/modules/params/managementsModule.js?v=20260708i"></script>
-  <script src="src/modules/dashboard/dashboardCards.js?v=20260708i"></script>
-  <script src="src/modules/dashboard/dashboardModule.js?v=20260708i"></script>
-  <script src="src/modules/dashboard/dashboardVisuals.js?v=20260708i"></script>
-  <script src="src/modules/dashboard/marketTicker.js?v=20260708i"></script>
-  <script src="app.js?v=20260708i"></script>
+  <script src="src/core/constants.js?v=20260710f"></script>
+  <script src="src/core/utils.js?v=20260710f"></script>
+  <script src="src/core/storage.js?v=20260710f"></script>
+  <script src="src/modules/auth/authSession.js?v=20260710f"></script>
+  <script src="src/modules/actuals/actualsModule.js?v=20260710f"></script>
+  <script src="src/modules/budget/budgetModule.js?v=20260710f"></script>
+  <script src="src/modules/navigation/navigationModule.js?v=20260710f"></script>
+  <script src="src/modules/ui/headerModule.js?v=20260710f"></script>
+  <script src="src/modules/ui/branchTreeModule.js?v=20260710f"></script>
+  <script src="src/modules/ui/dreTreeModule.js?v=20260710f"></script>
+  <script src="src/modules/ui/ccTreeModule.js?v=20260710f"></script>
+  <script src="src/modules/ui/renderModule.js?v=20260710f"></script>
+  <script src="src/modules/ui/profileDialogModule.js?v=20260710f"></script>
+  <script src="src/modules/reports/reportsDreModule.js?v=20260710f"></script>
+  <script src="src/modules/reports/reportsOpexModule.js?v=20260710f"></script>
+  <script src="src/modules/forecast/forecastModule.js?v=20260710f"></script>
+  <script src="src/modules/reports/reportsHeadcountModule.js?v=20260710f"></script>
+  <script src="src/modules/headcount/headcountRenderModule.js?v=20260710f"></script>
+  <script src="src/modules/ui/shellEventsModule.js?v=20260710f"></script>
+  <script src="src/modules/ui/editorEventsModule.js?v=20260710f"></script>
+  <script src="src/modules/ui/dialogs.js?v=20260710f"></script>
+  <script src="src/modules/reports/reportsHelpersModule.js?v=20260710f"></script>
+  <script src="src/modules/reports/reportsBuilderModule.js?v=20260710f"></script>
+  <script src="src/modules/users/usersModule.js?v=20260710f"></script>
+  <script src="src/modules/params/managementsModule.js?v=20260710f"></script>
+  <script src="src/modules/comercial/comercialCadastroModule.js?v=20260710f"></script>
+  <script src="src/modules/comercial/comercialVendasCargaModule.js?v=20260711k"></script>
+  <script src="src/modules/comercial/comercialPlanejadoCargaModule.js?v=20260710f"></script>
+  <script src="src/modules/reports/reportsComercialPainelModule.js?v=20260711r"></script>
+  <script src="src/modules/dashboard/dashboardCards.js?v=20260710f"></script>
+  <script src="src/modules/dashboard/dashboardModule.js?v=20260710f"></script>
+  <script src="src/modules/dashboard/dashboardVisuals.js?v=20260710f"></script>
+  <script src="src/modules/dashboard/marketTicker.js?v=20260710f"></script>
+  <script src="app.js?v=20260710f"></script>
 </body>
 </html>
 

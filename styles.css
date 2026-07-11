@@ -424,6 +424,17 @@ textarea {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.submenu-section-label {
+  margin: 8px 0 2px 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
 
 .nav-icon,
 .submenu-icon,
@@ -1872,6 +1883,12 @@ textarea {
   padding: 0;
 }
 
+/* Painel de relatório e um conteiner transparente, nao um card interativo:
+   anula o realce cinza do .content-card:hover ao passar o mouse. */
+.content-card.reports-table-card:hover {
+  background: transparent;
+}
+
 .reports-catalog-head {
   display: flex;
   align-items: flex-start;
@@ -1952,6 +1969,10 @@ textarea {
 [data-report-id^="headcount"]:hover { border-color: rgba(34,197,94,0.28); border-top-color: #22c55e; }
 [data-report-id^="headcount"].active { border-color: rgba(34,197,94,0.65); border-top-color: #22c55e; }
 
+[data-report-id^="comercial"] { border-top-color: #14b8a6; }
+[data-report-id^="comercial"]:hover { border-color: rgba(20,184,166,0.30); border-top-color: #14b8a6; }
+[data-report-id^="comercial"].active { border-color: rgba(20,184,166,0.65); border-top-color: #14b8a6; }
+
 /* Ícones coloridos por categoria */
 [data-report-id^="dre"] .rrc-icon-wrap {
   background: rgba(79,124,255,0.12);
@@ -1967,6 +1988,11 @@ textarea {
   background: rgba(34,197,94,0.12);
   border-color: rgba(34,197,94,0.22);
   color: #22c55e;
+}
+[data-report-id^="comercial"] .rrc-icon-wrap {
+  background: rgba(20,184,166,0.12);
+  border-color: rgba(20,184,166,0.22);
+  color: #14b8a6;
 }
 
 .reports-report-card--soon {
@@ -3218,6 +3244,17 @@ thead .col-frozen-3 {
 .actuals-col-action .table-icon-button-only + .table-icon-button-only {
   margin-left: 8px;
 }
+
+/* Carga de Vendas: larguras de coluna espelhando a proporcao do DRE.
+   QTD/%MB estreitos (1-2 digitos) pra nao esticar e comprimir a coluna Acao. */
+.comven-col-origem { width: 56px; min-width: 56px; padding-left: 2px; padding-right: 4px; }
+.comven-col-tipo { width: 92px; min-width: 92px; padding-left: 2px; padding-right: 2px; }
+.comven-col-produto { width: 120px; min-width: 120px; padding-left: 2px; padding-right: 2px; }
+.comven-col-cliente { width: 96px; min-width: 96px; padding-left: 2px; padding-right: 2px; }
+.comven-col-territorio { width: 108px; min-width: 108px; padding-left: 2px; padding-right: 2px; }
+.comven-col-qtd { width: 60px; min-width: 60px; max-width: 60px; padding-left: 2px; padding-right: 2px; }
+.comven-col-valor { width: 120px; min-width: 120px; }
+.comven-col-mb { width: 62px; min-width: 62px; max-width: 62px; padding-left: 2px; padding-right: 2px; }
 
 @keyframes vp-spin {
   to { transform: rotate(360deg); }
@@ -5362,6 +5399,90 @@ body.auth-only .content-view {
   padding-left: 18px !important;
   color: var(--text-faint) !important;
   font-size: 0.7rem !important;
+}
+
+/* ── Cadastros comerciais (Produtos, Clientes, Território, Coordenação, Tipo, Cultura, Atribuição) ── */
+.cadastro-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1100px;
+  padding: 20px 24px;
+}
+
+.cadastro-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cadastro-title {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cadastro-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.cadastro-search {
+  margin: 0 0 4px;
+}
+
+.cadastro-search input {
+  width: 260px;
+  max-width: 100%;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-family: inherit;
+  padding: 8px 10px;
+  outline: none;
+}
+
+.cadastro-search input:focus { border-color: var(--blue); }
+
+.cadastro-table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.cadastro-table {
+  table-layout: auto;
+}
+
+.cadastro-table th,
+.cadastro-table td,
+.cadastro-table th:not(:first-child),
+.cadastro-table td:not(:first-child) {
+  text-align: left;
+  white-space: normal;
+}
+
+.cadastro-table th:last-child,
+.cadastro-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+  width: 1%;
+}
+
+/* Código nunca quebra em 2 linhas — a coluna encolhe ao conteúdo, sobrando
+   espaço pra Descrição (que fica sempre à esquerda, herda o text-align acima). */
+.cadastro-table th:first-child,
+.cadastro-table td:first-child {
+  white-space: nowrap;
+  width: 1%;
+}
+
+.cadastro-th-arrow {
+  margin-left: 3px;
 }
 
 /* ── Usuários ──────────────────────────────────────────────────────────────── */

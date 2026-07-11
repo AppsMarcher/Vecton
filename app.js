@@ -57,6 +57,10 @@ const { createShellEventsModule } = window.VECTON_SHELL_EVENTS;
 const { createEditorEventsModule } = window.VECTON_EDITOR_EVENTS;
 const { createUsersModule } = window.VECTON_USERS_MODULE;
 const { createManagementsModule } = window.VECTON_MANAGEMENTS_MODULE;
+const { createCadastroModule } = window.VECTON_COMERCIAL_CADASTRO_MODULE;
+const { createComercialVendasCargaModule } = window.VECTON_COMERCIAL_VENDAS_CARGA;
+const { createComercialPlanejadoCargaModule } = window.VECTON_COMERCIAL_PLANEJADO_CARGA;
+const { createComercialPainelModule } = window.VECTON_COMERCIAL_PAINEL;
 const { createReportsHelpersModule } = window.VECTON_REPORTS_HELPERS;
 const { createDashboardCardsModule } = window.VECTON_DASHBOARD_CARDS;
 const { createDashboardModule } = window.VECTON_DASHBOARD_MODULE;
@@ -164,7 +168,17 @@ const views = {
   headcountLoad: document.querySelector("#headcountLoad-view"),
   managements: document.querySelector("#managements-view"),
   users: document.querySelector("#users-view"),
-  accessProfiles: document.querySelector("#accessProfiles-view")
+  accessProfiles: document.querySelector("#accessProfiles-view"),
+  comProdutos: document.querySelector("#comProdutos-view"),
+  comClientes: document.querySelector("#comClientes-view"),
+  comTerritorios: document.querySelector("#comTerritorios-view"),
+  comCoordenacoes: document.querySelector("#comCoordenacoes-view"),
+  comTipos: document.querySelector("#comTipos-view"),
+  comCulturas: document.querySelector("#comCulturas-view"),
+  comLinhasNegocio: document.querySelector("#comLinhasNegocio-view"),
+  comAtribuicao: document.querySelector("#comAtribuicao-view"),
+  comercialVendas: document.querySelector("#comercialVendas-view"),
+  comercialPlanejado: document.querySelector("#comercialPlanejado-view")
 };
 const profileDialog = document.querySelector("#profile-dialog");
 
@@ -338,7 +352,8 @@ const actualsModule = createActualsModule({
   resolveOrganizationId,
   setSyncStatus,
   upsertSupabaseRows,
-  appConfirm
+  appConfirm,
+  openComercialVendasCarga
 });
 const {
   ensureViewShell: ensureActualsViewShell,
@@ -501,7 +516,8 @@ try {
     upsertSupabaseRows,
     deleteSupabaseRows,
     callSupabaseRpc,
-    appConfirm
+    appConfirm,
+    openComercialPlanejadoCarga
   });
 } catch (error) {
   console.error("Falha ao inicializar modulo de budget", error);
@@ -617,6 +633,244 @@ const { loadAndRenderManagements, bindManagementsAddButton } = createManagements
   appAlert,
   appConfirm
 });
+
+// ── Módulo Comercial: cadastros (Produtos, Clientes, Território, Coordenação,
+// Tipo, Cultura, Linha de Negócio, Atribuição Território→Responsável) ──────
+const UF_OPTIONS = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB",
+  "PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO","EX"
+].map((uf) => ({ value: uf, label: uf === "EX" ? "Exterior" : uf }));
+
+const comercialCadastroDeps = {
+  escapeHtml,
+  resolveOrganizationId,
+  fetchAllSupabaseRows,
+  upsertSupabaseRows,
+  insertSupabaseRows,
+  deleteSupabaseRows,
+  appAlert,
+  appConfirm
+};
+
+const comTiposMod = createCadastroModule({
+  table: "comercial_tipos", idPrefix: "com-tipos",
+  titleSingular: "Tipo", titlePlural: "Tipos",
+  conflictKeys: ["organization_id", "nome"],
+  fields: [{ key: "nome", label: "Nome", required: true }]
+}, comercialCadastroDeps);
+
+const comCulturasMod = createCadastroModule({
+  table: "comercial_culturas", idPrefix: "com-culturas",
+  titleSingular: "Cultura", titlePlural: "Culturas",
+  conflictKeys: ["organization_id", "nome"],
+  fields: [{ key: "nome", label: "Nome", required: true }]
+}, comercialCadastroDeps);
+
+const comLinhasNegocioMod = createCadastroModule({
+  table: "comercial_linhas_negocio", idPrefix: "com-linhas-negocio",
+  titleSingular: "Linha de Negócio", titlePlural: "Linhas de Negócio",
+  conflictKeys: ["organization_id", "nome"],
+  fields: [{ key: "nome", label: "Nome", required: true }]
+}, comercialCadastroDeps);
+
+const comCoordenacoesMod = createCadastroModule({
+  table: "comercial_coordenacoes", idPrefix: "com-coordenacoes",
+  titleSingular: "Coordenação", titlePlural: "Coordenações",
+  conflictKeys: ["organization_id", "nome"],
+  fields: [
+    { key: "nome", label: "Nome", required: true },
+    { key: "gestor", label: "Gestor", required: false }
+  ]
+}, comercialCadastroDeps);
+
+const comTerritoriosMod = createCadastroModule({
+  table: "comercial_territorios", idPrefix: "com-territorios",
+  titleSingular: "Território", titlePlural: "Territórios",
+  conflictKeys: ["organization_id", "nome"],
+  fields: [{ key: "nome", label: "Nome", required: true }]
+}, comercialCadastroDeps);
+
+const comProdutosMod = createCadastroModule({
+  table: "comercial_produtos", idPrefix: "com-produtos",
+  titleSingular: "Produto", titlePlural: "Produtos",
+  conflictKeys: ["organization_id", "codigo"],
+  searchable: true,
+  fields: [
+    { key: "codigo", label: "Código", required: true, lockOnEdit: true },
+    { key: "descricao", label: "Descrição", required: true },
+    { key: "tipo_id", label: "Tipo", required: true, type: "select",
+      options: () => comTiposMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
+    { key: "cultura_id", label: "Cultura", required: false, type: "select",
+      options: () => comCulturasMod.getRows().map((r) => ({ value: r.id, label: r.nome })) }
+  ]
+}, comercialCadastroDeps);
+
+const comClientesMod = createCadastroModule({
+  table: "comercial_clientes", idPrefix: "com-clientes",
+  titleSingular: "Cliente", titlePlural: "Clientes",
+  conflictKeys: ["organization_id", "codigo"],
+  searchable: true,
+  fields: [
+    { key: "codigo", label: "Código", required: true, lockOnEdit: true },
+    { key: "descricao", label: "Descrição", required: true },
+    { key: "cidade", label: "Cidade", required: false },
+    { key: "uf", label: "UF", required: false, type: "select", options: () => UF_OPTIONS },
+    { key: "codigo_ibge", label: "Código IBGE", required: false }
+  ]
+}, comercialCadastroDeps);
+
+// Atribuição usa exclusion constraint (não unique simples) para impedir
+// vigências sobrepostas — por isso cria com INSERT puro, não upsert.
+const comAtribuicaoMod = createCadastroModule({
+  table: "comercial_atribuicao_responsavel", idPrefix: "com-atribuicao",
+  titleSingular: "Atribuição", titlePlural: "Atribuições",
+  newLabel: "Nova atribuição",
+  noConflictOnCreate: true,
+  fields: [
+    { key: "territorio_id", label: "Território", required: true, type: "select",
+      options: () => comTerritoriosMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
+    { key: "linha_negocio_id", label: "Linha de Negócio", required: true, type: "select",
+      options: () => comLinhasNegocioMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
+    { key: "coordenacao_id", label: "Coordenação", required: true, type: "select",
+      options: () => comCoordenacoesMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
+    { key: "responsavel", label: "Responsável", required: true },
+    { key: "data_inicio", label: "Início da vigência", required: true, type: "date" },
+    { key: "data_fim", label: "Fim da vigência", required: false, type: "date" }
+  ]
+}, comercialCadastroDeps);
+
+const comercialModules = {
+  comTipos: comTiposMod,
+  comCulturas: comCulturasMod,
+  comLinhasNegocio: comLinhasNegocioMod,
+  comCoordenacoes: comCoordenacoesMod,
+  comTerritorios: comTerritoriosMod,
+  comClientes: comClientesMod,
+  comProdutos: {
+    loadAndRender: async () => {
+      await Promise.all([comTiposMod.loadAndRender(), comCulturasMod.loadAndRender()]);
+      await comProdutosMod.loadAndRender();
+    },
+    bindAddButton: comProdutosMod.bindAddButton
+  },
+  comAtribuicao: {
+    loadAndRender: async () => {
+      await Promise.all([
+        comTerritoriosMod.loadAndRender(),
+        comLinhasNegocioMod.loadAndRender(),
+        comCoordenacoesMod.loadAndRender()
+      ]);
+      await comAtribuicaoMod.loadAndRender();
+    },
+    bindAddButton: comAtribuicaoMod.bindAddButton
+  }
+};
+
+// Carga de Vendas realizadas (FAT + CART) — tela clonada da carga do DRE,
+// acessada pelo card "Volumes de Vendas" do catalogo Carga de Realizado.
+const comVendasCargaMod = createComercialVendasCargaModule({
+  state,
+  views,
+  periodTrigger,
+  getActiveView: () => activeView,
+  getCurrentUser: () => currentUser,
+  buildEmptyRow,
+  buildPeriodDate,
+  callSupabaseRpc,
+  chunkArray,
+  dateMatchesPeriod,
+  deleteSupabaseRows,
+  escapeHtml,
+  fetchSupabaseRowsSafe,
+  formatActualsStatus,
+  formatDisplayDate,
+  formatAmountInput,
+  formatFileSize,
+  formatMonthLabel,
+  formatSyncError,
+  getActualsStatusClass,
+  isSupabaseConfigured,
+  normalizeDateInput,
+  normalizeHeaderName,
+  parseLocalizedAmount,
+  persistAndRender,
+  resolveOrganizationId,
+  setSyncStatus,
+  upsertSupabaseRows,
+  appConfirm,
+  onBack: () => openActualsLoadCatalog(),
+  MAX_BROWSER_TEXT_IMPORT_BYTES,
+  MAX_BROWSER_XLSX_BYTES,
+  UPSERT_CHUNK_SIZE: ACTUALS_IMPORT_UPSERT_CHUNK_SIZE
+});
+
+function openComercialVendasCarga() {
+  activeView = "comercialVendas";
+  renderNavigation();
+  comVendasCargaMod.ensureViewShell();
+  comVendasCargaMod.renderView();
+  void comVendasCargaMod.loadAndRender();
+}
+
+function openActualsLoadCatalog() {
+  setSelectedActualsLoadType(null);
+  activeView = "actualsLoad";
+  renderNavigation();
+  ensureActualsViewShell();
+  renderActualsCatalog();
+  renderActualsView();
+}
+
+// Carga de Vendas PLANEJADAS (meta) — acessada pelo card "Volumes de Vendas"
+// do catalogo Carga de Planejado.
+const comPlanejadoCargaMod = createComercialPlanejadoCargaModule({
+  state,
+  views,
+  periodTrigger,
+  getActiveView: () => activeView,
+  getCurrentUser: () => currentUser,
+  buildEmptyRow,
+  callSupabaseRpc,
+  chunkArray,
+  deleteSupabaseRows,
+  escapeHtml,
+  fetchSupabaseRowsSafe,
+  formatActualsStatus,
+  formatAmountInput,
+  formatFileSize,
+  formatMonthLabel,
+  formatSyncError,
+  getActualsStatusClass,
+  isSupabaseConfigured,
+  normalizeHeaderName,
+  parseLocalizedAmount,
+  persistAndRender,
+  resolveOrganizationId,
+  setSyncStatus,
+  upsertSupabaseRows,
+  appConfirm,
+  onBack: () => openBudgetLoadCatalog(),
+  MAX_BROWSER_TEXT_IMPORT_BYTES,
+  MAX_BROWSER_XLSX_BYTES,
+  UPSERT_CHUNK_SIZE: ACTUALS_IMPORT_UPSERT_CHUNK_SIZE
+});
+
+function openComercialPlanejadoCarga() {
+  activeView = "comercialPlanejado";
+  renderNavigation();
+  comPlanejadoCargaMod.ensureViewShell();
+  comPlanejadoCargaMod.renderView();
+  void comPlanejadoCargaMod.loadAndRender();
+}
+
+function openBudgetLoadCatalog() {
+  setSelectedBudgetLoadType(null);
+  activeView = "budgetLoad";
+  renderNavigation();
+  ensureBudgetViewShell();
+  renderBudgetCatalog();
+  renderBudgetView();
+}
 const { renderPlanningView, resetPlanningState } = createForecastModule
   ? createForecastModule({
       escapeHtml,
@@ -636,6 +890,7 @@ const shellEventsModule = createShellEventsModule({
   profileTrigger,
   paramsToggle,
   paramsSubmenu,
+  comercialModules,
   menuButtons,
   submenuButtons,
   periodTrigger,
@@ -787,6 +1042,15 @@ const reportsHeadcountModule = createReportsHeadcountModule({
   fetchScenariosForYear,
   getCurrentYear: () => Number(state.currentPeriod?.year || 2026),
 });
+const comercialPainelModule = createComercialPainelModule({
+  escapeHtml,
+  formatMonthLabel,
+  state,
+  resolveOrganizationId,
+  fetchSupabaseRowsSafe,
+  callSupabaseRpc,
+  isSupabaseConfigured,
+});
 const headcountRenderModule = createHeadcountRenderModule({
   escapeHtml,
   formatMonthLabel,
@@ -872,6 +1136,8 @@ const renderModule = createRenderModule({
   ensureHeadcountViewShell,
   renderHeadcountCatalog,
   renderHeadcountView,
+  renderComercialVendasView: () => comVendasCargaMod.renderView(),
+  renderComercialPlanejadoView: () => comPlanejadoCargaMod.renderView(),
   renderDashboard
 });
 
@@ -2187,7 +2453,8 @@ const REPORT_TITLES = {
   opexReal:      "OPEX Realizado",
   opexBudget:    "OPEX Planejado",
   headcountReal: "Headcount Realizado",
-  headcountBudget: "Headcount Planejado"
+  headcountBudget: "Headcount Planejado",
+  comercialPainel: "Painel de Vendas"
 };
 
 /*
@@ -2413,6 +2680,7 @@ function renderReportsView() {
 
   const rendered =
     reportsBuilderModule.handleBuilderView(detailPanel, selectedReportId) ||
+    comercialPainelModule.renderSelectedPainel(detailPanel, selectedReportId) ||
     reportsDreModule.renderSelectedDreReport(detailPanel, selectedReportId) ||
     reportsOpexModule.renderSelectedOpexReport(detailPanel, selectedReportId) ||
     reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId);
@@ -5137,6 +5405,25 @@ async function fetchAllSupabaseRows(table, query, pageSize = 1000) {
     lastId = page[page.length - 1].id;
   }
   return rows;
+}
+
+async function insertSupabaseRows(table, rows) {
+  const response = await authenticatedFetch(
+    `${supabaseConfig.projectUrl}/rest/v1/${table}`,
+    {
+      method: "POST",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify(rows)
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  return response.json();
 }
 
 async function upsertSupabaseRows(table, rows, conflictKeys) {
