@@ -135,12 +135,108 @@
       }
     }
 
+    // ── Headcount por fonte ───────────────────────────────────────────────────
+
+    async function fetchActualsHcMonthRows(year, month) {
+      const orgId  = await resolveOrganizationId();
+      const pgSize = 1000;
+      const rows   = [];
+      let offset   = 0;
+      while (true) {
+        const page = await fetchSupabaseRowsSafe(
+          "headcount_entries",
+          `organization_id=eq.${orgId}&reference_year=eq.${year}&reference_month=eq.${month}` +
+          `&load_type=eq.realizado&select=branch_code,cost_center_number,matricula,colab,cargo` +
+          `&order=matricula.asc&limit=${pgSize}&offset=${offset}`
+        );
+        rows.push(...page);
+        if (page.length < pgSize) break;
+        offset += pgSize;
+      }
+      return rows;
+    }
+
+    async function fetchBudgetHcMonthRows(year, month) {
+      const orgId  = await resolveOrganizationId();
+      const pgSize = 1000;
+      const rows   = [];
+      let offset   = 0;
+      while (true) {
+        const page = await fetchSupabaseRowsSafe(
+          "headcount_entries",
+          `organization_id=eq.${orgId}&reference_year=eq.${year}&reference_month=eq.${month}` +
+          `&load_type=eq.orcado&select=branch_code,cost_center_number,matricula,colab,cargo` +
+          `&order=matricula.asc&limit=${pgSize}&offset=${offset}`
+        );
+        rows.push(...page);
+        if (page.length < pgSize) break;
+        offset += pgSize;
+      }
+      return rows;
+    }
+
+    async function fetchScenarioHcMonthRows(srcScenarioId, year, month) {
+      const orgId  = await resolveOrganizationId();
+      const pgSize = 1000;
+      const rows   = [];
+      let lastId   = "00000000-0000-0000-0000-000000000000";
+      while (true) {
+        const page = await fetchSupabaseRowsSafe(
+          "forecast_headcount_entries",
+          `organization_id=eq.${orgId}&scenario_id=eq.${srcScenarioId}` +
+          `&reference_year=eq.${year}&reference_month=eq.${month}` +
+          `&id=gt.${lastId}&select=id,branch_code,cost_center_number,matricula,colab,cargo` +
+          `&order=id.asc&limit=${pgSize}`
+        );
+        rows.push(...page);
+        if (page.length < pgSize) break;
+        lastId = page[page.length - 1].id;
+      }
+      return rows;
+    }
+
+    async function copyMonthHcData(orgId, scenarioId, year, month, source) {
+      let hcRows;
+      if (source === "real")        hcRows = await fetchActualsHcMonthRows(year, month);
+      else if (source === "budget") hcRows = await fetchBudgetHcMonthRows(year, month);
+      else                          hcRows = await fetchScenarioHcMonthRows(source, year, month);
+
+      // Remove headcount existente do mês/cenário antes de inserir
+      await deleteSupabaseRows("forecast_headcount_entries",
+        `organization_id=eq.${orgId}&scenario_id=eq.${scenarioId}` +
+        `&reference_year=eq.${year}&reference_month=eq.${month}`);
+
+      if (!hcRows.length) return;
+      const chunkSize = 500;
+      const toInsert = hcRows.map(r => ({
+        id:                 crypto.randomUUID(),
+        organization_id:    orgId,
+        scenario_id:        scenarioId,
+        reference_year:     year,
+        reference_month:    month,
+        branch_code:        r.branch_code        || null,
+        cost_center_number: r.cost_center_number || null,
+        matricula:          r.matricula,
+        colab:              r.colab,
+        cargo:              r.cargo              || null,
+      }));
+      for (let i = 0; i < toInsert.length; i += chunkSize) {
+        await upsertSupabaseRows("forecast_headcount_entries",
+          toInsert.slice(i, i + chunkSize),
+          ["organization_id", "reference_year", "reference_month", "scenario_id", "matricula"]);
+      }
+    }
+
     async function copyMonthData(orgId, scenarioId, year, month, source) {
       let sourceRows;
-      if (source === "real")   sourceRows = await fetchActualsMonthRows(year, month);
+      if (source === "real")        sourceRows = await fetchActualsMonthRows(year, month);
       else if (source === "budget") sourceRows = await fetchBudgetMonthRows(year, month);
-      else                     sourceRows = await fetchScenarioMonthRows(source, year, month);
-      await insertForecastRows(orgId, scenarioId, year, month, sourceRows);
+      else                          sourceRows = await fetchScenarioMonthRows(source, year, month);
+      // Copia ledger financeiro e headcount em paralelo
+      await Promise.all([
+        insertForecastRows(orgId, scenarioId, year, month, sourceRows),
+        copyMonthHcData(orgId, scenarioId, year, month, source),
+      ]);
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
@@ -231,7 +327,7 @@
       function sourceOptions() {
         return [
           `<option value="real">Real</option>`,
-          `<option value="budget">Orçamento</option>`,
+          `<option value="budget">Budget</option>`,
           ...existing.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`),
         ].join("");
       }
@@ -521,32 +617,34 @@
       if (!scenario) { selectedId = null; renderGrid(container); return; }
 
       container.innerHTML = `
-        <div class="fc-wrap fc-detail-wrap">
-          <div class="fc-detail-header">
-            <button class="fc-back-btn" id="fc-detail-back" type="button">← Cenários</button>
-            <div class="fc-detail-title-row">
-              <span class="fc-detail-icon" style="background:${escapeHtml(scenario.color || "#6366f1")};color:#fff">${iconSvg(scenario.icon)}</span>
-              <div>
-                <h2 class="fc-detail-name">${escapeHtml(scenario.name)}</h2>
-                <span class="fc-detail-meta">Realizado até ${escapeHtml(MONTH_LABELS[(scenario.cutoff_month || 1) - 1])} · ${scenario.reference_year}</span>
+        <div class="reports-layout">
+          <div class="reports-catalog-card">
+            <div class="fc-detail-header">
+              <button class="fc-back-btn" id="fc-detail-back" type="button">← Cenários</button>
+              <div class="fc-detail-title-row">
+                <span class="fc-detail-icon" style="background:${escapeHtml(scenario.color || "#6366f1")};color:#fff">${iconSvg(scenario.icon)}</span>
+                <div>
+                  <h2 class="fc-detail-name">${escapeHtml(scenario.name)}</h2>
+                  <span class="fc-detail-meta">Realizado até ${escapeHtml(MONTH_LABELS[(scenario.cutoff_month || 1) - 1])} · ${scenario.reference_year}</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="fc-report-grid">
-            <button class="fc-rcard" type="button" data-fc-report="dreSoc">
-              <span class="fc-rcard-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg></span>
-              <strong class="fc-rcard-label">DRE Societário</strong>
-              <span class="fc-rcard-sub">${escapeHtml(scenario.name)}</span>
-            </button>
-            <div class="fc-rcard fc-rcard--soon">
-              <span class="fc-rcard-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-reports"></use></svg></span>
-              <strong class="fc-rcard-label">Balanço Patrimonial</strong>
-              <span class="fc-rcard-sub">Em breve</span>
-            </div>
-            <div class="fc-rcard fc-rcard--soon">
-              <span class="fc-rcard-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-trend-up"></use></svg></span>
-              <strong class="fc-rcard-label">Fluxo de Caixa</strong>
-              <span class="fc-rcard-sub">Em breve</span>
+            <div class="reports-card-grid">
+              <button class="reports-report-card fc-scenario-card" type="button" data-fc-report="dreSoc" style="border-top-color:#4f7cff">
+                <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(79,124,255,0.12);border-color:rgba(79,124,255,0.22);color:#4f7cff"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg></span></div>
+                <strong>DRE Societário</strong>
+                <span class="rrc-subtitle">${escapeHtml(scenario.name)}</span>
+              </button>
+              <div class="reports-report-card reports-report-card--soon">
+                <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-reports"></use></svg></span></div>
+                <strong>Balanço Patrimonial</strong>
+                <span class="rrc-subtitle">Em breve</span>
+              </div>
+              <div class="reports-report-card reports-report-card--soon">
+                <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-trend-up"></use></svg></span></div>
+                <strong>Fluxo de Caixa</strong>
+                <span class="rrc-subtitle">Em breve</span>
+              </div>
             </div>
           </div>
         </div>`;

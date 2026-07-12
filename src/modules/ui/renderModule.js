@@ -23,6 +23,8 @@
       ensureHeadcountViewShell,
       renderHeadcountCatalog,
       renderHeadcountView,
+      renderComercialVendasView,
+      renderComercialPlanejadoView,
       renderDashboard
     } = deps;
 
@@ -56,6 +58,14 @@
         ensureHeadcountViewShell();
         renderHeadcountCatalog();
         renderHeadcountView();
+      }
+
+      if (getActiveView() === "comercialVendas") {
+        renderComercialVendasView();
+      }
+
+      if (getActiveView() === "comercialPlanejado") {
+        renderComercialPlanejadoView();
       }
 
       renderDashboard();

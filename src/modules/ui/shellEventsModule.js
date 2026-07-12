@@ -6,6 +6,7 @@
       profileTrigger,
       paramsToggle,
       paramsSubmenu,
+      comercialModules,
       menuButtons,
       submenuButtons,
       periodTrigger,
@@ -122,6 +123,12 @@
           if (getActiveView() === "managements") {
             loadAndRenderManagements();
             bindManagementsAddButton();
+            return;
+          }
+          if (comercialModules && comercialModules[getActiveView()]) {
+            const mod = comercialModules[getActiveView()];
+            mod.loadAndRender();
+            mod.bindAddButton();
             return;
           }
           if (getActiveView() === "headcountLoad") {

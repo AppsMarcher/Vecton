@@ -41,7 +41,8 @@
       resolveOrganizationId,
       setSyncStatus,
       upsertSupabaseRows,
-      appConfirm
+      appConfirm,
+      openComercialVendasCarga
     } = deps;
 
     const ACTUALS_LOAD_LABELS = {
@@ -120,7 +121,7 @@
               </span>
               <strong>Fluxo de Caixa</strong>
             </button>
-            <button class="load-catalog-card load-catalog-card--amber load-catalog-card--soon" type="button" disabled>
+            <button class="load-catalog-card load-catalog-card--amber" type="button" data-comercial-carga="vendas">
               <span class="lcc-icon-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4 5.6A1 1 0 0 0 6.6 20H19"/><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
               </span>
@@ -241,6 +242,11 @@
         const hcCard = event.target.closest("[data-headcount-entry]");
         if (hcCard && !hcCard.disabled) {
           openHeadcountFromCatalog(hcCard.dataset.headcountEntry, "actualsLoad");
+          return;
+        }
+        const comercialCard = event.target.closest("[data-comercial-carga]");
+        if (comercialCard && !comercialCard.disabled) {
+          openComercialVendasCarga?.();
           return;
         }
         const card = event.target.closest("[data-load-type]");

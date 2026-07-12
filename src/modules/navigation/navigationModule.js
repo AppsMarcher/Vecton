@@ -40,7 +40,11 @@
       submenuButtons.forEach((button) => {
         button.classList.toggle("active", button.dataset.view === activeView);
       });
-      const paramsViews = ["branchPlan", "drePlan", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles"];
+      const paramsViews = [
+        "branchPlan", "drePlan", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles",
+        "comProdutos", "comClientes", "comTerritorios", "comCoordenacoes", "comTipos", "comCulturas", "comLinhasNegocio", "comAtribuicao",
+        "comercialVendas", "comercialPlanejado"
+      ];
       paramsToggle.classList.toggle("active", paramsViews.includes(activeView));
 
       Object.entries(views).forEach(([key, node]) => {
