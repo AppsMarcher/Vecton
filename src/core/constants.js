@@ -77,7 +77,17 @@ const VIEW_HEADER_METADATA = {
   budgetLoad: { kicker: "PARÂMETROS", title: "Carga de planejado" },
   headcountLoad:   { kicker: "PARÂMETROS", title: "Carga de headcount" },
   users:           { kicker: "PARÂMETROS", title: "Usuários" },
-  accessProfiles:  { kicker: "PARÂMETROS", title: "Perfis de Acesso" }
+  accessProfiles:  { kicker: "PARÂMETROS", title: "Perfis de Acesso" },
+  comProdutos:       { kicker: "PARÂMETROS", title: "Produtos" },
+  comClientes:       { kicker: "PARÂMETROS", title: "Clientes" },
+  comTerritorios:    { kicker: "PARÂMETROS", title: "Território" },
+  comCoordenacoes:   { kicker: "PARÂMETROS", title: "Coordenação" },
+  comTipos:          { kicker: "PARÂMETROS", title: "Tipo" },
+  comCulturas:       { kicker: "PARÂMETROS", title: "Cultura" },
+  comLinhasNegocio:  { kicker: "PARÂMETROS", title: "Linha de Negócio" },
+  comAtribuicao:     { kicker: "PARÂMETROS", title: "Atribuição Território → Responsável" },
+  comercialVendas:   { kicker: "PARÂMETROS", title: "Carga de Vendas realizadas" },
+  comercialPlanejado:{ kicker: "PARÂMETROS", title: "Carga de Vendas planejadas" }
 };
 
 global.VECTON_CORE_CONSTANTS = {
