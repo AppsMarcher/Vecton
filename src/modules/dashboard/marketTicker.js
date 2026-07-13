@@ -372,6 +372,7 @@
     const currencyMatch = text.match(/R\$\s*([\d.]+,\d{2})/i);
     const numberMatches = text.match(/[\d.]+,\d{2}/g) || [];
     const percentMatch = text.match(/([+\-−]?\d+,\d{2})\s*%/);
+    const dateMatch = text.match(/(\d{2}\/\d{2}\/\d{4})/);
 
     const value = parsePtBrNumber(currencyMatch?.[1] || numberMatches[0]);
     const pct = parsePtBrNumber(percentMatch?.[1] || "0");
@@ -380,7 +381,8 @@
     return {
       value,
       pct: Number.isFinite(pct) ? pct : 0,
-      updatedAt: new Date().toISOString()
+      dataDate: dateMatch?.[1] || null,      // data do pregão publicada no widget (dd/mm/aaaa)
+      updatedAtText: dateMatch?.[1] || null  // tooltip mostra a data do dado, não a hora do fetch
     };
   }
 
@@ -428,7 +430,7 @@
     });
   }
 
-  const CEPEA_PREV_KEY = "vecton-cepea-prev-v1";
+  const CEPEA_PREV_KEY = "vecton-cepea-prev-v2";
 
   function loadCepeaPrevCache() {
     try { return JSON.parse(localStorage.getItem(CEPEA_PREV_KEY) || "{}"); }
@@ -440,33 +442,35 @@
     catch {}
   }
 
-  // Mantém today/prev separados para calcular variação entre dias.
-  // Se o dia mudou: today vira prev antes de ser sobrescrito.
-  // Múltiplos fetches no mesmo dia atualizam today sem tocar em prev.
-  // Fallback entry.prev garante que seeds manuais (today=null) não sejam descartados.
-  function updateCepeaEntry(cache, id, dateStr, value) {
-    const entry = cache[id] || {};
-    if (entry.today?.date === dateStr) {
-      cache[id] = { today: { date: dateStr, value }, prev: entry.prev || null };
+  // Variação da soja/milho: o widget do CEPEA só publica VALOR + data do pregão
+  // (sem %). Guardamos por DATA DE PREGÃO e comparamos o valor do pregão atual
+  // com o do anterior. Keyar pela data do DADO (não pelo dia do fetch) evita o
+  // bug de zerar a variação em fins de semana/feriados, quando o mesmo valor é
+  // lido em vários dias de calendário.
+  function updateCepeaByDate(cache, id, dataDate, value) {
+    const entry = cache[id];
+    if (entry && entry.date === dataDate) {
+      // mesmo pregão relido: mantém o valor do pregão anterior
+      cache[id] = { date: dataDate, value, prevValue: entry.prevValue ?? null };
     } else {
-      cache[id] = { today: { date: dateStr, value }, prev: entry.today || entry.prev || null };
+      // pregão novo: o valor atual passa a ser o "anterior"
+      cache[id] = { date: dataDate, value, prevValue: entry ? entry.value : null };
     }
   }
 
-  // Seed inicial: preços de referência para a primeira variação antes do cache acumular dados reais.
-  // Remove as entradas de seed quando o app já tiver valores reais (today preenchido).
+  // Seed inicial: uma referência de pregão anterior pra primeira variação sair
+  // não-zero antes do cache acumular dois pregões reais. Só semeia se não há
+  // entrada nenhuma (localStorage novo / key v2).
   function initCepeaPrevCache() {
     const cache = loadCepeaPrevCache();
     const seeds = {
-      soy:  { date: "2026-06-22", value: 132.84 },
-      corn: { date: "2026-06-22", value: 62.97 }
+      soy:  { date: "22/06/2026", value: 132.84 },
+      corn: { date: "22/06/2026", value: 62.97 }
     };
     let changed = false;
     for (const [id, seed] of Object.entries(seeds)) {
-      // Semeia se prev está ausente — cobre tanto localStorage vazio quanto
-      // entradas existentes com prev:null deixadas por versões anteriores do código.
-      if (!cache[id]?.prev) {
-        cache[id] = { today: cache[id]?.today || null, prev: seed };
+      if (!cache[id]) {
+        cache[id] = { date: seed.date, value: seed.value, prevValue: null };
         changed = true;
       }
     }
@@ -477,7 +481,6 @@
     if (!items.length) return {};
     const output = {};
     const prevCache = loadCepeaPrevCache();
-    const today = new Date().toISOString().slice(0, 10);
 
     await Promise.all(items.map(async (item) => {
       const quote = await loadCepeaItem(item);
@@ -485,16 +488,21 @@
 
       let pct = quote.pct || 0;
 
-      // Se o widget não forneceu %, calcula a partir do preço do dia anterior
-      // guardado em localStorage (disponível a partir da segunda abertura do app).
-      if (pct === 0) {
-        const prev = prevCache[item.id]?.prev;
-        if (prev && prev.date !== today && Number.isFinite(prev.value) && prev.value !== 0) {
-          pct = ((quote.value - prev.value) / prev.value) * 100;
+      // O widget não fornece %: calcula a variação entre o pregão atual e o
+      // anterior, guardados por DATA DE PREGÃO no localStorage. Se ainda é o
+      // mesmo pregão em cache, compara com o pregão anterior (prevValue); se
+      // chegou pregão novo, compara com o último valor guardado.
+      if (pct === 0 && quote.dataDate) {
+        const entry = prevCache[item.id];
+        const baseValue = entry
+          ? (entry.date === quote.dataDate ? entry.prevValue : entry.value)
+          : null;
+        if (Number.isFinite(baseValue) && baseValue !== 0) {
+          pct = ((quote.value - baseValue) / baseValue) * 100;
         }
       }
 
-      updateCepeaEntry(prevCache, item.id, today, quote.value);
+      if (quote.dataDate) updateCepeaByDate(prevCache, item.id, quote.dataDate, quote.value);
       output[item.id] = { ...quote, pct };
     }));
 
