@@ -5539,13 +5539,13 @@ body.auth-only .content-view {
 /* Larguras explícitas (table-layout:fixed) — sem isso o auto-layout dava
    toda a folga pras colunas do meio (E-mail/Departamento/Perfil/Status),
    empurrando a coluna de ações pro canto sem espaço pra um botão com texto. */
-.users-table th:nth-child(1), .users-table td:nth-child(1) { width: 23%; min-width: 200px; }
-.users-table th:nth-child(2), .users-table td:nth-child(2) { width: 19%; }
-.users-table th:nth-child(3), .users-table td:nth-child(3) { width: 15%; }
-.users-table th:nth-child(4), .users-table td:nth-child(4) { width: 11%; }
-.users-table th:nth-child(5), .users-table td:nth-child(5) { width: 8%; }
+.users-table th:nth-child(1), .users-table td:nth-child(1) { width: 21%; min-width: 190px; }
+.users-table th:nth-child(2), .users-table td:nth-child(2) { width: 17%; }
+.users-table th:nth-child(3), .users-table td:nth-child(3) { width: 13%; }
+.users-table th:nth-child(4), .users-table td:nth-child(4) { width: 10%; }
+.users-table th:nth-child(5), .users-table td:nth-child(5) { width: 7%; }
 .users-col-actions,
-.users-table td:last-child { width: 24%; }
+.users-table td:last-child { width: 32%; }
 
 .users-avatar {
   display: inline-flex;

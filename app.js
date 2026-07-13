@@ -617,7 +617,7 @@ const { loadAndRenderUsers, bindUsersInviteButton } = createUsersModule({
   fetchSupabaseRowsSafe,
   upsertSupabaseRows,
   deleteSupabaseRows,
-  fetchSupabaseRpc: () => Promise.resolve(),
+  requestPasswordRecovery,
   callEdgeFunction,
   isSuperAdmin,
   isAdmin,
@@ -5502,6 +5502,21 @@ async function callEdgeFunction(name, payload = {}) {
     throw new Error(data?.error || text || "Falha na função");
   }
   return data;
+}
+
+// "Esqueci minha senha" (GoTrue /auth/v1/recover) — endpoint público, só
+// precisa da anon key (sem token de usuário). Usado pelo admin pra reenviar
+// o email de redefinição de senha pra um usuário já ativo (diferente do
+// reenvio de CONVITE, que é privilegiado e passa pela Edge Function).
+async function requestPasswordRecovery(email) {
+  const response = await fetch(`${supabaseConfig.projectUrl}/auth/v1/recover`, {
+    method: "POST",
+    headers: buildAuthHeaders(),
+    body: JSON.stringify({ email, options: { redirect_to: window.location.origin + window.location.pathname } })
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
 }
 
 async function syncUserProfile() {
