@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260713a">
+  <link rel="stylesheet" href="styles.css?v=20260713b">
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -1073,6 +1073,28 @@
               </div>
             </div>
 
+            <!-- Comercial -->
+            <div class="ap-card ap-card--comercial">
+              <div class="ap-card-top">
+                <div class="ap-badge ap-badge--comercial">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+                  Comercial
+                </div>
+                <span class="ap-user-count" id="ap-count-comercial">— usuários</span>
+              </div>
+              <p class="ap-description">Login direto na tela Relatórios. Enxerga só Painel de Vendas e Mapa de Vendas, com visão consolidada (Brasil todo) e drill-down completo. Sem Dashboard, Planejamento, Parâmetros ou cargas.</p>
+              <ul class="ap-perms">
+                <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
+                <li class="ap-perm ap-perm--yes">Painel de Vendas e Mapa de Vendas (consolidado + drill-down)</li>
+                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, OPEX, Headcount)</li>
+                <li class="ap-perm ap-perm--no">Planejamento</li>
+                <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
+              </ul>
+              <div class="ap-card-footer">
+                <button class="ap-users-btn" type="button" data-profile="comercial">Ver usuários →</button>
+              </div>
+            </div>
+
           </div><!-- /ap-grid -->
 
           <!-- Legenda -->
@@ -1181,7 +1203,7 @@
   <script src="src/modules/auth/authSession.js?v=20260710f"></script>
   <script src="src/modules/actuals/actualsModule.js?v=20260710f"></script>
   <script src="src/modules/budget/budgetModule.js?v=20260710f"></script>
-  <script src="src/modules/navigation/navigationModule.js?v=20260710f"></script>
+  <script src="src/modules/navigation/navigationModule.js?v=20260713b"></script>
   <script src="src/modules/ui/headerModule.js?v=20260710f"></script>
   <script src="src/modules/ui/branchTreeModule.js?v=20260710f"></script>
   <script src="src/modules/ui/dreTreeModule.js?v=20260710f"></script>
@@ -1198,7 +1220,7 @@
   <script src="src/modules/ui/dialogs.js?v=20260710f"></script>
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260710f"></script>
   <script src="src/modules/reports/reportsBuilderModule.js?v=20260710f"></script>
-  <script src="src/modules/users/usersModule.js?v=20260710f"></script>
+  <script src="src/modules/users/usersModule.js?v=20260713b"></script>
   <script src="src/modules/params/managementsModule.js?v=20260710f"></script>
   <script src="src/modules/comercial/comercialCadastroModule.js?v=20260710f"></script>
   <script src="src/modules/comercial/comercialVendasCargaModule.js?v=20260711k"></script>
@@ -1210,7 +1232,7 @@
   <script src="src/modules/dashboard/dashboardModule.js?v=20260710f"></script>
   <script src="src/modules/dashboard/dashboardVisuals.js?v=20260710f"></script>
   <script src="src/modules/dashboard/marketTicker.js?v=20260713a"></script>
-  <script src="app.js?v=20260710f"></script>
+  <script src="app.js?v=20260713b"></script>
 </body>
 </html>
 

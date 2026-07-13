@@ -5307,6 +5307,7 @@ body.auth-only .content-view {
 .ap-card--admin      { border-top: 3px solid #4f7cff; }
 .ap-card--manager    { border-top: 3px solid #22c55e; }
 .ap-card--analyst    { border-top: 3px solid #8b5cf6; }
+.ap-card--comercial  { border-top: 3px solid #14b8a6; }
 
 .ap-card-top {
   display: flex;
@@ -5330,6 +5331,7 @@ body.auth-only .content-view {
 .ap-badge--admin      { background: rgba(79,124,255,0.15); color: #4f7cff; }
 .ap-badge--manager    { background: rgba(34,197,94,0.15);  color: #22c55e; }
 .ap-badge--analyst    { background: rgba(139,92,246,0.15); color: #8b5cf6; }
+.ap-badge--comercial  { background: rgba(20,184,166,0.15); color: #14b8a6; }
 
 .ap-user-count {
   font-size: 0.68rem;
