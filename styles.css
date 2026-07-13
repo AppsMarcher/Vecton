@@ -5549,12 +5549,12 @@ body.auth-only .content-view {
 .users-table th:nth-child(1), .users-table td:nth-child(1) { width: 22%; min-width: 190px; }
 .users-table th:nth-child(2), .users-table td:nth-child(2),
 .users-table th:nth-child(3), .users-table td:nth-child(3) { text-align: left; }
-.users-table th:nth-child(2), .users-table td:nth-child(2) { width: 17%; }
+.users-table th:nth-child(2), .users-table td:nth-child(2) { width: 22%; }
 .users-table th:nth-child(3), .users-table td:nth-child(3) { width: 13%; }
 .users-table th:nth-child(4), .users-table td:nth-child(4) { width: 14%; }
 .users-table th:nth-child(5), .users-table td:nth-child(5) { width: 9%; }
 .users-col-actions,
-.users-table td:last-child { width: 25%; }
+.users-table td:last-child { width: 20%; }
 
 .users-avatar {
   display: inline-flex;
