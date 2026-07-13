@@ -53,6 +53,26 @@
         openProfileDialog();
       });
 
+      // Logo do Vecton (sidebar + header quando a sidebar está oculta) leva pra Home
+      // reaproveitando o botão de menu "dashboard" (roda toda a lógica de navegação).
+      const goHome = () => {
+        const dashboardButton = document.querySelector('.menu-button[data-view="dashboard"]');
+        if (dashboardButton) dashboardButton.click();
+      };
+      document.querySelectorAll(".brand-logo-sidebar, .header-brand-logo").forEach((logo) => {
+        logo.classList.add("brand-logo-home");
+        logo.setAttribute("role", "button");
+        logo.setAttribute("tabindex", "0");
+        logo.setAttribute("title", "Ir para a Home");
+        logo.addEventListener("click", goHome);
+        logo.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            goHome();
+          }
+        });
+      });
+
       paramsToggle.addEventListener("click", () => {
         const isOpen = paramsSubmenu.classList.toggle("open");
         paramsToggle.setAttribute("aria-expanded", String(isOpen));
