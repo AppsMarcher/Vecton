@@ -563,6 +563,7 @@ const navigationModule = createNavigationModule({
   setOpexHideZeros: (value) => { opexHideZeros = value; },
   isAdmin,
   canAccessDashboard,
+  canAccessPlanning,
   canManageUsers
 });
 const headerModule = createHeaderModule({
@@ -1728,7 +1729,9 @@ function isSuperAdmin()  { return getAccessRole() === "super_admin"; }
 function isAdmin()       { return ["super_admin", "admin"].includes(getAccessRole()); }
 function isManager()     { return getAccessRole() === "manager"; }
 function isAnalyst()     { return getAccessRole() === "analyst"; }
-function canAccessDashboard() { return !isAnalyst(); }
+function isComercial()   { return getAccessRole() === "comercial"; }
+function canAccessDashboard() { return !isAnalyst() && !isComercial(); }
+function canAccessPlanning()  { return !isComercial(); }
 function canAccessParams()    { return isAdmin(); }
 function canManageUsers()     { return isAdmin(); }
 function getUserManagement()  { return state.profile?.management || null; }
@@ -1782,6 +1785,9 @@ function isConsolidatedReport(reportId) {
 function canSeeReport(reportId) {
   const role = getAccessRole();
   if (role === "super_admin" || role === "admin") return true;
+  // Comercial é allowlist fixa (Painel/Mapa de Vendas) — não recebe extras nem
+  // as regras de manager/analyst, mesmo que extra_report_ids venha preenchido.
+  if (role === "comercial") return ["comercialPainel", "comercialMapa"].includes(reportId);
   if (getExtraReportIds().includes(reportId)) return true;
   if (role === "manager") return true;
   if (role === "analyst") return !isConsolidatedReport(reportId);
