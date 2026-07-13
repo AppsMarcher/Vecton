@@ -572,6 +572,11 @@ textarea {
 }
 .app-layout.sidebar-collapsed .header-brand-logo { display: block; }
 
+/* Logo clicável -> Home */
+.brand-logo-home { cursor: pointer; transition: opacity .12s; }
+.brand-logo-home:hover { opacity: .8; }
+.brand-logo-home:focus-visible { outline: 2px solid var(--accent, #3f63d6); outline-offset: 3px; border-radius: 4px; }
+
 .header-toggle {
   display: grid;
   place-items: center;
