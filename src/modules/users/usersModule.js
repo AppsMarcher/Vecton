@@ -7,7 +7,7 @@
       fetchSupabaseRowsSafe,
       upsertSupabaseRows,
       deleteSupabaseRows,
-      fetchSupabaseRpc,
+      requestPasswordRecovery,
       callEdgeFunction,
       isSuperAdmin,
       isAdmin,
@@ -464,9 +464,12 @@
             <td><span class="users-status-active">● Ativo</span></td>
             <td>
               <div class="users-actions">
-                <button class="users-resend-btn" type="button" title="Reenviar convite por e-mail" data-action="resend" data-uid="${escapeHtml(user.id)}">
+                ${canEdit ? `<button class="users-resend-btn" type="button" title="Reenviar o email de convite original (usuário ainda não definiu senha)" data-action="resendInvite" data-uid="${escapeHtml(user.id)}">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M4.6 9A9 9 0 1 1 4 15"/></svg>
                   Reenviar convite
+                </button>` : ""}
+                <button class="users-action-btn" type="button" title="Reenviar email de redefinição de senha" data-action="resend" data-uid="${escapeHtml(user.id)}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 8a9 9 0 1 0 .8 4"/><path d="M21 3v5h-5"/></svg>
                 </button>
                 ${canEdit ? `<button class="users-action-btn" type="button" title="Definir nova senha" data-action="setpassword" data-uid="${escapeHtml(user.id)}">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
@@ -488,21 +491,42 @@
             const uid  = btn.dataset.uid;
             const user = allUsers.find((u) => u.id === uid);
             if (!user) return;
-            if (btn.dataset.action === "edit")        openEditPanel(user);
-            if (btn.dataset.action === "resend")      handleResend(user);
-            if (btn.dataset.action === "delete")      handleDelete(user);
-            if (btn.dataset.action === "setpassword") openSetPasswordModal(user);
+            if (btn.dataset.action === "edit")          openEditPanel(user);
+            if (btn.dataset.action === "resendInvite")  handleResendInvite(user);
+            if (btn.dataset.action === "resend")        handleResend(user);
+            if (btn.dataset.action === "delete")        handleDelete(user);
+            if (btn.dataset.action === "setpassword")   openSetPasswordModal(user);
           });
         });
     }
 
+    // Reenvia o CONVITE original (auth.admin.inviteUserByEmail) — pra usuário
+    // que ainda não definiu senha. Exige service_role, por isso Edge Function.
+    async function handleResendInvite(user) {
+      if (!user.user_id) return;
+      try {
+        await callEdgeFunction("resend-invite", {
+          user_id: user.user_id,
+          redirect_to: window.location.origin + window.location.pathname
+        });
+        alert(`Convite reenviado para ${user.email}`);
+      } catch (err) {
+        console.error(err);
+        alert(String(err?.message || "Não foi possível reenviar o convite."));
+      }
+    }
+
+    // Reenvia o email de REDEFINIÇÃO de senha (GoTrue /auth/v1/recover) — pra
+    // usuário que já é ativo e esqueceu a senha. Endpoint público, sem
+    // privilégio de service_role.
     async function handleResend(user) {
       if (!user.email) return;
       try {
-        await fetchSupabaseRpc("resend_invite", { target_email: user.email });
-        alert(`Convite reenviado para ${user.email}`);
-      } catch {
-        alert("Não foi possível reenviar. Tente pelo painel do Supabase.");
+        await requestPasswordRecovery(user.email);
+        alert(`Email de redefinição de senha enviado para ${user.email}`);
+      } catch (err) {
+        console.error(err);
+        alert("Não foi possível enviar o email de redefinição de senha.");
       }
     }
 
