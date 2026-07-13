@@ -5536,16 +5536,23 @@ body.auth-only .content-view {
   white-space: nowrap;
 }
 
+/* O <thead> herda white-space:nowrap de .data-table th:not(:first-child) —
+   com table-layout:fixed isso faz o rótulo estourar a coluna e invadir a
+   próxima (era o que colidia "PERFIL DE ACESSOSTATUS"). Aqui os cabeçalhos
+   podem quebrar linha em vez de vazar. */
+.users-table thead th { white-space: normal; line-height: 1.3; }
+.users-table th:last-child { white-space: nowrap; }
+
 /* Larguras explícitas (table-layout:fixed) — sem isso o auto-layout dava
    toda a folga pras colunas do meio (E-mail/Departamento/Perfil/Status),
    empurrando a coluna de ações pro canto sem espaço pra um botão com texto. */
-.users-table th:nth-child(1), .users-table td:nth-child(1) { width: 21%; min-width: 190px; }
-.users-table th:nth-child(2), .users-table td:nth-child(2) { width: 17%; }
-.users-table th:nth-child(3), .users-table td:nth-child(3) { width: 13%; }
-.users-table th:nth-child(4), .users-table td:nth-child(4) { width: 10%; }
-.users-table th:nth-child(5), .users-table td:nth-child(5) { width: 7%; }
+.users-table th:nth-child(1), .users-table td:nth-child(1) { width: 20%; min-width: 190px; }
+.users-table th:nth-child(2), .users-table td:nth-child(2) { width: 16%; }
+.users-table th:nth-child(3), .users-table td:nth-child(3) { width: 12%; }
+.users-table th:nth-child(4), .users-table td:nth-child(4) { width: 14%; }
+.users-table th:nth-child(5), .users-table td:nth-child(5) { width: 9%; }
 .users-col-actions,
-.users-table td:last-child { width: 32%; }
+.users-table td:last-child { width: 29%; }
 
 .users-avatar {
   display: inline-flex;
