@@ -3657,7 +3657,13 @@ function renderOpexScenario(contentDiv, year, scenarioId) {
   fetchScenarioLedgerForYear(scenarioId, year).then(rows => {
     const inner = contentDiv.querySelector("#opex-budget-table-inner");
     if (!inner) return;
-    inner.innerHTML = buildOpexRealTableMarkup(rows, null, opexHideZeros);
+    // OPEX Planejado por cenário segue a mesma regra do real: Gestor/Analista
+    // só veem os CCs da própria gestão (mesmo getAllowedCcNumbers do OPEX Real).
+    const allowedCcs = getAllowedCcNumbers();
+    const scopedRows = allowedCcs
+      ? rows.filter((r) => allowedCcs.has(String(r.cost_center_number ?? r.costCenterNumber ?? "").trim()))
+      : rows;
+    inner.innerHTML = buildOpexRealTableMarkup(scopedRows, null, opexHideZeros);
     initAllReportTableResizers();
   }).catch(() => {
     const inner = contentDiv.querySelector("#opex-budget-table-inner");
