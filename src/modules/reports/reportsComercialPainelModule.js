@@ -72,6 +72,12 @@
         .cvp-hero-val { font-size:26px; font-weight:600; font-variant-numeric:tabular-nums; }
         .cvp-hero-val .u { font-size:13px; color:var(--cvp-faint); font-weight:500; margin-left:4px; }
         .cvp-hero-secondary { font-size:12.5px; color:var(--cvp-soft); font-variant-numeric:tabular-nums; margin-top:2px; }
+        .cvp-hero-gauge { margin-left:auto; display:flex; align-items:center; gap:10px; }
+        .cvp-hero-gauge-ring { position:relative; width:54px; height:54px; flex-shrink:0; }
+        .cvp-hero-gauge-ring svg { transform:rotate(-90deg); }
+        .cvp-hero-gauge-pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; }
+        .cvp-hero-gauge-label { font-size:10px; color:var(--cvp-faint); text-transform:uppercase; letter-spacing:.04em; text-align:right; line-height:1.5; }
+        .cvp-hero-gauge-label b { display:block; color:var(--cvp-soft); font-size:11.5px; font-weight:600; text-transform:none; letter-spacing:0; }
         .cvp-delta { font-size:12px; font-variant-numeric:tabular-nums; }
         .cvp-delta.pos { color:var(--cvp-pos); } .cvp-delta.neg { color:var(--cvp-neg); }
         .cvp-section { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--cvp-faint); margin:22px 0 10px; }
@@ -299,6 +305,26 @@
       renderDetail(container);
     }
 
+    // Anel de atingimento de meta (Faturado/Meta) — mesmo gradiente da barra do box lateral.
+    function gaugeSvg(pct) {
+      const r = 21, circ = 2 * Math.PI * r;
+      const clamped = Math.max(0, Math.min(pct, 100));
+      const offset = circ * (1 - clamped / 100);
+      const color = pct >= 100 ? "#22c55e" : "url(#cvp-hero-gauge-grad)";
+      return `
+        <svg viewBox="0 0 54 54" width="54" height="54">
+          <defs>
+            <linearGradient id="cvp-hero-gauge-grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#4f7cff"/>
+              <stop offset="100%" stop-color="#22c55e"/>
+            </linearGradient>
+          </defs>
+          <circle cx="27" cy="27" r="${r}" fill="none" stroke="var(--cvp-bg-soft)" stroke-width="6"/>
+          <circle cx="27" cy="27" r="${r}" fill="none" stroke="${color}" stroke-width="6"
+            stroke-linecap="round" stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}"/>
+        </svg>`;
+    }
+
     // Hero = mini-tabela consolidada da empresa (Grão/Pecuária qtd + Faturado R$,
     // colunas Fatur/Fat+Cart/Meta/2025/2024/2023), ao lado do nome.
     function renderHero(container) {
@@ -325,6 +351,9 @@
       const tktRow = () => METRICS.map((m) => { const q = grao[m] + pec[m]; return `<td>${q > 0 ? fmtR$(fatv[m] / q) : "—"}</td>`; }).join("");
       // Drill do consolidado da empresa inteira (todas as coordenacoes/linhas).
       const heroScope = { label: "Marcher Brasil", linhas: ["Grão", "Pecuária"], tipos: true };
+      // Atingimento de meta da empresa inteira: Faturado (fatv.fat, ja soma
+      // maquinas+pecas+transgrain+acessorios) / Meta do mesmo periodo.
+      const heroPct = fatv.meta > 0 ? (fatv.fat / fatv.meta) * 100 : 0;
       const heroEl = container.querySelector("#cvp-hero");
       heroEl.innerHTML = `
         <div class="cvp-hero-row">
@@ -332,6 +361,13 @@
             <div class="cvp-hero-left">
               <div class="cvp-hero-av">PE</div>
               <div><p class="cvp-hero-name">Marcher Brasil</p><p class="cvp-hero-sub">Gestor Pedro</p></div>
+              <div class="cvp-hero-gauge">
+                <div class="cvp-hero-gauge-label"><b>Meta</b>Atingimento</div>
+                <div class="cvp-hero-gauge-ring">
+                  ${gaugeSvg(heroPct)}
+                  <span class="cvp-hero-gauge-pct">${heroPct.toFixed(0)}%</span>
+                </div>
+              </div>
             </div>
             <table class="cvp-hero-tbl">
               <thead><tr><th></th><th${drillAttrs("FAT", heroScope)}>Fatur.</th><th${drillAttrs("FAT,CART", heroScope)}>Fat.+Cart.</th><th>Meta</th><th>${year - 1}</th><th>${year - 2}</th><th>${year - 3}</th></tr></thead>
