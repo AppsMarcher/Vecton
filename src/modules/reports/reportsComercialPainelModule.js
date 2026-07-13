@@ -354,9 +354,9 @@
       const tktRow = () => METRICS.map((m) => { const q = grao[m] + pec[m]; return `<td>${q > 0 ? fmtR$(fatv[m] / q) : "—"}</td>`; }).join("");
       // Drill do consolidado da empresa inteira (todas as coordenacoes/linhas).
       const heroScope = { label: "Marcher Brasil", linhas: ["Grão", "Pecuária"], tipos: true };
-      // Atingimento de meta da empresa inteira: Fat.+Cart. (fatv.fat+fatv.cart,
-      // ja soma maquinas+pecas+transgrain+acessorios) / Meta do mesmo periodo.
-      const heroPct = fatv.meta > 0 ? ((fatv.fat + fatv.cart) / fatv.meta) * 100 : 0;
+      // Atingimento de meta da empresa inteira: Fat.+Cart. (fatv.cart JA é o
+      // total combinado Faturado+Carteira, nao e incremental) / Meta do periodo.
+      const heroPct = fatv.meta > 0 ? (fatv.cart / fatv.meta) * 100 : 0;
       const heroEl = container.querySelector("#cvp-hero");
       heroEl.innerHTML = `
         <div class="cvp-hero-row">
@@ -401,8 +401,9 @@
         return `<tr><td>${nome}</td><td>${fmtR$(r.fat_val)}</td><td>${fmtR$(r.cart_val)}</td><td>${fmtR$(r.meta_val)}</td></tr>`;
       }).join("");
       // Os tres (Pecas/Transgrain/Acessorios) tem meta -> comparacao valor x
-      // valor: quanto do Fat.+Cart. ja atingiu a Meta do periodo.
-      const pct = tot.meta_val > 0 ? ((tot.fat_val + tot.cart_val) / tot.meta_val) * 100 : 0;
+      // valor: quanto do Fat.+Cart. (cart_val JA e o total combinado) ja
+      // atingiu a Meta do periodo.
+      const pct = tot.meta_val > 0 ? (tot.cart_val / tot.meta_val) * 100 : 0;
       return `
         <div class="cvp-hero-side">
           <div class="cvp-side-title">Peças · Transgrain · Acessórios</div>
@@ -507,7 +508,8 @@
       const drill = (origens) => drillAttrs(origens, scope);
       // Status "vs meta" (Fat.+Cart./Meta do periodo) — mesma bolinha semaforo do
       // box lateral (>=100% verde, >=80% amarelo, abaixo vermelho, sem meta cinza).
-      const fatCartVal = valLines.reduce((s, l) => s + (l ? l.fat.v + l.cart.v : 0), 0);
+      // l.cart.v JA e o total combinado Faturado+Carteira, nao e incremental.
+      const fatCartVal = valLines.reduce((s, l) => s + (l ? l.cart.v : 0), 0);
       const metaVal = valLines.reduce((s, l) => s + (l ? l.meta.v : 0), 0);
       const pct = metaVal > 0 ? (fatCartVal / metaVal) * 100 : null;
       const dotColor = pct === null ? "#6b7280" : pct >= 100 ? "#22c55e" : pct >= 80 ? "#f59e0b" : "#ef4444";
