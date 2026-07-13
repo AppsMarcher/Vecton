@@ -619,6 +619,7 @@ const { loadAndRenderUsers, bindUsersInviteButton } = createUsersModule({
   deleteSupabaseRows,
   requestPasswordRecovery,
   callEdgeFunction,
+  showToast,
   isSuperAdmin,
   isAdmin,
   getUserManagement,
@@ -1671,6 +1672,27 @@ function showAppLoading() {
 
 function hideAppLoading() {
   document.querySelector("#app-loading-overlay")?.classList.remove("visible");
+}
+
+// Toast próprio do app — substitui alert()/confirm() do navegador pra
+// feedback de ações (ex: reenvio de convite/senha). Empilha no canto
+// superior direito, some sozinho.
+function showToast(message, type = "success") {
+  let host = document.querySelector("#vp-toast-host");
+  if (!host) {
+    host = document.createElement("div");
+    host.id = "vp-toast-host";
+    document.body.appendChild(host);
+  }
+  const el = document.createElement("div");
+  el.className = `vp-toast vp-toast-${type}`;
+  el.textContent = message;
+  host.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  setTimeout(() => {
+    el.classList.remove("show");
+    setTimeout(() => el.remove(), 250);
+  }, 3800);
 }
 
 function setupDreResizer() {
