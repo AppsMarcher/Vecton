@@ -9,6 +9,7 @@
       deleteSupabaseRows,
       requestPasswordRecovery,
       callEdgeFunction,
+      showToast,
       isSuperAdmin,
       isAdmin,
       getUserManagement,
@@ -464,9 +465,8 @@
             <td><span class="users-status-active">● Ativo</span></td>
             <td>
               <div class="users-actions">
-                ${canEdit ? `<button class="users-resend-btn" type="button" title="Reenviar o email de convite original (usuário ainda não definiu senha)" data-action="resendInvite" data-uid="${escapeHtml(user.id)}">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M4.6 9A9 9 0 1 1 4 15"/></svg>
-                  Reenviar convite
+                ${canEdit ? `<button class="users-action-btn users-action-invite" type="button" title="Reenviar convite (usuário ainda não definiu senha)" data-action="resendInvite" data-uid="${escapeHtml(user.id)}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4v5h5"/><path d="M20 20v-5h-5"/><path d="M4.6 9A9 9 0 1 1 4 15"/></svg>
                 </button>` : ""}
                 <button class="users-action-btn" type="button" title="Reenviar email de redefinição de senha" data-action="resend" data-uid="${escapeHtml(user.id)}">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 8a9 9 0 1 0 .8 4"/><path d="M21 3v5h-5"/></svg>
@@ -509,10 +509,10 @@
           user_id: user.user_id,
           redirect_to: window.location.origin + window.location.pathname
         });
-        alert(`Convite reenviado para ${user.email}`);
+        showToast(`Convite reenviado para ${user.email}`, "success");
       } catch (err) {
         console.error(err);
-        alert(String(err?.message || "Não foi possível reenviar o convite."));
+        showToast(String(err?.message || "Não foi possível reenviar o convite."), "error");
       }
     }
 
@@ -523,10 +523,10 @@
       if (!user.email) return;
       try {
         await requestPasswordRecovery(user.email);
-        alert(`Email de redefinição de senha enviado para ${user.email}`);
+        showToast(`Email de redefinição de senha enviado para ${user.email}`, "success");
       } catch (err) {
         console.error(err);
-        alert("Não foi possível enviar o email de redefinição de senha.");
+        showToast("Não foi possível enviar o email de redefinição de senha.", "error");
       }
     }
 
