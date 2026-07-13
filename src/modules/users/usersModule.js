@@ -19,14 +19,16 @@
       super_admin: "Super Admin",
       admin:       "Admin",
       manager:     "Gestor",
-      analyst:     "Analista"
+      analyst:     "Analista",
+      comercial:   "Comercial"
     };
 
     const ROLE_COLORS = {
       super_admin: "#f59e0b",
       admin:       "#4f7cff",
       manager:     "#22c55e",
-      analyst:     "#8b5cf6"
+      analyst:     "#8b5cf6",
+      comercial:   "#14b8a6"
     };
 
     let allUsers = [];
@@ -599,6 +601,7 @@
       const roleOpts = [
         ["analyst", "Analista"],
         ["manager", "Gestor"],
+        ["comercial", "Comercial"],
         ...(isSuperAdmin() ? [["admin", "Administrador"], ["super_admin", "Super Admin"]] : isAdmin() ? [["admin", "Administrador"]] : [])
       ];
 
