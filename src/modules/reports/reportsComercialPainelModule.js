@@ -101,8 +101,11 @@
         .cvp-mini-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:16px; }
         .cvp-mini { border:1px solid var(--cvp-line); border-radius:10px; overflow:hidden; background:var(--cvp-bg-soft); min-width:0; }
         .cvp-mini-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:9px 10px; background:rgba(255,255,255,.03); border-bottom:1px solid var(--cvp-line); }
-        .cvp-mini-terr { font-size:13px; font-weight:700; letter-spacing:.02em; white-space:nowrap; }
+        .cvp-mini-terr { font-size:13px; font-weight:700; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .cvp-mini-terr .cvp-mini-sep { color:var(--cvp-faint); font-weight:400; margin:0 2px; }
         .cvp-mini-name { font-size:10.5px; color:var(--cvp-faint); font-weight:500; white-space:nowrap; }
+        .cvp-mini-status { display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; color:var(--cvp-soft); white-space:nowrap; flex-shrink:0; }
+        .cvp-mini-status::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--dot-color,#6b7280); box-shadow:0 0 0 3px var(--dot-glow,rgba(107,114,128,.15)); flex-shrink:0; }
         .cvp-mini.sum { border-color:var(--accent); } .cvp-mini.sum .cvp-mini-head { background:var(--accent-soft); } .cvp-mini.sum .cvp-mini-terr { color:var(--accent); }
         .cvp-mini-wrap { overflow-x:auto; }
         .cvp-mini-tbl { width:100%; border-collapse:collapse; table-layout:fixed; }
@@ -502,8 +505,19 @@
            <tr class="tkt"><td>Ticket</td>${ticketCells(grao, pec)}</tr>`;
       // Rotulos Fatur./Fat.+Cart. viram clicaveis (drill) quando ha escopo.
       const drill = (origens) => drillAttrs(origens, scope);
+      // Status "vs meta" (Faturado/Meta do periodo) — mesma bolinha semaforo do
+      // box lateral (>=100% verde, >=80% amarelo, abaixo vermelho, sem meta cinza).
+      const fatVal = valLines.reduce((s, l) => s + (l ? l.fat.v : 0), 0);
+      const metaVal = valLines.reduce((s, l) => s + (l ? l.meta.v : 0), 0);
+      const pct = metaVal > 0 ? (fatVal / metaVal) * 100 : null;
+      const dotColor = pct === null ? "#6b7280" : pct >= 100 ? "#22c55e" : pct >= 80 ? "#f59e0b" : "#ef4444";
+      const dotGlow  = pct === null ? "rgba(107,114,128,.15)" : pct >= 100 ? "rgba(34,197,94,.15)" : pct >= 80 ? "rgba(245,158,11,.15)" : "rgba(239,68,68,.15)";
+      const statusLabel = pct === null ? "vs meta —" : `vs meta ${pct.toFixed(1)}%`;
       return `<div class="cvp-mini${isSum ? " sum" : ""}">
-        <div class="cvp-mini-head"><span class="cvp-mini-terr">${escapeHtml(terr)}</span><span class="cvp-mini-name">${escapeHtml(name)}</span></div>
+        <div class="cvp-mini-head">
+          <span class="cvp-mini-terr">${escapeHtml(terr)} <span class="cvp-mini-sep">·</span> <span class="cvp-mini-name">${escapeHtml(name)}</span></span>
+          <span class="cvp-mini-status" style="--dot-color:${dotColor};--dot-glow:${dotGlow}">${statusLabel}</span>
+        </div>
         <div class="cvp-mini-wrap"><table class="cvp-mini-tbl"><thead><tr><th></th><th${drill("FAT")}>Fatur.</th><th${drill("FAT,CART")}>Fat.+Cart.</th><th>Meta</th><th>${year - 1}</th><th>${year - 2}</th><th>${year - 3}</th></tr></thead>
         <tbody>${rows}</tbody></table></div></div>`;
     }
