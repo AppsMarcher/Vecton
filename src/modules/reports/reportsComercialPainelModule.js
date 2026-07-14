@@ -143,20 +143,20 @@
         .cvp-drill:hover { color:#7aa2ff; text-decoration:underline; text-underline-offset:2px; }
         .cvp-pop-backdrop { position:fixed; inset:0; z-index:9800; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:32px; }
         .cvp-pop { background:#121317; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:min(1240px,96vw); max-height:86vh; display:flex; flex-direction:column; overflow:hidden; }
-        .cvp-pop-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 18px; border-bottom:1px solid #2a2d34; font-size:12px; font-weight:600; color:#a1a7b3; text-transform:uppercase; letter-spacing:.05em; }
+        .cvp-pop-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 18px; border-bottom:1px solid #2a2d34; font-size:11px; font-weight:600; color:#a1a7b3; text-transform:uppercase; letter-spacing:.05em; }
         .cvp-pop-x { background:none; border:none; color:#6b7280; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; }
         .cvp-pop-x:hover { color:#fff; }
         .cvp-pop-body { overflow:auto; }
         .cvp-pop-tbl { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-        .cvp-pop-tbl th, .cvp-pop-tbl td { padding:6px 12px; font-size:11px; text-align:left; white-space:nowrap; }
-        .cvp-pop-tbl th { position:sticky; top:0; background:#121317; color:#6b7280; font-weight:500; font-size:9px; text-transform:uppercase; letter-spacing:.03em; border-bottom:1px solid #2a2d34; z-index:1; }
+        .cvp-pop-tbl th, .cvp-pop-tbl td { padding:6px 12px; font-size:10px; text-align:left; white-space:nowrap; }
+        .cvp-pop-tbl th { position:sticky; top:0; background:#121317; color:#6b7280; font-weight:500; font-size:8px; text-transform:uppercase; letter-spacing:.03em; border-bottom:1px solid #2a2d34; z-index:1; }
         .cvp-pop-tbl th[data-sort]:hover { color:#a1a7b3; }
         .cvp-pop-tbl .num { text-align:right; }
         .cvp-pop-tbl td.mut { color:#a1a7b3; }
         .cvp-pop-tbl td.neg { color:#f87171; }
         .cvp-pop-tbl tbody tr:not(:last-child) td { border-bottom:1px solid rgba(255,255,255,.05); }
         .cvp-pop-tbl tr.cvp-pop-sum td { background:rgba(255,255,255,.03); color:#cbd2dc; border-top:1px solid rgba(255,255,255,.09); }
-        .cvp-pop-tbl tr.cvp-pop-sum td:first-child { color:#a1a7b3; text-transform:uppercase; letter-spacing:.03em; font-size:10px; font-weight:600; }
+        .cvp-pop-tbl tr.cvp-pop-sum td:first-child { color:#a1a7b3; text-transform:uppercase; letter-spacing:.03em; font-size:9px; font-weight:600; }
         .cvp-pop-tbl tfoot td { border-top:1px solid #2a2d34; font-weight:600; color:#fff; position:sticky; bottom:0; background:#121317; }
         @media (max-width:1100px){ .cvp-grid{ grid-template-columns:repeat(3,1fr);} .cvp-mini-grid{ grid-template-columns:1fr;} .cvp-hero-row{ grid-template-columns:1fr;} .cvp-hero,.cvp-hero-side{ grid-column:auto;} }
       `;
@@ -584,7 +584,6 @@
     let popEl = null;
     let popRows = [], popShowTerr = false, popSort = { key: null, dir: 1 };
     function fmtFullR$(v) { return "R$ " + nf(v || 0); }
-    function fmtPct(v) { return (v === null || v === undefined || v === "") ? "" : (Number(v) * 100).toFixed(1).replace(".", ",") + "%"; }
 
     function closeDetailPopover() {
       if (!popEl) return;
@@ -595,7 +594,7 @@
 
     function renderPopTable(rows, showTerr) {
       if (!rows.length) return `<div class="cvp-empty" style="padding:22px">Sem transações no período.</div>`;
-      const NUM = ["quantidade", "valor", "mb_pct"];
+      const NUM = ["quantidade", "valor"];
       const items = rows.filter((r) => !r.resumo);
       const resumos = rows.filter((r) => r.resumo);   // ficam sempre no fim
       if (popSort.key) {
@@ -605,7 +604,7 @@
           : d * String(a[k] || "").localeCompare(String(b[k] || ""), "pt-BR"));
       }
       const ordered = items.concat(resumos);
-      const span = showTerr ? 7 : 6;
+      const span = showTerr ? 8 : 7;
       const sortTh = (key, label, cls) => {
         const active = popSort.key === key;
         const arrow = active ? (popSort.dir === 1 ? " ↑" : " ↓") : "";
@@ -615,26 +614,27 @@
       const body = ordered.map((r) => {
         if (r.resumo) {
           totV += Number(r.valor) || 0;
-          return `<tr class="cvp-pop-sum"><td colspan="${span}">${escapeHtml(r.label)} · consolidado</td><td class="num">—</td><td class="num${Number(r.valor) < 0 ? " neg" : ""}">${fmtFullR$(r.valor)}</td><td class="num">—</td></tr>`;
+          return `<tr class="cvp-pop-sum"><td colspan="${span}">${escapeHtml(r.label)} · consolidado</td><td class="num">—</td><td class="num${Number(r.valor) < 0 ? " neg" : ""}">${fmtFullR$(r.valor)}</td></tr>`;
         }
         totQ += Number(r.quantidade) || 0; totV += Number(r.valor) || 0;
+        const cidadeUf = [r.cidade, r.uf].filter(Boolean).join("/");
         return `<tr>
           <td>${escapeHtml(r.tipo || "")}</td>
           ${showTerr ? `<td>${escapeHtml(r.territorio || "")}</td>` : ""}
           <td class="mut">${escapeHtml(r.cod_cliente || "")}</td>
           <td class="l">${escapeHtml(r.cliente || "")}</td>
+          <td class="mut">${escapeHtml(cidadeUf)}</td>
           <td>${escapeHtml(r.cultura || "")}</td>
           <td class="mut">${escapeHtml(r.cod_produto || "")}</td>
           <td class="l">${escapeHtml(r.produto || "")}</td>
           <td class="num${Number(r.quantidade) < 0 ? " neg" : ""}">${nf(r.quantidade)}</td>
           <td class="num${Number(r.valor) < 0 ? " neg" : ""}">${fmtFullR$(r.valor)}</td>
-          <td class="num${Number(r.mb_pct) < 0 ? " neg" : ""}">${fmtPct(r.mb_pct)}</td>
         </tr>`;
       }).join("");
       return `<table class="cvp-pop-tbl">
-        <thead><tr>${sortTh("tipo", "Tipo")}${showTerr ? sortTh("territorio", "Território") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}${sortTh("mb_pct", "%MB", "num")}</tr></thead>
+        <thead><tr>${sortTh("tipo", "Tipo")}${showTerr ? sortTh("territorio", "Território") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}</tr></thead>
         <tbody>${body}</tbody>
-        <tfoot><tr><td colspan="${span}">Total · ${items.length} ${items.length === 1 ? "linha" : "linhas"}</td><td class="num${totQ < 0 ? " neg" : ""}">${nf(totQ)}</td><td class="num${totV < 0 ? " neg" : ""}">${fmtFullR$(totV)}</td><td></td></tr></tfoot>
+        <tfoot><tr><td colspan="${span}">Total · ${items.length} ${items.length === 1 ? "linha" : "linhas"}</td><td class="num${totQ < 0 ? " neg" : ""}">${nf(totQ)}</td><td class="num${totV < 0 ? " neg" : ""}">${fmtFullR$(totV)}</td></tr></tfoot>
       </table>`;
     }
 
