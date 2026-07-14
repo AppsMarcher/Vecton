@@ -3432,10 +3432,25 @@ function buildDreDfsRealReport(year, ledgerRows = [], prebuiltGerReport = null) 
     { id: "ebitdaPct",       label: "Ebitda %RL",                          months: pct(ebitdaCalc, recLiquida), kind: "percent" }
   ];
 
+  const accumulatedReceitaLiquida = recLiquida.reduce((sum, value) => sum + value, 0);
+  const percentNumerators = {
+    resultadoExercPct: resultadoExerc,
+    ebitdaPct: ebitdaCalc
+  };
+
   lines.forEach((line) => {
-    if (line.kind !== "section") {
-      line.total = line.months.reduce((s, v) => s + v, 0);
+    if (line.kind === "section") return;
+
+    if (line.kind === "percent") {
+      const numerator = percentNumerators[line.id] || [];
+      const accumulatedNumerator = numerator.reduce((sum, value) => sum + value, 0);
+      line.total = Math.abs(accumulatedReceitaLiquida) > 0.0001
+        ? accumulatedNumerator / accumulatedReceitaLiquida
+        : 0;
+      return;
     }
+
+    line.total = line.months.reduce((sum, value) => sum + value, 0);
   });
 
   return {
