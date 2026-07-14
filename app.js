@@ -3098,6 +3098,19 @@ function buildDreGerRealReport(year, ledgerRows = []) {
 
   // Calcular percentuais em relação à RL
   const pct = (arr) => arr.map((v, i) => receitaLiquida[i] !== 0 ? v / receitaLiquida[i] : 0);
+  const ggf = sumArrays([custosPessoal, demaisGGF, custoAbsorcao]);
+  const accumulatedReceitaLiquida = receitaLiquida.reduce((sum, value) => sum + value, 0);
+  const percentNumerators = {
+    ggfPct: ggf,
+    lbPct: lucroBruto,
+    dcPct: despComerciais,
+    daPct: despAdmin,
+    ebitdaPct: ebitda,
+    roPct: resultadoOp,
+    rfPct: resultadoFin,
+    lairPct: lair,
+    llPct: resultadoExerc
+  };
 
   const lines = [
     { id: "receitaBruta",    label: "( = ) Receita Bruta",             months: receitaBruta,   kind: "result" },
@@ -3109,7 +3122,7 @@ function buildDreGerRealReport(year, ledgerRows = []) {
     { id: "custosPessoal",   label: "( - ) Custo c/ Pessoal",           months: custosPessoal,  kind: "deduction" },
     { id: "demaisGGF",       label: "( - ) Demais GGF",                 months: demaisGGF,      kind: "deduction" },
     { id: "custoAbsorcao",   label: "( +/- ) Custo Absorção",           months: custoAbsorcao,  kind: "deduction" },
-    { id: "ggfPct",          label: "GGF%",                             months: pct(sumArrays([custosPessoal, demaisGGF, custoAbsorcao])), kind: "percent" },
+    { id: "ggfPct",          label: "GGF%",                             months: pct(ggf), kind: "percent" },
     { id: "lucroBruto",      label: "( = ) Lucro Bruto",                months: lucroBruto,     kind: "subtotal" },
     { id: "lbPct",           label: "LB%",                              months: pct(lucroBruto),kind: "percent" },
     { id: "despComerciais",  label: "( - ) Desp. Comerciais",           months: despComerciais, kind: "deduction" },
@@ -3134,12 +3147,23 @@ function buildDreGerRealReport(year, ledgerRows = []) {
     { id: "irpj",            label: "( - ) Provisão para IRPJ/CSLL",   months: irpj,           kind: "deduction" },
     { id: "resultadoExerc",  label: "( = ) Resultado do Exercício",     months: resultadoExerc, kind: "result-final" },
     { id: "llPct",           label: "LL%",                              months: pct(resultadoExerc), kind: "percent" }
-  ].map((line) => ({
-    ...line,
-    total: line.kind === "percent"
-      ? (receitaLiquida.reduce((s, v) => s + v, 0) !== 0 ? line.months.reduce((s, v) => s + v, 0) / 12 : 0)
-      : line.months.reduce((s, v) => s + v, 0)
-  }));
+  ].map((line) => {
+    if (line.kind !== "percent") {
+      return {
+        ...line,
+        total: line.months.reduce((sum, value) => sum + value, 0)
+      };
+    }
+
+    const numerator = percentNumerators[line.id] || [];
+    const accumulatedNumerator = numerator.reduce((sum, value) => sum + value, 0);
+    return {
+      ...line,
+      total: Math.abs(accumulatedReceitaLiquida) > 0.0001
+        ? accumulatedNumerator / accumulatedReceitaLiquida
+        : 0
+    };
+  });
 
   return { year, lines };
 }
@@ -3202,7 +3226,7 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true) {
         <tr>
           <th>Linha Gerencial${R}</th>
           ${headerCells}
-          <th>Total / Méd${R}</th>
+          <th>TOTAL${R}</th>
         </tr>
       </thead>
       <tbody>${bodyRows}</tbody>
