@@ -1012,6 +1012,7 @@ const reportsDreModule = createReportsDreModule({
   fetchScenariosForYear,
   fetchScenarioLedgerForYear,
   getCurrentYear: () => Number(state.currentPeriod?.year || 2026),
+  getCurrentPeriodMonth: () => Number(state.currentPeriod?.month || 1),
 });
 const { createReportsOpexModule } = window.VECTON_REPORTS_OPEX;
 const reportsOpexModule = createReportsOpexModule({
@@ -2730,9 +2731,11 @@ function renderReportsView() {
   colorizeNegativeCells(detailPanel);
 }
 
-function buildDreSocRealTableMarkup(report) {
+function buildDreSocRealTableMarkup(report, compareReport = null, month = null, compareLabel = null) {
   const R = '<span class="col-resizer" aria-hidden="true"></span>';
-  const headerCells = MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("");
+  const hasCompare = !!(compareReport && month);
+  const compareByCode = hasCompare ? new Map(compareReport.rows.map((r) => [r.code, r])) : null;
+
   const bodyRows = report.rows.map((row) => {
     const isAnalytic = row.class !== "Sintetica";
     const valueCells = row.months.map((value, i) =>
@@ -2740,6 +2743,9 @@ function buildDreSocRealTableMarkup(report) {
         ? `<td class="reports-value-cell soc-drillable" data-account-code="${escapeHtml(row.code)}" data-month-idx="${i}">${escapeHtml(formatSignedCurrency(value))}</td>`
         : `<td class="reports-value-cell">${escapeHtml(formatSignedCurrency(value))}</td>`
     ).join("");
+    const compareCells = hasCompare
+      ? `<td class="dre-cmp-gap"></td>${dreCompareCellsMarkup(computeDreCompareCell(row, compareByCode.get(row.code), month))}`
+      : "";
     return `
       <tr class="${row.class === "Sintetica" ? "is-synthetic" : "is-analytic"}">
         <td class="reports-code-cell">${escapeHtml(row.code)}</td>
@@ -2747,9 +2753,12 @@ function buildDreSocRealTableMarkup(report) {
         <td class="reports-class-cell">${escapeHtml(row.class)}</td>
         ${valueCells}
         <td class="reports-value-cell reports-total-cell">${escapeHtml(formatSignedCurrency(row.total))}</td>
+        ${compareCells}
       </tr>
     `;
   }).join("");
+
+  const cmp = hasCompare ? dreCompareHeaderRows(compareLabel) : null;
 
   return `
     <table class="reports-dre-table" data-resizable-cols>
@@ -2759,15 +2768,18 @@ function buildDreSocRealTableMarkup(report) {
         <col style="width:90px">
         ${MONTH_LABELS.map(() => '<col style="width:110px">').join("")}
         <col style="width:110px">
+        ${hasCompare ? dreCompareColgroupExtra() : ""}
       </colgroup>
       <thead>
         <tr>
-          <th>Cod Conta${R}</th>
-          <th>Desc Moeda 1${R}</th>
-          <th>Classe Conta${R}</th>
-          ${headerCells}
-          <th>Total${R}</th>
+          <th${hasCompare ? ' rowspan="2"' : ""}>Cod Conta${R}</th>
+          <th${hasCompare ? ' rowspan="2"' : ""}>Desc Moeda 1${R}</th>
+          <th${hasCompare ? ' rowspan="2"' : ""}>Classe Conta${R}</th>
+          ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
+          <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
+          ${cmp ? cmp.row1Extra : ""}
         </tr>
+        ${cmp ? cmp.row2 : ""}
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -3159,13 +3171,14 @@ function buildDreGerRealReport(year, ledgerRows = []) {
     const accumulatedNumerator = numerator.reduce((sum, value) => sum + value, 0);
     return {
       ...line,
+      numerator,
       total: Math.abs(accumulatedReceitaLiquida) > 0.0001
         ? accumulatedNumerator / accumulatedReceitaLiquida
         : 0
     };
   });
 
-  return { year, lines };
+  return { year, lines, receitaLiquida };
 }
 
 function sumArrays(arrays) {
@@ -3175,9 +3188,11 @@ function sumArrays(arrays) {
   }, zeroMonthArray());
 }
 
-function buildDreGerRealTableMarkup(report, allowDrilldown = true) {
+function buildDreGerRealTableMarkup(report, allowDrilldown = true, compareReport = null, month = null, compareLabel = null) {
   const R = '<span class="col-resizer" aria-hidden="true"></span>';
-  const headerCells = MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("");
+  const hasCompare = !!(compareReport && month);
+  const compareById = hasCompare ? new Map(compareReport.lines.map((l) => [l.id, l])) : null;
+
   const bodyRows = report.lines.map((line) => {
     const isPercent = line.kind === "percent";
     const isSubtotal = line.kind === "subtotal" || line.kind === "result" || line.kind === "result-final";
@@ -3199,6 +3214,9 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true) {
       return `<td class="reports-value-cell">${escapeHtml(formatCell(v))}</td>`;
     }).join("");
     const totalCell = `<td class="reports-value-cell reports-total-cell">${escapeHtml(formatCell(line.total))}</td>`;
+    const compareCells = hasCompare
+      ? `<td class="dre-cmp-gap"></td>${dreCompareCellsMarkup(computeDreCompareCell(line, compareById.get(line.id), month, report.receitaLiquida, compareReport.receitaLiquida))}`
+      : "";
 
     let rowClass = "ger-row-normal";
     if (isSubtotal) rowClass = "ger-row-subtotal";
@@ -3211,9 +3229,12 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true) {
         <td class="reports-label-cell ger-label-col"><span>${escapeHtml(line.label)}</span></td>
         ${valueCells}
         ${totalCell}
+        ${compareCells}
       </tr>
     `;
   }).join("");
+
+  const cmp = hasCompare ? dreCompareHeaderRows(compareLabel) : null;
 
   return `
     <table class="reports-dre-table reports-ger-table" data-resizable-cols>
@@ -3221,13 +3242,16 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true) {
         <col style="width:220px">
         ${MONTH_LABELS.map(() => '<col style="width:110px">').join("")}
         <col style="width:110px">
+        ${hasCompare ? dreCompareColgroupExtra() : ""}
       </colgroup>
       <thead>
         <tr>
-          <th>Linha Gerencial${R}</th>
-          ${headerCells}
-          <th>TOTAL${R}</th>
+          <th${hasCompare ? ' rowspan="2"' : ""}>Linha Gerencial${R}</th>
+          ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
+          <th${hasCompare ? ' rowspan="2"' : ""}>TOTAL${R}</th>
+          ${cmp ? cmp.row1Extra : ""}
         </tr>
+        ${cmp ? cmp.row2 : ""}
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -3467,6 +3491,7 @@ function buildDreDfsRealReport(year, ledgerRows = [], prebuiltGerReport = null) 
 
     if (line.kind === "percent") {
       const numerator = percentNumerators[line.id] || [];
+      line.numerator = numerator;
       const accumulatedNumerator = numerator.reduce((sum, value) => sum + value, 0);
       line.total = Math.abs(accumulatedReceitaLiquida) > 0.0001
         ? accumulatedNumerator / accumulatedReceitaLiquida
@@ -3480,21 +3505,32 @@ function buildDreDfsRealReport(year, ledgerRows = [], prebuiltGerReport = null) 
   return {
     year: Number(year || state.currentPeriod?.year || 2026),
     lines,
+    receitaLiquida: recLiquida,
     grandTotal: resultadoExerc.reduce((s, v) => s + v, 0)
   };
 }
 
-function buildDreDfsRealTableMarkup(report) {
+function buildDreDfsRealTableMarkup(report, compareReport = null, month = null, compareLabel = null) {
   const R = '<span class="col-resizer" aria-hidden="true"></span>';
-  const headerCells = MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("");
+  const hasCompare = !!(compareReport && month);
+  const compareById = hasCompare ? new Map(compareReport.lines.map((l) => [l.id, l])) : null;
+  const baseColspan = MONTH_LABELS.length + 2;
 
   const bodyRows = report.lines.map((line) => {
     if (line.kind === "section") {
+      // Com comparativo, a barra de secao nao pode ser 1 celula so cobrindo a
+      // largura toda — isso apagaria o gap escuro (viraria uma tarja clara
+      // cortando a coluna de espaco). Divide em 3 pedacos (real | mes | acumulado)
+      // com o mesmo gap escuro entre eles, preservando a faixa continua.
+      const compareSection = hasCompare
+        ? `<td class="dre-cmp-gap"></td><td colspan="4"></td><td class="dre-cmp-gap"></td><td colspan="4"></td>`
+        : "";
       return `
         <tr class="dfs-row-section">
-          <td class="reports-label-cell dfs-label-col" colspan="${MONTH_LABELS.length + 2}">
+          <td class="reports-label-cell dfs-label-col" colspan="${baseColspan}">
             <span>${escapeHtml(line.label)}</span>
           </td>
+          ${compareSection}
         </tr>
       `;
     }
@@ -3515,6 +3551,9 @@ function buildDreDfsRealTableMarkup(report) {
       `<td class="reports-value-cell">${escapeHtml(formatCell(v))}</td>`
     ).join("");
     const totalCell = `<td class="reports-value-cell reports-total-cell">${escapeHtml(formatCell(line.total))}</td>`;
+    const compareCells = hasCompare
+      ? `<td class="dre-cmp-gap"></td>${dreCompareCellsMarkup(computeDreCompareCell(line, compareById.get(line.id), month, report.receitaLiquida, compareReport.receitaLiquida))}`
+      : "";
 
     let rowClass = "ger-row-normal";
     if (isSubtotal) rowClass = "ger-row-subtotal";
@@ -3526,9 +3565,12 @@ function buildDreDfsRealTableMarkup(report) {
         <td class="reports-label-cell dfs-label-col"><span>${escapeHtml(line.label)}</span></td>
         ${valueCells}
         ${totalCell}
+        ${compareCells}
       </tr>
     `;
   }).join("");
+
+  const cmp = hasCompare ? dreCompareHeaderRows(compareLabel) : null;
 
   return `
     <table class="reports-dre-table reports-ger-table" data-resizable-cols>
@@ -3536,13 +3578,16 @@ function buildDreDfsRealTableMarkup(report) {
         <col style="width:260px">
         ${MONTH_LABELS.map(() => '<col style="width:110px">').join("")}
         <col style="width:110px">
+        ${hasCompare ? dreCompareColgroupExtra() : ""}
       </colgroup>
       <thead>
         <tr>
-          <th>Linha DFs${R}</th>
-          ${headerCells}
-          <th>Total${R}</th>
+          <th${hasCompare ? ' rowspan="2"' : ""}>Linha DFs${R}</th>
+          ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
+          <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
+          ${cmp ? cmp.row1Extra : ""}
         </tr>
+        ${cmp ? cmp.row2 : ""}
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -4711,6 +4756,111 @@ function formatSignedCurrency(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+}
+
+function formatSignedPercent(value) {
+  if (!Number.isFinite(Number(value)) || Math.abs(Number(value)) < 0.00001) return "-";
+  return (Number(value) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+}
+
+function formatSignedPontosPercentuais(value) {
+  if (!Number.isFinite(Number(value)) || Math.abs(Number(value)) < 0.00001) return "-";
+  return (Number(value) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " p.p.";
+}
+
+// Calcula os 8 valores do bloco de comparacao (Real/Cenario/VarR$/Var% x Mes/Acumulado)
+// pra 1 linha do DRE, dado o mes selecionado no periodo do app (1-12).
+// Linhas percentuais (kind:"percent") nao tem "Var R$" real -> a "var" mensal/acumulada
+// vira diferenca em pontos percentuais, e "Var %" fica sem sentido (razao de razao).
+function computeDreCompareCell(realLine, compareLine, month, denomArr, compareDenomArr) {
+  const idx = Math.max(1, Math.min(12, Number(month) || 1)) - 1;
+  const isPercent = realLine?.kind === "percent";
+  const sumThru = (arr) => (arr || []).slice(0, idx + 1).reduce((s, v) => s + (Number(v) || 0), 0);
+
+  if (isPercent) {
+    const realMonth = Number(realLine?.months?.[idx]) || 0;
+    const compareMonth = Number(compareLine?.months?.[idx]) || 0;
+    const realNumYtd = sumThru(realLine?.numerator);
+    const realDenYtd = sumThru(denomArr);
+    const compareNumYtd = sumThru(compareLine?.numerator);
+    const compareDenYtd = sumThru(compareDenomArr);
+    const realYtd = Math.abs(realDenYtd) > 0.0001 ? realNumYtd / realDenYtd : 0;
+    const compareYtd = Math.abs(compareDenYtd) > 0.0001 ? compareNumYtd / compareDenYtd : 0;
+    return {
+      isPercent: true,
+      realMonth, compareMonth, varMonth: realMonth - compareMonth,
+      realYtd, compareYtd, varYtd: realYtd - compareYtd
+    };
+  }
+
+  const realMonth = Number(realLine?.months?.[idx]) || 0;
+  const compareMonth = Number(compareLine?.months?.[idx]) || 0;
+  const realYtd = sumThru(realLine?.months);
+  const compareYtd = sumThru(compareLine?.months);
+  const varMonth = realMonth - compareMonth;
+  const varYtd = realYtd - compareYtd;
+  const pct = (v, base) => Math.abs(base) > 0.0001 ? v / base : null;
+  return {
+    isPercent: false,
+    realMonth, compareMonth, varMonth, varPctMonth: pct(varMonth, compareMonth),
+    realYtd, compareYtd, varYtd, varPctYtd: pct(varYtd, compareYtd)
+  };
+}
+
+// Markup dos 8 <td> do bloco de comparacao (espelha a semantica de computeDreCompareCell).
+function dreCompareCellsMarkup(cell) {
+  const gap = '<td class="dre-cmp-gap"></td>';
+  if (!cell) return new Array(4).fill('<td class="reports-value-cell"></td>').join("") + gap + new Array(4).fill('<td class="reports-value-cell"></td>').join("");
+  if (cell.isPercent) {
+    return [
+      `<td class="reports-value-cell">${escapeHtml(formatSignedPercent(cell.realMonth))}</td>`,
+      `<td class="reports-value-cell">${escapeHtml(formatSignedPercent(cell.compareMonth))}</td>`,
+      `<td class="reports-value-cell">${escapeHtml(formatSignedPontosPercentuais(cell.varMonth))}</td>`,
+      `<td class="reports-value-cell">-</td>`,
+      gap,
+      `<td class="reports-value-cell">${escapeHtml(formatSignedPercent(cell.realYtd))}</td>`,
+      `<td class="reports-value-cell">${escapeHtml(formatSignedPercent(cell.compareYtd))}</td>`,
+      `<td class="reports-value-cell">${escapeHtml(formatSignedPontosPercentuais(cell.varYtd))}</td>`,
+      `<td class="reports-value-cell">-</td>`
+    ].join("");
+  }
+  return [
+    `<td class="reports-value-cell">${escapeHtml(formatSignedCurrency(cell.realMonth))}</td>`,
+    `<td class="reports-value-cell">${escapeHtml(formatSignedCurrency(cell.compareMonth))}</td>`,
+    `<td class="reports-value-cell">${escapeHtml(formatSignedCurrency(cell.varMonth))}</td>`,
+    `<td class="reports-value-cell">${escapeHtml(formatSignedPercent(cell.varPctMonth))}</td>`,
+    gap,
+    `<td class="reports-value-cell">${escapeHtml(formatSignedCurrency(cell.realYtd))}</td>`,
+    `<td class="reports-value-cell">${escapeHtml(formatSignedCurrency(cell.compareYtd))}</td>`,
+    `<td class="reports-value-cell">${escapeHtml(formatSignedCurrency(cell.varYtd))}</td>`,
+    `<td class="reports-value-cell">${escapeHtml(formatSignedPercent(cell.varPctYtd))}</td>`
+  ].join("");
+}
+
+// Cabecalho dos 2 blocos de comparacao (Mes/Acumulado x Real/Cenario/Var R$/Var %),
+// reaproveitado pelas 3 tabelas DRE Real. `R` = span do resizer (deixado de fora
+// destas colunas de proposito, ver nota em buildDreSocRealTableMarkup).
+function dreCompareHeaderRows(compareLabel) {
+  const label = escapeHtml(compareLabel || "Cenário");
+  const sub = () => `<th>Real</th><th>${label}</th><th>Var R$</th><th>Var %</th>`;
+  return {
+    row1Extra: `
+      <th rowspan="2" class="dre-cmp-gap"></th>
+      <th colspan="4" class="dre-cmp-group">Mês</th>
+      <th rowspan="2" class="dre-cmp-gap"></th>
+      <th colspan="4" class="dre-cmp-group">Acumulado</th>
+    `,
+    row2: `<tr class="dre-cmp-subrow">${sub()}${sub()}</tr>`
+  };
+}
+
+function dreCompareColgroupExtra() {
+  return `
+    <col style="width:20px">
+    ${['Real','Cenário','Var R$','Var %'].map(() => '<col style="width:105px">').join("")}
+    <col style="width:20px">
+    ${['Real','Cenário','Var R$','Var %'].map(() => '<col style="width:105px">').join("")}
+  `;
 }
 
 async function ensureReportsDataForYear(year) {

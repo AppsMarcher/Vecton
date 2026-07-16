@@ -2409,6 +2409,45 @@ thead .col-frozen-3 {
   color: #f8fafc;
 }
 
+/* ─── Colunas comparativas (Real x Cenário, Mês/Acumulado) dos DRE Real ──── */
+.reports-dre-table thead tr th {
+  height: 32px;
+}
+.dre-cmp-gap {
+  padding: 0 !important;
+  width: 20px;
+}
+.reports-dre-table th.dre-cmp-gap,
+.reports-dre-table td.dre-cmp-gap {
+  background: var(--bg) !important;
+  border: none !important;
+}
+.dre-cmp-group {
+  text-align: center;
+  color: #7aa2ff;
+  border-bottom: 2px solid rgba(79, 124, 255, 0.4);
+}
+.reports-dre-table .dre-cmp-subrow th {
+  position: sticky;
+  top: 32px;
+  z-index: 2;
+  background: #101722;
+}
+.vp-source-bar.dre-cmp-bar {
+  justify-content: flex-end;
+  background: transparent;
+  border-bottom: none;
+}
+/* A .reports-table-card tem um box-shadow inset no topo (destaque sutil de
+   card, usado em varias telas) — com o fundo da barra "Comparar com" agora
+   transparente, essa linha ficava exposta sozinha. Desliga so quando o
+   proprio painel ganha a classe (initCompareShell/renderSelectedDreReport
+   em reportsDreModule.js cuidam de ligar/desligar). Classe em vez de
+   :has() pra nao depender de suporte do navegador. */
+.reports-table-card.dre-cmp-shell {
+  box-shadow: none;
+}
+
 /* ─── Column resize handle ───────────────────────────────────────────────── */
 .reports-dre-table th {
   position: relative;
