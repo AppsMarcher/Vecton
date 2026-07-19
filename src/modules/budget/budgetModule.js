@@ -750,7 +750,7 @@
         renderView();
       } catch (error) {
         console.error(error);
-        setUploadFeedback(String(error?.message || error || "Falha na importacao."), "error");
+        setUploadFeedback(vpFriendlyError(error, "Falha na importacao."), "error");
       }
     }
 
@@ -763,7 +763,7 @@
         renderView();
       } catch (error) {
         console.error(error);
-        setUploadFeedback(String(error?.message || error || "Falha ao criar lote manual."), "error");
+        setUploadFeedback(vpFriendlyError(error, "Falha ao criar lote manual."), "error");
       }
     }
 
@@ -801,7 +801,7 @@
         }
       } catch (error) {
         console.error(error);
-        setUploadFeedback(String(error?.message || error || "Falha ao aplicar lote."), "error");
+        setUploadFeedback(vpFriendlyError(error, "Falha ao aplicar lote."), "error");
         setSyncStatus(`Erro planejado: ${formatSyncError(error)}`, "error");
       }
     }
@@ -879,7 +879,7 @@
         setUploadFeedback("Lote excluido com sucesso.", "ok");
       } catch (error) {
         console.error(error);
-        setUploadFeedback(String(error?.message || error || "Falha ao excluir lote."), "error");
+        setUploadFeedback(vpFriendlyError(error, "Falha ao excluir lote."), "error");
       }
     }
 
@@ -911,7 +911,7 @@
         rowElement.classList.add("row-save-error");
         setTimeout(() => rowElement.classList.remove("row-save-error"), 3000);
         console.error(error);
-        setUploadFeedback(String(error?.message || error || "Falha ao salvar linha."), "error");
+        setUploadFeedback(vpFriendlyError(error, "Falha ao salvar linha."), "error");
       }
     }
 
@@ -926,7 +926,7 @@
         await refreshBudgetBatch(batch.id);
       } catch (error) {
         console.error(error);
-        setUploadFeedback(String(error?.message || error || "Falha ao excluir linha."), "error");
+        setUploadFeedback(vpFriendlyError(error, "Falha ao excluir linha."), "error");
       }
     }
 
@@ -1355,7 +1355,7 @@
         setUploadFeedback("Linha revalidada.", "ok");
       } catch (error) {
         console.error(error);
-        setUploadFeedback(String(error?.message || error || "Falha ao revalidar linha."), "error");
+        setUploadFeedback(vpFriendlyError(error, "Falha ao revalidar linha."), "error");
       } finally {
         btn?.classList.remove("refreshing");
       }
@@ -1393,7 +1393,7 @@
         renderView();
       } catch (error) {
         console.error(error);
-        setUploadFeedback(String(error?.message || error || "Falha ao revalidar lote."), "error");
+        setUploadFeedback(vpFriendlyError(error, "Falha ao revalidar lote."), "error");
         setSyncStatus(`Erro ao revalidar: ${formatSyncError(error)}`, "error");
       }
     }
