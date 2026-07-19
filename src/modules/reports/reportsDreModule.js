@@ -191,24 +191,24 @@
           return;
         }
 
-        // Renderiza o real primeiro (rapido, sem esperar rede) — o comparativo
-        // chega depois e faz upgrade in-place das colunas extras.
-        tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted());
-        initAllReportTableResizers();
-        if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
-
+        // Espera o comparativo ANTES de pintar — real+comparativo nascem
+        // juntos, sem "flash" de upgrade in-place (mesma dinâmica do OPEX Real).
+        tableWrap.innerHTML = window.vpSkeletonTable();
         const src = _compareSource;
+        let compareReport = null;
+        let compareError = null;
         try {
           const compareRows = await fetchRowsForSource(year, src);
-          if (compareIsStale(tableWrap, src)) return;
-          const compareReport = buildDreGerRealReport(year, compareRows);
-          tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted(), compareReport, month, compareLabelFor(detailPanel));
-          initAllReportTableResizers();
-          if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
+          compareReport = buildDreGerRealReport(year, compareRows);
         } catch (e) {
           console.warn("dre ger comparativo:", e);
-          if (!compareIsStale(tableWrap, src)) showCompareError(tableWrap, e);
+          compareError = e;
         }
+        if (compareIsStale(tableWrap, src)) return;
+        tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted(), compareReport, month, compareLabelFor(detailPanel));
+        initAllReportTableResizers();
+        if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
+        if (compareError) showCompareError(tableWrap, compareError);
       }
     }
 
@@ -243,21 +243,23 @@
           return;
         }
 
-        tableWrap.innerHTML = buildDreDfsRealTableMarkup(report);
-        initAllReportTableResizers();
-
+        // Espera o comparativo ANTES de pintar — mesma dinâmica do OPEX Real.
+        tableWrap.innerHTML = window.vpSkeletonTable();
         const src = _compareSource;
+        let compareReport = null;
+        let compareError = null;
         try {
           const compareRows = await fetchRowsForSource(year, src);
-          if (compareIsStale(tableWrap, src)) return;
           const compareGerReport = buildDreGerRealReport(year, compareRows);
-          const compareReport = buildDreDfsRealReport(year, compareRows, compareGerReport);
-          tableWrap.innerHTML = buildDreDfsRealTableMarkup(report, compareReport, month, compareLabelFor(detailPanel));
-          initAllReportTableResizers();
+          compareReport = buildDreDfsRealReport(year, compareRows, compareGerReport);
         } catch (e) {
           console.warn("dre dfs comparativo:", e);
-          if (!compareIsStale(tableWrap, src)) showCompareError(tableWrap, e);
+          compareError = e;
         }
+        if (compareIsStale(tableWrap, src)) return;
+        tableWrap.innerHTML = buildDreDfsRealTableMarkup(report, compareReport, month, compareLabelFor(detailPanel));
+        initAllReportTableResizers();
+        if (compareError) showCompareError(tableWrap, compareError);
       }
     }
 
@@ -290,24 +292,24 @@
           return;
         }
 
-        tableWrap.innerHTML = buildDreSocRealTableMarkup(report);
+        // Espera o comparativo ANTES de pintar — mesma dinâmica do OPEX Real.
+        tableWrap.innerHTML = window.vpSkeletonTable();
+        const src = _compareSource;
+        let compareReport = null;
+        let compareError = null;
+        try {
+          const compareRows = await fetchRowsForSource(year, src);
+          compareReport = buildDreSocRealReport(year, compareRows);
+        } catch (e) {
+          console.warn("dre soc comparativo:", e);
+          compareError = e;
+        }
+        if (compareIsStale(tableWrap, src)) return;
+        tableWrap.innerHTML = buildDreSocRealTableMarkup(report, compareReport, month, compareLabelFor(detailPanel));
         initAllReportTableResizers();
         const drillReal = initDreSocDrilldown(tableWrap, year);
         setTimeout(() => drillReal.prefetch(), 300);
-
-        const src = _compareSource;
-        try {
-          const compareRows = await fetchRowsForSource(year, src);
-          if (compareIsStale(tableWrap, src)) return;
-          const compareReport = buildDreSocRealReport(year, compareRows);
-          tableWrap.innerHTML = buildDreSocRealTableMarkup(report, compareReport, month, compareLabelFor(detailPanel));
-          initAllReportTableResizers();
-          const drillReal2 = initDreSocDrilldown(tableWrap, year);
-          setTimeout(() => drillReal2.prefetch(), 300);
-        } catch (e) {
-          console.warn("dre soc comparativo:", e);
-          if (!compareIsStale(tableWrap, src)) showCompareError(tableWrap, e);
-        }
+        if (compareError) showCompareError(tableWrap, compareError);
       }
     }
 
