@@ -358,9 +358,14 @@
       renderDreSocReal(detailPanel);
     }
 
+    function setBudgetSource(source) {
+      _budgetSource = source || "budget";
+    }
+
     return {
       renderSelectedDreReport,
-      renderFallbackSocReal
+      renderFallbackSocReal,
+      setBudgetSource
     };
   }
 
