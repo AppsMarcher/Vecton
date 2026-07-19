@@ -875,6 +875,17 @@ function openBudgetLoadCatalog() {
   renderBudgetCatalog();
   renderBudgetView();
 }
+// Abre o DRE Societário com um cenário de Forecast como fonte (card no
+// detalhe do cenário em Planejamento). Reusa o relatório DRE Budget, que já
+// sabe ler forecast_ledger_entries via fonte "scenario:<id>".
+function openScenarioDreReport(scenarioId) {
+  reportsDreModule.setBudgetSource(scenarioId ? `scenario:${scenarioId}` : "budget");
+  selectedReportId = "dreSocBudget";
+  activeView = "reports";
+  renderNavigation();
+  renderReportsView();
+}
+
 const { renderPlanningView, resetPlanningState } = createForecastModule
   ? createForecastModule({
       escapeHtml,
@@ -885,6 +896,7 @@ const { renderPlanningView, resetPlanningState } = createForecastModule
       upsertSupabaseRows,
       deleteSupabaseRows,
       isAdmin,
+      openScenarioDreReport,
     })
   : { renderPlanningView: () => {}, resetPlanningState: () => {} };
 
