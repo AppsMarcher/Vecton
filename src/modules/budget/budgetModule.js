@@ -34,6 +34,7 @@
       resolveOrganizationId,
       setSyncStatus,
       upsertSupabaseRows,
+      updateSupabaseRows,
       deleteSupabaseRows,
       callSupabaseRpc,
       appConfirm,
@@ -1227,15 +1228,14 @@
         await upsertSupabaseRows("forecast_ledger_entries", ledgerRows.slice(i, i + CHUNK), ["id"]);
       }
 
-      // Mark batch as applied in DB (partial upsert — Supabase merge-duplicates preserves other columns).
-      // organization_id precisa ir no payload: o WITH CHECK da RLS avalia a linha proposta do upsert,
-      // e sem essa coluna is_org_editor(null) falha com 42501 mesmo para owner/editor.
-      await upsertSupabaseRows("budget_import_batches", [{
-        id:              batchId,
-        organization_id: orgId,
-        status:          "applied",
-        applied_at:      new Date().toISOString(),
-      }], ["id"]);
+      // Mark batch as applied in DB. Precisa ser PATCH (update real), nao upsert:
+      // upsert parcial monta uma linha de INSERT incompleta e o Postgres valida
+      // RLS/NOT NULL/checks dessa linha antes de resolver o conflito (42501/23502).
+      await updateSupabaseRows(
+        "budget_import_batches",
+        `id=eq.${encodeURIComponent(batchId)}`,
+        { status: "applied", applied_at: new Date().toISOString() }
+      );
 
       // Sync local state
       const localBatch = getBudgetBatchById(batchId);
