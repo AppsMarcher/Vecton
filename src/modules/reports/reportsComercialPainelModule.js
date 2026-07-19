@@ -139,6 +139,10 @@
         .cvp-side-meter-top .pct { font-weight:600; font-variant-numeric:tabular-nums; font-size:14px; }
         .cvp-side-bar { height:6px; border-radius:99px; background:var(--cvp-bg-soft); overflow:hidden; }
         .cvp-side-bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,#4f7cff,#22c55e); transition:width .3s ease; }
+        .cvp-print { display:flex; align-items:center; gap:6px; background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:12px; color:var(--cvp-soft); font-size:12.5px; font-family:inherit; font-weight:500; padding:9px 14px; cursor:pointer; }
+        .cvp-print:hover { color:var(--cvp-text); border-color:#4f7cff; }
+        .cvp-print:disabled { opacity:.55; cursor:default; }
+        .cvp-print svg { width:14px; height:14px; }
         .cvp-drill { cursor:pointer; }
         .cvp-drill:hover { color:#7aa2ff; text-decoration:underline; text-underline-offset:2px; }
         .cvp-pop-backdrop { position:fixed; inset:0; z-index:9800; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:32px; }
@@ -286,6 +290,10 @@
                 <span class="cvp-hero-label" style="padding-left:6px">Cenário</span>
                 <select id="cvp-scenario">${scenOpts}</select>
               </div>
+              <button type="button" class="cvp-print" id="cvp-print" title="One Page Report para impressão (PDF)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Imprimir
+              </button>
             </div>
           </div>
           <div id="cvp-hero"></div>
@@ -328,12 +336,13 @@
         </svg>`;
     }
 
-    // Hero = mini-tabela consolidada da empresa (Grão/Pecuária qtd + Faturado R$,
-    // colunas Fatur/Fat+Cart/Meta/2025/2024/2023), ao lado do nome.
-    function renderHero(container) {
+    // Consolidado da empresa: qtd Grao/Pecuaria + Faturado total (inclui Pecas
+    // via coords e Transgrain/Acessorios via tipos — Pecas nao dobra). Usado
+    // pelo hero e pelo One Page Report.
+    function companyTotals(coordsArr, tiposArr) {
       const blank = () => ({ fat: 0, cart: 0, meta: 0, y1: 0, y2: 0, y3: 0 });
       const grao = blank(), pec = blank(), fatv = blank();
-      coords.forEach((c) => Object.values(c.terrs).forEach((t) => {
+      coordsArr.forEach((c) => Object.values(c.terrs).forEach((t) => {
         ["grao", "pecuaria", "pecas"].forEach((lk) => {
           const line = t[lk]; if (!line) return;
           METRICS.forEach((m) => { fatv[m] += line[m].v; });
@@ -341,12 +350,17 @@
           if (lk === "pecuaria") METRICS.forEach((m) => { pec[m] += line[m].q; });
         });
       }));
-      // Total da empresa: soma tambem Transgrain + Acessorios (so valor, vindos
-      // do box/tipos). Pecas ja entrou acima (linha Pecas dos coords) -> nao dobrar.
-      tipos.forEach((r) => {
+      tiposArr.forEach((r) => {
         if (r.tipo !== "Transgrain" && r.tipo !== "Acessórios") return;
         METRICS.forEach((m) => { fatv[m] += Number(r[`${m}_val`]) || 0; });
       });
+      return { grao, pec, fatv };
+    }
+
+    // Hero = mini-tabela consolidada da empresa (Grão/Pecuária qtd + Faturado R$,
+    // colunas Fatur/Fat+Cart/Meta/2025/2024/2023), ao lado do nome.
+    function renderHero(container) {
+      const { grao, pec, fatv } = companyTotals(coords, tipos);
       const qtyRow = (o) => METRICS.map((m) => `<td>${nf(o[m])}</td>`).join("");
       const ttlRow = () => METRICS.map((m) => `<td>${nf(grao[m] + pec[m])}</td>`).join("");
       const valRow = (o) => METRICS.map((m) => `<td>${fmtR$(o[m])}</td>`).join("");
@@ -694,6 +708,240 @@
       paintPopTable();
     }
 
+    // ---------------------------------------------------------------- one page report (impressão)
+    // Espelha o "modelo OnePageReport" (impressão da aba Painel do Excel):
+    // A4 paisagem, tema claro, cards compactos com linhas GRÃO/PECUÁRIA/TTL/FATURA
+    // × colunas Fatur/Fat+Cart/Meta/anos. Página 1 = mês do cabeçalho, página 2 = YTD.
+
+    const PRINT_COLORS = {
+      geral:      { head: "#C00000", ttl: "#F5B8A3" },
+      pecuaria:   { head: "#ED7D31", ttl: "#FBDCC3" },
+      exportacao: { head: "#7030A0", ttl: "#EFB9EE" },
+      sul:        { head: "#1F3864", ttl: "#BDD7EE" },
+      norte:      { head: "#538135", ttl: "#C9E2B8" },
+      oeste:      { head: "#404040", ttl: "#D9D9D9" },
+      pecas:      { head: "#D8358C", ttl: "#F9CFE6" }
+    };
+
+    // Formato do modelo: inteiro pt-BR, zero = "-", negativo entre parênteses.
+    function pfmt(v) {
+      const r = Math.round(v || 0);
+      if (!r) return "-";
+      const s = Math.abs(r).toLocaleString("pt-BR");
+      return r < 0 ? `(${s})` : s;
+    }
+
+    // Soma uma linha (grao/pecuaria/pecas) por metrica ao longo dos territorios
+    // de uma coordenacao/regiao. null quando a linha nao existe em nenhum terr.
+    function sumTerrLine(c, lk) {
+      if (!c) return null;
+      const acc = {}; METRICS.forEach((m) => { acc[m] = { q: 0, v: 0 }; });
+      let has = false;
+      Object.values(c.terrs).forEach((t) => {
+        const l = t[lk]; if (!l) return;
+        has = true;
+        METRICS.forEach((m) => { acc[m].q += l[m].q; acc[m].v += l[m].v; });
+      });
+      return has ? acc : null;
+    }
+
+    // Card do report. grao/pec = linhas de quantidade (null = linha apagada,
+    // igual ao modelo); fatVals = os 6 valores da linha FATURA (sempre R$ cheio).
+    function printCard(cfg) {
+      const { name, terr, colors, grao, pec, fatVals, label } = cfg;
+      const cells = (line, k) => METRICS.map((m) => `<td>${line ? pfmt(line[m][k]) : ""}</td>`).join("");
+      const empty = METRICS.map(() => "<td></td>").join("");
+      const ttlCellsP = (grao || pec)
+        ? METRICS.map((m) => `<td>${pfmt((grao ? grao[m].q : 0) + (pec ? pec[m].q : 0))}</td>`).join("")
+        : empty;
+      const initials = escapeHtml((name || terr || "?").trim().slice(0, 2).toUpperCase());
+      return `${label ? `<div class="plab">${escapeHtml(label)}</div>` : ""}<div class="pc">
+        <table>
+          <colgroup><col style="width:15%"><col style="width:13%"><col span="6" style="width:12%"></colgroup>
+          <thead><tr style="background:${colors.head}">
+            <th class="nm" colspan="2"><div class="nmw"><span class="av" style="color:${colors.head}">${initials}</span><span class="nmx">${escapeHtml(name)}</span><span class="tr">${escapeHtml(terr)}</span></div></th>
+            <th>FATUR.</th><th>FAT.+CART.</th><th>META</th><th>${year - 1}</th><th>${year - 2}</th><th>${year - 3}</th>
+          </tr></thead>
+          <tbody>
+            <tr><td class="lab${grao ? "" : " off"}" colspan="2">GRÃO</td>${grao ? cells(grao, "q") : empty}</tr>
+            <tr><td class="lab${pec ? "" : " off"}" colspan="2">PECUÁRIA</td>${pec ? cells(pec, "q") : empty}</tr>
+            <tr class="ttl" style="background:${colors.ttl}"><td class="lab" colspan="2">TTL qtd</td>${ttlCellsP}</tr>
+            <tr class="fat"><td class="lab" colspan="2">FATURA</td>${METRICS.map((m) => `<td>${pfmt(fatVals[m])}</td>`).join("")}</tr>
+          </tbody>
+        </table>
+      </div>`;
+    }
+
+    // Card a partir de linhas metricObj: FATURA = soma dos valores das linhas.
+    function cardFromLines(name, terr, colors, grao, pec, pecas, label) {
+      const fatVals = {};
+      METRICS.forEach((m) => {
+        fatVals[m] = (grao ? grao[m].v : 0) + (pec ? pec[m].v : 0) + (pecas ? pecas[m].v : 0);
+      });
+      return printCard({ name, terr, colors, grao, pec, fatVals, label });
+    }
+
+    function buildPrintPage(data, subtitle, scenarioName) {
+      const { coords: pc, regioes: pr, tipos: pt } = data;
+      const coord = (n) => pc.find((x) => x.nome === n) || null;
+      const reg = (n) => pr.find((x) => x.nome === n) || null;
+
+      // --- 6 cards consolidados (topo de cada coluna) ---
+      const tot = companyTotals(pc, pt);
+      const numLine = (qMap) => { const o = {}; METRICS.forEach((m) => { o[m] = { q: qMap[m], v: 0 }; }); return o; };
+      const geralCard = printCard({
+        name: "Pedro", terr: "BRASIL", colors: PRINT_COLORS.geral, label: "GERAL",
+        grao: numLine(tot.grao), pec: numLine(tot.pec), fatVals: tot.fatv
+      });
+      const consolidated = (nome, terrLabel, colors, label) => {
+        const c = coord(nome); if (!c) return "";
+        return cardFromLines(c.gestor || nome, terrLabel, colors,
+          sumTerrLine(c, "grao"), sumTerrLine(c, "pecuaria"), sumTerrLine(c, "pecas"), label);
+      };
+      const col1Top = geralCard + consolidated("Sul", "SUL", PRINT_COLORS.sul, "REG. SUL");
+      const col2Top = consolidated("Pecuária", "PECUÁRIA", PRINT_COLORS.pecuaria, "PECUÁRIA")
+        + consolidated("Norte", "NORTE", PRINT_COLORS.norte, "REG. NORTE");
+      const col3Top = consolidated("Exportação", "EXPO", PRINT_COLORS.exportacao, "EXPORTAÇÃO")
+        + consolidated("Oeste", "OESTE", PRINT_COLORS.oeste, "REG. OESTE");
+
+      // --- cards de território (casa geográfica), 1 card por responsável ---
+      // Órfãos (responsável = gestor) não viram card — consolidam no regional.
+      const terrCards = [];
+      const pushRegion = (nome, colors) => {
+        const r = reg(nome); if (!r) return;
+        Object.entries(r.terrs).forEach(([terr, t]) => {
+          const g = (t.grao && !t.grao.orfao) ? t.grao : null;
+          const p = (t.pecuaria && !t.pecuaria.orfao) ? t.pecuaria : null;
+          if (!g && !p) return;
+          if (g && p && g.resp !== p.resp) {
+            terrCards.push(cardFromLines(g.resp || "A definir", terr, colors, g, null, null));
+            terrCards.push(cardFromLines(p.resp || "A definir", terr, colors, null, p, null));
+          } else {
+            terrCards.push(cardFromLines((g || p).resp || "A definir", terr, colors, g, p, null));
+          }
+        });
+        // Peças entra logo depois do Sul (posição do modelo).
+        if (nome === "Sul") {
+          const cp = coord("Peças");
+          if (cp) terrCards.push(cardFromLines(cp.gestor || "—", "PEÇAS", PRINT_COLORS.pecas, null, null, sumTerrLine(cp, "pecas")));
+        }
+      };
+      pushRegion("Sul", PRINT_COLORS.sul);
+      pushRegion("Norte", PRINT_COLORS.norte);
+      pushRegion("Oeste", PRINT_COLORS.oeste);
+
+      // Distribui em 3 colunas equilibradas (fluxo contínuo, como o modelo).
+      const s1 = Math.ceil(terrCards.length / 3);
+      const s2 = Math.ceil((terrCards.length - s1) / 2);
+      const flow = [terrCards.slice(0, s1), terrCards.slice(s1, s1 + s2), terrCards.slice(s1 + s2)];
+
+      const emitted = new Date().toLocaleDateString("pt-BR");
+      return `<section class="page">
+        <div class="ph">
+          <h1>Painel de Vendas · Marcher Brasil</h1>
+          <span class="per">${escapeHtml(subtitle)}</span>
+          <span class="meta">Meta: ${escapeHtml(scenarioName)} · emitido em ${emitted}</span>
+        </div>
+        ${(!pc.length) ? `<p class="pempty">Sem dados de vendas para o período.</p>` : `
+        <div class="cols">
+          <div class="col">${col1Top}${flow[0].join("")}</div>
+          <div class="col">${col2Top}${flow[1].join("")}</div>
+          <div class="col">${col3Top}${flow[2].join("")}</div>
+        </div>`}
+      </section>`;
+    }
+
+    function buildPrintDoc(mesData, ytdData) {
+      const scenarioName = scenarios.find((s) => s.id === scenarioId)?.name || "Budget";
+      const mLabel = MONTHS[month - 1];
+      const p1 = buildPrintPage(mesData, `Mês — ${mLabel}/${year}`, scenarioName);
+      const p2 = buildPrintPage(ytdData, `Acumulado YTD — Janeiro a ${mLabel}/${year}`, scenarioName);
+      return `<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>One Page Report — Painel de Vendas ${mLabel}/${year}</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  @page { size: A4 landscape; margin: 7mm; }
+  html, body { background:#fff; color:#1a1a1a; font-family:"Segoe UI", Calibri, Arial, sans-serif;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .page { width:283mm; page-break-after:always; }
+  .page:last-child { page-break-after:auto; }
+  .ph { display:flex; justify-content:space-between; align-items:baseline; gap:6mm;
+    border-bottom:1.5px solid #1F3864; padding-bottom:1.4mm; margin-bottom:2.4mm; }
+  .ph h1 { font-size:11px; font-weight:700; color:#1F3864; }
+  .ph .per { font-size:10px; font-weight:600; }
+  .ph .meta { font-size:8px; color:#666; }
+  .cols { display:grid; grid-template-columns:repeat(3, 1fr); gap:0 3.4mm; align-items:start; }
+  .col { display:flex; flex-direction:column; }
+  .plab { font-size:6.4px; font-weight:700; letter-spacing:.07em; color:#555; margin:1.3mm 0 .4mm; }
+  .pc { margin-top:1.3mm; }
+  .plab + .pc { margin-top:0; }
+  .col > :first-child { margin-top:0; }
+  .pc table { width:100%; border-collapse:collapse; table-layout:fixed; }
+  .pc th, .pc td { font-size:6.6px; line-height:1.15; padding:.42mm .7mm; text-align:right;
+    border:.5px solid #cfcfcf; font-variant-numeric:tabular-nums; overflow:hidden; white-space:nowrap; }
+  .pc thead th { color:#fff; font-weight:600; font-size:6px; letter-spacing:.03em; border-color:rgba(0,0,0,.18); }
+  .pc th.nm { text-align:left; font-size:7px; font-weight:700; }
+  .pc th.nm .nmw { display:flex; align-items:center; gap:.8mm; }
+  .pc th.nm .av { flex:none; width:3.2mm; height:3.2mm; line-height:3.2mm; border-radius:50%;
+    background:#fff; font-size:5px; font-weight:700; text-align:center; }
+  .pc th.nm .nmx { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pc th.nm .tr { flex:none; font-weight:600; font-size:6.2px; opacity:.92; }
+  .pc td.lab { text-align:left; font-size:6.3px; font-weight:600; letter-spacing:.02em; color:#333; }
+  .pc td.lab.off { color:#b8b8b8; font-weight:400; }
+  .pc tr.ttl td { font-weight:700; }
+  .pc tr.fat td { font-weight:600; background:#f5f5f5; }
+  .pempty { padding:20mm; text-align:center; color:#888; font-size:11px; }
+  @media screen {
+    body { background:#8a8f98; padding:14px; }
+    .page { background:#fff; margin:0 auto 14px; padding:7mm; box-shadow:0 3px 18px rgba(0,0,0,.35); }
+  }
+</style>
+</head>
+<body>
+${p1}
+${p2}
+<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 400); });<\/script>
+</body>
+</html>`;
+    }
+
+    async function fetchPainelData(periodKey) {
+      if (!isSupabaseConfigured()) return { coords: [], regioes: [], tipos: [] };
+      const org = await resolveOrganizationId();
+      const payload = { p_org: org, p_year: year, p_month: month, p_period: periodKey, p_scenario_id: scenarioId };
+      const [rows, tiposRows] = await Promise.all([
+        callSupabaseRpc("comercial_painel_vendas", payload),
+        callSupabaseRpc("comercial_painel_tipos", payload)
+      ]);
+      const tr = transform(rows || []);
+      return { coords: tr.coords, regioes: tr.regioes, tipos: tiposRows || [] };
+    }
+
+    async function openOnePagePrint(container) {
+      const btn = container.querySelector("#cvp-print");
+      // window.open precisa ser síncrono no clique, senão o popup blocker segura.
+      const w = window.open("", "_blank");
+      if (!w) { alert("O navegador bloqueou a janela do report. Libere pop-ups para este site e tente de novo."); return; }
+      w.document.write(`<p style="font-family:sans-serif;padding:24px;color:#555">Gerando One Page Report…</p>`);
+      if (btn) btn.disabled = true;
+      try {
+        const [mesData, ytdData] = await Promise.all([fetchPainelData("mes"), fetchPainelData("ytd")]);
+        const html = buildPrintDoc(mesData, ytdData);
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      } catch (e) {
+        console.error("one page report:", e);
+        try { w.close(); } catch (_) { /* já fechada */ }
+        alert("Falha ao gerar o One Page Report. Verifique a conexão e tente de novo.");
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
     // ---------------------------------------------------------------- events
 
     function bind(container) {
@@ -704,6 +952,7 @@
       container.querySelector("#cvp-scenario")?.addEventListener("change", async (e) => {
         scenarioId = e.target.value || null; await reloadAndRender(container);
       });
+      container.querySelector("#cvp-print")?.addEventListener("click", () => openOnePagePrint(container));
     }
 
     // O mes/ano do painel seguem o seletor de periodo do cabecalho do site.
