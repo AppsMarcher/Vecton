@@ -865,12 +865,11 @@
 
       try {
         if (isSupabaseConfigured()) {
-          if (batch.status === "applied") {
-            await callSupabaseRpc("delete_budget_import_batch", { target_batch_id: batch.id });
-          } else {
-            await deleteSupabaseRows("budget_import_rows", `batch_id=eq.${encodeURIComponent(batch.id)}`);
-            await deleteSupabaseRows("budget_import_batches", `id=eq.${encodeURIComponent(batch.id)}`);
-          }
+          // Sempre via RPC (statement_timeout=0): o DELETE direto das linhas dispara
+          // refresh_budget_import_batch_stats por linha e estoura o timeout em lotes grandes.
+          setSyncStatus("Excluindo lote no BD…", "warn");
+          await callSupabaseRpc("delete_budget_import_batch", { target_batch_id: batch.id });
+          setSyncStatus("Lote excluido no BD", "ok");
         }
         delete state.budgetRowsByBatch[batch.id];
         state.budgetBatches = state.budgetBatches.filter((item) => item.id !== batch.id);
