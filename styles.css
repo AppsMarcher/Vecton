@@ -2441,8 +2441,44 @@ thead .col-frozen-3 {
 }
 .reports-dre-table th.dre-cmp-gap,
 .reports-dre-table td.dre-cmp-gap {
-  background: var(--bg) !important;
+  background: transparent !important;
   border: none !important;
+}
+/* Linhas destacadas (Total Geral/Grupo/Seção do OPEX, Subtotal/Resultado do DRE)
+   pintam o fundo e a borda por <td> — sem isto a coluna de espaçamento (gap)
+   virava um "buraco" escuro cortando a faixa colorida ao meio. */
+.reports-opex-table tr.opex-row-grand td.dre-cmp-gap {
+  background: rgba(79,124,255,0.10) !important;
+  border-top: 1px solid rgba(79,124,255,0.3) !important;
+  border-bottom: 1px solid rgba(79,124,255,0.3) !important;
+}
+.reports-opex-table tr.opex-row-section td.dre-cmp-gap {
+  background: rgba(255,255,255,0.03) !important;
+  border-top: 1px solid rgba(255,255,255,0.07) !important;
+}
+.reports-opex-table tr.opex-row-group td.dre-cmp-gap {
+  background: rgba(255,255,255,0.02) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+}
+.reports-opex-table tr.opex-row-account:hover td.dre-cmp-gap {
+  background: rgba(255,255,255,0.03) !important;
+}
+.reports-dre-table tr.is-synthetic td.dre-cmp-gap {
+  background: rgba(79, 124, 255, 0.06) !important;
+}
+.reports-ger-table tr.ger-row-subtotal td.dre-cmp-gap {
+  background: rgba(79, 124, 255, 0.10) !important;
+  border-top: 1px solid rgba(79, 124, 255, 0.25) !important;
+}
+.reports-ger-table tr.ger-row-result-final td.dre-cmp-gap {
+  background: rgba(79, 124, 255, 0.18) !important;
+  border-top: 2px solid rgba(79, 124, 255, 0.5) !important;
+}
+.reports-ger-table tr.dfs-row-section td.dre-cmp-gap {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+.reports-ger-table tbody tr:hover td.dre-cmp-gap {
+  background: rgba(255, 255, 255, 0.025) !important;
 }
 .dre-cmp-group {
   text-align: center;
