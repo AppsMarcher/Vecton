@@ -1038,8 +1038,10 @@ const reportsOpexModule = createReportsOpexModule({
   getOpexHideZeros: () => opexHideZeros,
   setOpexHideZeros: (value) => { opexHideZeros = value; },
   reportsLedgerCache,
+  reportsBudgetCache,
   getOpexStructure: () => OPEX_STRUCTURE,
   buildOpexCostCenterFilter,
+  buildOpexCcIdsFilter,
   matchesOpexCostCenterFilter,
   buildOpexRealTableMarkup,
   initOpexDrilldown,
@@ -1048,6 +1050,8 @@ const reportsOpexModule = createReportsOpexModule({
   fetchActualsLedgerWithCcForYear,
   fetchActualsLedgerForManagementYear,
   fetchActualsLedgerForCcIds,
+  fetchBudgetLedgerForManagementYear,
+  fetchBudgetLedgerForCcIds,
   renderReportsView,
   renderOpexBudgetReport,
   resolveManagementFilter,
@@ -3783,12 +3787,16 @@ const OPEX_STRUCTURE = [
   ]}
 ];
 
-function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false) {
+// compareLedgerRows/compareValidCcFilter/month/compareLabel = bloco comparativo
+// (Mês/Acumulado x Real/Cenário/Var), mesma dinâmica dos DRE Real — espelha
+// computeDreCompareCell/dreCompareCellsMarkup/dreCompareHeaderRows/dreCompareColgroupExtra.
+function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false, compareLedgerRows = null, compareValidCcFilter = null, month = null, compareLabel = null) {
   // Remove debug logs
   const R = '<span class="col-resizer" aria-hidden="true"></span>';
+  const hasCompare = !!(compareLedgerRows && month);
 
   // ── Normaliza ledger filtrando por CC válidos (null = sem restrição)
-  const normalized = ledgerRows.map((row) => ({
+  const normalizeRows = (rows, filter) => rows.map((row) => ({
     code: normalizeCode(row.accountNumber ?? row.account_number),
     ccId: String(row.costCenterId ?? row.cost_center_id ?? "").trim(),
     cc: normalizeCode(row.costCenterNumber ?? row.cost_center_number),
@@ -3796,50 +3804,64 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false) 
     amount: Number(row.amount)
   })).filter((r) => {
     if (!r.code || r.month < 1 || r.month > 12 || !Number.isFinite(r.amount)) return false;
-    return matchesOpexCostCenterFilter(validCcFilter, r.ccId, r.cc);
+    return matchesOpexCostCenterFilter(filter, r.ccId, r.cc);
   });
 
+  const buildMonthsMap = (rows, filter) => {
+    const map = new Map();
+    normalizeRows(rows, filter).forEach((r) => {
+      if (!map.has(r.code)) map.set(r.code, Array(12).fill(0));
+      map.get(r.code)[r.month - 1] += r.amount;
+    });
+    return map;
+  };
+
   // ── Mapa: code → [12 meses]
-  const monthsMap = new Map();
-  normalized.forEach((r) => {
-    if (!monthsMap.has(r.code)) monthsMap.set(r.code, Array(12).fill(0));
-    monthsMap.get(r.code)[r.month - 1] += r.amount;
-  });
+  const monthsMap = buildMonthsMap(ledgerRows, validCcFilter);
+  const compareMonthsMap = hasCompare ? buildMonthsMap(compareLedgerRows, compareValidCcFilter) : null;
 
   // ── Mapa de nomes: code → name (do dreNodes)
   const nameMap = new Map(state.dreNodes.map((n) => [String(n.code), n.name]));
 
-  const sumMonths = (accounts) => {
+  const sumMonthsFrom = (map, accounts) => {
     const total = Array(12).fill(0);
     accounts.forEach((code) => {
-      const m = monthsMap.get(code);
+      const m = map.get(code);
       if (m) m.forEach((v, i) => { total[i] += v; });
     });
     return total;
   };
+  const sumMonths = (accounts) => sumMonthsFrom(monthsMap, accounts);
+  const compareSumMonths = (accounts) => sumMonthsFrom(compareMonthsMap, accounts);
 
   const fmtVal = (v) => Math.abs(v) < 0.005 ? "—"
     : formatSignedCurrency(v);
 
-  const headerCells = MONTH_LABELS.map((l) => `<th>${escapeHtml(l)}${R}</th>`).join("");
+  // Bloco de colunas comparativas (Mês/Acumulado x Real/Cenário/Var) pra uma linha.
+  const cmpCells = (realMonths, cmpMonths) => hasCompare
+    ? `<td class="dre-cmp-gap"></td>${dreCompareCellsMarkup(computeDreCompareCell({ months: realMonths }, { months: cmpMonths || Array(12).fill(0) }, month, null, null))}`
+    : "";
+  const cmpColCount = hasCompare ? 10 : 0; // gap+4(Mês)+gap+4(Acumulado)
 
   let bodyRows = "";
 
   // Grand total
   const allAccounts = OPEX_STRUCTURE.flatMap((s) => s.groups.flatMap((g) => g.accounts));
   const grandTotal = sumMonths(allAccounts);
+  const compareGrandTotal = hasCompare ? compareSumMonths(allAccounts) : null;
   const grandTotalRow = grandTotal.map((v) => `<td class="reports-value-cell">${escapeHtml(fmtVal(v))}</td>`).join("");
   bodyRows += `<tr class="opex-row-grand">
     <td class="reports-label-cell opex-code-col"></td>
     <td class="reports-label-cell opex-name-col"><span>TOTAL DE GASTOS OPERACIONAIS</span></td>
     ${grandTotalRow}
     <td class="reports-value-cell reports-total-cell">${escapeHtml(fmtVal(grandTotal.reduce((s,v)=>s+v,0)))}</td>
+    ${cmpCells(grandTotal, compareGrandTotal)}
   </tr>`;
 
   OPEX_STRUCTURE.forEach((section) => {
     // Section header
     bodyRows += `<tr class="opex-row-section">
-      <td class="reports-label-cell opex-code-col" colspan="${MONTH_LABELS.length + 3}">
+      <td class="reports-label-cell opex-code-col" colspan="${MONTH_LABELS.length + 3 + cmpColCount}">
         <span>${escapeHtml(section.label)}</span>
       </td>
     </tr>`;
@@ -3852,6 +3874,7 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false) 
       // Quando hideZeros está ativo, ocultar grupo inteiro se zerado
       if (hideZeros && groupIsZero) return;
 
+      const compareGroupMonths = hasCompare ? compareSumMonths(group.accounts) : null;
       const groupCells = groupMonths.map((v) => `<td class="reports-value-cell">${escapeHtml(fmtVal(v))}</td>`).join("");
 
       bodyRows += `<tr class="opex-row-group">
@@ -3859,6 +3882,7 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false) 
         <td class="reports-label-cell opex-name-col"><span>${escapeHtml(group.label)}</span></td>
         ${groupCells}
         <td class="reports-value-cell reports-total-cell">${escapeHtml(fmtVal(groupTotal))}</td>
+        ${cmpCells(groupMonths, compareGroupMonths)}
       </tr>`;
 
       group.accounts.forEach((code) => {
@@ -3866,16 +3890,20 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false) 
         const total = months.reduce((s, v) => s + v, 0);
         if (hideZeros && months.every((v) => Math.abs(v) < 0.005)) return;
         const name = nameMap.get(code) || "";
+        const compareMonths = hasCompare ? (compareMonthsMap.get(code) || Array(12).fill(0)) : null;
         const cells = months.map((v, i) => `<td class="reports-value-cell opex-drillable" data-account="${escapeHtml(code)}" data-month-idx="${i}">${escapeHtml(fmtVal(v))}</td>`).join("");
         bodyRows += `<tr class="opex-row-account">
           <td class="reports-label-cell opex-code-col"><span class="opex-code">${escapeHtml(code)}</span></td>
           <td class="reports-label-cell opex-name-col"><span>${escapeHtml(name)}</span></td>
           ${cells}
           <td class="reports-value-cell reports-total-cell">${escapeHtml(fmtVal(total))}</td>
+          ${cmpCells(months, compareMonths)}
         </tr>`;
       });
     });
   });
+
+  const cmp = hasCompare ? dreCompareHeaderRows(compareLabel) : null;
 
   return `
     <table class="reports-dre-table reports-opex-table" data-resizable-cols>
@@ -3884,14 +3912,17 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false) 
         <col style="width:260px">
         ${MONTH_LABELS.map(() => '<col style="width:100px">').join("")}
         <col style="width:110px">
+        ${hasCompare ? dreCompareColgroupExtra() : ""}
       </colgroup>
       <thead>
         <tr>
-          <th># Conta${R}</th>
-          <th>Descritivo${R}</th>
-          ${headerCells}
-          <th>Total${R}</th>
+          <th${hasCompare ? ' rowspan="2"' : ""}># Conta${R}</th>
+          <th${hasCompare ? ' rowspan="2"' : ""}>Descritivo${R}</th>
+          ${MONTH_LABELS.map((l) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(l)}${R}</th>`).join("")}
+          <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
+          ${cmp ? cmp.row1Extra : ""}
         </tr>
+        ${cmp ? cmp.row2 : ""}
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -7167,6 +7198,7 @@ function getDashCompare(year) {
 function handleDefaultScenarioChanged() {
   _dashCompareByYear.clear();
   reportsDreModule?.resetCompareSource?.();
+  reportsOpexModule?.resetCompareSource?.();
 }
 
 async function fetchScenarioLedgerForYear(scenarioId, year) {
