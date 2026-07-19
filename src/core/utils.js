@@ -134,6 +134,66 @@ function isStatementTimeoutError(error) {
   return message.includes('"code":"57014"') || message.includes("statement timeout") || message.includes("canceling statement due to statement timeout");
 }
 
+// Traduz erros técnicos (Postgres/PostgREST/rede) em mensagens amigáveis com
+// orientação de ajuste. Mensagens já em português (lançadas pelo app ou por
+// "raise exception" nas RPCs) passam direto.
+function vpFriendlyError(error, fallback = "Ocorreu um erro inesperado.") {
+  const raw = String(error?.message || error || "").trim();
+  if (!raw) return fallback;
+
+  let parsed = null;
+  if (raw.startsWith("{")) {
+    try { parsed = JSON.parse(raw); } catch (_) {}
+  }
+  const code = String(parsed?.code || "");
+  const msg = String(parsed?.message || raw);
+  const lower = msg.toLowerCase();
+
+  if (code === "42501" || lower.includes("row-level security") || lower.includes("permission denied")) {
+    return "Você não tem permissão para esta ação. Confirme com o administrador se o seu perfil tem acesso de edição nesta área.";
+  }
+  if (code === "57014" || lower.includes("statement timeout")) {
+    return "A operação demorou além do limite do servidor e foi cancelada. Tente novamente; se o problema continuar, avise o administrador.";
+  }
+  if (code === "23505" || lower.includes("duplicate key")) {
+    return "Registro duplicado: já existe um item com estes mesmos dados.";
+  }
+  if (code === "23503" || lower.includes("foreign key")) {
+    return "Este registro está vinculado a outros dados do sistema e não pode ser excluído ou alterado.";
+  }
+  if (code === "23502" || lower.includes("null value in column")) {
+    return "Há um campo obrigatório sem valor. Revise os dados e tente novamente.";
+  }
+  if (code === "22P02" || lower.includes("invalid input syntax")) {
+    return "Um dos valores está em formato inválido (número, data ou código). Revise os dados e tente novamente.";
+  }
+  if (code === "PGRST301" || lower.includes("jwt") || lower.includes("sessao expirada") || lower.includes("sessao ausente")) {
+    return "Sua sessão expirou. Atualize a página (F5) e entre novamente.";
+  }
+  if (code === "PGRST205" || code === "42P01" || lower.includes("schema cache") || lower.includes("does not exist")) {
+    return "O banco de dados está desatualizado em relação ao aplicativo. Avise o administrador do sistema.";
+  }
+  if (lower.includes("failed to fetch") || lower.includes("networkerror") || lower.includes("load failed")) {
+    return "Sem conexão com o servidor. Verifique sua internet e tente novamente.";
+  }
+  if (msg.includes("Organizacao") && msg.includes("nao encontrada")) {
+    return "Seu usuário não está vinculado à organização no banco de dados. Avise o administrador do sistema.";
+  }
+
+  // RPCs sinalizam regras de negócio via "raise exception" (P0001) com texto em português
+  if (code === "P0001" && parsed?.message) {
+    return parsed.message;
+  }
+
+  // Mensagens curtas sem cara de erro técnico já são amigáveis (lançadas pelo próprio app)
+  if (!parsed && raw.length <= 180 && !/[{}\[\]]|error:|exception|constraint|violates/i.test(raw)) {
+    return raw;
+  }
+
+  const compact = msg.replace(/\s+/g, " ").replace(/["{}\[\]]/g, "").slice(0, 140);
+  return `${fallback} Detalhe técnico: ${compact} — se precisar de ajuda, envie esta mensagem ao administrador.`;
+}
+
 function isActualsApplyTimeoutError(error) {
   return isStatementTimeoutError(error);
 }
