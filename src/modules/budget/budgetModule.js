@@ -1228,11 +1228,14 @@
         await upsertSupabaseRows("forecast_ledger_entries", ledgerRows.slice(i, i + CHUNK), ["id"]);
       }
 
-      // Mark batch as applied in DB (partial upsert — Supabase merge-duplicates preserves other columns)
+      // Mark batch as applied in DB (partial upsert — Supabase merge-duplicates preserves other columns).
+      // organization_id precisa ir no payload: o WITH CHECK da RLS avalia a linha proposta do upsert,
+      // e sem essa coluna is_org_editor(null) falha com 42501 mesmo para owner/editor.
       await upsertSupabaseRows("budget_import_batches", [{
-        id:         batchId,
-        status:     "applied",
-        applied_at: new Date().toISOString(),
+        id:              batchId,
+        organization_id: orgId,
+        status:          "applied",
+        applied_at:      new Date().toISOString(),
       }], ["id"]);
 
       // Sync local state
