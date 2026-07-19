@@ -2128,7 +2128,7 @@ async function ensureHcReportDataForYear(year) {
     await Promise.all(tasks);
   } catch (error) {
     console.error(error);
-    hcReportErrorMessage = String(error?.message || error || "Não foi possível carregar o Headcount Realizado.");
+    hcReportErrorMessage = vpFriendlyError(error, "Não foi possível carregar o Headcount Realizado.");
   } finally {
     hcReportLoadingYear = null;
     renderReportsView();
@@ -2342,7 +2342,7 @@ async function ensureHcBudgetReportDataForYear(year) {
     await Promise.all(tasks);
   } catch (error) {
     console.error(error);
-    hcBudgetReportErrorMessage = String(error?.message || error || "Não foi possível carregar o Headcount Planejado.");
+    hcBudgetReportErrorMessage = vpFriendlyError(error, "Não foi possível carregar o Headcount Planejado.");
   } finally {
     hcBudgetReportLoadingYear = null;
     renderReportsView();
@@ -4883,7 +4883,7 @@ async function ensureReportsDataForYear(year) {
     reportsLastLoadedAt = new Date().toISOString();
   } catch (error) {
     console.error(error);
-    reportsErrorMessage = String(error?.message || error || "Nao foi possivel carregar o DRE Soc Real.");
+    reportsErrorMessage = vpFriendlyError(error, "Nao foi possivel carregar o DRE Soc Real.");
   } finally {
     reportsLoadingYear = null;
     renderReportsView();
@@ -4948,7 +4948,7 @@ async function ensureBudgetReportsDataForYear(year) {
     reportsBudgetCache.set(normalizedYear, { rows });
   } catch (error) {
     console.error(error);
-    budgetReportsErrorMessage = String(error?.message || error || "Não foi possível carregar o DRE Budget.");
+    budgetReportsErrorMessage = vpFriendlyError(error, "Não foi possível carregar o DRE Budget.");
   } finally {
     budgetReportsLoadingYear = null;
     renderReportsView();
@@ -5475,27 +5475,7 @@ function formatSyncError(error) {
   if (!rawMessage) {
     return "erro nao identificado";
   }
-
-  if (rawMessage.includes("Organizacao") && rawMessage.includes("nao encontrada")) {
-    return "usuario sem vinculo com a organizacao";
-  }
-  if (rawMessage.includes("JWT")) {
-    return "sessao invalida";
-  }
-  if (rawMessage.includes("permission denied")) {
-    return "sem permissao de leitura";
-  }
-  if (rawMessage.includes("Failed to fetch")) {
-    return "sem resposta da API";
-  }
-
-  const compact = rawMessage
-    .replaceAll(/\s+/g, " ")
-    .replaceAll('"', "")
-    .replaceAll("{", "")
-    .replaceAll("}", "");
-
-  return compact.slice(0, 90);
+  return vpFriendlyError(error, "Erro na sincronização.");
 }
 
 function buildAuthHeaders(token = null, extra = {}) {
@@ -6223,7 +6203,7 @@ function bindHeadcountEvents() {
       renderHeadcountView();
     } catch (error) {
       console.error(error);
-      setHcFeedback(String(error?.message || error || "Falha na importação."), "error");
+      setHcFeedback(vpFriendlyError(error, "Falha na importação."), "error");
     }
   });
 
@@ -6237,7 +6217,7 @@ function bindHeadcountEvents() {
       headcountRowsFilter = "";
       renderHeadcountView();
     } catch (error) {
-      setHcFeedback(String(error?.message || error || "Falha ao criar lote."), "error");
+      setHcFeedback(vpFriendlyError(error, "Falha ao criar lote."), "error");
     }
   });
 
@@ -6323,7 +6303,7 @@ function bindHeadcountEvents() {
       if (selectedHeadcountBatchId) await loadHeadcountRows(selectedHeadcountBatchId, true);
       renderHeadcountView();
     } catch (error) {
-      setHcFeedback(String(error?.message || error || "Falha ao excluir lote."), "error");
+      setHcFeedback(vpFriendlyError(error, "Falha ao excluir lote."), "error");
     }
   });
 
@@ -6365,7 +6345,7 @@ function bindHeadcountEvents() {
       renderHeadcountView();
     } catch (error) {
       console.error(error);
-      setHcFeedback(String(error?.message || error || "Falha ao aplicar lote."), "error");
+      setHcFeedback(vpFriendlyError(error, "Falha ao aplicar lote."), "error");
     }
   });
 }
@@ -6715,7 +6695,7 @@ async function updateHcRowFromDom(rowEl) {
     rowEl.classList.remove("row-saving");
     rowEl.classList.add("row-save-error");
     setTimeout(() => rowEl.classList.remove("row-save-error"), 3000);
-    setHcFeedback(String(error?.message || error || "Falha ao salvar linha."), "error");
+    setHcFeedback(vpFriendlyError(error, "Falha ao salvar linha."), "error");
   }
 }
 
@@ -6728,7 +6708,7 @@ async function deleteHcRow(rowId) {
     recomputeLocalHcBatch(batch.id);
     renderHeadcountView();
   } catch (error) {
-    setHcFeedback(String(error?.message || error || "Falha ao excluir linha."), "error");
+    setHcFeedback(vpFriendlyError(error, "Falha ao excluir linha."), "error");
   }
 }
 
