@@ -136,9 +136,7 @@ let selectedHeadcountLoadType = null;
 let headcountReturnView = null;
 let opexHideZeros = false;
 let _opexBudgetSource = "budget";
-let _opexScenariosCache = null;
 let _hcBudgetSource = "budget";
-let _hcScenariosCache = null;
 const loadingHeadcountBatchIds = new Set();
 const hcDashCache = new Map();
 let hcDashLoadingKey = null;
@@ -504,6 +502,7 @@ try {
     formatSyncError,
     getActualsStatusClass,
     invalidateBudgetReportsForYear,
+    invalidateScenarioCachesFor,
     isSupabaseConfigured,
     normalizeBranchCode,
     normalizeCode,
@@ -897,6 +896,7 @@ const { renderPlanningView, resetPlanningState } = createForecastModule
       deleteSupabaseRows,
       isAdmin,
       openScenarioDreReport,
+      invalidateScenarioCachesFor,
     })
   : { renderPlanningView: () => {}, resetPlanningState: () => {} };
 
@@ -1023,7 +1023,7 @@ const reportsDreModule = createReportsDreModule({
   initDreSocDrilldown,
   isAccessRestricted,
   fetchScenariosForYear,
-  fetchScenarioLedgerForYear,
+  fetchScenarioReportRowsForYear,
   getCurrentYear: () => Number(state.currentPeriod?.year || 2026),
   getCurrentPeriodMonth: () => Number(state.currentPeriod?.month || 1),
 });
@@ -2407,26 +2407,17 @@ function renderHcReport(kind) {
 
     const srcSel = detailPanel.querySelector("#hc-budget-source-sel");
     if (srcSel) {
-      if (_hcScenariosCache) {
-        _hcScenariosCache.forEach(s => {
+      // Sem cache: consulta os cenários a cada render (como nos DREs), para que
+      // um cenário recém-criado apareça imediatamente no seletor.
+      fetchScenariosForYear(year).then(scenarios => {
+        scenarios.forEach(s => {
           const opt = document.createElement("option");
           opt.value = `scenario:${s.id}`;
           opt.textContent = s.name;
           srcSel.appendChild(opt);
         });
         srcSel.value = _hcBudgetSource;
-      } else {
-        fetchScenariosForYear(year).then(scenarios => {
-          _hcScenariosCache = scenarios;
-          scenarios.forEach(s => {
-            const opt = document.createElement("option");
-            opt.value = `scenario:${s.id}`;
-            opt.textContent = s.name;
-            srcSel.appendChild(opt);
-          });
-          srcSel.value = _hcBudgetSource;
-        });
-      }
+      });
       srcSel.addEventListener("change", () => {
         _hcBudgetSource = srcSel.value;
         renderReportsView();
@@ -3661,26 +3652,17 @@ function renderOpexBudgetReport(detailPanel) {
 
   const srcSel = detailPanel.querySelector("#opex-budget-source-sel");
   if (srcSel) {
-    if (_opexScenariosCache) {
-      _opexScenariosCache.forEach(s => {
+    // Sem cache: consulta os cenários a cada render (como nos DREs), para que
+    // um cenário recém-criado apareça imediatamente no seletor.
+    fetchScenariosForYear(year).then(scenarios => {
+      scenarios.forEach(s => {
         const opt = document.createElement("option");
         opt.value = `scenario:${s.id}`;
         opt.textContent = s.name;
         srcSel.appendChild(opt);
       });
       srcSel.value = _opexBudgetSource;
-    } else {
-      fetchScenariosForYear(year).then(scenarios => {
-        _opexScenariosCache = scenarios;
-        scenarios.forEach(s => {
-          const opt = document.createElement("option");
-          opt.value = `scenario:${s.id}`;
-          opt.textContent = s.name;
-          srcSel.appendChild(opt);
-        });
-        srcSel.value = _opexBudgetSource;
-      });
-    }
+    });
     srcSel.addEventListener("change", () => {
       _opexBudgetSource = srcSel.value;
       if (_opexBudgetSource !== "budget") {
@@ -4088,7 +4070,7 @@ function initDreGerDrilldown(tableWrap, ledgerRows, year, source = "real") {
     if (richFetched) return;
     richFetched = true;
     try {
-      const rows = await (source === "budget" ? fetchBudgetLedgerFullForYear : fetchActualsLedgerFullForYear)(year);
+      const rows = await ledgerFullFetcherForSource(source)(year);
       richRows = rows.map((row) => ({
         code: normalizeCode(row.account_number ?? ""),
         cc: String(row.cost_center_number ?? ""),
@@ -4233,7 +4215,7 @@ function initDreSocDrilldown(tableWrap, year, source = "real") {
     if (!richFetchPromise) {
       richFetchPromise = (async () => {
         try {
-          const rows = await (source === "budget" ? fetchBudgetLedgerFullForYear : fetchActualsLedgerFullForYear)(year);
+          const rows = await ledgerFullFetcherForSource(source)(year);
           richRows = rows.map((row) => ({
             code:    normalizeCode(row.account_number ?? ""),
             branch:  String(row.branch_code ?? ""),
@@ -6916,8 +6898,7 @@ async function autoApplyHeadcountBatch(batchId, { auto = false } = {}) {
       }
     }
     // Invalida cache do cenário para forçar re-fetch no relatório
-    const cacheKey = `fc-hc-${scenarioId}-${refreshed.referenceYear}`;
-    reportsLedgerCache.delete(cacheKey);
+    invalidateScenarioCachesFor(scenarioId, refreshed.referenceYear);
   } else {
     // Carga completa — remove registros do período/tipo antes
     if (refreshed.loadMode === "complete") {
@@ -7139,6 +7120,8 @@ async function fetchScenariosForYear(year) {
 }
 
 async function fetchScenarioLedgerForYear(scenarioId, year) {
+  const cacheKey = `fc-ledger-${scenarioId}-${year}`;
+  if (reportsLedgerCache.has(cacheKey)) return reportsLedgerCache.get(cacheKey).rows;
   const orgId  = await resolveOrganizationId();
   const pgSize = 1000;
   const rows   = [];
@@ -7150,12 +7133,90 @@ async function fetchScenarioLedgerForYear(scenarioId, year) {
       `&id=gt.${lastId}&select=id,reference_month,reference_year,account_number,cost_center_number,amount` +
       `&order=id.asc&limit=${pgSize}`
     );
+    if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+    const page = await res.json();
+    rows.push(...page);
+    if (page.length < pgSize) break;
+    lastId = page[page.length - 1].id;
+  }
+  reportsLedgerCache.set(cacheKey, { rows });
+  return rows;
+}
+
+// Resumo conta × mês do cenário (forecast_monthly_account_totals, migration 056) —
+// mesma otimização dos DREs Real/Budget: os relatórios não precisam do ledger
+// completo. Fallback para o ledger enquanto a migration não rodou/backfillou.
+async function fetchScenarioReportRowsForYear(scenarioId, year) {
+  const cacheKey = `fc-rows-${scenarioId}-${year}`;
+  if (reportsLedgerCache.has(cacheKey)) return reportsLedgerCache.get(cacheKey).rows;
+  const organizationId = await resolveOrganizationId();
+  const pageSize = 1000;
+  const totals = [];
+  let offset = 0;
+  while (true) {
+    const page = await fetchSupabaseRowsSafe(
+      "forecast_monthly_account_totals",
+      `organization_id=eq.${organizationId}&scenario_id=eq.${scenarioId}&reference_year=eq.${year}` +
+      `&select=account_number,reference_month,total_amount` +
+      `&order=reference_month.asc,account_number.asc&limit=${pageSize}&offset=${offset}`
+    );
+    totals.push(...page);
+    if (page.length < pageSize) break;
+    offset += pageSize;
+  }
+  const rows = totals.length > 0
+    ? totals.map((row) => ({
+        account_number: row.account_number,
+        reference_month: row.reference_month,
+        amount: row.total_amount
+      }))
+    : await fetchScenarioLedgerForYear(scenarioId, year);
+  reportsLedgerCache.set(cacheKey, { rows });
+  return rows;
+}
+
+// Invalida os caches de um cenário após qualquer escrita no seu ledger/headcount
+// (carga por lote, cópia de meses, exclusão). year opcional = todos os anos.
+function invalidateScenarioCachesFor(scenarioId, year = null) {
+  const suffix = year ? `-${year}` : "";
+  const prefixes = [`fc-ledger-${scenarioId}`, `fc-rows-${scenarioId}`, `fc-hc-${scenarioId}`];
+  [...reportsLedgerCache.keys()]
+    .filter((key) => typeof key === "string"
+      && prefixes.some((p) => year ? key === `${p}${suffix}` : key.startsWith(`${p}-`)))
+    .forEach((key) => reportsLedgerCache.delete(key));
+}
+
+// Versão "rica" para drilldown: inclui CC, data e histórico. A tabela de
+// cenário não tem branch_code/lot_code — os campos saem vazios no popover.
+async function fetchScenarioLedgerFullForYear(scenarioId, year) {
+  const orgId  = await resolveOrganizationId();
+  const pgSize = 1000;
+  const rows   = [];
+  let lastId   = "00000000-0000-0000-0000-000000000000";
+  while (true) {
+    const res  = await authenticatedFetch(
+      `${supabaseConfig.projectUrl}/rest/v1/forecast_ledger_entries` +
+      `?organization_id=eq.${orgId}&scenario_id=eq.${scenarioId}&reference_year=eq.${year}` +
+      `&id=gt.${lastId}&select=id,reference_month,account_number,cost_center_number,amount,entry_date,history` +
+      `&order=id.asc&limit=${pgSize}`
+    );
     const page = res.ok ? await res.json() : [];
     rows.push(...page);
     if (page.length < pgSize) break;
     lastId = page[page.length - 1].id;
   }
   return rows;
+}
+
+// Resolve o fetcher de ledger detalhado conforme a fonte do relatório
+// ("real" | "budget" | "scenario:<id>") — usado pelos drilldowns de DRE.
+function ledgerFullFetcherForSource(source) {
+  if (source === "budget") return fetchBudgetLedgerFullForYear;
+  if (typeof source === "string" && source.startsWith("scenario:")) {
+    const scenarioId = source.slice("scenario:".length);
+    return (year) => fetchScenarioLedgerFullForYear(scenarioId, year);
+  }
+  return fetchActualsLedgerFullForYear;
 }
 
 // Busca headcount de pessoas de um cenário (forecast_headcount_entries)
