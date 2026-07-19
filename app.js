@@ -515,6 +515,7 @@ try {
     resolveOrganizationId,
     setSyncStatus,
     upsertSupabaseRows,
+    updateSupabaseRows,
     deleteSupabaseRows,
     callSupabaseRpc,
     appConfirm,
@@ -5650,6 +5651,22 @@ async function upsertSupabaseRows(table, rows, conflictKeys) {
       body: JSON.stringify(rows)
     }
   );
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  return response.json();
+}
+
+async function updateSupabaseRows(table, filters, patch) {
+  const response = await authenticatedFetch(`${supabaseConfig.projectUrl}/rest/v1/${table}?${filters}`, {
+    method: "PATCH",
+    headers: {
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify(patch)
+  });
 
   if (!response.ok) {
     throw new Error(await response.text());
