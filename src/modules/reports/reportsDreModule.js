@@ -22,7 +22,7 @@
       initDreSocDrilldown,
       isAccessRestricted,
       fetchScenariosForYear,
-      fetchScenarioLedgerForYear,
+      fetchScenarioReportRowsForYear,
     } = deps;
 
     const REPORT_HANDLERS = {
@@ -80,8 +80,10 @@
       if (source === "budget") {
         return reportsBudgetCache.get(year)?.rows || [];
       }
+      // Resumo conta × mês (com cache) — os DREs não precisam do ledger completo
+      // do cenário, que num "5+7" carrega meses inteiros copiados do realizado.
       const scenarioId = source.slice("scenario:".length);
-      return fetchScenarioLedgerForYear(scenarioId, year);
+      return fetchScenarioReportRowsForYear(scenarioId, year);
     }
 
     async function getSourceRows(year) {
@@ -127,6 +129,26 @@
       return sel?.selectedOptions?.[0]?.textContent || "Cenário";
     }
 
+    // Falha no comparativo vira aviso visível acima da tabela — antes o erro era
+    // engolido pelo catch e as colunas simplesmente não apareciam.
+    function friendlyError(e, fallback) {
+      return window.vpFriendlyError ? window.vpFriendlyError(e, fallback) : fallback;
+    }
+
+    function showCompareError(tableWrap, e) {
+      if (!tableWrap.isConnected) return;
+      tableWrap.insertAdjacentHTML(
+        "afterbegin",
+        `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o comparativo."))}</div>`
+      );
+    }
+
+    // Um doRender pode terminar depois de o usuário já ter trocado a fonte ou
+    // saído do relatório — nesse caso o resultado atrasado é descartado.
+    function compareIsStale(tableWrap, src) {
+      return !tableWrap.isConnected || src !== _compareSource;
+    }
+
     // ── Real reports ─────────────────────────────────────────────────────────
 
     function renderDreGerReal(detailPanel) {
@@ -164,13 +186,18 @@
         initAllReportTableResizers();
         if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
 
+        const src = _compareSource;
         try {
-          const compareRows = await fetchRowsForSource(year, _compareSource);
+          const compareRows = await fetchRowsForSource(year, src);
+          if (compareIsStale(tableWrap, src)) return;
           const compareReport = buildDreGerRealReport(year, compareRows);
           tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted(), compareReport, month, compareLabelFor(detailPanel));
           initAllReportTableResizers();
           if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
-        } catch (e) { console.warn("dre ger comparativo:", e); }
+        } catch (e) {
+          console.warn("dre ger comparativo:", e);
+          if (!compareIsStale(tableWrap, src)) showCompareError(tableWrap, e);
+        }
       }
     }
 
@@ -208,13 +235,18 @@
         tableWrap.innerHTML = buildDreDfsRealTableMarkup(report);
         initAllReportTableResizers();
 
+        const src = _compareSource;
         try {
-          const compareRows = await fetchRowsForSource(year, _compareSource);
+          const compareRows = await fetchRowsForSource(year, src);
+          if (compareIsStale(tableWrap, src)) return;
           const compareGerReport = buildDreGerRealReport(year, compareRows);
           const compareReport = buildDreDfsRealReport(year, compareRows, compareGerReport);
           tableWrap.innerHTML = buildDreDfsRealTableMarkup(report, compareReport, month, compareLabelFor(detailPanel));
           initAllReportTableResizers();
-        } catch (e) { console.warn("dre dfs comparativo:", e); }
+        } catch (e) {
+          console.warn("dre dfs comparativo:", e);
+          if (!compareIsStale(tableWrap, src)) showCompareError(tableWrap, e);
+        }
       }
     }
 
@@ -252,14 +284,19 @@
         const drillReal = initDreSocDrilldown(tableWrap, year);
         setTimeout(() => drillReal.prefetch(), 300);
 
+        const src = _compareSource;
         try {
-          const compareRows = await fetchRowsForSource(year, _compareSource);
+          const compareRows = await fetchRowsForSource(year, src);
+          if (compareIsStale(tableWrap, src)) return;
           const compareReport = buildDreSocRealReport(year, compareRows);
           tableWrap.innerHTML = buildDreSocRealTableMarkup(report, compareReport, month, compareLabelFor(detailPanel));
           initAllReportTableResizers();
           const drillReal2 = initDreSocDrilldown(tableWrap, year);
           setTimeout(() => drillReal2.prefetch(), 300);
-        } catch (e) { console.warn("dre soc comparativo:", e); }
+        } catch (e) {
+          console.warn("dre soc comparativo:", e);
+          if (!compareIsStale(tableWrap, src)) showCompareError(tableWrap, e);
+        }
       }
     }
 
@@ -288,11 +325,16 @@
           initAllReportTableResizers();
           if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "budget");
         } else {
-          const rows = await getSourceRows(year);
-          const report = buildDreGerRealReport(year, rows);
-          if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado de cenário disponivel para ${year}.</div>`; return; }
-          tableWrap.innerHTML = buildDreGerRealTableMarkup(report, false);
-          initAllReportTableResizers();
+          try {
+            const rows = await getSourceRows(year);
+            const report = buildDreGerRealReport(year, rows);
+            if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado de cenário disponivel para ${year}.</div>`; return; }
+            tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted());
+            initAllReportTableResizers();
+            if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, rows, year, _budgetSource);
+          } catch (e) {
+            tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o cenário."))}</div>`;
+          }
         }
       }
     }
@@ -310,7 +352,13 @@
 
       async function doRender() {
         tableWrap.innerHTML = `<div class="actuals-empty">Carregando...</div>`;
-        const rows = await getSourceRows(year);
+        let rows;
+        try {
+          rows = await getSourceRows(year);
+        } catch (e) {
+          tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o cenário."))}</div>`;
+          return;
+        }
         if (_budgetSource === "budget") {
           const cacheEntry = reportsBudgetCache.get(year);
           if (getBudgetReportsLoadingYear() === year && !cacheEntry) { tableWrap.innerHTML = window.vpSkeletonTable(); return; }
@@ -320,8 +368,8 @@
         if (!report.rows.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhuma linha de DRE disponivel para ${year}.</div>`; return; }
         tableWrap.innerHTML = buildDreSocRealTableMarkup(report);
         initAllReportTableResizers();
-        if (_budgetSource === "budget" && !isAccessRestricted()) {
-          const drill = initDreSocDrilldown(tableWrap, year, "budget");
+        if (!isAccessRestricted()) {
+          const drill = initDreSocDrilldown(tableWrap, year, _budgetSource);
           setTimeout(() => drill.prefetch(), 300);
         }
       }
@@ -345,7 +393,13 @@
           if (getBudgetReportsLoadingYear() === year && !cacheEntry) { tableWrap.innerHTML = window.vpSkeletonTable(); return; }
           if (getBudgetReportsErrorMessage() && !cacheEntry) { tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(getBudgetReportsErrorMessage())}</div>`; return; }
         }
-        const rows = await getSourceRows(year);
+        let rows;
+        try {
+          rows = await getSourceRows(year);
+        } catch (e) {
+          tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o cenário."))}</div>`;
+          return;
+        }
         const gerReport = buildDreGerRealReport(year, rows);
         const report = buildDreDfsRealReport(year, rows, gerReport);
         if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado disponivel para ${year}.</div>`; return; }
