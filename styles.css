@@ -2444,6 +2444,12 @@ thead .col-frozen-3 {
   background: transparent !important;
   border: none !important;
 }
+/* O th é sticky (rola por cima do corpo) — precisa de fundo OPACO, senão as
+   linhas do corpo aparecem através do gap do cabeçalho ao rolar. Só o td fica
+   transparente (pra faixa colorida das linhas destacadas atravessar o gap). */
+.reports-dre-table th.dre-cmp-gap {
+  background: var(--bg) !important;
+}
 /* Linhas destacadas (Total Geral/Grupo/Seção do OPEX, Subtotal/Resultado do DRE)
    pintam o fundo e a borda por <td> — sem isto a coluna de espaçamento (gap)
    virava um "buraco" escuro cortando a faixa colorida ao meio. */
