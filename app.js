@@ -5640,13 +5640,16 @@ async function insertSupabaseRows(table, rows) {
   return response.json();
 }
 
-async function upsertSupabaseRows(table, rows, conflictKeys) {
+async function upsertSupabaseRows(table, rows, conflictKeys, options = {}) {
+  // options.minimal: nao devolve as linhas gravadas (return=minimal) — use em
+  // cargas em lote onde o retorno e descartado; corta o download por bloco.
+  const wantMinimal = Boolean(options.minimal);
   const response = await authenticatedFetch(
     `${supabaseConfig.projectUrl}/rest/v1/${table}?on_conflict=${conflictKeys.join(",")}`,
     {
       method: "POST",
       headers: {
-        Prefer: "resolution=merge-duplicates,return=representation"
+        Prefer: `resolution=merge-duplicates,return=${wantMinimal ? "minimal" : "representation"}`
       },
       body: JSON.stringify(rows)
     }
@@ -5656,7 +5659,7 @@ async function upsertSupabaseRows(table, rows, conflictKeys) {
     throw new Error(await response.text());
   }
 
-  return response.json();
+  return wantMinimal ? [] : response.json();
 }
 
 async function updateSupabaseRows(table, filters, patch) {
