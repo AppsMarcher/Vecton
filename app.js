@@ -897,6 +897,8 @@ const { renderPlanningView, resetPlanningState } = createForecastModule
       isAdmin,
       openScenarioDreReport,
       invalidateScenarioCachesFor,
+      callSupabaseRpc,
+      onDefaultScenarioChanged: handleDefaultScenarioChanged,
     })
   : { renderPlanningView: () => {}, resetPlanningState: () => {} };
 
@@ -1126,6 +1128,7 @@ const { renderDashboard } = createDashboardModule({
   buildDreGerRealReport,
   reportsLedgerCache,
   reportsBudgetCache,
+  getDashCompare,
   state,
   getActiveView: () => activeView,
   setActiveView: (value) => { activeView = value; },
@@ -1901,9 +1904,20 @@ function buildMgmtSelectOptions(mgmtOptions, selectedMgmt, locked, partialMgmts)
 async function ensureDashboardData() {
   const year = Number(state.currentPeriod?.year || 2026);
   const needsReal = !reportsLedgerCache.has(year) && reportsLoadingYear !== year;
-  const needsBudget = !reportsBudgetCache.has(year) && budgetReportsLoadingYear !== year;
   if (needsReal) void ensureReportsDataForYear(year).then(() => renderDashboard());
-  if (needsBudget) void ensureBudgetReportsDataForYear(year).then(() => renderDashboard());
+
+  // Comparativo do dashboard segue o cenário favorito (Budget se não houver).
+  void resolveDashCompareForYear(year).then((info) => {
+    if (info.scenarioId) {
+      void fetchScenarioReportRowsForYear(info.scenarioId, year)
+        .then(() => renderDashboard())
+        .catch((e) => console.warn("dash comparativo cenário:", e));
+    } else if (!reportsBudgetCache.has(year) && budgetReportsLoadingYear !== year) {
+      void ensureBudgetReportsDataForYear(year).then(() => renderDashboard());
+    } else {
+      renderDashboard();
+    }
+  });
   renderDashboard();
 }
 
@@ -7114,9 +7128,45 @@ async function fetchScenariosForYear(year) {
   const res = await authenticatedFetch(
     `${supabaseConfig.projectUrl}/rest/v1/forecast_scenarios` +
     `?organization_id=eq.${orgId}&reference_year=eq.${year}` +
-    `&order=sort_order.asc,created_at.asc&select=id,name,color`
+    `&order=sort_order.asc,created_at.asc&select=id,name,color,is_default`
   );
   return res.ok ? await res.json() : [];
+}
+
+// ── Cenário favorito (comparativo padrão da organização) ─────────────────────
+// is_default em forecast_scenarios (migration 057); sem favorito = Budget.
+// O Dashboard compara o real com essa fonte; os DREs Real nascem nela.
+
+const _dashCompareByYear = new Map(); // year -> { source, label, scenarioId }
+
+async function resolveDashCompareForYear(year) {
+  if (_dashCompareByYear.has(year)) return _dashCompareByYear.get(year);
+  let info = { source: "budget", label: "Budget", scenarioId: null };
+  try {
+    const scenarios = await fetchScenariosForYear(year);
+    const fav = scenarios.find((s) => s.is_default);
+    if (fav) info = { source: `scenario:${fav.id}`, label: fav.name, scenarioId: fav.id };
+  } catch (_) {}
+  _dashCompareByYear.set(year, info);
+  return info;
+}
+
+// Leitura síncrona para o render do dashboard (dados já garantidos por
+// ensureDashboardData; enquanto não resolve, cai no Budget).
+function getDashCompare(year) {
+  const info = _dashCompareByYear.get(year);
+  if (info?.scenarioId) {
+    const rows = reportsLedgerCache.get(`fc-rows-${info.scenarioId}-${year}`)?.rows || [];
+    return { label: info.label, rows };
+  }
+  return { label: "Budget", rows: reportsBudgetCache.get(year)?.rows || [] };
+}
+
+// Chamado quando o admin muda a estrela no Planejamento: re-resolve o
+// comparativo do dashboard e o default do "Comparar com" dos DREs Real.
+function handleDefaultScenarioChanged() {
+  _dashCompareByYear.clear();
+  reportsDreModule?.resetCompareSource?.();
 }
 
 async function fetchScenarioLedgerForYear(scenarioId, year) {
