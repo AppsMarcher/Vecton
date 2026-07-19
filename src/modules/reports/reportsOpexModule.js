@@ -8,8 +8,10 @@
       getOpexHideZeros,
       setOpexHideZeros,
       reportsLedgerCache,
+      reportsBudgetCache,
       getOpexStructure,
       buildOpexCostCenterFilter,
+      buildOpexCcIdsFilter,
       matchesOpexCostCenterFilter,
       buildOpexRealTableMarkup,
       initOpexDrilldown,
@@ -18,14 +20,24 @@
       fetchActualsLedgerWithCcForYear,
       fetchActualsLedgerForManagementYear,
       fetchActualsLedgerForCcIds,
+      fetchBudgetLedgerForManagementYear,
+      fetchBudgetLedgerForCcIds,
       renderReportsView,
       renderOpexBudgetReport,
       resolveManagementFilter,
-      getPartialManagements
+      getPartialManagements,
+      fetchScenariosForYear,
+      fetchScenarioLedgerForYear
     } = deps;
+
+    // Fonte comparativa do OPEX Real (Mes/Acumulado x Real/Cenario/Var) — mesma
+    // dinamica dos DRE Real (reportsDreModule.js). null = ainda nao resolvida ->
+    // assume o cenario favorito da org (is_default), ou Budget se nao houver.
+    let _compareSource = null;
 
     function renderSelectedOpexReport(detailPanel, selectedReportId) {
       if (selectedReportId === "opexBudget") {
+        detailPanel.classList.remove("dre-cmp-shell");
         renderOpexBudgetReport(detailPanel);
       } else if (selectedReportId === "opexReal") {
         renderOpexRealReport(detailPanel);
@@ -37,8 +49,54 @@
       return true;
     }
 
+    function friendlyError(e, fallback) {
+      return window.vpFriendlyError ? window.vpFriendlyError(e, fallback) : fallback;
+    }
+
+    async function populateOpexCompareSel(detailPanel, year) {
+      const sel = detailPanel.querySelector("#opex-real-cmp-sel");
+      if (!sel) return;
+      try {
+        const scenarios = await fetchScenariosForYear(year);
+        scenarios.forEach((s) => {
+          const opt = document.createElement("option");
+          opt.value = `scenario:${s.id}`;
+          opt.textContent = s.name;
+          sel.appendChild(opt);
+        });
+        if (_compareSource === null) {
+          const fav = scenarios.find((s) => s.is_default);
+          _compareSource = fav ? `scenario:${fav.id}` : "budget";
+        }
+      } catch (_) { /* sem cenarios: segue so com Budget */ }
+      if (!_compareSource || ![...sel.options].some((o) => o.value === _compareSource)) {
+        _compareSource = "budget";
+      }
+      sel.value = _compareSource;
+    }
+
+    function compareLabelFor(detailPanel) {
+      const sel = detailPanel.querySelector("#opex-real-cmp-sel");
+      return sel?.selectedOptions?.[0]?.textContent || "Cenário";
+    }
+
+    // Linhas do comparativo: Budget (rows CC-aware, filtro aplicado no fetch pra
+    // gestao especifica) ou Cenario (rows org-wide sem filtro de CC — filtradas
+    // depois em buildOpexRealTableMarkup via compareValidCcFilter).
+    async function fetchOpexCompareRows(year, source, ctx) {
+      if (!source || source === "budget") {
+        if (ctx.selectedMgmt === ctx.allOption) return reportsBudgetCache.get(year)?.rows || [];
+        return ctx.isPartial
+          ? fetchBudgetLedgerForCcIds(year, ctx.partialCcIds)
+          : fetchBudgetLedgerForManagementYear(year, ctx.selectedMgmt);
+      }
+      const scenarioId = source.slice("scenario:".length);
+      return fetchScenarioLedgerForYear(scenarioId, year);
+    }
+
     function renderOpexRealReport(detailPanel) {
       const year = Number(state.currentPeriod?.year || 2026);
+      const month = Number(state.currentPeriod?.month || 1);
       const managements = [...new Set(
         state.costCenters
           .map((cc) => (cc.management || "").trim())
@@ -53,9 +111,12 @@
       const { selectedMgmt, locked: mgmtLocked, allowedMgmts, partialMgmts } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
       const mgmtOptions = mgmtLocked ? [selectedMgmt] : (allowedMgmts ? [...allowedMgmts] : baseMgmtOptions);
       const validCcFilter = buildOpexCostCenterFilter(selectedMgmt);
+      const isPartial = partialMgmts?.has(selectedMgmt);
+      const partialCcIds = isPartial ? partialMgmts.get(selectedMgmt) : null;
+      const ccCacheKey = `opex-cc-${year}`;
+      let ccFetchPromise = null;
 
       if (selectedMgmt !== allOption) {
-        const ccCacheKey = `opex-cc-${year}`;
         const cachedCc = reportsLedgerCache.get(ccCacheKey);
         if (cachedCc) {
           const filtered = cachedCc.rows.filter((row) => matchesOpexCostCenterFilter(
@@ -88,57 +149,105 @@
         partialMgmts
       });
 
-      const ccCacheKey = `opex-cc-${year}`;
-      if (selectedMgmt === allOption) {
-        const cacheEntry = reportsLedgerCache.get(year);
-        const rows = cacheEntry?.rows || [];
-        const tableMarkup = buildOpexRealTableMarkup(rows, null, getOpexHideZeros());
-        detailPanel.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-table-inner">${tableMarkup}</div></div>`;
-        const cachedCc = reportsLedgerCache.get(ccCacheKey);
-        if (cachedCc) {
-          const tableEl = detailPanel.querySelector(".reports-opex-table");
-          if (tableEl) initOpexDrilldown(tableEl, cachedCc.rows, null);
+      detailPanel.classList.add("dre-cmp-shell");
+      detailPanel.innerHTML = `
+        <div class="vp-source-bar dre-cmp-bar">
+          <span class="vp-source-label">Comparar com</span>
+          <select class="vp-source-sel" id="opex-real-cmp-sel"><option value="budget">Budget</option></select>
+        </div>
+        <div class="opex-report-wrap reports-table-wrap"><div id="opex-table-inner">${window.vpSkeletonTable()}</div></div>
+      `;
+      const tableInner = detailPanel.querySelector("#opex-table-inner");
+
+      populateOpexCompareSel(detailPanel, year).then(() => {
+        const sel = detailPanel.querySelector("#opex-real-cmp-sel");
+        if (sel) sel.addEventListener("change", () => { _compareSource = sel.value; paintReal(); });
+        paintReal();
+      });
+
+      // Anexa o drilldown (mesma logica de sempre: Marcher usa fetch CC sob
+      // demanda com cache/promise compartilhada; gestao especifica usa as
+      // proprias rows, ja vieram com CC do fetch por gestao).
+      function attachDrilldown(tableEl, rows) {
+        if (!tableEl) return;
+        if (selectedMgmt === allOption) {
+          const cachedCc = reportsLedgerCache.get(ccCacheKey);
+          if (cachedCc) { initOpexDrilldown(tableEl, cachedCc.rows, null); return; }
+          if (!ccFetchPromise) {
+            ccFetchPromise = fetchActualsLedgerWithCcForYear(year)
+              .then((rowsWithCc) => { reportsLedgerCache.set(ccCacheKey, { rows: rowsWithCc }); return rowsWithCc; })
+              .catch(() => []);
+          }
+          initOpexDrilldown(tableEl, null, null, ccFetchPromise);
         } else {
-          // Anexa click handler imediatamente — mostra loading até dados chegarem
-          const ccFetchPromise = fetchActualsLedgerWithCcForYear(year)
-            .then((rowsWithCc) => { reportsLedgerCache.set(ccCacheKey, { rows: rowsWithCc }); return rowsWithCc; })
-            .catch(() => []);
-          const tableEl = detailPanel.querySelector(".reports-opex-table");
-          if (tableEl) initOpexDrilldown(tableEl, null, null, ccFetchPromise);
-        }
-      } else {
-        const isPartial = partialMgmts?.has(selectedMgmt);
-        const partialCcIds = isPartial ? partialMgmts.get(selectedMgmt) : null;
-        const mgmtCacheKey = isPartial
-          ? `opex-partial-${year}-${[...partialCcIds].sort().join(",")}`
-          : `opex-mgmt-${year}-${selectedMgmt}`;
-        const cached = reportsLedgerCache.get(mgmtCacheKey);
-        if (cached) {
-          const tableMarkup = buildOpexRealTableMarkup(cached.rows, null, getOpexHideZeros());
-          detailPanel.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-table-inner">${tableMarkup}</div></div>`;
-          const tableEl = detailPanel.querySelector(".reports-opex-table");
-          if (tableEl) initOpexDrilldown(tableEl, cached.rows, null);
-        } else {
-          detailPanel.dataset.opexMgmt = selectedMgmt;
-          detailPanel.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-table-inner">${window.vpSkeletonTable()}</div></div>`;
-          const fetchPromise = isPartial
-            ? fetchActualsLedgerForCcIds(year, partialCcIds)
-            : fetchActualsLedgerForManagementYear(year, selectedMgmt);
-          fetchPromise.then((rows) => {
-            reportsLedgerCache.set(mgmtCacheKey, { rows });
-            if (getSelectedReportId() === "opexReal" && detailPanel.dataset.opexMgmt === selectedMgmt) {
-              renderReportsView();
-            }
-          }).catch(() => {
-            if (getSelectedReportId() === "opexReal") {
-              detailPanel.querySelector("#opex-table-inner").innerHTML = `<div class="actuals-empty">Erro ao carregar dados com CC.</div>`;
-            }
-          });
-          return;
+          initOpexDrilldown(tableEl, rows, null);
         }
       }
 
-      initAllReportTableResizers();
+      // Renderiza o real primeiro (rapido, sem esperar rede) — o comparativo
+      // chega depois e faz upgrade in-place das colunas extras (igual ao DRE).
+      function renderTable(rows, validCcFilterForRows) {
+        tableInner.innerHTML = buildOpexRealTableMarkup(rows, validCcFilterForRows, getOpexHideZeros());
+        initAllReportTableResizers();
+        attachDrilldown(tableInner.querySelector(".reports-opex-table"), rows);
+        loadCompare(rows, validCcFilterForRows);
+      }
+
+      async function loadCompare(rows, validCcFilterForRows) {
+        const src = _compareSource;
+        try {
+          const compareRows = await fetchOpexCompareRows(year, src, { selectedMgmt, allOption, isPartial, partialCcIds });
+          if (!tableInner.isConnected || src !== _compareSource) return; // stale: fonte trocou ou saiu do relatorio
+          const compareValidCcFilter = (selectedMgmt !== allOption && src !== "budget")
+            ? (isPartial ? buildOpexCcIdsFilter(partialCcIds) : buildOpexCostCenterFilter(selectedMgmt))
+            : null;
+          tableInner.innerHTML = buildOpexRealTableMarkup(rows, validCcFilterForRows, getOpexHideZeros(), compareRows, compareValidCcFilter, month, compareLabelFor(detailPanel));
+          initAllReportTableResizers();
+          attachDrilldown(tableInner.querySelector(".reports-opex-table"), rows);
+        } catch (e) {
+          console.warn("opex real comparativo:", e);
+          if (tableInner.isConnected && src === _compareSource) {
+            tableInner.insertAdjacentHTML("afterbegin", `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o comparativo."))}</div>`);
+          }
+        }
+      }
+
+      function paintReal() {
+        if (selectedMgmt === allOption) {
+          const cacheEntry = reportsLedgerCache.get(year);
+          renderTable(cacheEntry?.rows || [], null);
+        } else {
+          const mgmtCacheKey = isPartial
+            ? `opex-partial-${year}-${[...partialCcIds].sort().join(",")}`
+            : `opex-mgmt-${year}-${selectedMgmt}`;
+          const cached = reportsLedgerCache.get(mgmtCacheKey);
+          if (cached) {
+            renderTable(cached.rows, null);
+          } else {
+            detailPanel.dataset.opexMgmt = selectedMgmt;
+            tableInner.innerHTML = window.vpSkeletonTable();
+            const fetchPromise = isPartial
+              ? fetchActualsLedgerForCcIds(year, partialCcIds)
+              : fetchActualsLedgerForManagementYear(year, selectedMgmt);
+            fetchPromise.then((rows) => {
+              reportsLedgerCache.set(mgmtCacheKey, { rows });
+              if (getSelectedReportId() === "opexReal" && detailPanel.dataset.opexMgmt === selectedMgmt) {
+                renderReportsView();
+              }
+            }).catch(() => {
+              if (getSelectedReportId() === "opexReal") {
+                tableInner.innerHTML = `<div class="actuals-empty">Erro ao carregar dados com CC.</div>`;
+              }
+            });
+          }
+        }
+      }
+    }
+
+    // Chamado quando o favorito da org muda (estrela no Planejamento): o
+    // proximo render do OPEX Real re-resolve o default do "Comparar com".
+    function resetCompareSource() {
+      _compareSource = null;
     }
 
     function renderHeaderSlot({ detailPanel, year, allOption, selectedMgmt, mgmtOptions, locked = false, partialMgmts }) {
@@ -185,7 +294,8 @@
     }
 
     return {
-      renderSelectedOpexReport
+      renderSelectedOpexReport,
+      resetCompareSource
     };
   }
 
