@@ -9,6 +9,7 @@
       upsertSupabaseRows,
       deleteSupabaseRows,
       isAdmin,
+      openScenarioDreReport,
     } = deps;
 
     // ── local state ──────────────────────────────────────────────────────────
@@ -657,6 +658,10 @@
       container.querySelector("#fc-detail-back").addEventListener("click", () => {
         selectedId = null;
         renderGrid(container);
+      });
+
+      container.querySelector('[data-fc-report="dreSoc"]')?.addEventListener("click", () => {
+        if (typeof openScenarioDreReport === "function") openScenarioDreReport(scenario.id);
       });
     }
 
