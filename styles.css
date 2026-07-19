@@ -2128,6 +2128,28 @@ body.can-edit-reports .reports-report-card .rrc-edit-btn { display: inline-flex;
 body.can-edit-reports .fc-scenario-card .fc-card-menu-btn { display: inline-flex; }
 body.can-edit-reports [data-custom-report="true"] .fc-card-menu-btn { display: inline-flex; }
 
+/* Estrela de favorito (comparativo padrão da org) nos cards do Planejamento */
+.fc-star-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  transition: color 120ms, background 120ms;
+}
+.fc-star-btn svg { width: 15px; height: 15px; pointer-events: none; fill: none; }
+.fc-star-btn.is-fav { color: #f59e0b; }
+.fc-star-btn.is-fav svg { fill: currentColor; }
+.fc-star-btn.fc-star-editable { cursor: pointer; }
+.fc-star-btn.fc-star-editable:hover { color: #fbbf24; background: rgba(255, 255, 255, 0.08); }
+/* Gear divide o canto com a estrela nos cards de cenário */
+body.can-edit-reports .fc-scenario-card .fc-card-menu-btn { right: 42px; }
+
 /* Botão Reorganizar */
 #reports-reorder-btn {
   display: none;
