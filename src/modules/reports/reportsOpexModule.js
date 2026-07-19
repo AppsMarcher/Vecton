@@ -27,7 +27,8 @@
       resolveManagementFilter,
       getPartialManagements,
       fetchScenariosForYear,
-      fetchScenarioLedgerForYear
+      fetchScenarioLedgerForYear,
+      fetchScenarioReportRowsForYear
     } = deps;
 
     // Fonte comparativa do OPEX Real (Mes/Acumulado x Real/Cenario/Var) — mesma
@@ -81,8 +82,10 @@
     }
 
     // Linhas do comparativo: Budget (rows CC-aware, filtro aplicado no fetch pra
-    // gestao especifica) ou Cenario (rows org-wide sem filtro de CC — filtradas
-    // depois em buildOpexRealTableMarkup via compareValidCcFilter).
+    // gestao especifica) ou Cenario. Cenario consolidado (Marcher, sem recorte
+    // de CC) usa o resumo conta×mes (forecast_monthly_account_totals) — mesma
+    // otimizacao dos DREs Real; o ledger completo (lento: pagina o cenario
+    // inteiro) so e necessario quando ha filtro por gestao/CC.
     async function fetchOpexCompareRows(year, source, ctx) {
       if (!source || source === "budget") {
         if (ctx.selectedMgmt === ctx.allOption) return reportsBudgetCache.get(year)?.rows || [];
@@ -91,6 +94,7 @@
           : fetchBudgetLedgerForManagementYear(year, ctx.selectedMgmt);
       }
       const scenarioId = source.slice("scenario:".length);
+      if (ctx.selectedMgmt === ctx.allOption) return fetchScenarioReportRowsForYear(scenarioId, year);
       return fetchScenarioLedgerForYear(scenarioId, year);
     }
 
@@ -184,31 +188,30 @@
         }
       }
 
-      // Renderiza o real primeiro (rapido, sem esperar rede) — o comparativo
-      // chega depois e faz upgrade in-place das colunas extras (igual ao DRE).
-      function renderTable(rows, validCcFilterForRows) {
-        tableInner.innerHTML = buildOpexRealTableMarkup(rows, validCcFilterForRows, getOpexHideZeros());
-        initAllReportTableResizers();
-        attachDrilldown(tableInner.querySelector(".reports-opex-table"), rows);
-        loadCompare(rows, validCcFilterForRows);
-      }
-
-      async function loadCompare(rows, validCcFilterForRows) {
+      // A tabela sai numa tacada so: espera o comparativo e renderiza real +
+      // colunas Mes/Acumulado JUNTOS (o skeleton segura o lugar). Sem o
+      // "upgrade" atrasado em 2 tempos — com o resumo conta×mes do cenario o
+      // fetch e barato o suficiente pra aguardar antes de pintar.
+      async function renderTable(rows, validCcFilterForRows) {
         const src = _compareSource;
+        let compareRows = null;
+        let compareError = null;
         try {
-          const compareRows = await fetchOpexCompareRows(year, src, { selectedMgmt, allOption, isPartial, partialCcIds });
-          if (!tableInner.isConnected || src !== _compareSource) return; // stale: fonte trocou ou saiu do relatorio
-          const compareValidCcFilter = (selectedMgmt !== allOption && src !== "budget")
-            ? (isPartial ? buildOpexCcIdsFilter(partialCcIds) : buildOpexCostCenterFilter(selectedMgmt))
-            : null;
-          tableInner.innerHTML = buildOpexRealTableMarkup(rows, validCcFilterForRows, getOpexHideZeros(), compareRows, compareValidCcFilter, month, compareLabelFor(detailPanel));
-          initAllReportTableResizers();
-          attachDrilldown(tableInner.querySelector(".reports-opex-table"), rows);
+          compareRows = await fetchOpexCompareRows(year, src, { selectedMgmt, allOption, isPartial, partialCcIds });
         } catch (e) {
           console.warn("opex real comparativo:", e);
-          if (tableInner.isConnected && src === _compareSource) {
-            tableInner.insertAdjacentHTML("afterbegin", `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o comparativo."))}</div>`);
-          }
+          compareError = e;
+        }
+        if (!tableInner.isConnected || src !== _compareSource) return; // stale: fonte trocou ou saiu do relatorio
+        const compareValidCcFilter = (selectedMgmt !== allOption && src !== "budget")
+          ? (isPartial ? buildOpexCcIdsFilter(partialCcIds) : buildOpexCostCenterFilter(selectedMgmt))
+          : null;
+        // compareRows null (falhou) -> tabela sem comparativo + aviso acima.
+        tableInner.innerHTML = buildOpexRealTableMarkup(rows, validCcFilterForRows, getOpexHideZeros(), compareRows, compareValidCcFilter, month, compareLabelFor(detailPanel));
+        initAllReportTableResizers();
+        attachDrilldown(tableInner.querySelector(".reports-opex-table"), rows);
+        if (compareError) {
+          tableInner.insertAdjacentHTML("afterbegin", `<div class="actuals-empty">${escapeHtml(friendlyError(compareError, "Não foi possível carregar o comparativo."))}</div>`);
         }
       }
 
