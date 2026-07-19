@@ -515,7 +515,7 @@
         renderView();
       } catch (error) {
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha na importacao."), "error");
+        setFeedback(vpFriendlyError(error, "Falha na importacao."), "error");
       }
     }
 
@@ -528,7 +528,7 @@
         renderView();
       } catch (error) {
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha ao criar lote manual."), "error");
+        setFeedback(vpFriendlyError(error, "Falha ao criar lote manual."), "error");
       }
     }
 
@@ -552,7 +552,7 @@
         renderView();
       } catch (error) {
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha ao adicionar linha manual."), "error");
+        setFeedback(vpFriendlyError(error, "Falha ao adicionar linha manual."), "error");
       }
     }
 
@@ -569,7 +569,7 @@
         }
       } catch (error) {
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha ao aplicar lote."), "error");
+        setFeedback(vpFriendlyError(error, "Falha ao aplicar lote."), "error");
         setSyncStatus(`Erro vendas: ${formatSyncError(error)}`, "error");
       }
     }
@@ -623,7 +623,7 @@
         renderView();
       } catch (error) {
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha ao excluir lote."), "error");
+        setFeedback(vpFriendlyError(error, "Falha ao excluir lote."), "error");
       }
     }
 
@@ -646,7 +646,7 @@
         renderView();
       } catch (error) {
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha ao revalidar lote."), "error");
+        setFeedback(vpFriendlyError(error, "Falha ao revalidar lote."), "error");
       }
     }
 
@@ -680,7 +680,7 @@
         rowElement.classList.add("row-save-error");
         setTimeout(() => rowElement.classList.remove("row-save-error"), 3000);
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha ao salvar linha."), "error");
+        setFeedback(vpFriendlyError(error, "Falha ao salvar linha."), "error");
       }
     }
 
@@ -713,7 +713,7 @@
         setFeedback("Linha revalidada.", "ok");
       } catch (error) {
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha ao revalidar linha."), "error");
+        setFeedback(vpFriendlyError(error, "Falha ao revalidar linha."), "error");
       } finally {
         btn?.classList.remove("refreshing");
       }
@@ -730,7 +730,7 @@
         await refreshBatch(batch.id);
       } catch (error) {
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha ao excluir linha."), "error");
+        setFeedback(vpFriendlyError(error, "Falha ao excluir linha."), "error");
       }
     }
 
@@ -895,7 +895,7 @@
         if (selectedBatchId) await ensureBatchRowsLoaded(selectedBatchId, true);
       } catch (error) {
         console.error(error);
-        setFeedback(String(error?.message || error || "Falha ao carregar lotes."), "error");
+        setFeedback(vpFriendlyError(error, "Falha ao carregar lotes."), "error");
       }
       renderView();
     }
