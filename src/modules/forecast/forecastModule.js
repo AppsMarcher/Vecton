@@ -10,6 +10,7 @@
       deleteSupabaseRows,
       isAdmin,
       openScenarioDreReport,
+      invalidateScenarioCachesFor,
     } = deps;
 
     // ── local state ──────────────────────────────────────────────────────────
@@ -434,6 +435,7 @@
             saveBtn.textContent = `Copiando ${MONTH_LABELS[m - 1]}…`;
             await copyMonthData(orgId, scenarioId, year, m, src);
           }
+          invalidateScenarioCachesFor?.(scenarioId, year);
 
           scenarios  = null;
           isCreating = false;
@@ -605,6 +607,7 @@
         try {
           const orgId = await resolveOrganizationId();
           await deleteSupabaseRows("forecast_scenarios", `id=eq.${scenario.id}&organization_id=eq.${orgId}`);
+          invalidateScenarioCachesFor?.(scenario.id);
           scenarios = null;
           const year = Number(state.currentPeriod?.year || 2026);
           await loadScenarios(year);
