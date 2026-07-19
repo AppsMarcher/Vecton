@@ -23,6 +23,7 @@
       formatSyncError,
       getActualsStatusClass,
       invalidateBudgetReportsForYear,
+      invalidateScenarioCachesFor,
       isSupabaseConfigured,
       normalizeBranchCode,
       normalizeCode,
@@ -1051,7 +1052,7 @@
       while (true) {
         const page = await fetchSupabaseRowsSafe(
           "budget_import_rows",
-          `batch_id=eq.${batchId}&select=id,row_number,branch_code,account_number,cost_center_number,history,lot_code,amount,validation_status,validation_errors,raw_payload&order=row_number.asc&limit=${pageSize}&offset=${offset}`
+          `batch_id=eq.${batchId}&select=id,row_number,branch_code,account_number,cost_center_number,cost_center_id,history,lot_code,amount,validation_status,validation_errors,raw_payload&order=row_number.asc&limit=${pageSize}&offset=${offset}`
         );
         if (!page || page.length === 0) break;
         allRows = allRows.concat(page);
@@ -1098,6 +1099,7 @@
         branchCode: String(row.branchCode ?? row.branch_code ?? "").trim(),
         accountNumber: String(row.accountNumber ?? row.account_number ?? "").trim(),
         costCenterNumber: String(row.costCenterNumber ?? row.cost_center_number ?? "").trim(),
+        costCenterId: row.costCenterId ?? row.cost_center_id ?? null,
         history: String(row.history ?? "").trim(),
         lotCode: String(row.lotCode ?? row.lot_code ?? "").trim(),
         amount: rawAmount == null || rawAmount === "" ? null : Number(rawAmount),
@@ -1215,7 +1217,7 @@
         reference_year:      batch.referenceYear,
         reference_month:     batch.referenceMonth,
         account_number:      r.accountNumber,
-        cost_center_id:      null,
+        cost_center_id:      r.costCenterId || null,
         cost_center_number:  r.costCenterNumber || null,
         amount:              r.amount ?? 0,
         entry_date:          null,
@@ -1245,6 +1247,7 @@
         localBatch.status    = "applied";
         localBatch.appliedAt = new Date().toISOString();
       }
+      invalidateScenarioCachesFor?.(scenarioId, batch.referenceYear);
       persistAndRender();
     }
 
