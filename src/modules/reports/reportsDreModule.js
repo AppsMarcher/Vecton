@@ -35,7 +35,10 @@
     };
 
     let _budgetSource = "budget";
-    let _compareSource = "budget"; // fonte comparativa embutida nos 3 relatorios "Real" (Mes/Acumulado x Real/Cenario/Var)
+    // Fonte comparativa embutida nos 3 relatorios "Real" (Mes/Acumulado x Real/Cenario/Var).
+    // null = ainda nao resolvida -> assume o cenario favorito da org (is_default),
+    // ou Budget se nao houver. Troca manual no select vale so para a sessao.
+    let _compareSource = null;
 
     function renderSelectedDreReport(detailPanel, selectedReportId) {
       const handler = REPORT_HANDLERS[selectedReportId];
@@ -77,7 +80,7 @@
     }
 
     async function fetchRowsForSource(year, source) {
-      if (source === "budget") {
+      if (!source || source === "budget") {
         return reportsBudgetCache.get(year)?.rows || [];
       }
       // Resumo conta × mês (com cache) — os DREs não precisam do ledger completo
@@ -118,8 +121,16 @@
           opt.textContent = s.name;
           sel.appendChild(opt);
         });
+        if (_compareSource === null) {
+          const fav = scenarios.find(s => s.is_default);
+          _compareSource = fav ? `scenario:${fav.id}` : "budget";
+        }
       } catch (_) {}
-      if ([...sel.options].some(o => o.value === _compareSource)) sel.value = _compareSource;
+      // Fonte inexistente (fetch falhou ou cenario removido) -> volta ao Budget.
+      if (!_compareSource || ![...sel.options].some(o => o.value === _compareSource)) {
+        _compareSource = "budget";
+      }
+      sel.value = _compareSource;
     }
 
     // Nome de exibicao do comparativo (texto da opcao selecionada, ex: "Budget" ou "Fcst 5+7")
@@ -416,10 +427,17 @@
       _budgetSource = source || "budget";
     }
 
+    // Chamado quando o favorito da org muda (estrela no Planejamento): o
+    // proximo render dos DREs Real re-resolve o default do "Comparar com".
+    function resetCompareSource() {
+      _compareSource = null;
+    }
+
     return {
       renderSelectedDreReport,
       renderFallbackSocReal,
-      setBudgetSource
+      setBudgetSource,
+      resetCompareSource
     };
   }
 

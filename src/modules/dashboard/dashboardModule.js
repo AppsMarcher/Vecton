@@ -10,6 +10,7 @@
       buildDreGerRealReport,
       reportsLedgerCache,
       reportsBudgetCache,
+      getDashCompare,
       state,
       getActiveView,
       setActiveView,
@@ -30,7 +31,10 @@
       const prevMonthIdx = monthIdx === 0 ? null : monthIdx - 1;
 
       const realRows = reportsLedgerCache.get(year)?.rows || [];
-      const budgetRows = reportsBudgetCache.get(year)?.rows || [];
+      // Comparativo = cenário favorito da org (Budget quando não há favorito).
+      const cmp = getDashCompare ? getDashCompare(year) : { label: "Budget", rows: reportsBudgetCache.get(year)?.rows || [] };
+      const budgetRows = cmp.rows;
+      const compareLabel = cmp.label || "Budget";
       const hasReal = realRows.length > 0;
       const hasBudget = budgetRows.length > 0;
 
@@ -249,7 +253,7 @@
       renderSparkline("kpi-ll-spark", ll);
       renderSparkline("kpi-mat-spark", mat);
 
-      _lastDreParams = { realReport, budgetReport, monthIdx, hasReal, hasBudget };
+      _lastDreParams = { realReport, budgetReport, monthIdx, hasReal, hasBudget, compareLabel };
 
       const dreTitle = document.querySelector("#dash-dre-title");
       if (dreTitle) dreTitle.textContent = "Demonstrativo de Resultados";
@@ -269,17 +273,17 @@
           _dreAccum = btn.dataset.mode === "acumulado";
           toggleEl.querySelectorAll(".dre-mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === (_dreAccum ? "acumulado" : "mes")));
           if (_lastDreParams) {
-            const { realReport: rr, budgetReport: br, monthIdx: mi, hasReal: hr, hasBudget: hb } = _lastDreParams;
-            renderDreBulletChart(rr, br, mi, hr, hb, _dreAccum);
-            renderDreGauges(rr, br, mi, hr, hb, _dreAccum);
+            const { realReport: rr, budgetReport: br, monthIdx: mi, hasReal: hr, hasBudget: hb, compareLabel: cl } = _lastDreParams;
+            renderDreBulletChart(rr, br, mi, hr, hb, _dreAccum, cl);
+            renderDreGauges(rr, br, mi, hr, hb, _dreAccum, cl);
           }
         });
       } else {
         toggleEl.querySelectorAll(".dre-mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === (_dreAccum ? "acumulado" : "mes")));
       }
 
-      renderDreBulletChart(realReport, budgetReport, monthIdx, hasReal, hasBudget, _dreAccum);
-      renderDreGauges(realReport, budgetReport, monthIdx, hasReal, hasBudget, _dreAccum);
+      renderDreBulletChart(realReport, budgetReport, monthIdx, hasReal, hasBudget, _dreAccum, compareLabel);
+      renderDreGauges(realReport, budgetReport, monthIdx, hasReal, hasBudget, _dreAccum, compareLabel);
 
       const verDreBtn = document.querySelector("#dash-ver-dre");
       if (verDreBtn && !verDreBtn.dataset.bound) {
@@ -341,10 +345,10 @@
       }
 
       renderDashOpexCards(year, monthIdx, realRows, budgetRows);
-      renderDashAlerts(realReport, budgetReport, monthIdx, hasReal, hasBudget);
+      renderDashAlerts(realReport, budgetReport, monthIdx, hasReal, hasBudget, compareLabel);
     }
 
-    function renderDreBulletChart(realReport, budgetReport, monthIdx, hasReal, hasBudget, accum = false) {
+    function renderDreBulletChart(realReport, budgetReport, monthIdx, hasReal, hasBudget, accum = false, compareLabel = "Budget") {
       const container = document.querySelector("#dash-dre-bullet");
       if (!container) return;
 
@@ -413,14 +417,14 @@
 
       container.innerHTML = `
         ${hasBudget ? `<div class="dash-bullet-legend">
-          <span class="dash-bullet-legend-item"><span class="dash-bullet-legend-budget"></span>Budget</span>
+          <span class="dash-bullet-legend-item"><span class="dash-bullet-legend-budget"></span>${escapeHtml(compareLabel)}</span>
           <span class="dash-bullet-legend-item"><span class="dash-bullet-legend-marker"></span>Meta</span>
         </div>` : ""}
         <div class="dash-bullet-list">${rows}</div>
       `;
     }
 
-    function renderDreGauges(realReport, budgetReport, monthIdx, hasReal, hasBudget, accum = false) {
+    function renderDreGauges(realReport, budgetReport, monthIdx, hasReal, hasBudget, accum = false, compareLabel = "Budget") {
       const container = document.querySelector("#dash-dre-gauges");
       if (!container) return;
 
@@ -466,6 +470,11 @@
       const fmtPct = (v) =>
         `${(v * 100).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
+      // Rótulo curto da referência no subtexto do gauge (espaço minúsculo no SVG).
+      const refShort = compareLabel === "Budget"
+        ? "bud"
+        : (compareLabel.length > 8 ? `${compareLabel.slice(0, 7)}…` : compareLabel);
+
       const dashFor = (pct) => {
         const clamped = Math.min(Math.max(pct, 0), 1);
         const fill = clamped * ARC_LEN;
@@ -497,7 +506,7 @@
             <text x="${cx}" y="${cy + 2}" text-anchor="middle"
               font-size="11" font-weight="700" fill="${displayColor}" font-family="inherit">${escapeHtml(pctLabel)}</text>
             ${pctBLabel ? `<text x="${cx}" y="${cy + 16}" text-anchor="middle"
-              font-size="7" fill="var(--text-faint)" font-family="inherit">bud ${escapeHtml(pctBLabel)}</text>` : ""}
+              font-size="7" fill="var(--text-faint)" font-family="inherit">${escapeHtml(refShort)} ${escapeHtml(pctBLabel)}</text>` : ""}
           </svg>
           <span class="dash-gauge-label">${escapeHtml(label)}</span>
         </div>`;

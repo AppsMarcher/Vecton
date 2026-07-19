@@ -11,6 +11,8 @@
       isAdmin,
       openScenarioDreReport,
       invalidateScenarioCachesFor,
+      callSupabaseRpc,
+      onDefaultScenarioChanged,
     } = deps;
 
     // ── local state ──────────────────────────────────────────────────────────
@@ -38,7 +40,7 @@
       const orgId = await resolveOrganizationId();
       const rows = await fetchSupabaseRowsSafe(
         "forecast_scenarios",
-        `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name,color,icon,reference_year,cutoff_month,created_at`
+        `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name,color,icon,reference_year,cutoff_month,is_default,created_at`
       );
       scenarios = rows;
       return rows;
@@ -273,8 +275,30 @@
 
       // Planejamento segue a mesma regra do real: Gestor/Analista só leitura
       // (sem criar/editar/copiar/remover cenário), igual Carga de Realizado
-      // sendo admin-only hoje.
+      // sendo admin-only hoje. A estrela (favorito da org) também é admin-only.
       const canEdit = isAdmin();
+
+      // Favorito = comparativo padrão da organização (DREs Real e Dashboard).
+      // Sem cenário estrelado, o favorito é o Budget (card fixo abaixo).
+      const hasScenarioFav = (scenarios || []).some(s => s.is_default);
+      const starSvg = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" width="15" height="15"><path d="M12 2.6l2.87 5.82 6.42.93-4.65 4.53 1.1 6.4L12 17.26l-5.74 3.02 1.1-6.4-4.65-4.53 6.42-.93z"/></svg>`;
+      const starBtn = (key, isFav) => `
+        <span class="fc-star-btn${isFav ? " is-fav" : ""}${canEdit ? " fc-star-editable" : ""}"
+          ${canEdit ? `role="button" tabindex="-1"` : ""} data-fc-star="${escapeHtml(key)}"
+          title="${isFav ? "Comparativo padrão da organização" : (canEdit ? "Definir como comparativo padrão" : "")}">${starSvg}</span>`;
+
+      const budgetCard = `
+        <button class="reports-report-card fc-scenario-card fc-budget-card" type="button"
+          style="border-top-color:#64748b;--fc-accent:#64748b">
+          <div class="rrc-top">
+            <span class="rrc-icon-wrap" style="background:${hexToRgba("#64748b", 0.12)};border-color:${hexToRgba("#64748b", 0.25)};color:#94a3b8">
+              ${iconSvg("vp-icon-briefcase")}
+            </span>
+            ${starBtn("budget", !hasScenarioFav)}
+          </div>
+          <strong>Budget</strong>
+          <span class="rrc-subtitle">Orçamento oficial · ${year}</span>
+        </button>`;
 
       const cards = (scenarios || []).map(s => {
         const color = s.color || "#6366f1";
@@ -286,6 +310,7 @@
             <span class="rrc-icon-wrap" style="background:${hexToRgba(color, 0.12)};border-color:${hexToRgba(color, 0.25)};color:${escapeHtml(color)}">
               ${iconSvg(s.icon)}
             </span>
+            ${starBtn(s.id, !!s.is_default)}
             ${canEdit ? `<span class="fc-card-menu-btn" role="button" data-fc-menu="${escapeHtml(s.id)}" aria-label="Opções" tabindex="-1">${gearSvg}</span>` : ""}
           </div>
           <strong>${escapeHtml(s.name)}</strong>
@@ -301,7 +326,8 @@
               ${canEdit ? `<button class="fc-new-btn" type="button" id="fc-new-btn">+ Novo cenário</button>` : ""}
             </div>
             <div class="reports-card-grid">
-              ${cards || `<p class="fc-empty">${canEdit ? `Nenhum cenário ainda. Clique em <strong>+ Novo cenário</strong> para começar.` : "Nenhum cenário disponível."}</p>`}
+              ${budgetCard}
+              ${cards}
             </div>
           </div>
         </div>`;
@@ -312,6 +338,15 @@
       });
 
       container.querySelector(".reports-card-grid")?.addEventListener("click", e => {
+        const starEl = e.target.closest("[data-fc-star]");
+        if (starEl) {
+          e.stopPropagation();
+          e.preventDefault();
+          if (!canEdit) return;
+          const key = starEl.dataset.fcStar; // "budget" ou id do cenário
+          void setDefaultScenario(key === "budget" ? null : key, container);
+          return;
+        }
         const menuBtn = e.target.closest("[data-fc-menu]");
         if (menuBtn) {
           e.stopPropagation();
@@ -325,6 +360,24 @@
         selectedId = card.dataset.scenarioId;
         renderDetail(container, (scenarios || []).find(s => s.id === selectedId));
       });
+    }
+
+    // Define o cenário favorito da org (null = Budget). RPC valida admin no BD.
+    async function setDefaultScenario(scenarioId, container) {
+      try {
+        const orgId = await resolveOrganizationId();
+        const year = Number(state.currentPeriod?.year || 2026);
+        await callSupabaseRpc("set_default_forecast_scenario", {
+          target_organization_id: orgId,
+          target_reference_year: year,
+          target_scenario_id: scenarioId,
+        });
+        (scenarios || []).forEach(s => { s.is_default = s.id === scenarioId; });
+        onDefaultScenarioChanged?.();
+        renderGrid(container);
+      } catch (err) {
+        console.error("Erro ao definir comparativo padrão:", err);
+      }
     }
 
     function renderNewForm(container) {

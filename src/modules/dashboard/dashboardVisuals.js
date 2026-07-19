@@ -211,7 +211,7 @@
       overlay.addEventListener("mouseleave", hideAll);
     }
 
-    function renderDashAlerts(realReport, budgetReport, monthIdx, hasReal, hasBudget) {
+    function renderDashAlerts(realReport, budgetReport, monthIdx, hasReal, hasBudget, compareLabel = "Budget") {
       const list = document.querySelector("#dash-alerts-list");
       const sub = document.querySelector("#dash-alerts-subtitle");
       if (!list) return;
@@ -234,11 +234,11 @@
         if (ebBudg !== 0) {
           const varPct = (ebReal - ebBudg) / Math.abs(ebBudg);
           if (varPct < -0.05) {
-            alerts.push({ dot: "danger", title: `EBITDA abaixo do budget em ${Math.abs(varPct * 100).toFixed(1)}%`, text: `Realizado: ${formatSignedCurrency(ebReal)} vs Budget: ${formatSignedCurrency(ebBudg)}` });
+            alerts.push({ dot: "danger", title: `EBITDA abaixo do ${compareLabel} em ${Math.abs(varPct * 100).toFixed(1)}%`, text: `Realizado: ${formatSignedCurrency(ebReal)} vs ${compareLabel}: ${formatSignedCurrency(ebBudg)}` });
           } else if (varPct > 0.05) {
-            alerts.push({ dot: "positive", title: `EBITDA acima do budget em ${(varPct * 100).toFixed(1)}%`, text: `Realizado: ${formatSignedCurrency(ebReal)} vs Budget: ${formatSignedCurrency(ebBudg)}` });
+            alerts.push({ dot: "positive", title: `EBITDA acima do ${compareLabel} em ${(varPct * 100).toFixed(1)}%`, text: `Realizado: ${formatSignedCurrency(ebReal)} vs ${compareLabel}: ${formatSignedCurrency(ebBudg)}` });
           } else {
-            alerts.push({ dot: "warning", title: "EBITDA dentro do budget", text: `Variação de ${(varPct * 100).toFixed(1)}% no mês.` });
+            alerts.push({ dot: "warning", title: `EBITDA dentro do ${compareLabel}`, text: `Variação de ${(varPct * 100).toFixed(1)}% no mês.` });
           }
         }
       }
@@ -251,7 +251,7 @@
           if (Math.abs(varPct) > 0.03) {
             const dir = varPct >= 0 ? "acima" : "abaixo";
             const dot = varPct >= 0 ? "positive" : "danger";
-            alerts.push({ dot, title: `Receita Líquida ${dir} do budget`, text: `${dir === "acima" ? "+" : ""}${(varPct * 100).toFixed(1)}% em ${month}.` });
+            alerts.push({ dot, title: `Receita Líquida ${dir} do ${compareLabel}`, text: `${dir === "acima" ? "+" : ""}${(varPct * 100).toFixed(1)}% em ${month}.` });
           }
         }
       }
