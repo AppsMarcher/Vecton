@@ -1222,10 +1222,12 @@
         history:             r.history || null,
       }));
 
-      const CHUNK = 500;
+      // Blocos maiores + return=minimal: o custo dominante e a ida e volta HTTP
+      // (o INSERT de 500 linhas leva ~100ms no BD), nao o tamanho do bloco.
+      const CHUNK = 2000;
       for (let i = 0; i < ledgerRows.length; i += CHUNK) {
         setSyncStatus(`Gravando entradas: ${i + 1}–${Math.min(i + CHUNK, ledgerRows.length)} de ${ledgerRows.length}…`, "warn");
-        await upsertSupabaseRows("forecast_ledger_entries", ledgerRows.slice(i, i + CHUNK), ["id"]);
+        await upsertSupabaseRows("forecast_ledger_entries", ledgerRows.slice(i, i + CHUNK), ["id"], { minimal: true });
       }
 
       // Mark batch as applied in DB. Precisa ser PATCH (update real), nao upsert:
