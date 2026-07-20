@@ -136,8 +136,11 @@ let activeHcErrorRowId = null;
 let selectedHeadcountLoadType = null;
 let headcountReturnView = null;
 let opexHideZeros = false;
-let _opexBudgetSource = "budget";
-let _hcBudgetSource = "budget";
+// null = ainda nao resolvida -> assume o cenario favorito da org (is_default),
+// ou Budget se nao houver (mesmo padrao do _compareSource dos DRE Real).
+// Troca manual no select vale so para a sessao.
+let _opexBudgetSource = null;
+let _hcBudgetSource = null;
 const loadingHeadcountBatchIds = new Set();
 const hcDashCache = new Map();
 let hcDashLoadingKey = null;
@@ -2366,12 +2369,24 @@ function renderHcReport(kind) {
           opt.textContent = s.name;
           srcSel.appendChild(opt);
         });
+        if (_hcBudgetSource === null) {
+          const fav = scenarios.find(s => s.is_default);
+          _hcBudgetSource = fav ? `scenario:${fav.id}` : "budget";
+          if (selectedReportId === "headcountBudget") { renderReportsView(); return; }
+        }
         srcSel.value = _hcBudgetSource;
       });
       srcSel.addEventListener("change", () => {
         _hcBudgetSource = srcSel.value;
         renderReportsView();
       });
+    }
+
+    // Fonte ainda não resolvida (favorito da org sendo consultado) -> skeleton
+    // até o fetch acima terminar e disparar o re-render.
+    if (_hcBudgetSource === null) {
+      contentDiv.innerHTML = `<div class="reports-table-wrap">${vpSkeletonTable(8, 12)}</div>`;
+      return;
     }
   }
 
@@ -3613,6 +3628,11 @@ function renderOpexBudgetReport(detailPanel) {
         opt.textContent = s.name;
         srcSel.appendChild(opt);
       });
+      if (_opexBudgetSource === null) {
+        const fav = scenarios.find(s => s.is_default);
+        _opexBudgetSource = fav ? `scenario:${fav.id}` : "budget";
+        if (selectedReportId === "opexBudget") { renderReportsView(); return; }
+      }
       srcSel.value = _opexBudgetSource;
     });
     srcSel.addEventListener("change", () => {
@@ -3623,6 +3643,13 @@ function renderOpexBudgetReport(detailPanel) {
         renderReportsView();
       }
     });
+  }
+
+  // Fonte ainda não resolvida (favorito da org sendo consultado) -> skeleton
+  // até o fetch acima terminar e disparar o re-render.
+  if (_opexBudgetSource === null) {
+    contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap">${vpSkeletonTable()}</div>`;
+    return;
   }
 
   // Cenário selecionado
@@ -7138,11 +7165,15 @@ function getDashCompare(year) {
 }
 
 // Chamado quando o admin muda a estrela no Planejamento: re-resolve o
-// comparativo do dashboard e o default do "Comparar com" dos DREs Real.
+// comparativo do dashboard, o default do "Comparar com" dos DREs Real e o
+// default da "Fonte" dos 3 relatórios Budget/Planejado (DRE/OPEX/Headcount).
 function handleDefaultScenarioChanged() {
   _dashCompareByYear.clear();
   reportsDreModule?.resetCompareSource?.();
+  reportsDreModule?.resetBudgetSource?.();
   reportsOpexModule?.resetCompareSource?.();
+  _opexBudgetSource = null;
+  _hcBudgetSource = null;
 }
 
 async function fetchScenarioLedgerForYear(scenarioId, year) {
