@@ -2006,7 +2006,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  height: 112px;
+  height: 122px;
   overflow: hidden;
   position: relative;
   transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
@@ -5293,7 +5293,7 @@ body:not(.auth-only) {
   }
 
   .reports-report-card {
-    height: 104px;
+    height: 114px;
     padding: 14px 16px 14px;
     gap: 8px;
   }
@@ -5319,7 +5319,7 @@ body:not(.auth-only) {
   }
 
   .reports-report-card {
-    height: 96px;
+    height: 104px;
     padding: 12px 14px 12px;
     gap: 6px;
   }
