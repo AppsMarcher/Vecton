@@ -900,56 +900,87 @@
         + consolidated("Oeste", "OESTE", PRINT_COLORS.oeste, "REG. OESTE");
 
       // --- cards de território: posição fixa (ver PRINT_COL_LAYOUT acima) ---
-      // allTerrs junta todo território de qualquer "casa" num mapa só (a grade
-      // fixa mistura territórios de casas diferentes na mesma coluna, ex: RR é
-      // Norte mas fica na coluna 1); terrHome guarda a casa original só pra cor.
-      const allTerrs = {}; const terrHome = {};
-      pr.forEach((r) => Object.entries(r.terrs).forEach(([terr, t]) => { allTerrs[terr] = t; terrHome[terr] = r.nome; }));
+      // terrHome guarda a casa geográfica de cada território (só pra cor — a
+      // grade fixa mistura territórios de casas diferentes na mesma coluna
+      // impressa, ex: RR é Norte mas fica na coluna 1).
+      const terrHome = {};
+      pr.forEach((r) => Object.keys(r.terrs).forEach((terr) => { terrHome[terr] = r.nome; }));
       const colorFor = (terr) => PRINT_COLORS[HOME_COLOR_KEY[terrHome[terr]] || "norte"];
-      const lineOf = (terr, lk) => { const t = allTerrs[terr]; const l = t && t[lk]; return (l && !l.orfao) ? l : null; };
-      const baseCardFor = (terr) => {
-        const g = lineOf(terr, "grao"), p = lineOf(terr, "pecuaria");
-        if (!g && !p) return null;
-        const linhas = [g && "Grão", p && "Pecuária"].filter(Boolean);
-        return { terr, resp: (g || p).resp || "A definir", grao: g, pec: p, linhas };
+
+      // Fusão por responsável tem que juntar a grade fixa com território "fora
+      // dela" (cadastro novo reatribuído) numa passada só — senão um território
+      // reatribuído pro MESMO responsável de um território já fixo (ex: SC
+      // reatribuído pro Caio, que já responde por RS NORTE) nunca é comparado
+      // contra o da grade e vira card solto em vez de fundir (bug 2026-07-20).
+      // MAS a fusão só pode rodar DENTRO da mesma casa geográfica — nomes se
+      // repetem entre pessoas DIFERENTES em regiões diferentes (ex: existe um
+      // "Gustavo" no Sul/RS SUL e outro "Gustavo" no Oeste/RO — pessoas
+      // distintas, mera coincidência de primeiro nome). Fundir cross-região
+      // juntaria dado de duas pessoas erradas.
+      const mergedGroups = [];
+      pr.forEach((r) => {
+        const atomicCards = [];
+        Object.entries(r.terrs).forEach(([terr, t]) => {
+          const g = (t.grao && !t.grao.orfao) ? t.grao : null;
+          const p = (t.pecuaria && !t.pecuaria.orfao) ? t.pecuaria : null;
+          if (!g && !p) return;
+          if (g && p && g.resp !== p.resp) {
+            atomicCards.push({ terr, resp: g.resp || "A definir", grao: g, pec: null, linhas: ["Grão"] });
+            atomicCards.push({ terr, resp: p.resp || "A definir", grao: null, pec: p, linhas: ["Pecuária"] });
+          } else {
+            const linhas = [g && "Grão", p && "Pecuária"].filter(Boolean);
+            atomicCards.push({ terr, resp: (g || p).resp || "A definir", grao: g, pec: p, linhas });
+          }
+        });
+        mergedGroups.push(...mergeSameRespCards(atomicCards));
+      });
+
+      // territorio+linha -> indice do grupo fundido que o contém.
+      const ownerIdx = {};
+      mergedGroups.forEach((group, idx) => {
+        group.terrs.forEach((terr) => group.linhas.forEach((lh) => { ownerIdx[`${terr}|${lh}`] = idx; }));
+      });
+      const findGroupIdx = (terr, mode) => {
+        const key = mode === "grao" ? "Grão" : mode === "pec" ? "Pecuária" : null;
+        return key ? ownerIdx[`${terr}|${key}`] : (ownerIdx[`${terr}|Grão`] ?? ownerIdx[`${terr}|Pecuária`]);
       };
-      const cardHtmlFor = (slot) => {
+      // Territórios da grade fixa sempre entram PRIMEIRO no rótulo combinado
+      // (ex: sempre "RS NORTE_SC", nunca "SC_RS NORTE") — não pode depender da
+      // ordem de chegada das linhas da RPC.
+      const fixedAnchors = new Set();
+      PRINT_COL_LAYOUT.forEach((col) => col.forEach((slot) => {
+        if (slot.terrs) fixedAnchors.add(slot.terrs[0]); else if (slot.terr) fixedAnchors.add(slot.terr);
+      }));
+      const labelFor = (g) => [...g.terrs]
+        .sort((a, b) => (fixedAnchors.has(b) ? 1 : 0) - (fixedAnchors.has(a) ? 1 : 0))
+        .join("_");
+      const drawnGroups = new Set();   // evita desenhar o mesmo grupo fundido 2x
+      const htmlForGroup = (idx, colorTerr) => {
+        const g = mergedGroups[idx];
+        return cardFromLines(g.resp || "A definir", labelFor(g), colorFor(colorTerr), g.grao, g.pec, null);
+      };
+
+      const flow = PRINT_COL_LAYOUT.map((col) => col.map((slot) => {
         if (slot.pecas) {
           const cp = coord("Peças");
           return cp ? cardFromLines(cp.gestor || "—", "PEÇAS", PRINT_COLORS.pecas, null, null, sumTerrLine(cp, "pecas")) : "";
         }
-        if (slot.terrs) {
-          const parts = slot.terrs.map((terr) => baseCardFor(terr)).filter(Boolean);
-          const merged = mergeSameRespCards(parts)[0];
-          return merged ? cardFromLines(merged.resp || "A definir", merged.terr, colorFor(slot.terrs[0]), merged.grao, merged.pec, null) : "";
-        }
-        if (slot.mode === "grao") {
-          const g = lineOf(slot.terr, "grao");
-          return g ? cardFromLines(g.resp || "A definir", slot.terr, colorFor(slot.terr), g, null, null) : "";
-        }
-        if (slot.mode === "pec") {
-          const p = lineOf(slot.terr, "pecuaria");
-          return p ? cardFromLines(p.resp || "A definir", slot.terr, colorFor(slot.terr), null, p, null) : "";
-        }
-        const base = baseCardFor(slot.terr);
-        return base ? cardFromLines(base.resp, base.terr, colorFor(slot.terr), base.grao, base.pec, null) : "";
-      };
-      const flow = PRINT_COL_LAYOUT.map((col) => col.map(cardHtmlFor).filter(Boolean));
+        const anchorTerr = slot.terrs ? slot.terrs[0] : slot.terr;
+        const idx = findGroupIdx(anchorTerr, slot.mode);
+        if (idx == null || drawnGroups.has(idx)) return "";
+        drawnGroups.add(idx);
+        return htmlForGroup(idx, anchorTerr);
+      }).filter(Boolean));
 
-      // Território fora da grade fixa (cadastro novo na Atribuição): funde por
-      // responsável e anexa na coluna mais curta — não quebra o report.
-      const covered = new Set();
-      PRINT_COL_LAYOUT.forEach((col) => col.forEach((slot) => {
-        if (slot.terrs) slot.terrs.forEach((t) => covered.add(t)); else if (slot.terr) covered.add(slot.terr);
-      }));
-      const leftoverBase = Object.keys(allTerrs)
-        .filter((terr) => !covered.has(terr))
-        .map(baseCardFor)
-        .filter(Boolean);
-      mergeSameRespCards(leftoverBase).forEach((card) => {
+      // Território fora da grade fixa (cadastro novo na Atribuição): qualquer
+      // grupo fundido ainda não desenhado (nem por si, nem por fusão com
+      // território da grade) entra na coluna mais curta — não quebra o report.
+      mergedGroups.forEach((g, idx) => {
+        if (drawnGroups.has(idx)) return;
+        drawnGroups.add(idx);
         let shortest = 0;
         for (let i = 1; i < flow.length; i++) if (flow[i].length < flow[shortest].length) shortest = i;
-        flow[shortest].push(cardFromLines(card.resp || "A definir", card.terr, colorFor(card.terrs[0]), card.grao, card.pec, null));
+        flow[shortest].push(htmlForGroup(idx, g.terrs[0]));
       });
 
       const emitted = new Date().toLocaleDateString("pt-BR");
