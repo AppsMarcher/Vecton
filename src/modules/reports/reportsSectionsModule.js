@@ -382,11 +382,11 @@
       const manageBtn = document.querySelector("#reports-manage-sections-btn");
 
       if (reorderBtn) {
-        reorderBtn.style.display = isAdmin() ? "" : "none";
+        reorderBtn.style.display = isAdmin() ? "flex" : "none";
         reorderBtn.onclick = () => setReorderMode(!_reorderMode, reorderBtn);
       }
       if (manageBtn) {
-        manageBtn.style.display = isAdmin() && !usingFallback() ? "" : "none";
+        manageBtn.style.display = isAdmin() && !usingFallback() ? "flex" : "none";
         manageBtn.onclick = () => openManagePopover(manageBtn);
       }
     }
