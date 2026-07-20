@@ -1075,6 +1075,13 @@ const comercialPainelModule = createComercialPainelModule({
   fetchSupabaseRowsSafe,
   callSupabaseRpc,
   isSupabaseConfigured,
+  // Toggle de período do cabeçalho (topo do site) nunca pode ficar descasado
+  // do mês que o Painel está mostrando — ver renderSelectedPainel no módulo.
+  syncHeaderPeriod: (year, month) => {
+    state.currentPeriod = { year, month };
+    renderPeriodSummary();
+    renderPeriodPicker();
+  },
 });
 const comercialMapaModule = createComercialMapaModule({
   escapeHtml,
