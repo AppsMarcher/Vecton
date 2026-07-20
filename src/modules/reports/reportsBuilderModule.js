@@ -1101,6 +1101,24 @@
 
     // ── Modal factory ─────────────────────────────────────────────────
 
+    // Botões de alinhamento/tamanho de fonte são radios disfarçados de botão (input
+    // escondido dentro do <label>) — sem isso, clicar troca o valor de verdade (salva certo),
+    // mas o botão não muda de cor na hora, dando impressão de que não fez nada.
+    function wireToggleGroups(dlg) {
+      dlg.querySelectorAll(".vb-toggle-btn input[type=radio]").forEach(radio => {
+        radio.addEventListener("change", () => {
+          dlg.querySelectorAll(`input[type=radio][name="${radio.name}"]`).forEach(r => {
+            const lbl = r.closest(".vb-toggle-btn");
+            if (!lbl) return;
+            const active = r.checked;
+            lbl.style.border     = `1px solid ${active ? "var(--blue)" : "var(--line)"}`;
+            lbl.style.background = active ? "var(--blue-soft)" : "transparent";
+            lbl.style.color      = active ? "var(--blue)" : "var(--text-faint)";
+          });
+        });
+      });
+    }
+
     function createModal(title, bodyHtml, onSave) {
       const overlay = document.createElement("div");
       overlay.style.cssText = `position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.65);
@@ -1131,6 +1149,7 @@
 
       overlay.appendChild(dlg);
       document.body.appendChild(overlay);
+      wireToggleGroups(dlg);
 
       const close = () => overlay.remove();
       dlg.querySelector("#mdl-x")?.addEventListener("click",      close);
@@ -1226,7 +1245,7 @@
       return `<div style="display:flex;gap:2px;align-items:center">
         ${[["sm","A",11],["md","A",14],["lg","A",18]].map(([v, lbl, sz]) => {
           const active = cur === v;
-          return `<label title="${v}" style="display:flex;align-items:center;justify-content:center;
+          return `<label title="${v}" class="vb-toggle-btn" style="display:flex;align-items:center;justify-content:center;
             width:28px;height:26px;border-radius:6px;cursor:pointer;
             border:1px solid ${active ? "var(--blue)" : "var(--line)"};
             background:${active ? "var(--blue-soft)" : "transparent"};
@@ -1413,7 +1432,7 @@
               ["bottom", `<svg width="14" height="15" viewBox="0 0 14 15" fill="currentColor"><rect x="2" y="6.5" width="10" height="2" rx="1"/><rect x="0" y="9.5" width="14" height="2" rx="1"/><rect x="0" y="13" width="14" height="2" rx="1"/></svg>`],
             ].map(([v, icon]) => {
               const active = va === v;
-              return `<label title="${v}" style="display:flex;align-items:center;justify-content:center;
+              return `<label title="${v}" class="vb-toggle-btn" style="display:flex;align-items:center;justify-content:center;
                 width:28px;height:26px;border-radius:6px;cursor:pointer;
                 border:1px solid ${active ? "var(--blue)" : "var(--line)"};
                 background:${active ? "var(--blue-soft)" : "transparent"};
@@ -1682,7 +1701,7 @@
             ["right",  `<svg width="15" height="13" viewBox="0 0 15 13" fill="currentColor"><rect x="0" y="0"  width="15" height="2" rx="1"/><rect x="5" y="4"  width="10" height="2" rx="1"/><rect x="0" y="8"  width="15" height="2" rx="1"/><rect x="8" y="12" width="7"  height="1" rx="0.5"/></svg>`],
           ].map(([v, icon]) => {
             const active = align === v;
-            return `<label title="${v}" style="display:flex;align-items:center;justify-content:center;
+            return `<label title="${v}" class="vb-toggle-btn" style="display:flex;align-items:center;justify-content:center;
               width:28px;height:26px;border-radius:6px;cursor:pointer;border:1px solid ${active?"var(--blue)":"var(--line)"};
               background:${active?"var(--blue-soft)":"transparent"};color:${active?"var(--blue)":"var(--text-faint)"}">
               <input type="radio" name="${prefix}-align" value="${v}" ${active?"checked":""}
