@@ -9,7 +9,7 @@
       resolveOrganizationId, getAllowedCcNumbers, getAccessRole,
       getCurrentUser, supabaseApiUrl, authenticatedFetch,
       setSelectedReportId, renderReportsView, getReportTitles, initFloatingScrollbar,
-      onCatalogChanged,
+      onCatalogChanged, fetchScenariosForYear, fetchScenarioHeadcountForYear,
     } = deps;
 
     function ensureDrillHoverStyle() {
@@ -131,7 +131,7 @@
       const key = `${sourceId}:${year}`;
       if (_sourceCache.has(key)) return _sourceCache.get(key);
 
-      // Fonte de cenário: "scenario:<uuid>"
+      // Fonte de cenário DRE: "scenario:<uuid>"
       if (sourceId.startsWith("scenario:")) {
         const scenarioId = sourceId.slice("scenario:".length);
         const orgId = await resolveOrganizationId();
@@ -140,6 +140,16 @@
           `&select=reference_month,reference_year,account_number,cost_center_number,amount`;
         const res   = await authenticatedFetch(url);
         const raw   = res.ok ? await res.json() : [];
+        const enriched = applyRbac(enrichLedger(raw));
+        _sourceCache.set(key, enriched);
+        return enriched;
+      }
+
+      // Fonte de cenário Headcount: "hcscenario:<uuid>" — cada linha = 1 colaborador (amount:1)
+      if (sourceId.startsWith("hcscenario:")) {
+        const scenarioId = sourceId.slice("hcscenario:".length);
+        const rows = await fetchScenarioHeadcountForYear(scenarioId, year);
+        const raw  = (rows || []).map(r => ({ ...r, amount: 1 }));
         const enriched = applyRbac(enrichLedger(raw));
         _sourceCache.set(key, enriched);
         return enriched;
@@ -1413,79 +1423,70 @@
       return dlg;
     }
 
-    // ── Sources checkbox block ────────────────────────────────────────
+    // ── Origem / Cenário (2 selects) ───────────────────────────────────
+    // Formato armazenado (col.source[0] / row.source[0]) continua o mesmo de sempre —
+    // "actual" | "budget" | "hc_real" | "hc_budget" | "scenario:<uuid>" | "hcscenario:<uuid>" —
+    // só a UI passou a ser 2 campos (Origem + Cenário) em vez de 1 dropdown combinado.
+    // Isso preserva 100% de compatibilidade com relatórios já salvos: nenhuma migração de
+    // config é necessária, decomposeSource só precisa saber ler o que já existe.
 
-    function sourcesHtml(selected) {
-      const current = (selected || [])[0] || "actual";
-      const label   = DATA_SOURCES.find(s => s.id === current)?.label || current;
-      return `<div class="src-select" style="position:relative;display:inline-block;min-width:180px">
-        <input type="hidden" class="src-value" value="${escapeHtml(current)}">
-        <button type="button" class="src-trigger"
-          style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;
-          padding:7px 10px;font-size:13px;border:1px solid var(--line);border-radius:8px;
-          background:var(--panel);color:var(--text);cursor:pointer">
-          <span class="src-label">${escapeHtml(label)}</span>
-          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style="flex-shrink:0;opacity:.5">
-            <path d="M2 4l3.5 3.5L9 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <div class="src-panel" style="display:none;position:absolute;top:calc(100% + 3px);left:0;right:0;
-          z-index:400;background:var(--panel);border:1px solid var(--line);border-radius:8px;
-          box-shadow:0 8px 24px rgba(0,0,0,.5);overflow:hidden">
-          ${DATA_SOURCES.map((s, i) => `
-            <div class="src-item" data-src="${escapeHtml(s.id)}" data-label="${escapeHtml(s.label)}"
-              style="padding:8px 12px;font-size:13px;cursor:pointer;
-              color:${current === s.id ? "var(--blue)" : "var(--text-soft)"};
-              background:${current === s.id ? "var(--blue-soft)" : "transparent"}">
-              ${escapeHtml(s.label)}
-            </div>`).join("")}
-        </div>
+    function decomposeSource(sourceId) {
+      const id = sourceId || "actual";
+      if (id === "hc_real")   return { origin: "hc",  scenario: "real" };
+      if (id === "hc_budget") return { origin: "hc",  scenario: "budget" };
+      if (id === "budget")    return { origin: "dre", scenario: "budget" };
+      if (id.startsWith("hcscenario:")) return { origin: "hc",  scenario: "scenario:" + id.slice("hcscenario:".length) };
+      if (id.startsWith("scenario:"))   return { origin: "dre", scenario: id };
+      return { origin: "dre", scenario: "real" }; // "actual" e qualquer valor legado desconhecido
+    }
+
+    function composeSource(origin, scenario) {
+      if (scenario === "real")   return origin === "hc" ? "hc_real"   : "actual";
+      if (scenario === "budget") return origin === "hc" ? "hc_budget" : "budget";
+      if (scenario?.startsWith("scenario:")) {
+        const scenarioId = scenario.slice("scenario:".length);
+        return origin === "hc" ? `hcscenario:${scenarioId}` : `scenario:${scenarioId}`;
+      }
+      return "actual";
+    }
+
+    function originScenarioHtml(prefix, selected) {
+      const { origin, scenario } = decomposeSource((selected || [])[0]);
+      return `<div style="display:flex;gap:8px">
+        <select id="${prefix}-origin" data-origin-sel style="font-size:13px;padding:6px 8px">
+          <option value="dre" ${origin === "dre" ? "selected" : ""}>DRE</option>
+          <option value="hc"  ${origin === "hc"  ? "selected" : ""}>Headcount</option>
+        </select>
+        <select id="${prefix}-scenario" data-scenario-sel data-current="${escapeHtml(scenario)}"
+          style="font-size:13px;padding:6px 8px;min-width:150px">
+          <option value="real"   ${scenario === "real"   ? "selected" : ""}>Real</option>
+          <option value="budget" ${scenario === "budget" ? "selected" : ""}>Budget</option>
+        </select>
       </div>`;
     }
 
-    function collectSources(dlg) {
-      const val = dlg.querySelector(".src-value")?.value;
-      return val ? [val] : ["actual"];
+    function collectOriginScenario(dlg, prefix) {
+      const origin   = dlg.querySelector(`#${prefix}-origin`)?.value   || "dre";
+      const scenario = dlg.querySelector(`#${prefix}-scenario`)?.value || "real";
+      return [composeSource(origin, scenario)];
     }
 
-    function wireSources(dlg) {
-      dlg.querySelectorAll(".src-select").forEach(sel => {
-        const hidden  = sel.querySelector(".src-value");
-        const trigger = sel.querySelector(".src-trigger");
-        const panel   = sel.querySelector(".src-panel");
-        const lbl     = sel.querySelector(".src-label");
-
-        trigger.addEventListener("click", e => {
-          e.stopPropagation();
-          panel.style.display = panel.style.display === "none" ? "block" : "none";
+    // Popula o select de Cenário com os cenários de forecast do ano (além de Real/Budget fixos).
+    // Mesmo universo de cenários serve DRE e Headcount (forecast_scenarios não distingue origem).
+    async function wireOriginScenario(dlg, year) {
+      const scenarioSelects = [...dlg.querySelectorAll("[data-scenario-sel]")];
+      if (!scenarioSelects.length) return;
+      let scenarios = [];
+      try { scenarios = (await fetchScenariosForYear?.(year)) || []; } catch (_) {}
+      scenarioSelects.forEach(sel => {
+        const current = sel.dataset.current || "real";
+        scenarios.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = `scenario:${s.id}`;
+          opt.textContent = s.name;
+          sel.appendChild(opt);
         });
-
-        sel.querySelectorAll(".src-item").forEach(item => {
-          item.addEventListener("mouseenter", () => {
-            if (item.dataset.src !== hidden.value) item.style.background = "var(--panel-hover)";
-          });
-          item.addEventListener("mouseleave", () => {
-            if (item.dataset.src !== hidden.value) item.style.background = "transparent";
-          });
-          item.addEventListener("click", () => {
-            // reset all
-            sel.querySelectorAll(".src-item").forEach(el => {
-              el.style.background = "transparent";
-              el.style.color      = "var(--text-soft)";
-            });
-            item.style.background = "var(--blue-soft)";
-            item.style.color      = "var(--blue)";
-            hidden.value  = item.dataset.src;
-            lbl.textContent = item.dataset.label;
-            panel.style.display = "none";
-          });
-        });
-
-        const close = e => { if (!sel.contains(e.target)) panel.style.display = "none"; };
-        document.addEventListener("click", close);
-        new MutationObserver((_, obs) => {
-          if (!document.contains(sel)) { document.removeEventListener("click", close); obs.disconnect(); }
-        }).observe(document.body, { childList: true, subtree: true });
+        if ([...sel.options].some(o => o.value === current)) sel.value = current;
       });
     }
 
@@ -1538,6 +1539,7 @@
     function openRowModal(panel, idx) {
       const row = idx !== null ? JSON.parse(JSON.stringify(_cfg.rows[idx])) : newRow();
       const yr  = new Date().getFullYear();
+      const scenarioYear = row.period?.type === "fixed" ? (row.period?.year || yr) : yr;
       const allAccounts = [...new Map((state.dreNodes || []).map(n => [String(n.code), n])).values()];
       const allCcs      = [...(state.costCenters || [])].sort((a,b) => String(a.number).localeCompare(String(b.number)));
       const selAcc = new Set(row.filters?.accountNumbers || []);
@@ -1577,7 +1579,7 @@
           <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
             <div>
               <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:6px">Origem / Cenário</label>
-              ${sourcesHtml(row.source)}
+              ${originScenarioHtml("rm", row.source)}
             </div>
             <div>
               <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:4px">
@@ -1700,8 +1702,7 @@
       const dlg = createModal("Nova linha", body, (d) => {
         row.name = d.querySelector("#rm-name")?.value || "";
         row.type   = d.querySelector("input[name='rm-type']:checked")?.value || "blank";
-        row.source = collectSources(d);
-        if (!row.source.length) row.source = ["actual"];
+        row.source = collectOriginScenario(d, "rm");
         row.filters = {
           accountNumbers: [...d.querySelectorAll(".rm-acc:checked")].map(c => c.dataset.val),
           ccNumbers:      [...d.querySelectorAll(".rm-cc:checked")].map(c => c.dataset.val),
@@ -1735,7 +1736,7 @@
       dlg.querySelectorAll("input[name='rm-period']").forEach(r => r.addEventListener("change", () => {
         dlg.querySelector("#rm-fixed").style.display = r.value==="fixed" ? "flex":"none";
       }));
-      wireSources(dlg);
+      wireOriginScenario(dlg, scenarioYear);
       searchFilter(dlg, "#rm-acc-q", ".acc-lbl");
       searchFilter(dlg, "#rm-cc-q",  ".cc-lbl");
       wireRefPicker(dlg, "#rm-add-row",    "#rm-row-picker",  "#rm-expr");
@@ -1762,6 +1763,7 @@
     function openColModal(panel, idx) {
       const col = idx !== null ? JSON.parse(JSON.stringify(_cfg.cols[idx])) : newCol();
       const yr  = new Date().getFullYear();
+      const scenarioYear = col.accumulate ? (col.periodFrom?.year || yr) : (col.period?.year || yr);
       const monthOpts = MONTH_LABELS.map((m,i) =>
         `<option value="${i+1}" ${col.period?.month==i+1?"selected":""}>${m}</option>`).join("");
       const yearOpts  = Array.from({length:5},(_,i)=>yr-2+i).map(y =>
@@ -1845,7 +1847,7 @@
           </div>
           <div>
             <label style="font-size:11px;color:var(--text-faint);display:block;margin-bottom:6px">Origem / Cenário</label>
-            ${sourcesHtml(col.source)}
+            ${originScenarioHtml("cm", col.source)}
           </div>
         </div>
 
@@ -1889,8 +1891,7 @@
         col.type   = d.querySelector("input[name='cm-type']:checked")?.value || "blank";
         col.hidden = d.querySelector("#cm-hidden")?.checked || false;
         col.width  = Math.max(40, Number(d.querySelector("#cm-width")?.value) || 120);
-        col.source = collectSources(d);
-        if (!col.source.length) col.source = ["actual"];
+        col.source = collectOriginScenario(d, "cm");
         col.accumulate = d.querySelector("#cm-accumulate")?.checked || false;
         col.period     = {
           month: Number(d.querySelector("#cm-month")?.value || 1),
@@ -1922,7 +1923,7 @@
         dlg.querySelector("#cm-period-single").style.display = e.target.checked ? "none" : "flex";
         dlg.querySelector("#cm-period-range").style.display  = e.target.checked ? "flex" : "none";
       });
-      wireSources(dlg);
+      wireOriginScenario(dlg, scenarioYear);
       wireRefPicker(dlg, "#cm-add-col",  "#cm-col-picker", "#cm-expr");
       wireFnPicker(dlg,  "#cm-fn-btn",   "#cm-fn-picker",  "#cm-expr");
     }
