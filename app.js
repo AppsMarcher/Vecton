@@ -2796,8 +2796,8 @@ function buildDreSocRealTableMarkup(report, compareReport = null, month = null, 
       <thead>
         <tr>
           <th class="col-frozen col-frozen-1"${hasCompare ? ' rowspan="2"' : ""}>Cod Conta${R}</th>
-          <th class="col-frozen col-frozen-2"${hasCompare ? ' rowspan="2"' : ""}>Desc Moeda 1${R}</th>
-          <th class="col-frozen col-frozen-3"${hasCompare ? ' rowspan="2"' : ""}>Classe Conta${R}</th>
+          <th class="col-frozen col-frozen-2"${hasCompare ? ' rowspan="2"' : ""}>Desc Conta Contabil${R}</th>
+          <th class="col-frozen col-frozen-3"${hasCompare ? ' rowspan="2"' : ""}>Classe${R}</th>
           ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
           <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
           ${cmp ? cmp.row1Extra : ""}
