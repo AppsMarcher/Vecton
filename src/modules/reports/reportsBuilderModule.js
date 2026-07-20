@@ -9,6 +9,7 @@
       resolveOrganizationId, getAllowedCcNumbers, getAccessRole,
       getCurrentUser, supabaseApiUrl, authenticatedFetch,
       setSelectedReportId, renderReportsView, getReportTitles, initFloatingScrollbar,
+      onCatalogChanged,
     } = deps;
 
     // ── Cenários disponíveis ──────────────────────────────────────────
@@ -578,6 +579,7 @@
         await saveReport(cfg, null);
         await loadCustomReports();
         injectCatalogCards();
+        onCatalogChanged?.();
       } catch (e) { alert("Erro ao copiar: " + e.message); }
     }
 
@@ -588,6 +590,7 @@
         await deleteReport(reportId);
         await loadCustomReports();
         injectCatalogCards();
+        onCatalogChanged?.();
         setSelectedReportId(null);
         renderReportsView();
       } catch (e) { alert("Erro ao remover: " + e.message); }
@@ -1074,6 +1077,7 @@
         const newId = await saveReport(_cfg, _editingId);
         await loadCustomReports();
         injectCatalogCards();
+        onCatalogChanged?.();
         setSelectedReportId("custom_" + newId);
         renderReportsView();
       } catch (err) {
