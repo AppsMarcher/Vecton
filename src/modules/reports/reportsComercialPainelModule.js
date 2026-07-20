@@ -27,7 +27,7 @@
     const COORD_ORDER = ["Sul", "Norte", "Oeste", "Pecuária", "Exportação", "Peças"];
     const METRICS = ["fat", "cart", "meta", "y1", "y2", "y3"];
 
-    let period = "ytd";
+    let period = "mes";
     let month = Number(state.currentPeriod?.month || 6);
     let year = Number(state.currentPeriod?.year || 2026);
     let currentCoord = null;
@@ -1071,7 +1071,8 @@ ${p2}
       container.querySelector("#cvp-print")?.addEventListener("click", () => openOnePagePrint(container));
     }
 
-    // O mes/ano do painel seguem o seletor de periodo do cabecalho do site.
+    // Enquanto o usuario esta "dentro" do relatorio, o mes/ano seguem o
+    // seletor de periodo do cabecalho do site (comportamento normal).
     function syncFromHeader() {
       year = Number(state.currentPeriod?.year || year);
       month = Number(state.currentPeriod?.month || month);
@@ -1085,9 +1086,23 @@ ${p2}
 
     // ---------------------------------------------------------------- public
 
+    let enteredPainel = false;   // reseta toda vez que o usuario SAI do relatorio
+
     function renderSelectedPainel(container, reportId) {
-      if (reportId !== REPORT_ID) return false;
-      syncFromHeader();
+      if (reportId !== REPORT_ID) { enteredPainel = false; return false; }
+      if (!enteredPainel) {
+        // Toda vez que ENTRA no relatorio (nao a cada re-render), reseta pro
+        // mes calendario real de hoje + aba "Mes" -- ignora o que estiver no
+        // cabecalho do site. Depois disso, segue o cabecalho normalmente
+        // (ver syncFromHeader) ate o usuario sair e entrar de novo.
+        const today = new Date();
+        year = today.getFullYear();
+        month = today.getMonth() + 1;
+        period = "mes";
+        enteredPainel = true;
+      } else {
+        syncFromHeader();
+      }
       if (loadedKey === paramsKey() && coords.length) {
         // Tem cache pros mesmos parametros: mostra na hora (sem flash), mas
         // SEMPRE revalida em background — uma carga aplicada em outra tela pode
