@@ -260,8 +260,9 @@
     // ── Matrix computation ────────────────────────────────────────────
 
     async function computeMatrix(cfg) {
-      const { rows, cols } = cfg;
+      const { rows, cols, options } = cfg;
       const matrix = rows.map(() => cols.map(() => null));
+      const warmedYears = new Set();
 
       // Pass 1 — data × data cells
       for (let ri = 0; ri < rows.length; ri++) {
@@ -271,6 +272,14 @@
           const col = cols[ci];
           if (col.type !== "data") continue;
           const { sources, filters, periods } = cellPlan(row, col);
+          // Com drilldown habilitado, dispara em paralelo (sem esperar) o carregamento do
+          // ledger completo de "actual" pro ano — assim, quando o usuário clicar numa célula,
+          // o detalhe já está (ou já está a caminho) em cache, sem esperar um fetch do zero.
+          if (options?.enableDrilldown && sources.includes("actual")) {
+            for (const p of periods) {
+              if (!warmedYears.has(p.year)) { warmedYears.add(p.year); fetchActualDetailYear(p.year); }
+            }
+          }
           let total = 0;
           for (const p of periods) {
             for (const src of sources) {
@@ -313,13 +322,16 @@
     // sem CC/data/histórico) quando a Central de Relatórios já populou reportsLedgerCache pra esse ano —
     // ótimo pra somar o card, ruim pro drilldown, que precisa do lançamento de verdade. Por isso o
     // drilldown de "actual" tem seu próprio cache, sempre com o ledger completo (mesma fonte do DRE Soc).
-    let _actualDetailCache = new Map();
-    async function fetchActualDetailYear(year) {
-      if (_actualDetailCache.has(year)) return _actualDetailCache.get(year);
-      const raw = await fetchActualsLedgerWithCcForYear(year);
-      const enriched = applyRbac(enrichLedger(raw));
-      _actualDetailCache.set(year, enriched);
-      return enriched;
+    let _actualDetailCache = new Map(); // year → Promise<rows> (cacheia a promise, não só o resultado,
+                                         // pra warm-up e clique concorrentes compartilharem o mesmo fetch)
+    function fetchActualDetailYear(year) {
+      if (!_actualDetailCache.has(year)) {
+        _actualDetailCache.set(year, (async () => {
+          const raw = await fetchActualsLedgerWithCcForYear(year);
+          return applyRbac(enrichLedger(raw));
+        })());
+      }
+      return _actualDetailCache.get(year);
     }
 
     async function fetchDrillRows(sources, filters, periods) {
@@ -354,12 +366,13 @@
       return d && m && y ? `${d}/${m}/${y}` : String(iso);
     }
 
-    // Tabela com cabeçalho ordenável — mesmo padrão de thSort() do drilldown do OPEX/DRE
-    // Societário: clique alterna asc/desc, seta ↑/↓, coluna ativa em azul.
+    // Tabela com cabeçalho ordenável — mesmo padrão visual e de fonte do drilldown do
+    // OPEX/DRE Societário: clique alterna asc/desc, seta ↑/↓, coluna ativa em azul,
+    // colunas de texto longo cortam com "..." (title mostra o valor completo), sem quebrar linha.
     function renderSortableTable(container, columns, rows, initialSort) {
       const esc = (v) => v ? escapeHtml(String(v)) : "";
-      const thStyle = "padding:6px 10px;border-bottom:1px solid var(--line);font-size:11px;color:var(--text-faint);white-space:nowrap;position:sticky;top:0;background:var(--panel);cursor:pointer;user-select:none";
-      const tdStyle = "padding:5px 10px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap";
+      const thStyle = "padding:3px 8px 6px;font-size:0.62rem;color:var(--text-faint);white-space:nowrap;position:sticky;top:0;background:var(--panel);cursor:pointer;user-select:none;font-weight:500";
+      const tdStyle = "padding:4px 8px;font-size:0.72rem;color:var(--text-soft);white-space:nowrap;border-bottom:0.5px solid var(--line)";
       let sortKey = initialSort.key, sortDir = initialSort.dir;
 
       function sortedRows() {
@@ -378,9 +391,13 @@
         }).join("");
         const bodyHtml = sortedRows().map(r => `<tr>${columns.map(c => {
           const val = c.render ? c.render(r) : c.value(r);
-          return `<td style="${tdStyle};text-align:${c.align||"left"}${c.wrap?";white-space:normal;max-width:260px":""}${c.align==="right"?";font-variant-numeric:tabular-nums":""}">${esc(val)}</td>`;
+          const clip = c.maxWidth ? `max-width:${c.maxWidth}px;overflow:hidden;text-overflow:ellipsis` : "";
+          const title = c.maxWidth ? ` title="${esc(val)}"` : "";
+          const numeric = c.align === "right" ? ";font-variant-numeric:tabular-nums" : "";
+          const neg = c.negRed && Number(c.value(r)) < 0 ? ";color:var(--neg)" : "";
+          return `<td style="${tdStyle};text-align:${c.align||"left"};${clip}${numeric}${neg}"${title}>${esc(val)}</td>`;
         }).join("")}</tr>`).join("");
-        container.innerHTML = `<table style="border-collapse:collapse;width:100%">
+        container.innerHTML = `<table style="border-collapse:collapse;width:100%;table-layout:auto">
           <thead><tr>${theadHtml}</tr></thead><tbody>${bodyHtml}</tbody>
         </table>`;
       }
@@ -404,11 +421,12 @@
 
       if (kind === "ledger-tx") {
         renderSortableTable(container, [
-          { key: "date",    label: "Data",       value: r => r.entry_date || "",  render: r => fmtDate(r.entry_date) },
-          { key: "cc",      label: "CC",         value: r => `${r.cost_center_number||""} ${r.cc_name||""}`.trim() },
-          { key: "account", label: "Conta",      value: r => `${r.account_number||""} ${r.account_name||""}`.trim() },
-          { key: "history", label: "Histórico",  value: r => r.history || "", wrap: true },
-          { key: "amount",  label: "Valor",      value: r => Number(r.amount) || 0, render: r => fmtNumber(r.amount,"n2"), align: "right" },
+          { key: "date",    label: "Data",      value: r => r.entry_date || "", render: r => fmtDate(r.entry_date) },
+          { key: "cc",      label: "CC",        value: r => r.cost_center_number || "" },
+          { key: "ccname",  label: "Nome CC",   value: r => r.cc_name || "", maxWidth: 150 },
+          { key: "account", label: "Conta",     value: r => `${r.account_number||""} ${r.account_name||""}`.trim(), maxWidth: 220 },
+          { key: "history", label: "Histórico", value: r => r.history || "", maxWidth: 220 },
+          { key: "amount",  label: "Valor",     value: r => Number(r.amount) || 0, render: r => fmtNumber(r.amount,"n2"), align: "right", negRed: true },
         ], rows, { key: "date", dir: -1 });
         return;
       }
@@ -416,9 +434,10 @@
       if (kind === "headcount") {
         renderSortableTable(container, [
           { key: "matricula", label: "Matrícula", value: r => r.matricula || "" },
-          { key: "colab",     label: "Nome",       value: r => r.colab || "" },
-          { key: "cargo",     label: "Cargo",      value: r => r.cargo || "" },
-          { key: "cc",        label: "CC",         value: r => `${r.cost_center_number||""} ${r.cc_name||""}`.trim() },
+          { key: "colab",     label: "Nome",       value: r => r.colab || "", maxWidth: 220 },
+          { key: "cargo",     label: "Cargo",      value: r => r.cargo || "", maxWidth: 180 },
+          { key: "cc",        label: "CC",         value: r => r.cost_center_number || "" },
+          { key: "ccname",    label: "Nome CC",    value: r => r.cc_name || "", maxWidth: 150 },
         ], rows, { key: "colab", dir: 1 });
         return;
       }
@@ -432,8 +451,9 @@
         byCc.set(key, cur);
       });
       renderSortableTable(container, [
-        { key: "cc",    label: "Centro de custo", value: r => `${r.cc} ${r.name}`.trim() },
-        { key: "total", label: "Valor",           value: r => r.total, render: r => fmtNumber(r.total,"n2"), align: "right" },
+        { key: "cc",    label: "CC",              value: r => r.cc || "" },
+        { key: "name",  label: "Nome CC",         value: r => r.name || "", maxWidth: 220 },
+        { key: "total", label: "Valor",           value: r => r.total, render: r => fmtNumber(r.total,"n2"), align: "right", negRed: true },
       ], [...byCc.values()], { key: "total", dir: -1 });
     }
 
@@ -443,7 +463,7 @@
       const esc = (v) => v ? escapeHtml(String(v)) : "";
       if (kind === "headcount") {
         return `<span style="font-size:1.1rem;font-weight:700;color:var(--text)">${rows.length}</span>
-          <span style="font-size:12px;color:var(--text-faint);margin-left:8px">colaborador(es)</span>`;
+          <span style="font-size:0.72rem;color:var(--text-faint);margin-left:8px">colaborador(es)</span>`;
       }
       const total = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
       const count = kind === "ledger-cc"
@@ -451,7 +471,7 @@
         : rows.length;
       const countLabel = kind === "ledger-cc" ? "centro(s) de custo" : "lançamento(s)";
       return `<span style="font-size:1.1rem;font-weight:700;color:var(--text)">${esc(fmtNumber(total,"n2"))}</span>
-        <span style="font-size:12px;color:var(--text-faint);margin-left:8px">${count} ${countLabel}</span>`;
+        <span style="font-size:0.72rem;color:var(--text-faint);margin-left:8px">${count} ${countLabel}</span>`;
     }
 
     async function openCellDrilldown(row, col) {
@@ -463,13 +483,34 @@
       overlay.style.cssText = `position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.65);
         display:flex;align-items:center;justify-content:center;padding:16px`;
       overlay.innerHTML = `<div style="background:var(--panel);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.6);
-        width:100%;max-width:720px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);flex-shrink:0">
-          <span style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(row.name || "")} — ${escapeHtml(col.name || "")}</span>
+        width:90vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);flex-shrink:0">
+          <div>
+            <p style="font-size:0.65rem;color:var(--text-faint);letter-spacing:0.07em;text-transform:uppercase;margin:0 0 3px">${escapeHtml(col.name || "")}</p>
+            <h4 style="font-size:0.9rem;font-weight:600;color:var(--text);margin:0">${escapeHtml(row.name || "")}</h4>
+          </div>
           <button id="vbd-x" type="button" style="font-size:20px;background:none;border:none;cursor:pointer;color:var(--text-faint);line-height:1;padding:0 4px">&times;</button>
         </div>
-        <div id="vbd-summary" style="display:none;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);flex-shrink:0"></div>
-        <div id="vbd-body" style="flex:1;overflow:auto"><div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Carregando...</div></div>
+        <div id="vbd-summary" style="display:none;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);flex-shrink:0"></div>
+        <div id="vbd-body" style="flex:1;overflow:auto">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:40px 0">
+            <svg viewBox="0 0 60 20" width="60" height="20" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="10" cy="10" r="4" fill="var(--accent)">
+                <animate attributeName="opacity" values="0.25;1;0.25" dur="1.1s" begin="0s" repeatCount="indefinite"/>
+                <animate attributeName="r" values="4;5.2;4" dur="1.1s" begin="0s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="30" cy="10" r="4" fill="var(--accent)">
+                <animate attributeName="opacity" values="0.25;1;0.25" dur="1.1s" begin="0.22s" repeatCount="indefinite"/>
+                <animate attributeName="r" values="4;5.2;4" dur="1.1s" begin="0.22s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="50" cy="10" r="4" fill="var(--accent)">
+                <animate attributeName="opacity" values="0.25;1;0.25" dur="1.1s" begin="0.44s" repeatCount="indefinite"/>
+                <animate attributeName="r" values="4;5.2;4" dur="1.1s" begin="0.44s" repeatCount="indefinite"/>
+              </circle>
+            </svg>
+            <span style="font-size:0.75rem;color:var(--text-faint)">Carregando detalhes…</span>
+          </div>
+        </div>
       </div>`;
       document.body.appendChild(overlay);
       _drillPopover = overlay;
