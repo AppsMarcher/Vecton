@@ -4528,6 +4528,30 @@ textarea[disabled] {
 .dash-chart-area--combo {
   height: 120px;
 }
+/* ─── Combo chart legend (Real vs Planejado) ────────────────────────────── */
+.dash-combo-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+.dash-combo-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.62rem;
+  font-weight: 500;
+}
+.dash-combo-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.dash-combo-legend-dot--ghost {
+  background: transparent;
+  border: 1px dashed currentColor;
+}
 /* second axis label */
 .dash-axis-label {
   font-size: 8.5px;
