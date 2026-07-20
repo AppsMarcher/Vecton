@@ -12,6 +12,14 @@
       onCatalogChanged,
     } = deps;
 
+    function ensureDrillHoverStyle() {
+      if (document.getElementById("vb-drill-style")) return;
+      const style = document.createElement("style");
+      style.id = "vb-drill-style";
+      style.textContent = ".vb-drill-td:hover { text-decoration: underline dotted; }";
+      document.head.appendChild(style);
+    }
+
     // ── Cenários disponíveis ──────────────────────────────────────────
     // Para adicionar BP/FC: inclua uma entrada com type:"ledger".
     // Headcount usa type:"headcount" — cada linha vira amount:1 (contagem de colaboradores).
@@ -342,7 +350,6 @@
 
       if (kind === "ledger-tx") {
         const sorted = [...rows].sort((a, b) => String(b.entry_date||"").localeCompare(String(a.entry_date||"")));
-        const total = sorted.reduce((s, r) => s + (Number(r.amount) || 0), 0);
         return `<table style="border-collapse:collapse;width:100%">
           <thead><tr>
             <th style="${th}">Data</th><th style="${th}">CC</th><th style="${th}">Conta</th>
@@ -355,8 +362,6 @@
             <td style="${td};white-space:normal;max-width:260px">${esc(r.history)}</td>
             <td style="${td};text-align:right;font-variant-numeric:tabular-nums">${esc(fmtNumber(r.amount,"n2"))}</td>
           </tr>`).join("")}</tbody>
-          <tfoot><tr><td colspan="4" style="${td};font-weight:600;border-top:2px solid var(--line);border-bottom:none">Total</td>
-            <td style="${td};text-align:right;font-weight:600;border-top:2px solid var(--line);border-bottom:none;font-variant-numeric:tabular-nums">${esc(fmtNumber(total,"n2"))}</td></tr></tfoot>
         </table>`;
       }
 
@@ -368,8 +373,6 @@
             <td style="${td}">${esc(r.matricula)}</td><td style="${td}">${esc(r.colab)}</td>
             <td style="${td}">${esc(r.cargo)}</td><td style="${td}">${esc(r.cost_center_number)} ${esc(r.cc_name)}</td>
           </tr>`).join("")}</tbody>
-          <tfoot><tr><td colspan="3" style="${td};font-weight:600;border-top:2px solid var(--line);border-bottom:none">Total de colaboradores</td>
-            <td style="${td};text-align:right;font-weight:600;border-top:2px solid var(--line);border-bottom:none">${sorted.length}</td></tr></tfoot>
         </table>`;
       }
 
@@ -382,16 +385,30 @@
         byCc.set(key, cur);
       });
       const grouped = [...byCc.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
-      const total = grouped.reduce((s, r) => s + r.total, 0);
       return `<table style="border-collapse:collapse;width:100%">
         <thead><tr><th style="${th}">Centro de custo</th><th style="${th};text-align:right">Valor</th></tr></thead>
         <tbody>${grouped.map(r => `<tr>
           <td style="${td}">${esc(r.cc)} ${esc(r.name)}</td>
           <td style="${td};text-align:right;font-variant-numeric:tabular-nums">${esc(fmtNumber(r.total,"n2"))}</td>
         </tr>`).join("")}</tbody>
-        <tfoot><tr><td style="${td};font-weight:600;border-top:2px solid var(--line);border-bottom:none">Total</td>
-          <td style="${td};text-align:right;font-weight:600;border-top:2px solid var(--line);border-bottom:none;font-variant-numeric:tabular-nums">${esc(fmtNumber(total,"n2"))}</td></tr></tfoot>
       </table>`;
+    }
+
+    // Resumo mostrado no topo do popover — mesmo padrão do drilldown do DRE Societário
+    // (total em destaque + contagem), pra não duplicar o total no rodapé da tabela.
+    function drillSummaryHtml(kind, rows) {
+      const esc = (v) => v ? escapeHtml(String(v)) : "";
+      if (kind === "headcount") {
+        return `<span style="font-size:1.1rem;font-weight:700;color:var(--text)">${rows.length}</span>
+          <span style="font-size:12px;color:var(--text-faint);margin-left:8px">colaborador(es)</span>`;
+      }
+      const total = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+      const count = kind === "ledger-cc"
+        ? new Set(rows.map(r => String(r.cost_center_number || ""))).size
+        : rows.length;
+      const countLabel = kind === "ledger-cc" ? "centro(s) de custo" : "lançamento(s)";
+      return `<span style="font-size:1.1rem;font-weight:700;color:var(--text)">${esc(fmtNumber(total,"n2"))}</span>
+        <span style="font-size:12px;color:var(--text-faint);margin-left:8px">${count} ${countLabel}</span>`;
     }
 
     async function openCellDrilldown(row, col) {
@@ -408,6 +425,7 @@
           <span style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(row.name || "")} — ${escapeHtml(col.name || "")}</span>
           <button id="vbd-x" type="button" style="font-size:20px;background:none;border:none;cursor:pointer;color:var(--text-faint);line-height:1;padding:0 4px">&times;</button>
         </div>
+        <div id="vbd-summary" style="display:none;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);flex-shrink:0"></div>
         <div id="vbd-body" style="flex:1;overflow:auto"><div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Carregando...</div></div>
       </div>`;
       document.body.appendChild(overlay);
@@ -421,6 +439,11 @@
         const rows = await fetchDrillRows(sources, filters, periods);
         if (_drillPopover !== overlay) return; // fechado antes de terminar o fetch
         overlay.querySelector("#vbd-body").innerHTML = drillTableHtml(kind, rows);
+        if (rows.length) {
+          const summary = overlay.querySelector("#vbd-summary");
+          summary.style.display = "flex";
+          summary.innerHTML = drillSummaryHtml(kind, rows);
+        }
       } catch (err) {
         if (_drillPopover !== overlay) return;
         overlay.querySelector("#vbd-body").innerHTML =
@@ -459,6 +482,7 @@
 
     async function renderReportTable(container, cfg) {
       container.innerHTML = `<span style="font-size:12px;color:var(--text-faint)">Calculando...</span>`;
+      if (cfg.options?.enableDrilldown) ensureDrillHoverStyle();
       try {
         const matrix = await computeMatrix(cfg);
         const { rows, cols, options } = cfg;
@@ -538,7 +562,7 @@
               background:${cellBg};
               color:${negRed ? "var(--neg)" : cellColor};
               font-weight:${cellBold ? "600" : "400"};
-              font-style:${cellItalic ? "italic" : "normal"}${drillable ? ";cursor:pointer;text-decoration:underline dotted" : ""}">${esc(fmtd)}</td>`;
+              font-style:${cellItalic ? "italic" : "normal"}${drillable ? ";cursor:pointer" : ""}">${esc(fmtd)}</td>`;
           }
           html += `</tr>`;
         }
