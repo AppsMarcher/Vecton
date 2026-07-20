@@ -839,10 +839,46 @@
       return printCard({ name, terr, colors, grao, pec, fatVals, label });
     }
 
+    // Grade FIXA dos cards de território — espelha a posição exata do modelo
+    // real (Razao_MATR550 [painel].xlsm, aba Painel), extraída célula a célula.
+    // NÃO é balanceamento automático: cada território tem uma posição de coluna
+    // fixa, igual à planilha. A COR de cada card segue a coordenação de ORIGEM
+    // (casa geográfica), não a coluna física — por isso RR/Nabor e TO ficam
+    // pintados de verde (Norte) mesmo fisicamente nas colunas 1 e 3.
+    const PRINT_COL_LAYOUT = [
+      [
+        { terr: "SP" },
+        { terr: "PR", mode: "grao" },
+        { terr: "PR", mode: "pec" },
+        { terr: "RS SUL" },
+        { terr: "RS NORTE" },
+        { pecas: true },
+        { terr: "RR" }
+      ],
+      [
+        { terr: "GO_MG SUL" },
+        { terr: "GO_MG NORTE" },
+        { terr: "BA", mode: "grao" },
+        { terr: "BA", mode: "pec" },
+        { terr: "PA" },
+        { terr: "SEALBA" },
+        { terrs: ["MA", "PI"] }
+      ],
+      [
+        { terr: "MT OESTE" },
+        { terr: "MT CENTRO" },
+        { terr: "MT LESTE" },
+        { terr: "RO" },
+        { terr: "MS" },
+        { terr: "TO", mode: "grao" },
+        { terr: "TO", mode: "pec" }
+      ]
+    ];
+    const HOME_COLOR_KEY = { "Sul": "sul", "Norte": "norte", "Oeste": "oeste", "Exportação": "exportacao" };
+
     function buildPrintPage(data, subtitle, scenarioName) {
       const { coords: pc, regioes: pr, tipos: pt } = data;
       const coord = (n) => pc.find((x) => x.nome === n) || null;
-      const reg = (n) => pr.find((x) => x.nome === n) || null;
 
       // --- 6 cards consolidados (topo de cada coluna) ---
       const tot = companyTotals(pc, pt);
@@ -862,43 +898,58 @@
       const col3Top = consolidated("Exportação", "EXPO", PRINT_COLORS.exportacao, "EXPORTAÇÃO")
         + consolidated("Oeste", "OESTE", PRINT_COLORS.oeste, "REG. OESTE");
 
-      // --- cards de território (casa geográfica), 1 card por responsável ---
-      // Órfãos (responsável = gestor) não viram card — consolidam no regional.
-      const terrCards = [];
-      const pushRegion = (nome, colors) => {
-        const r = reg(nome); if (!r) return;
-        // Resolve cada território (sameResp/split), depois funde os que tem o
-        // mesmo responsável nomeado em territórios diferentes (ex: MA+PI=Claudemir).
-        const baseCards = [];
-        Object.entries(r.terrs).forEach(([terr, t]) => {
-          const g = (t.grao && !t.grao.orfao) ? t.grao : null;
-          const p = (t.pecuaria && !t.pecuaria.orfao) ? t.pecuaria : null;
-          if (!g && !p) return;
-          if (g && p && g.resp !== p.resp) {
-            baseCards.push({ terr, resp: g.resp || "A definir", grao: g, pec: null, linhas: ["Grão"] });
-            baseCards.push({ terr, resp: p.resp || "A definir", grao: null, pec: p, linhas: ["Pecuária"] });
-          } else {
-            const linhas = [g && "Grão", p && "Pecuária"].filter(Boolean);
-            baseCards.push({ terr, resp: (g || p).resp || "A definir", grao: g, pec: p, linhas });
-          }
-        });
-        mergeSameRespCards(baseCards).forEach((card) => {
-          terrCards.push(cardFromLines(card.resp || "A definir", card.terr, colors, card.grao, card.pec, null));
-        });
-        // Peças entra logo depois do Sul (posição do modelo).
-        if (nome === "Sul") {
-          const cp = coord("Peças");
-          if (cp) terrCards.push(cardFromLines(cp.gestor || "—", "PEÇAS", PRINT_COLORS.pecas, null, null, sumTerrLine(cp, "pecas")));
-        }
+      // --- cards de território: posição fixa (ver PRINT_COL_LAYOUT acima) ---
+      // allTerrs junta todo território de qualquer "casa" num mapa só (a grade
+      // fixa mistura territórios de casas diferentes na mesma coluna, ex: RR é
+      // Norte mas fica na coluna 1); terrHome guarda a casa original só pra cor.
+      const allTerrs = {}; const terrHome = {};
+      pr.forEach((r) => Object.entries(r.terrs).forEach(([terr, t]) => { allTerrs[terr] = t; terrHome[terr] = r.nome; }));
+      const colorFor = (terr) => PRINT_COLORS[HOME_COLOR_KEY[terrHome[terr]] || "norte"];
+      const lineOf = (terr, lk) => { const t = allTerrs[terr]; const l = t && t[lk]; return (l && !l.orfao) ? l : null; };
+      const baseCardFor = (terr) => {
+        const g = lineOf(terr, "grao"), p = lineOf(terr, "pecuaria");
+        if (!g && !p) return null;
+        const linhas = [g && "Grão", p && "Pecuária"].filter(Boolean);
+        return { terr, resp: (g || p).resp || "A definir", grao: g, pec: p, linhas };
       };
-      pushRegion("Sul", PRINT_COLORS.sul);
-      pushRegion("Norte", PRINT_COLORS.norte);
-      pushRegion("Oeste", PRINT_COLORS.oeste);
+      const cardHtmlFor = (slot) => {
+        if (slot.pecas) {
+          const cp = coord("Peças");
+          return cp ? cardFromLines(cp.gestor || "—", "PEÇAS", PRINT_COLORS.pecas, null, null, sumTerrLine(cp, "pecas")) : "";
+        }
+        if (slot.terrs) {
+          const parts = slot.terrs.map((terr) => baseCardFor(terr)).filter(Boolean);
+          const merged = mergeSameRespCards(parts)[0];
+          return merged ? cardFromLines(merged.resp || "A definir", merged.terr, colorFor(slot.terrs[0]), merged.grao, merged.pec, null) : "";
+        }
+        if (slot.mode === "grao") {
+          const g = lineOf(slot.terr, "grao");
+          return g ? cardFromLines(g.resp || "A definir", slot.terr, colorFor(slot.terr), g, null, null) : "";
+        }
+        if (slot.mode === "pec") {
+          const p = lineOf(slot.terr, "pecuaria");
+          return p ? cardFromLines(p.resp || "A definir", slot.terr, colorFor(slot.terr), null, p, null) : "";
+        }
+        const base = baseCardFor(slot.terr);
+        return base ? cardFromLines(base.resp, base.terr, colorFor(slot.terr), base.grao, base.pec, null) : "";
+      };
+      const flow = PRINT_COL_LAYOUT.map((col) => col.map(cardHtmlFor).filter(Boolean));
 
-      // Distribui em 3 colunas equilibradas (fluxo contínuo, como o modelo).
-      const s1 = Math.ceil(terrCards.length / 3);
-      const s2 = Math.ceil((terrCards.length - s1) / 2);
-      const flow = [terrCards.slice(0, s1), terrCards.slice(s1, s1 + s2), terrCards.slice(s1 + s2)];
+      // Território fora da grade fixa (cadastro novo na Atribuição): funde por
+      // responsável e anexa na coluna mais curta — não quebra o report.
+      const covered = new Set();
+      PRINT_COL_LAYOUT.forEach((col) => col.forEach((slot) => {
+        if (slot.terrs) slot.terrs.forEach((t) => covered.add(t)); else if (slot.terr) covered.add(slot.terr);
+      }));
+      const leftoverBase = Object.keys(allTerrs)
+        .filter((terr) => !covered.has(terr))
+        .map(baseCardFor)
+        .filter(Boolean);
+      mergeSameRespCards(leftoverBase).forEach((card) => {
+        let shortest = 0;
+        for (let i = 1; i < flow.length; i++) if (flow[i].length < flow[shortest].length) shortest = i;
+        flow[shortest].push(cardFromLines(card.resp || "A definir", card.terr, colorFor(card.terrs[0]), card.grao, card.pec, null));
+      });
 
       const emitted = new Date().toLocaleDateString("pt-BR");
       return `<section class="page">
