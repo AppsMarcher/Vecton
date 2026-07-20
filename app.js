@@ -1204,6 +1204,8 @@ const reportsBuilderModule = createReportsBuilderModule ? createReportsBuilderMo
   getReportTitles: () => REPORT_TITLES,
   initFloatingScrollbar,
   onCatalogChanged: () => reportsSectionsModule.renderSections(),
+  fetchScenariosForYear,
+  fetchScenarioHeadcountForYear,
 }) : _noop;
 
 const _sectionsNoop = { loadSections: async () => {}, renderSections: () => {} };
