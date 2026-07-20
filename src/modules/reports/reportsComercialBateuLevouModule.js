@@ -26,7 +26,13 @@
     let pecuaria = [];
     let loadedKey = null;
     let loading = false;
-    let entered = false;
+
+    // Sem seletor proprio de periodo -- segue sempre o toggle master do topo
+    // do site (state.currentPeriod), igual OPEX/Headcount.
+    function syncFromHeader() {
+      year = Number(state.currentPeriod?.year || year);
+      month = Number(state.currentPeriod?.month || month);
+    }
 
     // ---------------------------------------------------------------- CSS
 
@@ -143,9 +149,6 @@
 
     function render(container) {
       ensureStyle();
-      const monthOpts = MONTHS.map((m, i) => `<option value="${i + 1}"${i + 1 === month ? " selected" : ""}>${m}</option>`).join("");
-      const yearNow = new Date().getFullYear();
-      const yearOpts = [yearNow, yearNow - 1].map((y) => `<option value="${y}"${y === year ? " selected" : ""}>${y}</option>`).join("");
       const scenOpts = scenarios.length
         ? scenarios.map((s) => `<option value="${escapeHtml(s.id)}"${s.id === scenarioId ? " selected" : ""}>${escapeHtml(s.name)}</option>`).join("")
         : `<option value="">(sem cenário)</option>`;
@@ -157,11 +160,6 @@
               <h1 class="cbl-h1">Bateu, Levou — ${escapeHtml(MONTHS[month - 1])}/${year}</h1>
             </div>
             <div class="cbl-controls">
-              <div class="cbl-period">
-                <span class="lbl">Período</span>
-                <select id="cbl-month">${monthOpts}</select>
-                <select id="cbl-year">${yearOpts}</select>
-              </div>
               <div class="cbl-period">
                 <span class="lbl">Cenário</span>
                 <select id="cbl-scenario">${scenOpts}</select>
@@ -186,8 +184,6 @@
     }
 
     function bind(container) {
-      container.querySelector("#cbl-month")?.addEventListener("change", (e) => { month = Number(e.target.value); reload(container); });
-      container.querySelector("#cbl-year")?.addEventListener("change", (e) => { year = Number(e.target.value); scenariosYear = null; reload(container); });
       container.querySelector("#cbl-scenario")?.addEventListener("change", (e) => { scenarioId = e.target.value || null; reload(container); });
     }
 
@@ -264,11 +260,9 @@
 
     function renderSelectedBateuLevou(container, reportId) {
       if (reportId !== REPORT_ID) return false;
-      if (!entered) {
-        year = Number(state.currentPeriod?.year || year);
-        month = Number(state.currentPeriod?.month || month);
-        entered = true;
-      }
+      const prevYear = year;
+      syncFromHeader();
+      if (year !== prevYear) scenariosYear = null;
       if (loadedKey === paramsKey() && (grao.length || pecuaria.length)) {
         render(container);
         loadData().then(() => render(container)).catch((e) => console.error(e));
