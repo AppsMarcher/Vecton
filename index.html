@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260719r">
+  <link rel="stylesheet" href="styles.css?v=20260720a">
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -425,13 +425,24 @@
               <h2 class="reports-catalog-title">Central de Relatórios</h2>
               <div style="display:flex;align-items:center;gap:8px">
               <button id="reports-new-report-btn" type="button" style="display:none;font-size:12px;padding:5px 12px;background:transparent;color:var(--text-soft);border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;white-space:nowrap">+ Novo relat&oacute;rio</button>
+              <button id="reports-manage-sections-btn" class="reports-reorder-btn" type="button" style="display:none" title="Gerenciar seções">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Seções
+              </button>
               <button id="reports-reorder-btn" class="reports-reorder-btn" type="button" style="display:none" title="Reorganizar cards">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 Reorganizar
               </button>
               </div>
             </div>
-            <div id="reports-card-grid" class="reports-card-grid">
+            <div id="reports-card-grid" class="reports-sections-wrap">
+
+              <div class="reports-section" data-section="comercial">
+                <button type="button" class="reports-section-header" data-section-toggle>
+                  <svg class="reports-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  <span class="reports-section-title">Comercial</span>
+                </button>
+                <div class="reports-card-grid reports-section-body">
 
               <button class="reports-report-card" type="button" data-report-id="comercialPainel">
                 <div class="rrc-top">
@@ -452,6 +463,16 @@
                 <span class="rrc-subtitle">Comercial · geografia</span>
                 <span class="rrc-edit-btn" role="button" data-edit-card="comercialMapa" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
               </button>
+
+                </div>
+              </div>
+
+              <div class="reports-section" data-section="dre">
+                <button type="button" class="reports-section-header" data-section-toggle>
+                  <svg class="reports-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  <span class="reports-section-title">DRE</span>
+                </button>
+                <div class="reports-card-grid reports-section-body">
 
               <button class="reports-report-card" type="button" data-report-id="dreSocReal">
                 <div class="rrc-top">
@@ -513,6 +534,16 @@
                 <span class="rrc-edit-btn" role="button" data-edit-card="dreDfsBudget" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
               </button>
 
+                </div>
+              </div>
+
+              <div class="reports-section" data-section="opex">
+                <button type="button" class="reports-section-header" data-section-toggle>
+                  <svg class="reports-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  <span class="reports-section-title">OPEX</span>
+                </button>
+                <div class="reports-card-grid reports-section-body">
+
               <button class="reports-report-card" type="button" data-report-id="opexReal">
                 <div class="rrc-top">
                   <span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-briefcase"></use></svg></span>
@@ -533,6 +564,16 @@
                 <span class="rrc-edit-btn" role="button" data-edit-card="opexBudget" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
               </button>
 
+                </div>
+              </div>
+
+              <div class="reports-section" data-section="headcount">
+                <button type="button" class="reports-section-header" data-section-toggle>
+                  <svg class="reports-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  <span class="reports-section-title">Headcount</span>
+                </button>
+                <div class="reports-card-grid reports-section-body">
+
               <button class="reports-report-card" type="button" data-report-id="headcountReal">
                 <div class="rrc-top">
                   <span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-users-plus"></use></svg></span>
@@ -552,6 +593,17 @@
                 <span class="rrc-subtitle"></span>
                 <span class="rrc-edit-btn" role="button" data-edit-card="headcountBudget" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
               </button>
+
+                </div>
+              </div>
+
+              <div class="reports-section" data-section="personalizados" data-section-optional hidden>
+                <button type="button" class="reports-section-header" data-section-toggle>
+                  <svg class="reports-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  <span class="reports-section-title">Personalizados</span>
+                </button>
+                <div class="reports-card-grid reports-section-body"></div>
+              </div>
 
             </div>
           </div>
@@ -1219,7 +1271,8 @@
   <script src="src/modules/ui/editorEventsModule.js?v=20260719r"></script>
   <script src="src/modules/ui/dialogs.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260719r"></script>
-  <script src="src/modules/reports/reportsBuilderModule.js?v=20260719r"></script>
+  <script src="src/modules/reports/reportsBuilderModule.js?v=20260720a"></script>
+  <script src="src/modules/reports/reportsSectionsModule.js?v=20260720a"></script>
   <script src="src/modules/users/usersModule.js?v=20260713h"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
   <script src="src/modules/comercial/comercialCadastroModule.js?v=20260719r"></script>
@@ -1232,7 +1285,7 @@
   <script src="src/modules/dashboard/dashboardModule.js?v=20260719r"></script>
   <script src="src/modules/dashboard/dashboardVisuals.js?v=20260719r"></script>
   <script src="src/modules/dashboard/marketTicker.js?v=20260713a"></script>
-  <script src="app.js?v=20260719r"></script>
+  <script src="app.js?v=20260720a"></script>
 </body>
 </html>
 

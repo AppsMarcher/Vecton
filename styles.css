@@ -1925,6 +1925,74 @@ textarea {
   width: 100%;
 }
 
+/* ── Seções colapsáveis da Central de Relatórios ─────────────────────────── */
+.reports-sections-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  width: 100%;
+}
+
+.reports-section {
+  min-width: 0;
+}
+
+.reports-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0 0 10px;
+  margin: 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  color: var(--text-soft);
+  cursor: pointer;
+  text-align: left;
+}
+
+.reports-section-chevron {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: transform 140ms ease;
+}
+
+.reports-section.is-collapsed .reports-section-chevron {
+  transform: rotate(-90deg);
+}
+
+.reports-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.reports-section-body {
+  margin-top: 14px;
+}
+
+.reports-section.is-collapsed .reports-section-body {
+  display: none;
+}
+
+/* Acento por categoria, ecoando as cores já usadas nos cards */
+.reports-section[data-section="dre"] .reports-section-chevron,
+.reports-section[data-section="dre"] .reports-section-title { color: #4f7cff; }
+.reports-section[data-section="opex"] .reports-section-chevron,
+.reports-section[data-section="opex"] .reports-section-title { color: #f59e0b; }
+.reports-section[data-section="headcount"] .reports-section-chevron,
+.reports-section[data-section="headcount"] .reports-section-title { color: #22c55e; }
+.reports-section[data-section="comercial"] .reports-section-chevron,
+.reports-section[data-section="comercial"] .reports-section-title { color: #14b8a6; }
+.reports-section[data-section="personalizados"] .reports-section-chevron,
+.reports-section[data-section="personalizados"] .reports-section-title { color: #a78bfa; }
+
 /* ── Novo card de relatório ─────────────────────────────────────────────── */
 .reports-report-card {
   padding: 16px 18px 18px;
@@ -2150,8 +2218,9 @@ body.can-edit-reports [data-custom-report="true"] .fc-card-menu-btn { display: i
 /* Gear divide o canto com a estrela nos cards de cenário */
 body.can-edit-reports .fc-scenario-card .fc-card-menu-btn { right: 42px; }
 
-/* Botão Reorganizar */
-#reports-reorder-btn {
+/* Botão Reorganizar / Gerenciar seções */
+#reports-reorder-btn,
+#reports-manage-sections-btn {
   display: none;
   align-items: center;
   gap: 6px;
@@ -2164,12 +2233,69 @@ body.can-edit-reports .fc-scenario-card .fc-card-menu-btn { right: 42px; }
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-#reports-reorder-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+#reports-reorder-btn svg,
+#reports-manage-sections-btn svg { width: 14px; height: 14px; }
+#reports-reorder-btn:hover,
+#reports-manage-sections-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 #reports-reorder-btn.active { background: rgba(99,142,255,0.15); color: var(--blue); border-color: var(--blue); }
 .rrc-reorder-mode { cursor: grab; }
 .rrc-reorder-mode:active { cursor: grabbing; }
 .rrc-dragging { opacity: 0.45; }
 .rrc-drag-over { outline: 2px dashed var(--blue); outline-offset: 3px; }
+.rrc-drag-over-empty { outline: 2px dashed var(--blue); outline-offset: -6px; border-radius: 12px; }
+
+/* Popover "Gerenciar seções" */
+.rsm-popover {
+  width: 280px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+  z-index: 200;
+}
+.rsm-title { font-size: 0.82rem; font-weight: 700; color: var(--text); }
+.rsm-list { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+.rsm-row { display: flex; align-items: center; gap: 4px; }
+.rsm-move {
+  width: 20px; height: 20px; flex-shrink: 0;
+  border-radius: 5px; border: 1px solid var(--line); background: var(--bg-soft);
+  color: var(--text-soft); font-size: 0.7rem; line-height: 1; cursor: pointer;
+}
+.rsm-move:hover:not(:disabled) { color: var(--text); background: var(--panel-hover); }
+.rsm-move:disabled { opacity: 0.3; cursor: default; }
+.rsm-name {
+  flex: 1; min-width: 0;
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: 7px;
+  color: var(--text); font-size: 0.78rem; padding: 5px 8px; outline: none;
+}
+.rsm-name:focus { border-color: var(--blue); }
+.rsm-delete {
+  width: 22px; height: 22px; flex-shrink: 0;
+  border-radius: 6px; border: 1px solid var(--line); background: transparent;
+  color: var(--text-faint); font-size: 0.9rem; line-height: 1; cursor: pointer;
+}
+.rsm-delete:hover { color: var(--neg); border-color: var(--neg); }
+.rsm-new-row { display: flex; gap: 6px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.07); }
+.rsm-new-name {
+  flex: 1; min-width: 0;
+  background: var(--bg-soft); border: 1px solid var(--line); border-radius: 7px;
+  color: var(--text); font-size: 0.78rem; padding: 5px 8px; outline: none;
+}
+.rsm-new-name:focus { border-color: var(--blue); }
+.rsm-popover-actions { display: flex; justify-content: flex-end; }
+.rsm-add,
+.rsm-close {
+  font-size: 0.72rem; padding: 5px 12px; border-radius: 6px;
+  border: 1px solid var(--line); cursor: pointer;
+  background: var(--panel-hover); color: var(--text-soft);
+  transition: background 120ms, color 120ms;
+}
+.rsm-add.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.rsm-close:hover { color: var(--text); }
 
 /* Popover de edição inline */
 .rrc-edit-popover {

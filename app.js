@@ -69,6 +69,7 @@ const { createDashboardVisualsModule } = window.VECTON_DASHBOARD_VISUALS;
 const { appAlert, appConfirm } = window.VECTON_DIALOGS;
 const { startMarketTicker } = window.VECTON_MARKET_TICKER;
 const { createReportsBuilderModule } = window.VECTON_REPORTS_BUILDER || {};
+const { createReportSectionsModule } = window.VECTON_REPORT_SECTIONS || {};
 const { createForecastModule } = window.VECTON_FORECAST || {};
 
 const FUN_AVATARS = buildFunAvatars();
@@ -1192,7 +1193,19 @@ const reportsBuilderModule = createReportsBuilderModule ? createReportsBuilderMo
   renderReportsView,
   getReportTitles: () => REPORT_TITLES,
   initFloatingScrollbar,
+  onCatalogChanged: () => reportsSectionsModule.renderSections(),
 }) : _noop;
+
+const _sectionsNoop = { loadSections: async () => {}, renderSections: () => {} };
+const reportsSectionsModule = createReportSectionsModule ? createReportSectionsModule({
+  escapeHtml,
+  fetchSupabaseRowsSafe,
+  isSupabaseConfigured,
+  resolveOrganizationId,
+  getAccessRole,
+  supabaseApiUrl: supabaseConfig.projectUrl,
+  authenticatedFetch,
+}) : _sectionsNoop;
 
 bootstrap();
 
@@ -1246,7 +1259,6 @@ function bindEvents() {
   editorEventsModule.bindEditorEvents();
 
   bindProfileEvents();
-  initReportsDragDrop();
   bindUsersInviteButton();
 
   // ── handlers do dialog de perfil ──────────────────────────────────
@@ -1384,96 +1396,6 @@ function initReportCardEdit() {
   }, { capture: true });
 }
 
-function reportsOrderKey() {
-  return `vp_reports_order_${currentUser?.id || "anon"}`;
-}
-
-function saveReportsOrder() {
-  const grid = document.querySelector("#reports-card-grid");
-  if (!grid) return;
-  const order = [...grid.querySelectorAll(".reports-report-card[data-report-id]")]
-    .map(el => el.dataset.reportId);
-  try { localStorage.setItem(reportsOrderKey(), JSON.stringify(order)); } catch (_) {}
-}
-
-function restoreReportsOrder() {
-  const grid = document.querySelector("#reports-card-grid");
-  if (!grid) return;
-  let saved;
-  try { saved = JSON.parse(localStorage.getItem(reportsOrderKey()) || "null"); } catch (_) {}
-  if (!Array.isArray(saved) || !saved.length) return;
-  saved.forEach(id => {
-    const el = grid.querySelector(`[data-report-id="${id}"]`);
-    if (el) grid.appendChild(el);
-  });
-}
-
-function initReportsDragDrop() {
-  const grid = document.querySelector("#reports-card-grid");
-  const reorderBtn = document.querySelector("#reports-reorder-btn");
-  if (!grid) return;
-
-  if (isAdmin() && reorderBtn) reorderBtn.style.display = "";
-
-  let dragSrc = null;
-  let reorderMode = false;
-
-  function setReorderMode(on) {
-    reorderMode = on;
-    grid.querySelectorAll(".reports-report-card").forEach(c => {
-      c.draggable = on;
-      c.classList.toggle("rrc-reorder-mode", on);
-    });
-    if (reorderBtn) {
-      reorderBtn.classList.toggle("active", on);
-      reorderBtn.title = on ? "Concluir reorganização" : "Reorganizar cards";
-    }
-  }
-
-  reorderBtn?.addEventListener("click", () => setReorderMode(!reorderMode));
-
-  grid.addEventListener("dragstart", e => {
-    if (!reorderMode) return;
-    const card = e.target.closest(".reports-report-card");
-    if (!card) return;
-    dragSrc = card;
-    card.classList.add("rrc-dragging");
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", card.dataset.reportId);
-  });
-
-  grid.addEventListener("dragend", () => {
-    grid.querySelectorAll(".reports-report-card").forEach(c =>
-      c.classList.remove("rrc-dragging", "rrc-drag-over"));
-    dragSrc = null;
-  });
-
-  grid.addEventListener("dragover", e => {
-    if (!reorderMode) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    const card = e.target.closest(".reports-report-card");
-    if (!card || card === dragSrc) return;
-    grid.querySelectorAll(".reports-report-card").forEach(c => c.classList.remove("rrc-drag-over"));
-    card.classList.add("rrc-drag-over");
-  });
-
-  grid.addEventListener("dragleave", e => {
-    e.target.closest(".reports-report-card")?.classList.remove("rrc-drag-over");
-  });
-
-  grid.addEventListener("drop", e => {
-    if (!reorderMode) return;
-    e.preventDefault();
-    const target = e.target.closest(".reports-report-card");
-    if (!target || !dragSrc || target === dragSrc) return;
-    const cards = [...grid.querySelectorAll(".reports-report-card")];
-    if (cards.indexOf(dragSrc) < cards.indexOf(target)) target.after(dragSrc);
-    else target.before(dragSrc);
-    grid.querySelectorAll(".reports-report-card").forEach(c => c.classList.remove("rrc-drag-over"));
-    saveReportsOrder();
-  });
-}
 
 function render() {
   return renderModule.render();
@@ -1659,11 +1581,13 @@ async function hydrateFromSupabase() {
     budgetReportsErrorMessage = "";
 
     persistAndRender();
-    restoreReportsOrder();
     applyReportLabels();
     applyReportAccess();
     initReportCardEdit();
-    void reportsBuilderModule.loadCustomReports().then(() => reportsBuilderModule.injectCatalogCards());
+    await reportsBuilderModule.loadCustomReports();
+    reportsBuilderModule.injectCatalogCards();
+    await reportsSectionsModule.loadSections();
+    reportsSectionsModule.renderSections();
     setSyncStatus("Banco de Dados Online", "ok");
     if (canManageUsers()) void loadAndRenderUsers();
   } catch (error) {
