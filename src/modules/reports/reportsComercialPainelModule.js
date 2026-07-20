@@ -264,6 +264,50 @@
       return { grao, pec, val, isPecas: c.nome === "Peças" };
     }
 
+    // ------------------------------------------------- fusao de card por responsavel
+    // Territorios como MA+PI (mesmo responsavel, Claudemir, nas duas linhas) devem
+    // aparecer como 1 card só, somando tudo (fat/cart/meta/anos). Usado tanto pelo
+    // detalhe ao vivo quanto pelo One Page Report — mesma regra nos dois lugares.
+
+    function isNamedResp(resp) {
+      return !!(resp && resp.trim() && resp.trim().toLowerCase() !== "a definir");
+    }
+
+    // Soma N linhas metricObj (mesma forma) em uma só.
+    function sumLines(lines) {
+      const present = lines.filter(Boolean);
+      if (!present.length) return null;
+      const acc = {}; METRICS.forEach((m) => { acc[m] = { q: 0, v: 0 }; });
+      present.forEach((l) => METRICS.forEach((m) => { acc[m].q += l[m].q; acc[m].v += l[m].v; }));
+      acc.resp = present[0].resp || "";
+      acc.orfao = false;
+      return acc;
+    }
+
+    // Recebe cards-base já resolvidos por território (1 território cada, com
+    // grao/pec/resp/linhas já decididos pela regra sameResp de cada chamador) e
+    // funde os que tem o MESMO responsavel NOMEADO (nunca "A definir"/vazio,
+    // pra não juntar territórios distintos só por coincidência de placeholder)
+    // cobrindo o MESMO conjunto de linhas em territórios diferentes.
+    function mergeSameRespCards(baseCards) {
+      const bySig = {}; const out = [];
+      baseCards.forEach((card) => {
+        const sig = isNamedResp(card.resp) ? `${card.resp}|${card.linhas.join(",")}` : null;
+        if (sig && bySig[sig]) { bySig[sig].terrs.push(card.terr); bySig[sig].parts.push(card); return; }
+        const grp = { terrs: [card.terr], resp: card.resp, linhas: card.linhas, parts: [card] };
+        if (sig) bySig[sig] = grp;
+        out.push(grp);
+      });
+      return out.map((g) => ({
+        terr: g.terrs.join("_"),
+        terrs: g.terrs,
+        resp: g.resp,
+        linhas: g.linhas,
+        grao: sumLines(g.parts.map((p) => p.grao)),
+        pec: sumLines(g.parts.map((p) => p.pec))
+      }));
+    }
+
     // ---------------------------------------------------------------- render
 
     function render(container) {
@@ -497,6 +541,7 @@
       return ` class="cvp-drill" data-origens="${origens}" data-linhas="${escapeHtml((scope.linhas || []).join(","))}"`
         + (scope.coord ? ` data-coord="${escapeHtml(scope.coord)}"` : "")
         + (scope.terr ? ` data-terr="${escapeHtml(scope.terr)}"` : "")
+        + (scope.terrs && scope.terrs.length ? ` data-terrs="${escapeHtml(scope.terrs.join(","))}"` : "")
         + (scope.label ? ` data-label="${escapeHtml(scope.label)}"` : "")
         + (scope.tipos ? ` data-tipos="1"` : "");
     }
@@ -505,7 +550,8 @@
         e.stopPropagation();
         const origens = (th.dataset.origens || "").split(",").filter(Boolean);
         const linhas = (th.dataset.linhas || "").split(",").filter(Boolean);
-        openDetailPopover(th, { coord: th.dataset.coord || null, terr: th.dataset.terr || null, label: th.dataset.label || null, tipos: th.dataset.tipos === "1", linhas }, origens);
+        const terrs = (th.dataset.terrs || "").split(",").filter(Boolean);
+        openDetailPopover(th, { coord: th.dataset.coord || null, terr: th.dataset.terr || null, terrs, label: th.dataset.label || null, tipos: th.dataset.tipos === "1", linhas }, origens);
       }));
     }
 
@@ -573,18 +619,23 @@
         const graoSum = sumLine("grao"), pecSum = sumLine("pecuaria");
         const consLinhas = [graoSum && "Grão", pecSum && "Pecuária"].filter(Boolean);
         cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", graoSum, pecSum, null, true, { coord: c.nome, linhas: consLinhas }));
-        // Territorios: drill pelo territorio + as linhas do card.
+        // Territorios: resolve cada um (sameResp/split), depois funde os que
+        // tem o mesmo responsavel nomeado em territorios diferentes (MA+PI).
+        const terrBaseCards = [];
         Object.entries(src.terrs).forEach(([terr, t]) => {
           const g = eff(t.grao), p = eff(t.pecuaria);
           if (!g && !p) return;
           const sameResp = g && p && g.resp === p.resp;
           if (sameResp || (g && !p) || (!g && p)) {
             const linhas = [g && "Grão", p && "Pecuária"].filter(Boolean);
-            cards.push(miniHtml(terr, (g || p).resp || "", g, p, null, false, { terr, linhas }));
+            terrBaseCards.push({ terr, resp: (g || p).resp || "", grao: g, pec: p, linhas });
           } else {
-            cards.push(miniHtml(terr, g.resp || "", g, null, null, false, { terr, linhas: ["Grão"] }));
-            cards.push(miniHtml(terr, p.resp || "", null, p, null, false, { terr, linhas: ["Pecuária"] }));
+            terrBaseCards.push({ terr, resp: g.resp || "", grao: g, pec: null, linhas: ["Grão"] });
+            terrBaseCards.push({ terr, resp: p.resp || "", grao: null, pec: p, linhas: ["Pecuária"] });
           }
+        });
+        mergeSameRespCards(terrBaseCards).forEach((card) => {
+          cards.push(miniHtml(card.terr, card.resp, card.grao, card.pec, null, false, { terr: card.terr, terrs: card.terrs, linhas: card.linhas }));
         });
       }
       wrap.innerHTML = `<div class="cvp-detail" style="--accent:${st.accent};--accent-soft:${st.soft}">
@@ -685,11 +736,15 @@
       try {
         if (isSupabaseConfigured()) {
           const org = await resolveOrganizationId();
-          rows = await callSupabaseRpc("comercial_painel_detalhe", {
+          // Card fundido (ex: MA_PI) cobre 2+ territorios reais -- a RPC so
+          // filtra 1 territorio por vez, entao busca cada um e junta as linhas.
+          const terrList = (scope.terrs && scope.terrs.length) ? scope.terrs : [scope.terr || null];
+          const results = await Promise.all(terrList.map((terr) => callSupabaseRpc("comercial_painel_detalhe", {
             p_org: org, p_year: year, p_month: month, p_period: period,
             p_origens: origens, p_linhas: scope.linhas || [],
-            p_coordenacao: scope.coord || null, p_territorio: scope.terr || null
-          }) || [];
+            p_coordenacao: scope.coord || null, p_territorio: terr
+          })));
+          rows = results.flat().filter(Boolean);
         }
       } catch (e) { console.error("detalhe:", e); }
       if (popEl !== backdrop) return;                  // fechou/trocou enquanto carregava
@@ -703,7 +758,10 @@
         });
       }
       popRows = rows;
-      popShowTerr = !scope.terr;
+      // Mostra a coluna Território quando não há filtro de território único
+      // (consolidado/hero) OU quando o card fundido cobre 2+ territórios (MA_PI).
+      const singleTerr = scope.terr && !(scope.terrs && scope.terrs.length > 1);
+      popShowTerr = !singleTerr;
       popSort = { key: null, dir: 1 };                 // cada abertura comeca na ordem padrao (valor desc)
       paintPopTable();
     }
@@ -809,16 +867,23 @@
       const terrCards = [];
       const pushRegion = (nome, colors) => {
         const r = reg(nome); if (!r) return;
+        // Resolve cada território (sameResp/split), depois funde os que tem o
+        // mesmo responsável nomeado em territórios diferentes (ex: MA+PI=Claudemir).
+        const baseCards = [];
         Object.entries(r.terrs).forEach(([terr, t]) => {
           const g = (t.grao && !t.grao.orfao) ? t.grao : null;
           const p = (t.pecuaria && !t.pecuaria.orfao) ? t.pecuaria : null;
           if (!g && !p) return;
           if (g && p && g.resp !== p.resp) {
-            terrCards.push(cardFromLines(g.resp || "A definir", terr, colors, g, null, null));
-            terrCards.push(cardFromLines(p.resp || "A definir", terr, colors, null, p, null));
+            baseCards.push({ terr, resp: g.resp || "A definir", grao: g, pec: null, linhas: ["Grão"] });
+            baseCards.push({ terr, resp: p.resp || "A definir", grao: null, pec: p, linhas: ["Pecuária"] });
           } else {
-            terrCards.push(cardFromLines((g || p).resp || "A definir", terr, colors, g, p, null));
+            const linhas = [g && "Grão", p && "Pecuária"].filter(Boolean);
+            baseCards.push({ terr, resp: (g || p).resp || "A definir", grao: g, pec: p, linhas });
           }
+        });
+        mergeSameRespCards(baseCards).forEach((card) => {
+          terrCards.push(cardFromLines(card.resp || "A definir", card.terr, colors, card.grao, card.pec, null));
         });
         // Peças entra logo depois do Sul (posição do modelo).
         if (nome === "Sul") {
