@@ -2138,7 +2138,7 @@ textarea {
 }
 
 .reports-report-card strong {
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.01em;
@@ -5304,7 +5304,7 @@ body:not(.auth-only) {
   }
 
   .reports-report-card strong {
-    font-size: 0.8rem;
+    font-size: 0.74rem;
   }
 
   .reports-report-card p {
@@ -5340,7 +5340,7 @@ body:not(.auth-only) {
   }
 
   .reports-report-card strong {
-    font-size: 0.76rem;
+    font-size: 0.7rem;
     line-height: 1.2;
   }
 
