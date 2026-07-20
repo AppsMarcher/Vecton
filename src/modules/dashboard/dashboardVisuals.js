@@ -7,7 +7,7 @@
       state
     } = deps;
 
-    function renderDashComboChart(containerId, barVals, lineVals, focusMonthIdx, hasReal, barColor, lineColor, lineLabel) {
+    function renderDashComboChart(containerId, barVals, lineVals, focusMonthIdx, hasReal, barColor, lineColor, lineLabel, budgetVals = null, compareLabel = "Budget") {
       const el = document.querySelector(`#${containerId}`);
       if (!el) return;
 
@@ -21,17 +21,26 @@
       const chartH = H - PAD_B - PAD_T;
       const groupW = chartW / 12;
       const barW = Math.min(groupW * 0.55, 22);
+      const budgetBarW = Math.min(groupW * 0.8, 30);
 
-      const activeIdxs = barVals
+      const hasBudgetSeries = Array.isArray(budgetVals);
+
+      const realIdxs = barVals
         .map((v, i) => ({ v, i }))
         .filter(({ v }) => Number.isFinite(v) && v !== 0)
         .map(({ i }) => i);
+      const budgetIdxs = hasBudgetSeries
+        ? budgetVals.map((v, i) => ({ v, i })).filter(({ v }) => Number.isFinite(v) && v !== 0).map(({ i }) => i)
+        : [];
+      const realSet = new Set(realIdxs);
+      const budgetSet = new Set(budgetIdxs);
+      const activeIdxs = [...new Set([...realIdxs, ...budgetIdxs])].sort((a, b) => a - b);
 
-      const activeBarVals = activeIdxs.map((i) => barVals[i]);
-      const hasNeg = activeBarVals.some((v) => v < 0);
-      const barMax = Math.max(...activeBarVals.map(Math.abs), 1);
-      const maxV = Math.max(...activeBarVals, 0);
-      const minV = Math.min(...activeBarVals, 0);
+      const allBarVals = [...realIdxs.map((i) => barVals[i]), ...budgetIdxs.map((i) => budgetVals[i])];
+      const hasNeg = allBarVals.some((v) => v < 0);
+      const barMax = Math.max(...allBarVals.map(Math.abs), 1);
+      const maxV = Math.max(...allBarVals, 0);
+      const minV = Math.min(...allBarVals, 0);
       const zeroY = hasNeg
         ? PAD_T + chartH * (maxV / (maxV - minV))
         : PAD_T + chartH;
@@ -47,7 +56,7 @@
         return { y, h };
       };
 
-      const activeLineVals = activeIdxs.map((i) => lineVals[i]).filter(Number.isFinite);
+      const activeLineVals = realIdxs.map((i) => lineVals[i]).filter(Number.isFinite);
       const lineMin = Math.min(...activeLineVals, 0);
       const lineMax = Math.max(...activeLineVals, 0.01);
       const lineRange = lineMax - lineMin || 0.01;
@@ -96,38 +105,60 @@
         const xCenter = xGroup + groupW / 2;
         const xBar = xCenter - barW / 2;
         const isFocus = i === focusMonthIdx;
-        const hasData = activeIdxs.includes(i);
+        const hasRealBar = realSet.has(i);
+        const hasBudgetBar = budgetSet.has(i);
 
         labels += `<text x="${xCenter.toFixed(1)}" y="${H - 4}" class="dash-chart-label"
           ${isFocus ? `fill="${lineColor}"` : ""}>${escapeHtml(MONTH_LABELS[i])}</text>`;
 
-        if (!hasData) continue;
+        if (!hasRealBar && !hasBudgetBar) continue;
 
-        const bv = barVals[i];
-        const lv = lineVals[i];
-        const { y, h } = barRect(bv);
+        let bv = null;
+        let pv = null;
+        let tipLv = "";
 
-        const opacity = isFocus ? 1 : 0.76;
-        const glossH = Math.max(8, h * 0.28);
-        bars += `
-          <g class="dash-bar-shell" style="opacity:${opacity}">
-            <rect x="${xBar.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
-              fill="url(#${barGradientId})" rx="4" filter="url(#${barGlowId})"/>
-            <rect x="${(xBar + 1.1).toFixed(1)}" y="${(y + 1.2).toFixed(1)}" width="${Math.max(barW - 2.2, 1).toFixed(1)}" height="${Math.max(glossH - 1.2, 1).toFixed(1)}"
-              fill="rgba(255,255,255,0.14)" rx="3"/>
-            <rect x="${xBar.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
-              fill="none" stroke="${rgbaColor(topGlow, 0.32)}" stroke-width="0.8" rx="4"/>
-          </g>`;
+        if (hasBudgetBar) {
+          pv = budgetVals[i];
+          const { y: gy, h: gh } = barRect(pv);
+          const xGhost = xCenter - budgetBarW / 2;
+          bars += `<rect class="dash-ghost-bar" x="${xGhost.toFixed(1)}" y="${gy.toFixed(1)}"
+            width="${budgetBarW.toFixed(1)}" height="${gh.toFixed(1)}"
+            fill="${rgbaColor(barColor, 0.16)}" stroke="${rgbaColor(barColor, 0.45)}"
+            stroke-width="1" stroke-dasharray="2,2" rx="4"/>`;
+        }
 
-        const ly = lineY(lv);
-        linePts.push(`${xCenter.toFixed(1)},${ly.toFixed(1)}`);
+        if (hasRealBar) {
+          bv = barVals[i];
+          const lv = lineVals[i];
+          const { y, h } = barRect(bv);
 
-        dots += `<circle cx="${xCenter.toFixed(1)}" cy="${ly.toFixed(1)}" r="${isFocus ? 3.5 : 2}"
-          fill="${lineColor}" opacity="${isFocus ? 1 : 0.75}"/>`;
+          const opacity = isFocus ? 1 : 0.76;
+          const glossH = Math.max(8, h * 0.28);
+          bars += `
+            <g class="dash-bar-shell" style="opacity:${opacity}">
+              <rect x="${xBar.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
+                fill="url(#${barGradientId})" rx="4" filter="url(#${barGlowId})"/>
+              <rect x="${(xBar + 1.1).toFixed(1)}" y="${(y + 1.2).toFixed(1)}" width="${Math.max(barW - 2.2, 1).toFixed(1)}" height="${Math.max(glossH - 1.2, 1).toFixed(1)}"
+                fill="rgba(255,255,255,0.14)" rx="3"/>
+              <rect x="${xBar.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
+                fill="none" stroke="${rgbaColor(topGlow, 0.32)}" stroke-width="0.8" rx="4"/>
+            </g>`;
 
-        tooltips += `<rect class="dash-tooltip" x="${xBar.toFixed(1)}" y="${y.toFixed(1)}"
-          width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="transparent"
-          data-bv="${escapeHtml(fmtBar(bv))}" data-lv="${escapeHtml(fmtPct(lv))}" data-lc="${lineColor}"/>`;
+          const ly = lineY(lv);
+          linePts.push(`${xCenter.toFixed(1)},${ly.toFixed(1)}`);
+
+          dots += `<circle cx="${xCenter.toFixed(1)}" cy="${ly.toFixed(1)}" r="${isFocus ? 3.5 : 2}"
+            fill="${lineColor}" opacity="${isFocus ? 1 : 0.75}"/>`;
+
+          tipLv = escapeHtml(fmtPct(lv));
+        }
+
+        const tipY = Math.min(...[hasRealBar ? barRect(bv).y : PAD_T + chartH, hasBudgetBar ? barRect(pv).y : PAD_T + chartH]);
+        tooltips += `<rect class="dash-tooltip" x="${(xCenter - budgetBarW / 2).toFixed(1)}" y="${tipY.toFixed(1)}"
+          width="${budgetBarW.toFixed(1)}" height="${(zeroY - tipY).toFixed(1)}" fill="transparent"
+          data-bv="${bv !== null ? escapeHtml(fmtBar(bv)) : ""}"
+          data-pv="${pv !== null ? escapeHtml(fmtBar(pv)) : ""}"
+          data-lv="${tipLv}" data-lc="${lineColor}" data-cmp="${escapeHtml(compareLabel)}"/>`;
       }
 
       const zeroLine = `<line x1="${PAD_L}" y1="${zeroY.toFixed(1)}" x2="${W - PAD_R}" y2="${zeroY.toFixed(1)}"
@@ -196,11 +227,15 @@
         if (monthI >= 0 && monthI < 12 && tooltipByMonth.has(monthI)) {
           const d = tooltipByMonth.get(monthI);
           const bv = d.dataset.bv;
+          const pv = d.dataset.pv;
           const lv = d.dataset.lv;
           const lc = d.dataset.lc;
-          tip.innerHTML =
-            `<span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">Val</span><span style="font-size:0.72rem;font-weight:700;color:#fff">${bv}</span></span>` +
-            `<span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">%</span><span style="font-size:0.72rem;font-weight:600;color:${lc}">${lv}</span></span>`;
+          const cmp = d.dataset.cmp;
+          let html = "";
+          if (bv) html += `<span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">Real</span><span style="font-size:0.72rem;font-weight:700;color:#fff">${bv}</span></span>`;
+          if (pv) html += `<span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">${cmp}</span><span style="font-size:0.72rem;font-weight:600;color:#a1a7b3">${pv}</span></span>`;
+          if (lv) html += `<span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">%</span><span style="font-size:0.72rem;font-weight:600;color:${lc}">${lv}</span></span>`;
+          tip.innerHTML = html;
           tip.style.display = "block";
           tip.style.left = (e.clientX - tip.offsetWidth / 2) + "px";
           tip.style.top = (e.clientY - tip.offsetHeight - 10) + "px";

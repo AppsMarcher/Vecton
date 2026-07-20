@@ -305,8 +305,33 @@
       const ebMonths = eb ? eb.months : Array(12).fill(0);
       const mEbitdaMonths = rlMonths.map((value, index) => (value !== 0 ? ebMonths[index] / value : 0));
 
-      renderDashComboChart("dash-mat-chart", matMonthsDisplay, matPctMonths, monthIdx, hasReal, "#14b8a6", "#5eead4", "% MP");
-      renderDashComboChart("dash-ebitda-chart", ebMonths, mEbitdaMonths, monthIdx, hasReal, "#4f7cff", "#93c5fd", "Mg EBITDA");
+      const matBudgetLine = getLine(budgetReport, "materiais");
+      const matBudgetMonthsDisplay = (matBudgetLine ? matBudgetLine.months : Array(12).fill(0)).map((value) => -value);
+      const ebBudgetLine = getLine(budgetReport, "ebitda");
+      const ebBudgetMonths = ebBudgetLine ? ebBudgetLine.months : Array(12).fill(0);
+
+      renderDashComboChart("dash-mat-chart", matMonthsDisplay, matPctMonths, monthIdx, hasReal, "#14b8a6", "#5eead4", "% MP", hasBudget ? matBudgetMonthsDisplay : null, compareLabel);
+      renderDashComboChart("dash-ebitda-chart", ebMonths, mEbitdaMonths, monthIdx, hasReal, "#4f7cff", "#93c5fd", "Mg EBITDA", hasBudget ? ebBudgetMonths : null, compareLabel);
+
+      const injectComboLegend = (cardId, color) => {
+        const header = document.querySelector(`#${cardId} .panel-header`);
+        if (!header) return;
+        let legend = header.querySelector(".dash-combo-legend");
+        if (!hasBudget) {
+          legend?.remove();
+          return;
+        }
+        if (!legend) {
+          legend = document.createElement("div");
+          legend.className = "dash-combo-legend";
+          (header.firstElementChild || header).appendChild(legend);
+        }
+        legend.innerHTML = `
+          <span class="dash-combo-legend-item" style="color:${color}"><span class="dash-combo-legend-dot" style="background:${color}"></span>Real</span>
+          <span class="dash-combo-legend-item" style="color:${color}"><span class="dash-combo-legend-dot dash-combo-legend-dot--ghost" style="border-color:${color}"></span>${escapeHtml(compareLabel)}</span>`;
+      };
+      injectComboLegend("dash-mat-card", "#14b8a6");
+      injectComboLegend("dash-ebitda-card", "#4f7cff");
 
       if (hasReal) {
         const fmtAccum = (value) => {
