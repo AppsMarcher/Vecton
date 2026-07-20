@@ -82,7 +82,7 @@
       return {
         version: 2, label: "", description: "",
         icon: "document", color: "#4f7cff",
-        options: { showDataInEditor: false, hideZeroRows: false, hideZeroCols: false, negativeRed: false, negativeParens: false, rowLabelWidth: 200 },
+        options: { showDataInEditor: false, hideZeroRows: false, hideZeroCols: false, negativeRed: false, negativeParens: false, enableDrilldown: false, rowLabelWidth: 200 },
         rows: [], cols: [],
         access: { managements: [], ccNumbers: [] },
       };
@@ -175,10 +175,10 @@
       return enriched;
     }
 
-    function filterAndSum(rows, filters, period) {
+    function filterRows(rows, filters, period) {
       // Year is already scoped by fetchSourceYear (cache key = sourceId:year)
       // so only filter by month here to avoid breaking sources that omit reference_year
-      const matched = rows.filter(r => {
+      return rows.filter(r => {
         if (period?.month && String(r.reference_month) !== String(period.month)) return false;
         const af = filters?.accountNumbers;
         if (af?.length && !af.includes(String(r.account_number))) return false;
@@ -188,8 +188,37 @@
         if (mf?.length && !mf.includes(r.management)) return false;
         return true;
       });
+    }
+
+    function filterAndSum(rows, filters, period) {
+      const matched = filterRows(rows, filters, period);
       console.log("[VB] filterAndSum", { period, filters, totalRows: rows.length, matchedRows: matched.length });
       return matched.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    }
+
+    // Fontes + filtros + lista de (mês,ano) que compõem uma célula — usado tanto pra somar
+    // (computeMatrix) quanto pro drilldown (garante que o total do popover bate com a célula).
+    function cellPlan(row, col) {
+      const sources = row.source?.length ? row.source : (col.source?.length ? col.source : ["actual"]);
+      const rAcc = row.filters?.accountNumbers || [];
+      const cAcc = col.filters?.accountNumbers || [];
+      const filters = {
+        accountNumbers: rAcc.length && cAcc.length ? rAcc.filter(a => cAcc.includes(a)) : [...rAcc, ...cAcc],
+        ccNumbers:   [...(row.filters?.ccNumbers   || []), ...(col.filters?.ccNumbers   || [])],
+        managements: [...(row.filters?.managements || []), ...(col.filters?.managements || [])],
+      };
+      const periods = [];
+      if (col.accumulate && col.periodFrom && col.periodTo) {
+        let m = col.periodFrom.month, y = col.periodFrom.year;
+        while (y < col.periodTo.year || (y === col.periodTo.year && m <= col.periodTo.month)) {
+          periods.push({ month: m, year: y });
+          if (++m > 12) { m = 1; y++; }
+        }
+      } else {
+        const period = row.period?.type === "fixed" ? row.period : col.period;
+        if (period?.month && period?.year) periods.push(period);
+      }
+      return { sources, filters, periods };
     }
 
     // ── Formula evaluator ─────────────────────────────────────────────
@@ -233,31 +262,12 @@
         for (let ci = 0; ci < cols.length; ci++) {
           const col = cols[ci];
           if (col.type !== "data") continue;
-          const sources = row.source?.length ? row.source : (col.source?.length ? col.source : ["actual"]);
-          const rAcc = row.filters?.accountNumbers || [];
-          const cAcc = col.filters?.accountNumbers || [];
-          const filters = {
-            accountNumbers: rAcc.length && cAcc.length ? rAcc.filter(a => cAcc.includes(a)) : [...rAcc, ...cAcc],
-            ccNumbers:   [...(row.filters?.ccNumbers   || []), ...(col.filters?.ccNumbers   || [])],
-            managements: [...(row.filters?.managements || []), ...(col.filters?.managements || [])],
-          };
+          const { sources, filters, periods } = cellPlan(row, col);
           let total = 0;
-          if (col.accumulate && col.periodFrom && col.periodTo) {
-            // Sum across month range (may span multiple years)
-            let m = col.periodFrom.month, y = col.periodFrom.year;
-            while (y < col.periodTo.year || (y === col.periodTo.year && m <= col.periodTo.month)) {
-              for (const src of sources) {
-                const data = await fetchSourceYear(src, y);
-                total += filterAndSum(data, filters, { month: m, year: y });
-              }
-              if (++m > 12) { m = 1; y++; }
-            }
-          } else {
-            const period = row.period?.type === "fixed" ? row.period : col.period;
-            if (!period?.month || !period?.year) continue;
+          for (const p of periods) {
             for (const src of sources) {
-              const data = await fetchSourceYear(src, period.year);
-              total += filterAndSum(data, filters, period);
+              const data = await fetchSourceYear(src, p.year);
+              total += filterAndSum(data, filters, p);
             }
           }
           matrix[ri][ci] = total;
@@ -287,6 +297,135 @@
       }
 
       return matrix;
+    }
+
+    // ── Drilldown ─────────────────────────────────────────────────────
+
+    async function fetchDrillRows(sources, filters, periods) {
+      const bucket = [];
+      for (const p of periods) {
+        for (const src of sources) {
+          const data = await fetchSourceYear(src, p.year);
+          filterRows(data, filters, p).forEach(r => bucket.push({ ...r, __source: src }));
+        }
+      }
+      return bucket;
+    }
+
+    function drillKindFor(sourceId) {
+      if (sourceId === "actual") return "ledger-tx";
+      if (sourceId.startsWith("scenario:")) return "ledger-cc";
+      const src = DATA_SOURCES.find(s => s.id === sourceId);
+      if (src?.type === "headcount") return "headcount";
+      return "ledger-cc"; // budget e futuros ledgers agregados (sem lançamento individual)
+    }
+
+    let _drillPopover = null;
+    let _drillKeyHandler = null;
+    function closeDrillPopover() {
+      if (_drillPopover) { _drillPopover.remove(); _drillPopover = null; }
+      if (_drillKeyHandler) { document.removeEventListener("keydown", _drillKeyHandler); _drillKeyHandler = null; }
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return "";
+      const [y, m, d] = String(iso).split("-");
+      return d && m && y ? `${d}/${m}/${y}` : String(iso);
+    }
+
+    function drillTableHtml(kind, rows) {
+      const esc = (v) => v ? escapeHtml(String(v)) : "";
+      const th = "padding:6px 10px;border-bottom:1px solid var(--line);font-size:11px;text-align:left;color:var(--text-faint);white-space:nowrap;position:sticky;top:0;background:var(--panel)";
+      const td = "padding:5px 10px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap";
+
+      if (!rows.length) return `<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Sem lançamentos nesse recorte.</div>`;
+
+      if (kind === "ledger-tx") {
+        const sorted = [...rows].sort((a, b) => String(b.entry_date||"").localeCompare(String(a.entry_date||"")));
+        const total = sorted.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+        return `<table style="border-collapse:collapse;width:100%">
+          <thead><tr>
+            <th style="${th}">Data</th><th style="${th}">CC</th><th style="${th}">Conta</th>
+            <th style="${th}">Histórico</th><th style="${th};text-align:right">Valor</th>
+          </tr></thead>
+          <tbody>${sorted.map(r => `<tr>
+            <td style="${td}">${esc(fmtDate(r.entry_date))}</td>
+            <td style="${td}">${esc(r.cost_center_number)} ${esc(r.cc_name)}</td>
+            <td style="${td}">${esc(r.account_number)} ${esc(r.account_name)}</td>
+            <td style="${td};white-space:normal;max-width:260px">${esc(r.history)}</td>
+            <td style="${td};text-align:right;font-variant-numeric:tabular-nums">${esc(fmtNumber(r.amount,"n2"))}</td>
+          </tr>`).join("")}</tbody>
+          <tfoot><tr><td colspan="4" style="${td};font-weight:600;border-top:2px solid var(--line);border-bottom:none">Total</td>
+            <td style="${td};text-align:right;font-weight:600;border-top:2px solid var(--line);border-bottom:none;font-variant-numeric:tabular-nums">${esc(fmtNumber(total,"n2"))}</td></tr></tfoot>
+        </table>`;
+      }
+
+      if (kind === "headcount") {
+        const sorted = [...rows].sort((a, b) => String(a.colab||"").localeCompare(String(b.colab||"")));
+        return `<table style="border-collapse:collapse;width:100%">
+          <thead><tr><th style="${th}">Matrícula</th><th style="${th}">Nome</th><th style="${th}">Cargo</th><th style="${th}">CC</th></tr></thead>
+          <tbody>${sorted.map(r => `<tr>
+            <td style="${td}">${esc(r.matricula)}</td><td style="${td}">${esc(r.colab)}</td>
+            <td style="${td}">${esc(r.cargo)}</td><td style="${td}">${esc(r.cost_center_number)} ${esc(r.cc_name)}</td>
+          </tr>`).join("")}</tbody>
+          <tfoot><tr><td colspan="3" style="${td};font-weight:600;border-top:2px solid var(--line);border-bottom:none">Total de colaboradores</td>
+            <td style="${td};text-align:right;font-weight:600;border-top:2px solid var(--line);border-bottom:none">${sorted.length}</td></tr></tfoot>
+        </table>`;
+      }
+
+      // ledger-cc — sem lançamento individual (budget/cenário): agrupa por CC
+      const byCc = new Map();
+      rows.forEach(r => {
+        const key = String(r.cost_center_number || "");
+        const cur = byCc.get(key) || { cc: key, name: r.cc_name || "", total: 0 };
+        cur.total += Number(r.amount) || 0;
+        byCc.set(key, cur);
+      });
+      const grouped = [...byCc.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
+      const total = grouped.reduce((s, r) => s + r.total, 0);
+      return `<table style="border-collapse:collapse;width:100%">
+        <thead><tr><th style="${th}">Centro de custo</th><th style="${th};text-align:right">Valor</th></tr></thead>
+        <tbody>${grouped.map(r => `<tr>
+          <td style="${td}">${esc(r.cc)} ${esc(r.name)}</td>
+          <td style="${td};text-align:right;font-variant-numeric:tabular-nums">${esc(fmtNumber(r.total,"n2"))}</td>
+        </tr>`).join("")}</tbody>
+        <tfoot><tr><td style="${td};font-weight:600;border-top:2px solid var(--line);border-bottom:none">Total</td>
+          <td style="${td};text-align:right;font-weight:600;border-top:2px solid var(--line);border-bottom:none;font-variant-numeric:tabular-nums">${esc(fmtNumber(total,"n2"))}</td></tr></tfoot>
+      </table>`;
+    }
+
+    async function openCellDrilldown(row, col) {
+      closeDrillPopover();
+      const { sources, filters, periods } = cellPlan(row, col);
+      const kind = drillKindFor(sources[0]);
+
+      const overlay = document.createElement("div");
+      overlay.style.cssText = `position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.65);
+        display:flex;align-items:center;justify-content:center;padding:16px`;
+      overlay.innerHTML = `<div style="background:var(--panel);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.6);
+        width:100%;max-width:720px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);flex-shrink:0">
+          <span style="font-size:14px;font-weight:600;color:var(--text)">${escapeHtml(row.name || "")} — ${escapeHtml(col.name || "")}</span>
+          <button id="vbd-x" type="button" style="font-size:20px;background:none;border:none;cursor:pointer;color:var(--text-faint);line-height:1;padding:0 4px">&times;</button>
+        </div>
+        <div id="vbd-body" style="flex:1;overflow:auto"><div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Carregando...</div></div>
+      </div>`;
+      document.body.appendChild(overlay);
+      _drillPopover = overlay;
+      overlay.querySelector("#vbd-x").addEventListener("click", closeDrillPopover);
+      overlay.addEventListener("click", e => { if (e.target === overlay) closeDrillPopover(); });
+      _drillKeyHandler = e => { if (e.key === "Escape") closeDrillPopover(); };
+      document.addEventListener("keydown", _drillKeyHandler);
+
+      try {
+        const rows = await fetchDrillRows(sources, filters, periods);
+        if (_drillPopover !== overlay) return; // fechado antes de terminar o fetch
+        overlay.querySelector("#vbd-body").innerHTML = drillTableHtml(kind, rows);
+      } catch (err) {
+        if (_drillPopover !== overlay) return;
+        overlay.querySelector("#vbd-body").innerHTML =
+          `<div style="padding:20px;color:var(--neg);font-size:12px">Erro ao buscar detalhe: ${escapeHtml(err.message)}</div>`;
+      }
     }
 
     // ── Formatter ─────────────────────────────────────────────────────
@@ -392,12 +531,14 @@
             const negRed = options?.negativeRed && v < 0;
             const effectiveFmt = c.numberFmt || r.numberFmt || "n0";
             const fmtd   = fmtNumber(v, effectiveFmt, options);
-            html += `<td style="${D};border-left:1px solid var(--line);text-align:${cellAlign};
+            const drillable = options?.enableDrilldown && r.type === "data" && c.type === "data";
+            html += `<td ${drillable ? `class="vb-drill-td" data-ri="${ri}" data-ci="${ci}" title="Clique para ver o detalhe"` : ""}
+              style="${D};border-left:1px solid var(--line);text-align:${cellAlign};
               font-variant-numeric:tabular-nums;vertical-align:${valign};font-size:${cellFontSize}px;
               background:${cellBg};
               color:${negRed ? "var(--neg)" : cellColor};
               font-weight:${cellBold ? "600" : "400"};
-              font-style:${cellItalic ? "italic" : "normal"}">${esc(fmtd)}</td>`;
+              font-style:${cellItalic ? "italic" : "normal"}${drillable ? ";cursor:pointer;text-decoration:underline dotted" : ""}">${esc(fmtd)}</td>`;
           }
           html += `</tr>`;
         }
@@ -405,6 +546,9 @@
         container.innerHTML = html;
         const wrap = container.querySelector(".reports-table-wrap");
         if (wrap && initFloatingScrollbar) initFloatingScrollbar(wrap);
+        container.querySelectorAll(".vb-drill-td").forEach(td => {
+          td.addEventListener("click", () => openCellDrilldown(rows[Number(td.dataset.ri)], cols[Number(td.dataset.ci)]));
+        });
       } catch (err) {
         container.innerHTML = `<span style="font-size:12px;color:var(--neg)">${escapeHtml("Erro: " + err.message)}</span>`;
       }
@@ -691,7 +835,8 @@
           <div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">Opções de exibição</div>
           ${[["showDataInEditor","Exibir dados na edição do relatório"],
              ["hideZeroRows","Ocultar linhas zeradas"],["hideZeroCols","Ocultar colunas zeradas"],
-             ["negativeRed","Negativos em vermelho"],["negativeParens","Negativos entre parênteses"]]
+             ["negativeRed","Negativos em vermelho"],["negativeParens","Negativos entre parênteses"],
+             ["enableDrilldown","Habilitar drilldown nas células (clique mostra o detalhe)"]]
             .map(([k,lbl]) => `<label style="display:flex;align-items:center;gap:8px;font-size:13px;
               color:var(--text-soft);margin-bottom:6px;cursor:pointer">
               <input type="checkbox" class="det-opt" data-key="${k}" ${o[k]?"checked":""}
