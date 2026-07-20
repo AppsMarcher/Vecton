@@ -2829,7 +2829,7 @@ thead .col-frozen-3 {
 .reports-opex-table tr.opex-row-account:hover td { background: rgba(255,255,255,0.03); }
 .soc-drillable { cursor: pointer; }
 .soc-drillable:hover { background: rgba(79,124,255,0.08) !important; color: var(--blue) !important; }
-.opex-code { font-family: monospace; font-size: 10.5px; color: var(--text-faint); }
+.opex-code { font-size: 10.5px; color: var(--text-faint); }
 .reports-opex-table tr td,
 .reports-opex-table tr th { text-decoration: none !important; }
 /* ─────────────────────────────────────────────────────────────────────────── */
