@@ -34,7 +34,12 @@
       dreDfsBudget: renderDreDfsBudget
     };
 
-    let _budgetSource = "budget";
+    // Fonte selecionada nos 3 relatorios "Budget" (Ger/Soc/Dfs).
+    // null = ainda nao resolvida -> assume o cenario favorito da org (is_default),
+    // ou Budget se nao houver. Troca manual no select vale so para a sessao.
+    // setBudgetSource() (chamado ao abrir a partir do detalhe do cenario) sempre
+    // define um valor explicito, entao nunca fica null depois de uma chamada dessas.
+    let _budgetSource = null;
     // Fonte comparativa embutida nos 3 relatorios "Real" (Mes/Acumulado x Real/Cenario/Var).
     // null = ainda nao resolvida -> assume o cenario favorito da org (is_default),
     // ou Budget se nao houver. Troca manual no select vale so para a sessao.
@@ -75,8 +80,16 @@
           opt.textContent = s.name;
           sel.appendChild(opt);
         });
+        if (_budgetSource === null) {
+          const fav = scenarios.find(s => s.is_default);
+          _budgetSource = fav ? `scenario:${fav.id}` : "budget";
+        }
       } catch (_) {}
-      if ([...sel.options].some(o => o.value === _budgetSource)) sel.value = _budgetSource;
+      // Fonte inexistente (fetch falhou ou cenario removido) -> volta ao Budget.
+      if (!_budgetSource || ![...sel.options].some(o => o.value === _budgetSource)) {
+        _budgetSource = "budget";
+      }
+      sel.value = _budgetSource;
     }
 
     async function fetchRowsForSource(year, source) {
@@ -435,11 +448,17 @@
       _compareSource = null;
     }
 
+    // Idem, para o default da "Fonte" dos 3 relatorios Budget.
+    function resetBudgetSource() {
+      _budgetSource = null;
+    }
+
     return {
       renderSelectedDreReport,
       renderFallbackSocReal,
       setBudgetSource,
-      resetCompareSource
+      resetCompareSource,
+      resetBudgetSource
     };
   }
 
