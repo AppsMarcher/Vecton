@@ -11,7 +11,8 @@
       resolveOrganizationId,
       fetchSupabaseRowsSafe,
       callSupabaseRpc,
-      isSupabaseConfigured
+      isSupabaseConfigured,
+      syncHeaderPeriod
     } = deps;
 
     const REPORT_ID = "comercialPainel";
@@ -1093,13 +1094,16 @@ ${p2}
       if (!enteredPainel) {
         // Toda vez que ENTRA no relatorio (nao a cada re-render), reseta pro
         // mes calendario real de hoje + aba "Mes" -- ignora o que estiver no
-        // cabecalho do site. Depois disso, segue o cabecalho normalmente
-        // (ver syncFromHeader) ate o usuario sair e entrar de novo.
+        // cabecalho do site. O toggle do CABECALHO (state.currentPeriod, usado
+        // por DRE/Budget/Dashboard) tem que acompanhar junto -- nunca podem
+        // ficar descasados. Depois disso, segue o cabecalho normalmente (ver
+        // syncFromHeader) ate o usuario sair e entrar de novo.
         const today = new Date();
         year = today.getFullYear();
         month = today.getMonth() + 1;
         period = "mes";
         enteredPainel = true;
+        syncHeaderPeriod?.(year, month);
       } else {
         syncFromHeader();
       }
