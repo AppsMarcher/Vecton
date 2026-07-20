@@ -1318,7 +1318,7 @@ function initReportCardEdit() {
 
   const newReportBtn = document.querySelector("#reports-new-report-btn");
   if (newReportBtn) {
-    newReportBtn.style.display = "";
+    newReportBtn.style.display = "flex";
     newReportBtn.onclick = () => {
       selectedReportId = "__new_report__";
       renderReportsView();

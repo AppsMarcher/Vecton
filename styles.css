@@ -2218,9 +2218,8 @@ body.can-edit-reports [data-custom-report="true"] .fc-card-menu-btn { display: i
 /* Gear divide o canto com a estrela nos cards de cenário */
 body.can-edit-reports .fc-scenario-card .fc-card-menu-btn { right: 42px; }
 
-/* Botão Reorganizar / Gerenciar seções */
-#reports-reorder-btn,
-#reports-manage-sections-btn {
+/* Botão padrão de toolbar (Novo relatório / Reorganizar / Gerenciar seções) */
+.reports-toolbar-btn {
   display: none;
   align-items: center;
   gap: 6px;
@@ -2231,12 +2230,11 @@ body.can-edit-reports .fc-scenario-card .fc-card-menu-btn { right: 42px; }
   color: var(--text-muted);
   font-size: 0.78rem;
   cursor: pointer;
+  white-space: nowrap;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-#reports-reorder-btn svg,
-#reports-manage-sections-btn svg { width: 14px; height: 14px; }
-#reports-reorder-btn:hover,
-#reports-manage-sections-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+.reports-toolbar-btn svg { width: 14px; height: 14px; }
+.reports-toolbar-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
 #reports-reorder-btn.active { background: rgba(99,142,255,0.15); color: var(--blue); border-color: var(--blue); }
 .rrc-reorder-mode { cursor: grab; }
 .rrc-reorder-mode:active { cursor: grabbing; }
@@ -6264,7 +6262,7 @@ table th,
 .vp-source-sel {
   font-size: 12px;
   padding: 4px 8px;
-  border-radius: var(--radius);
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--panel-hover);
   color: var(--text);
