@@ -3842,7 +3842,6 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false, 
   const cmpCells = (realMonths, cmpMonths) => hasCompare
     ? `<td class="dre-cmp-gap"></td>${dreCompareCellsMarkup(computeDreCompareCell({ months: realMonths }, { months: cmpMonths || Array(12).fill(0) }, month, null, null))}`
     : "";
-  const cmpColCount = hasCompare ? 10 : 0; // gap+4(Mês)+gap+4(Acumulado)
 
   let bodyRows = "";
 
@@ -3860,11 +3859,18 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false, 
   </tr>`;
 
   OPEX_STRUCTURE.forEach((section) => {
-    // Section header
+    // Section header: colspan cobre só label+meses+total. O bloco comparativo
+    // ganha células PRÓPRIAS (gap + filler) em vez de entrar no mesmo colspan
+    // — senão o tom/borda da seção "vazava" por cima do gap (só acontece aqui:
+    // é a única linha da tabela com colspan único cobrindo tudo).
+    const sectionCmp = hasCompare
+      ? `<td class="dre-cmp-gap"></td><td colspan="4"></td><td class="dre-cmp-gap"></td><td colspan="4"></td>`
+      : "";
     bodyRows += `<tr class="opex-row-section">
-      <td class="reports-label-cell opex-code-col" colspan="${MONTH_LABELS.length + 3 + cmpColCount}">
+      <td class="reports-label-cell opex-code-col" colspan="${MONTH_LABELS.length + 3}">
         <span>${escapeHtml(section.label)}</span>
       </td>
+      ${sectionCmp}
     </tr>`;
 
     section.groups.forEach((group) => {
