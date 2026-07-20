@@ -2397,6 +2397,28 @@ thead .col-frozen-3 {
 .reports-dre-table tr.is-synthetic .col-frozen {
   background: #111a2e;
 }
+/* Colunas congeladas carregam dado real (código/descrição) — ao contrário do
+   .dre-cmp-gap (que é neutro/preto sempre, ver nota acima), aqui a coluna deve
+   ACOMPANHAR o realce da própria linha (equivalentes opacos das mesmas rgba,
+   já que sticky exige fundo sólido — não dá pra usar transparência real). */
+.reports-ger-table tr.ger-row-subtotal .col-frozen {
+  background: #141f34;
+}
+.reports-ger-table tr.ger-row-result-final .col-frozen {
+  background: #1a2a47;
+}
+.reports-ger-table tr.dfs-row-section .col-frozen {
+  background: #12151c;
+}
+.reports-opex-table tr.opex-row-grand .col-frozen {
+  background: #141f34;
+}
+.reports-opex-table tr.opex-row-section .col-frozen {
+  background: #12151c;
+}
+.reports-opex-table tr.opex-row-group .col-frozen {
+  background: #101418;
+}
 
 .reports-code-cell,
 .reports-class-cell {
@@ -2474,9 +2496,10 @@ thead .col-frozen-3 {
 }
 
 /* ─── Column resize handle ───────────────────────────────────────────────── */
-.reports-dre-table th {
-  position: relative;
-}
+/* NAO redeclarar position aqui — `.reports-dre-table th` (acima) ja e
+   position:sticky, que estabelece containing block pro .col-resizer (absolute)
+   igual relative faria. Uma regra `position:relative` aqui (mesma especificidade,
+   depois no arquivo) SOBRESCREVIA o sticky e quebrava o congelamento do cabecalho. */
 .col-resizer {
   position: absolute;
   top: 0;

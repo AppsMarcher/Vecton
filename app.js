@@ -2771,9 +2771,9 @@ function buildDreSocRealTableMarkup(report, compareReport = null, month = null, 
       : "";
     return `
       <tr class="${row.class === "Sintetica" ? "is-synthetic" : "is-analytic"}">
-        <td class="reports-code-cell">${escapeHtml(row.code)}</td>
-        <td class="reports-label-cell soc-label-col" style="--depth:${row.depth}"><span>${escapeHtml(row.name)}</span></td>
-        <td class="reports-class-cell">${escapeHtml(row.class)}</td>
+        <td class="reports-code-cell col-frozen col-frozen-1">${escapeHtml(row.code)}</td>
+        <td class="reports-label-cell soc-label-col col-frozen col-frozen-2" style="--depth:${row.depth}"><span>${escapeHtml(row.name)}</span></td>
+        <td class="reports-class-cell col-frozen col-frozen-3">${escapeHtml(row.class)}</td>
         ${valueCells}
         <td class="reports-value-cell reports-total-cell">${escapeHtml(formatSignedCurrency(row.total))}</td>
         ${compareCells}
@@ -2795,9 +2795,9 @@ function buildDreSocRealTableMarkup(report, compareReport = null, month = null, 
       </colgroup>
       <thead>
         <tr>
-          <th${hasCompare ? ' rowspan="2"' : ""}>Cod Conta${R}</th>
-          <th${hasCompare ? ' rowspan="2"' : ""}>Desc Moeda 1${R}</th>
-          <th${hasCompare ? ' rowspan="2"' : ""}>Classe Conta${R}</th>
+          <th class="col-frozen col-frozen-1"${hasCompare ? ' rowspan="2"' : ""}>Cod Conta${R}</th>
+          <th class="col-frozen col-frozen-2"${hasCompare ? ' rowspan="2"' : ""}>Desc Moeda 1${R}</th>
+          <th class="col-frozen col-frozen-3"${hasCompare ? ' rowspan="2"' : ""}>Classe Conta${R}</th>
           ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
           <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
           ${cmp ? cmp.row1Extra : ""}
@@ -3249,7 +3249,7 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true, compareReport
 
     return `
       <tr class="${rowClass}">
-        <td class="reports-label-cell ger-label-col"><span>${escapeHtml(line.label)}</span></td>
+        <td class="reports-label-cell ger-label-col col-frozen col-frozen-1"><span>${escapeHtml(line.label)}</span></td>
         ${valueCells}
         ${totalCell}
         ${compareCells}
@@ -3269,7 +3269,7 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true, compareReport
       </colgroup>
       <thead>
         <tr>
-          <th${hasCompare ? ' rowspan="2"' : ""}>Linha Gerencial${R}</th>
+          <th class="col-frozen col-frozen-1"${hasCompare ? ' rowspan="2"' : ""}>Linha Gerencial${R}</th>
           ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
           <th${hasCompare ? ' rowspan="2"' : ""}>TOTAL${R}</th>
           ${cmp ? cmp.row1Extra : ""}
@@ -3537,7 +3537,6 @@ function buildDreDfsRealTableMarkup(report, compareReport = null, month = null, 
   const R = '<span class="col-resizer" aria-hidden="true"></span>';
   const hasCompare = !!(compareReport && month);
   const compareById = hasCompare ? new Map(compareReport.lines.map((l) => [l.id, l])) : null;
-  const baseColspan = MONTH_LABELS.length + 2;
 
   const bodyRows = report.lines.map((line) => {
     if (line.kind === "section") {
@@ -3545,14 +3544,17 @@ function buildDreDfsRealTableMarkup(report, compareReport = null, month = null, 
       // largura toda — isso apagaria o gap escuro (viraria uma tarja clara
       // cortando a coluna de espaco). Divide em 3 pedacos (real | mes | acumulado)
       // com o mesmo gap escuro entre eles, preservando a faixa continua.
+      // Pelo mesmo motivo, o rotulo tambem sai do colspan unico: fica na
+      // propria celula congelavel (senao a linha toda virasse sticky-left).
       const compareSection = hasCompare
         ? `<td class="dre-cmp-gap"></td><td colspan="4"></td><td class="dre-cmp-gap"></td><td colspan="4"></td>`
         : "";
       return `
         <tr class="dfs-row-section">
-          <td class="reports-label-cell dfs-label-col" colspan="${baseColspan}">
+          <td class="reports-label-cell dfs-label-col col-frozen col-frozen-1">
             <span>${escapeHtml(line.label)}</span>
           </td>
+          <td colspan="${MONTH_LABELS.length + 1}"></td>
           ${compareSection}
         </tr>
       `;
@@ -3585,7 +3587,7 @@ function buildDreDfsRealTableMarkup(report, compareReport = null, month = null, 
 
     return `
       <tr class="${rowClass}">
-        <td class="reports-label-cell dfs-label-col"><span>${escapeHtml(line.label)}</span></td>
+        <td class="reports-label-cell dfs-label-col col-frozen col-frozen-1"><span>${escapeHtml(line.label)}</span></td>
         ${valueCells}
         ${totalCell}
         ${compareCells}
@@ -3605,7 +3607,7 @@ function buildDreDfsRealTableMarkup(report, compareReport = null, month = null, 
       </colgroup>
       <thead>
         <tr>
-          <th${hasCompare ? ' rowspan="2"' : ""}>Linha DFs${R}</th>
+          <th class="col-frozen col-frozen-1"${hasCompare ? ' rowspan="2"' : ""}>Linha DFs${R}</th>
           ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
           <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
           ${cmp ? cmp.row1Extra : ""}
@@ -3851,25 +3853,29 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false, 
   const compareGrandTotal = hasCompare ? compareSumMonths(allAccounts) : null;
   const grandTotalRow = grandTotal.map((v) => `<td class="reports-value-cell">${escapeHtml(fmtVal(v))}</td>`).join("");
   bodyRows += `<tr class="opex-row-grand">
-    <td class="reports-label-cell opex-code-col"></td>
-    <td class="reports-label-cell opex-name-col"><span>TOTAL DE GASTOS OPERACIONAIS</span></td>
+    <td class="reports-label-cell opex-code-col col-frozen col-frozen-1"></td>
+    <td class="reports-label-cell opex-name-col col-frozen col-frozen-2"><span>TOTAL DE GASTOS OPERACIONAIS</span></td>
     ${grandTotalRow}
     <td class="reports-value-cell reports-total-cell">${escapeHtml(fmtVal(grandTotal.reduce((s,v)=>s+v,0)))}</td>
     ${cmpCells(grandTotal, compareGrandTotal)}
   </tr>`;
 
   OPEX_STRUCTURE.forEach((section) => {
-    // Section header: colspan cobre só label+meses+total. O bloco comparativo
-    // ganha células PRÓPRIAS (gap + filler) em vez de entrar no mesmo colspan
-    // — senão o tom/borda da seção "vazava" por cima do gap (só acontece aqui:
-    // é a única linha da tabela com colspan único cobrindo tudo).
+    // Section header: label fica na PRÓPRIA célula congelável (code vazio +
+    // name com o título), e um filler cobre só meses+total — não pode ser 1
+    // colspan só cobrindo tudo, senão a região INTEIRA vira sticky-left (a
+    // seção toda "grudaria" na tela em vez de só as 2 colunas de rótulo).
+    // O bloco comparativo também ganha células PRÓPRIAS (gap + filler) —
+    // mesmo motivo, aplicado ao "buraco" do gap (ver nota da correção anterior).
     const sectionCmp = hasCompare
       ? `<td class="dre-cmp-gap"></td><td colspan="4"></td><td class="dre-cmp-gap"></td><td colspan="4"></td>`
       : "";
     bodyRows += `<tr class="opex-row-section">
-      <td class="reports-label-cell opex-code-col" colspan="${MONTH_LABELS.length + 3}">
+      <td class="reports-label-cell opex-code-col col-frozen col-frozen-1"></td>
+      <td class="reports-label-cell opex-name-col col-frozen col-frozen-2">
         <span>${escapeHtml(section.label)}</span>
       </td>
+      <td colspan="${MONTH_LABELS.length + 1}"></td>
       ${sectionCmp}
     </tr>`;
 
@@ -3885,8 +3891,8 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false, 
       const groupCells = groupMonths.map((v) => `<td class="reports-value-cell">${escapeHtml(fmtVal(v))}</td>`).join("");
 
       bodyRows += `<tr class="opex-row-group">
-        <td class="reports-label-cell opex-code-col"></td>
-        <td class="reports-label-cell opex-name-col"><span>${escapeHtml(group.label)}</span></td>
+        <td class="reports-label-cell opex-code-col col-frozen col-frozen-1"></td>
+        <td class="reports-label-cell opex-name-col col-frozen col-frozen-2"><span>${escapeHtml(group.label)}</span></td>
         ${groupCells}
         <td class="reports-value-cell reports-total-cell">${escapeHtml(fmtVal(groupTotal))}</td>
         ${cmpCells(groupMonths, compareGroupMonths)}
@@ -3900,8 +3906,8 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false, 
         const compareMonths = hasCompare ? (compareMonthsMap.get(code) || Array(12).fill(0)) : null;
         const cells = months.map((v, i) => `<td class="reports-value-cell opex-drillable" data-account="${escapeHtml(code)}" data-month-idx="${i}">${escapeHtml(fmtVal(v))}</td>`).join("");
         bodyRows += `<tr class="opex-row-account">
-          <td class="reports-label-cell opex-code-col"><span class="opex-code">${escapeHtml(code)}</span></td>
-          <td class="reports-label-cell opex-name-col"><span>${escapeHtml(name)}</span></td>
+          <td class="reports-label-cell opex-code-col col-frozen col-frozen-1"><span class="opex-code">${escapeHtml(code)}</span></td>
+          <td class="reports-label-cell opex-name-col col-frozen col-frozen-2"><span>${escapeHtml(name)}</span></td>
           ${cells}
           <td class="reports-value-cell reports-total-cell">${escapeHtml(fmtVal(total))}</td>
           ${cmpCells(months, compareMonths)}
@@ -3923,8 +3929,8 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false, 
       </colgroup>
       <thead>
         <tr>
-          <th${hasCompare ? ' rowspan="2"' : ""}># Conta${R}</th>
-          <th${hasCompare ? ' rowspan="2"' : ""}>Descritivo${R}</th>
+          <th class="col-frozen col-frozen-1"${hasCompare ? ' rowspan="2"' : ""}># Conta${R}</th>
+          <th class="col-frozen col-frozen-2"${hasCompare ? ' rowspan="2"' : ""}>Descritivo${R}</th>
           ${MONTH_LABELS.map((l) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(l)}${R}</th>`).join("")}
           <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
           ${cmp ? cmp.row1Extra : ""}
