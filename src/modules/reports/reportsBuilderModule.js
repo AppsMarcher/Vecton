@@ -401,25 +401,7 @@
           }
           html += `</tr>`;
         }
-        const lastDataRi = visRows.find(ri => rows[ri].isTotalRow)
-          ?? [...visRows].reverse().find(ri => rows[ri].type !== "blank");
-        if (lastDataRi !== undefined) {
-          html += `</tbody><tfoot><tr>`;
-          const TF = "padding:6px 12px;border-top:2px solid var(--line);font-size:12px;font-weight:600;white-space:nowrap;background:var(--panel-hover)";
-          html += `<td style="${TF};text-align:left;color:var(--text-soft)">${esc(rows[lastDataRi].name)}</td>`;
-          for (const ci of visFinalCols) {
-            const c = cols[ci];
-            const cW = c.width || (c.type === "blank" ? 18 : 120);
-            if (c.type === "blank") { html += `<td style="${TF};width:${cW}px;min-width:${cW}px"></td>`; continue; }
-            const v = matrix[lastDataRi][ci] ?? 0;
-            const negRed = options?.negativeRed && v < 0;
-            const effectiveFmt = c.numberFmt || rows[lastDataRi].numberFmt || "n0";
-            html += `<td style="${TF};border-left:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;
-              color:${negRed ? "var(--neg)" : "var(--text)"};width:${cW}px;min-width:${cW}px">${esc(fmtNumber(v, effectiveFmt, options))}</td>`;
-          }
-          html += `</tr></tfoot>`;
-        }
-        html += `</table></div>`;
+        html += `</tbody></table></div>`;
         container.innerHTML = html;
         const wrap = container.querySelector(".reports-table-wrap");
         if (wrap && initFloatingScrollbar) initFloatingScrollbar(wrap);
