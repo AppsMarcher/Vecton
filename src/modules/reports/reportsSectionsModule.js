@@ -41,6 +41,7 @@
     let _collapsed = {};
     let _reorderMode = false;
     let _openPopover = null;
+    let _dragSrc = null; // compartilhado entre todos os grids — precisa sobreviver ao cruzar de seção
 
     // ── Persistência do estado colapsado (cosmético, por usuário) ──────────
     function collapsedKey() {
@@ -137,50 +138,49 @@
     function wireDragDrop(wrap) {
       const grids = [...wrap.querySelectorAll(".reports-card-grid")];
       grids.forEach((grid) => {
-        let dragSrc = null;
-
         grid.addEventListener("dragstart", (e) => {
           if (!_reorderMode) return;
           const card = e.target.closest(".reports-report-card");
           if (!card) return;
-          dragSrc = card;
+          _dragSrc = card;
           card.classList.add("rrc-dragging");
           e.dataTransfer.effectAllowed = "move";
           e.dataTransfer.setData("text/plain", card.dataset.reportId);
         });
 
         grid.addEventListener("dragend", () => {
-          grid.querySelectorAll(".reports-report-card").forEach((c) => c.classList.remove("rrc-dragging", "rrc-drag-over"));
-          dragSrc = null;
+          wrap.querySelectorAll(".reports-report-card").forEach((c) => c.classList.remove("rrc-dragging", "rrc-drag-over"));
+          wrap.querySelectorAll(".reports-card-grid").forEach((g) => g.classList.remove("rrc-drag-over-empty"));
+          _dragSrc = null;
         });
 
         grid.addEventListener("dragover", (e) => {
-          if (!_reorderMode || !dragSrc) return;
+          if (!_reorderMode || !_dragSrc) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
           const card = e.target.closest(".reports-report-card");
           grid.querySelectorAll(".reports-report-card").forEach((c) => c.classList.remove("rrc-drag-over"));
-          if (card && card !== dragSrc) card.classList.add("rrc-drag-over");
+          if (card && card !== _dragSrc) { card.classList.add("rrc-drag-over"); grid.classList.remove("rrc-drag-over-empty"); }
           else if (!card) grid.classList.add("rrc-drag-over-empty");
         });
 
         grid.addEventListener("dragleave", (e) => {
           e.target.closest(".reports-report-card")?.classList.remove("rrc-drag-over");
-          grid.classList.remove("rrc-drag-over-empty");
+          if (e.target === grid) grid.classList.remove("rrc-drag-over-empty");
         });
 
         grid.addEventListener("drop", async (e) => {
-          if (!_reorderMode || !dragSrc) return;
+          if (!_reorderMode || !_dragSrc) return;
           e.preventDefault();
           grid.classList.remove("rrc-drag-over-empty");
           const target = e.target.closest(".reports-report-card");
-          const srcGrid = dragSrc.closest(".reports-card-grid");
-          if (target && target !== dragSrc) {
+          const srcGrid = _dragSrc.closest(".reports-card-grid");
+          if (target && target !== _dragSrc) {
             const cards = [...grid.querySelectorAll(".reports-report-card")];
-            if (cards.indexOf(dragSrc) < cards.indexOf(target)) target.after(dragSrc);
-            else target.before(dragSrc);
+            if (cards.indexOf(_dragSrc) < cards.indexOf(target)) target.after(_dragSrc);
+            else target.before(_dragSrc);
           } else if (!target) {
-            grid.appendChild(dragSrc);
+            grid.appendChild(_dragSrc);
           } else {
             return;
           }
