@@ -309,11 +309,24 @@
 
     // ── Drilldown ─────────────────────────────────────────────────────
 
+    // fetchSourceYear("actual", ano) pode devolver o resumo agregado (actuals_monthly_account_totals,
+    // sem CC/data/histórico) quando a Central de Relatórios já populou reportsLedgerCache pra esse ano —
+    // ótimo pra somar o card, ruim pro drilldown, que precisa do lançamento de verdade. Por isso o
+    // drilldown de "actual" tem seu próprio cache, sempre com o ledger completo (mesma fonte do DRE Soc).
+    let _actualDetailCache = new Map();
+    async function fetchActualDetailYear(year) {
+      if (_actualDetailCache.has(year)) return _actualDetailCache.get(year);
+      const raw = await fetchActualsLedgerWithCcForYear(year);
+      const enriched = applyRbac(enrichLedger(raw));
+      _actualDetailCache.set(year, enriched);
+      return enriched;
+    }
+
     async function fetchDrillRows(sources, filters, periods) {
       const bucket = [];
       for (const p of periods) {
         for (const src of sources) {
-          const data = await fetchSourceYear(src, p.year);
+          const data = src === "actual" ? await fetchActualDetailYear(p.year) : await fetchSourceYear(src, p.year);
           filterRows(data, filters, p).forEach(r => bucket.push({ ...r, __source: src }));
         }
       }
@@ -341,39 +354,73 @@
       return d && m && y ? `${d}/${m}/${y}` : String(iso);
     }
 
-    function drillTableHtml(kind, rows) {
+    // Tabela com cabeçalho ordenável — mesmo padrão de thSort() do drilldown do OPEX/DRE
+    // Societário: clique alterna asc/desc, seta ↑/↓, coluna ativa em azul.
+    function renderSortableTable(container, columns, rows, initialSort) {
       const esc = (v) => v ? escapeHtml(String(v)) : "";
-      const th = "padding:6px 10px;border-bottom:1px solid var(--line);font-size:11px;text-align:left;color:var(--text-faint);white-space:nowrap;position:sticky;top:0;background:var(--panel)";
-      const td = "padding:5px 10px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap";
+      const thStyle = "padding:6px 10px;border-bottom:1px solid var(--line);font-size:11px;color:var(--text-faint);white-space:nowrap;position:sticky;top:0;background:var(--panel);cursor:pointer;user-select:none";
+      const tdStyle = "padding:5px 10px;border-bottom:1px solid var(--line);font-size:12px;white-space:nowrap";
+      let sortKey = initialSort.key, sortDir = initialSort.dir;
 
-      if (!rows.length) return `<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Sem lançamentos nesse recorte.</div>`;
+      function sortedRows() {
+        const col = columns.find(c => c.key === sortKey);
+        return [...rows].sort((a, b) => {
+          const va = col.value(a), vb = col.value(b);
+          return typeof va === "number" ? sortDir * (va - vb) : sortDir * String(va).localeCompare(String(vb));
+        });
+      }
 
-      if (kind === "ledger-tx") {
-        const sorted = [...rows].sort((a, b) => String(b.entry_date||"").localeCompare(String(a.entry_date||"")));
-        return `<table style="border-collapse:collapse;width:100%">
-          <thead><tr>
-            <th style="${th}">Data</th><th style="${th}">CC</th><th style="${th}">Conta</th>
-            <th style="${th}">Histórico</th><th style="${th};text-align:right">Valor</th>
-          </tr></thead>
-          <tbody>${sorted.map(r => `<tr>
-            <td style="${td}">${esc(fmtDate(r.entry_date))}</td>
-            <td style="${td}">${esc(r.cost_center_number)} ${esc(r.cc_name)}</td>
-            <td style="${td}">${esc(r.account_number)} ${esc(r.account_name)}</td>
-            <td style="${td};white-space:normal;max-width:260px">${esc(r.history)}</td>
-            <td style="${td};text-align:right;font-variant-numeric:tabular-nums">${esc(fmtNumber(r.amount,"n2"))}</td>
-          </tr>`).join("")}</tbody>
+      function paint() {
+        const theadHtml = columns.map(c => {
+          const active = c.key === sortKey;
+          const dir = active ? (sortDir === 1 ? " ↑" : " ↓") : "";
+          return `<th data-sort="${c.key}" style="${thStyle};text-align:${c.align||"left"};${active?"color:var(--blue)":""}">${esc(c.label)}${dir}</th>`;
+        }).join("");
+        const bodyHtml = sortedRows().map(r => `<tr>${columns.map(c => {
+          const val = c.render ? c.render(r) : c.value(r);
+          return `<td style="${tdStyle};text-align:${c.align||"left"}${c.wrap?";white-space:normal;max-width:260px":""}${c.align==="right"?";font-variant-numeric:tabular-nums":""}">${esc(val)}</td>`;
+        }).join("")}</tr>`).join("");
+        container.innerHTML = `<table style="border-collapse:collapse;width:100%">
+          <thead><tr>${theadHtml}</tr></thead><tbody>${bodyHtml}</tbody>
         </table>`;
       }
 
+      paint();
+      container.addEventListener("click", e => {
+        const th = e.target.closest("th[data-sort]");
+        if (!th) return;
+        const key = th.dataset.sort;
+        sortDir = key === sortKey ? -sortDir : 1;
+        sortKey = key;
+        paint();
+      });
+    }
+
+    function renderDrillBody(container, kind, rows) {
+      if (!rows.length) {
+        container.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Sem lançamentos nesse recorte.</div>`;
+        return;
+      }
+
+      if (kind === "ledger-tx") {
+        renderSortableTable(container, [
+          { key: "date",    label: "Data",       value: r => r.entry_date || "",  render: r => fmtDate(r.entry_date) },
+          { key: "cc",      label: "CC",         value: r => `${r.cost_center_number||""} ${r.cc_name||""}`.trim() },
+          { key: "account", label: "Conta",      value: r => `${r.account_number||""} ${r.account_name||""}`.trim() },
+          { key: "history", label: "Histórico",  value: r => r.history || "", wrap: true },
+          { key: "amount",  label: "Valor",      value: r => Number(r.amount) || 0, render: r => fmtNumber(r.amount,"n2"), align: "right" },
+        ], rows, { key: "date", dir: -1 });
+        return;
+      }
+
       if (kind === "headcount") {
-        const sorted = [...rows].sort((a, b) => String(a.colab||"").localeCompare(String(b.colab||"")));
-        return `<table style="border-collapse:collapse;width:100%">
-          <thead><tr><th style="${th}">Matrícula</th><th style="${th}">Nome</th><th style="${th}">Cargo</th><th style="${th}">CC</th></tr></thead>
-          <tbody>${sorted.map(r => `<tr>
-            <td style="${td}">${esc(r.matricula)}</td><td style="${td}">${esc(r.colab)}</td>
-            <td style="${td}">${esc(r.cargo)}</td><td style="${td}">${esc(r.cost_center_number)} ${esc(r.cc_name)}</td>
-          </tr>`).join("")}</tbody>
-        </table>`;
+        renderSortableTable(container, [
+          { key: "matricula", label: "Matrícula", value: r => r.matricula || "" },
+          { key: "colab",     label: "Nome",       value: r => r.colab || "" },
+          { key: "cargo",     label: "Cargo",      value: r => r.cargo || "" },
+          { key: "cc",        label: "CC",         value: r => `${r.cost_center_number||""} ${r.cc_name||""}`.trim() },
+        ], rows, { key: "colab", dir: 1 });
+        return;
       }
 
       // ledger-cc — sem lançamento individual (budget/cenário): agrupa por CC
@@ -384,14 +431,10 @@
         cur.total += Number(r.amount) || 0;
         byCc.set(key, cur);
       });
-      const grouped = [...byCc.values()].sort((a, b) => Math.abs(b.total) - Math.abs(a.total));
-      return `<table style="border-collapse:collapse;width:100%">
-        <thead><tr><th style="${th}">Centro de custo</th><th style="${th};text-align:right">Valor</th></tr></thead>
-        <tbody>${grouped.map(r => `<tr>
-          <td style="${td}">${esc(r.cc)} ${esc(r.name)}</td>
-          <td style="${td};text-align:right;font-variant-numeric:tabular-nums">${esc(fmtNumber(r.total,"n2"))}</td>
-        </tr>`).join("")}</tbody>
-      </table>`;
+      renderSortableTable(container, [
+        { key: "cc",    label: "Centro de custo", value: r => `${r.cc} ${r.name}`.trim() },
+        { key: "total", label: "Valor",           value: r => r.total, render: r => fmtNumber(r.total,"n2"), align: "right" },
+      ], [...byCc.values()], { key: "total", dir: -1 });
     }
 
     // Resumo mostrado no topo do popover — mesmo padrão do drilldown do DRE Societário
@@ -438,7 +481,7 @@
       try {
         const rows = await fetchDrillRows(sources, filters, periods);
         if (_drillPopover !== overlay) return; // fechado antes de terminar o fetch
-        overlay.querySelector("#vbd-body").innerHTML = drillTableHtml(kind, rows);
+        renderDrillBody(overlay.querySelector("#vbd-body"), kind, rows);
         if (rows.length) {
           const summary = overlay.querySelector("#vbd-summary");
           summary.style.display = "flex";
