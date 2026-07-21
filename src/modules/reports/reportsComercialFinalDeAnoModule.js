@@ -165,9 +165,13 @@
     function render(container) {
       ensureStyle();
       closeExtratoPopover();
-      const scenOpts = scenarios.length
-        ? scenarios.map((s) => `<option value="${escapeHtml(s.id)}"${s.id === scenarioId ? " selected" : ""}>${escapeHtml(s.name)}</option>`).join("")
-        : `<option value="">(sem cenário)</option>`;
+      // "Budget" e' sentinela (scenario_id null) -- tem que aparecer sempre no
+      // dropdown, nao so quando `scenarios` vem vazio, senao fica impossivel
+      // selecionar Budget assim que existir pelo menos 1 cenario de forecast
+      // (bug encontrado pelo usuario: carga de Budget comercial funcionou,
+      // mas nenhum relatorio comercial deixava escolher Budget no Cenario).
+      const scenOpts = `<option value=""${!scenarioId ? " selected" : ""}>Budget</option>` +
+        scenarios.map((s) => `<option value="${escapeHtml(s.id)}"${s.id === scenarioId ? " selected" : ""}>${escapeHtml(s.name)}</option>`).join("");
       container.innerHTML = `
         <div class="cfa">
           <div class="cfa-header">

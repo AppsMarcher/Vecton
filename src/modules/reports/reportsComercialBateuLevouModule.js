@@ -176,9 +176,11 @@
     function render(container) {
       ensureStyle();
       closeExtratoPopover();
-      const scenOpts = scenarios.length
-        ? scenarios.map((s) => `<option value="${escapeHtml(s.id)}"${s.id === scenarioId ? " selected" : ""}>${escapeHtml(s.name)}</option>`).join("")
-        : `<option value="">(sem cenário)</option>`;
+      // "Budget" e' sentinela (scenario_id null) -- tem que aparecer sempre no
+      // dropdown, nao so quando `scenarios` vem vazio, senao fica impossivel
+      // selecionar Budget assim que existir pelo menos 1 cenario de forecast.
+      const scenOpts = `<option value=""${!scenarioId ? " selected" : ""}>Budget</option>` +
+        scenarios.map((s) => `<option value="${escapeHtml(s.id)}"${s.id === scenarioId ? " selected" : ""}>${escapeHtml(s.name)}</option>`).join("");
       container.innerHTML = `
         <div class="cbl">
           <div class="cbl-header">
