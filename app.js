@@ -63,6 +63,7 @@ const { createComercialPlanejadoCargaModule } = window.VECTON_COMERCIAL_PLANEJAD
 const { createComercialPainelModule } = window.VECTON_COMERCIAL_PAINEL;
 const { createComercialMapaModule } = window.VECTON_COMERCIAL_MAPA;
 const { createComercialBateuLevouModule } = window.VECTON_COMERCIAL_BATEU_LEVOU;
+const { createComercialFinalDeAnoModule } = window.VECTON_COMERCIAL_FINAL_DE_ANO;
 const { createReportsHelpersModule } = window.VECTON_REPORTS_HELPERS;
 const { createDashboardCardsModule } = window.VECTON_DASHBOARD_CARDS;
 const { createDashboardModule } = window.VECTON_DASHBOARD_MODULE;
@@ -1103,6 +1104,14 @@ const comercialBateuLevouModule = createComercialBateuLevouModule({
   callSupabaseRpc,
   isSupabaseConfigured,
 });
+const comercialFinalDeAnoModule = createComercialFinalDeAnoModule({
+  escapeHtml,
+  state,
+  resolveOrganizationId,
+  fetchSupabaseRowsSafe,
+  callSupabaseRpc,
+  isSupabaseConfigured,
+});
 const headcountRenderModule = createHeadcountRenderModule({
   escapeHtml,
   formatMonthLabel,
@@ -1777,7 +1786,7 @@ function canSeeReport(reportId) {
   if (role === "super_admin" || role === "admin") return true;
   // Comercial é allowlist fixa (Painel/Mapa/Bateu-Levou) — não recebe extras nem
   // as regras de manager/analyst, mesmo que extra_report_ids venha preenchido.
-  if (role === "comercial") return ["comercialPainel", "comercialMapa", "comercialBateuLevou"].includes(reportId);
+  if (role === "comercial") return ["comercialPainel", "comercialMapa", "comercialBateuLevou", "comercialFinalDeAno"].includes(reportId);
   if (getExtraReportIds().includes(reportId)) return true;
   if (role === "manager") return true;
   if (role === "analyst") return !isConsolidatedReport(reportId);
@@ -2474,7 +2483,8 @@ const REPORT_TITLES = {
   headcountBudget: "Headcount Planejado",
   comercialPainel: "Painel de Vendas",
   comercialMapa: "Mapa de Vendas",
-  comercialBateuLevou: "Bateu, Levou"
+  comercialBateuLevou: "Bateu, Levou",
+  comercialFinalDeAno: "Final de Ano"
 };
 
 /*
@@ -2703,6 +2713,7 @@ function renderReportsView() {
     comercialPainelModule.renderSelectedPainel(detailPanel, selectedReportId) ||
     comercialMapaModule.renderSelectedMapa(detailPanel, selectedReportId) ||
     comercialBateuLevouModule.renderSelectedBateuLevou(detailPanel, selectedReportId) ||
+    comercialFinalDeAnoModule.renderSelectedFinalDeAno(detailPanel, selectedReportId) ||
     reportsDreModule.renderSelectedDreReport(detailPanel, selectedReportId) ||
     reportsOpexModule.renderSelectedOpexReport(detailPanel, selectedReportId) ||
     reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId);
