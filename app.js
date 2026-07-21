@@ -1078,6 +1078,7 @@ const comercialPainelModule = createComercialPainelModule({
   resolveOrganizationId,
   fetchSupabaseRowsSafe,
   callSupabaseRpc,
+  callEdgeFunction,
   isSupabaseConfigured,
   // Toggle de período do cabeçalho (topo do site) nunca pode ficar descasado
   // do mês que o Painel está mostrando — ver renderSelectedPainel no módulo.
