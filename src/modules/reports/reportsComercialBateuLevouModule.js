@@ -97,6 +97,12 @@
         .cbl-bar-wrap { width:64px; height:6px; border-radius:99px; background:var(--cbl-bg-soft); overflow:hidden; display:inline-block; vertical-align:middle; margin-right:8px; }
         .cbl-bar-fill { height:100%; border-radius:99px; }
         .cbl-empty { padding:40px; text-align:center; color:var(--cbl-faint); }
+        .cbl-rules { margin-top:20px; background:var(--cbl-bg-soft); border:1px solid var(--cbl-line); border-radius:16px; padding:16px 20px; }
+        .cbl-rules-title { display:flex; align-items:center; gap:7px; font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; color:var(--cbl-faint); margin:0 0 10px; }
+        .cbl-rules-title::before { content:"§"; color:var(--cbl-soft); font-weight:700; }
+        .cbl-rules ol { margin:0; padding-left:18px; display:grid; gap:6px; }
+        .cbl-rules li { font-size:12px; line-height:1.5; color:var(--cbl-soft); }
+        .cbl-rules li b { color:var(--cbl-text); font-weight:600; }
         @media (max-width:900px){ .cbl-boards{ grid-template-columns:1fr; } }
       `;
       document.head.appendChild(s);
@@ -189,6 +195,7 @@
           </div>
           <div id="cbl-hero"></div>
           <div id="cbl-boards-wrap"></div>
+          ${rulesHtml()}
         </div>
       `;
       bind(container);
@@ -268,6 +275,28 @@
           <tbody>${body}</tbody>
         </table></div>
       </div>`;
+    }
+
+    // Disclaimer com o regulamento da campanha, sempre visivel abaixo dos 2
+    // boards (independe de estar carregando ou sem dados no periodo).
+    function rulesHtml() {
+      return `
+        <div class="cbl-rules">
+          <p class="cbl-rules-title">Regulamento da campanha</p>
+          <ol>
+            <li>Campanha <b>mensal</b> de atingimento de meta de <b>volume em máquinas</b> (quantidade, não R$), restrita aos <b>RCs</b> (responsáveis de território).</li>
+            <li>Disputa separada em <b>2 categorias independentes: Grão e Pecuária</b> — cada RC concorre na(s) linha(s) de que é responsável.</li>
+            <li><b>Real</b> = Faturado (NF emitida no mês). Carteira/pedido ainda não faturado não conta.</li>
+            <li><b>Meta</b> = a do cenário selecionado no topo do card (padrão Fcst 5+7, pode ser trocado).</li>
+            <li>Só é considerado <b>"bateu"</b> quem atinge <b>100% ou mais da meta</b> <b>e</b> vende <b>pelo menos 2 máquinas</b> no mês — vender só 1 não vale, mesmo com meta baixa.</li>
+            <li>RC sem meta cadastrada no período, mas com venda real, conta como <b>"bateu" automaticamente</b> (não há meta pra "não bater").</li>
+            <li><b>Não disputam</b>: gerente geral, coordenadores de cada regional e vendedores internos — mesmo quando aparecem cadastrados como responsáveis de algum território.</li>
+            <li>Territórios sem RC nomeado ("A definir") <b>não entram</b> no ranking.</li>
+            <li>Ranking ordenado por <b>% de atingimento</b> (desempate por volume real vendido).</li>
+            <li>Período = o mês/ano selecionado no topo do site.</li>
+          </ol>
+        </div>
+      `;
     }
 
     function renderBoards(container) {
