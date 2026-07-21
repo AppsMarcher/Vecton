@@ -11,6 +11,7 @@
       resolveOrganizationId,
       fetchSupabaseRowsSafe,
       callSupabaseRpc,
+      callEdgeFunction,
       isSupabaseConfigured,
       syncHeaderPeriod
     } = deps;
@@ -40,6 +41,7 @@
     let tipos = [];               // [{tipo, fat_val, cart_val, meta_val, y1_val, y2_val, y3_val}] (Pecas/Transgrain/Acessorios)
     let loadedKey = null;         // guarda params da ultima carga
     let loading = false;
+    let docMenuClickHandler = null; // listener doc-level do menu Exportar (1 so, re-registrado a cada bind)
 
     // ---------------------------------------------------------------- CSS
 
@@ -140,10 +142,32 @@
         .cvp-side-meter-top .pct { font-weight:600; font-variant-numeric:tabular-nums; font-size:14px; }
         .cvp-side-bar { height:6px; border-radius:99px; background:var(--cvp-bg-soft); overflow:hidden; }
         .cvp-side-bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,#4f7cff,#22c55e); transition:width .3s ease; }
+        .cvp-print-wrap { position:relative; }
         .cvp-print { display:flex; align-items:center; gap:6px; background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:12px; color:var(--cvp-soft); font-size:12.5px; font-family:inherit; font-weight:500; padding:9px 14px; cursor:pointer; }
         .cvp-print:hover { color:var(--cvp-text); border-color:#4f7cff; }
         .cvp-print:disabled { opacity:.55; cursor:default; }
         .cvp-print svg { width:14px; height:14px; }
+        .cvp-print-menu { position:absolute; top:calc(100% + 6px); right:0; z-index:120; background:var(--cvp-panel-hover); border:1px solid var(--cvp-line); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.45); min-width:180px; padding:6px; display:flex; flex-direction:column; gap:2px; }
+        .cvp-print-menu button { display:flex; align-items:center; gap:8px; background:transparent; border:none; color:var(--cvp-soft); font-size:12.5px; font-family:inherit; font-weight:500; padding:8px 10px; border-radius:8px; cursor:pointer; text-align:left; width:100%; }
+        .cvp-print-menu button:hover { background:rgba(255,255,255,.06); color:var(--cvp-text); }
+        .cvp-print-menu svg { width:14px; height:14px; flex:none; }
+        .cvp-email-backdrop { position:fixed; inset:0; z-index:9900; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:20px; }
+        .cvp-email { background:#121317; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:min(420px,94vw); padding:20px 22px; }
+        .cvp-email h3 { font-size:14px; font-weight:600; margin:0 0 4px; }
+        .cvp-email p.hint { font-size:11.5px; color:var(--cvp-faint); margin:0 0 16px; }
+        .cvp-email label { display:block; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--cvp-faint); margin-bottom:6px; }
+        .cvp-email input { width:100%; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:10px; color:#fff; font-size:13px; font-family:inherit; padding:10px 12px; outline:none; }
+        .cvp-email input:focus { border-color:#4f7cff; }
+        .cvp-email-msg { font-size:12px; margin-top:10px; min-height:16px; }
+        .cvp-email-msg.err { color:var(--cvp-neg); }
+        .cvp-email-msg.ok { color:var(--cvp-pos); }
+        .cvp-email-msg.warn { color:#f59e0b; }
+        .cvp-email-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+        .cvp-email-actions button { border-radius:10px; padding:9px 16px; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer; border:1px solid var(--cvp-line); background:transparent; color:var(--cvp-soft); }
+        .cvp-email-actions button:hover { color:var(--cvp-text); border-color:#4f7cff; }
+        .cvp-email-actions button.primary { background:#4f7cff; border-color:#4f7cff; color:#fff; }
+        .cvp-email-actions button.primary:hover { background:#3f6bef; }
+        .cvp-email-actions button:disabled { opacity:.55; cursor:default; }
         .cvp-drill { cursor:pointer; }
         .cvp-drill:hover { color:#7aa2ff; text-decoration:underline; text-underline-offset:2px; }
         .cvp-pop-backdrop { position:fixed; inset:0; z-index:9800; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:32px; }
@@ -335,10 +359,22 @@
                 <span class="cvp-hero-label" style="padding-left:6px">Cenário</span>
                 <select id="cvp-scenario">${scenOpts}</select>
               </div>
-              <button type="button" class="cvp-print" id="cvp-print" title="One Page Report para impressão (PDF)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                Imprimir
-              </button>
+              <div class="cvp-print-wrap">
+                <button type="button" class="cvp-print" id="cvp-print-toggle" title="Exportar One Page Report" aria-haspopup="true" aria-expanded="false">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                  Exportar
+                </button>
+                <div class="cvp-print-menu" id="cvp-print-menu" hidden>
+                  <button type="button" data-action="print">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    Imprimir
+                  </button>
+                  <button type="button" data-action="email">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"></path><path d="m22 6-10 7L2 6"></path></svg>
+                    Enviar por e-mail
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           <div id="cvp-hero"></div>
@@ -999,7 +1035,7 @@
       </section>`;
     }
 
-    function buildPrintDoc(mesData, ytdData) {
+    function buildPrintDoc(mesData, ytdData, autoPrint = true) {
       const scenarioName = scenarios.find((s) => s.id === scenarioId)?.name || "Budget";
       const mLabel = MONTHS[month - 1];
       const p1 = buildPrintPage(mesData, `Mês — ${mLabel}/${year}`, scenarioName);
@@ -1051,7 +1087,7 @@
 <body>
 ${p1}
 ${p2}
-<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 400); });<\/script>
+${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(function () { window.print(); }, 400); });<\/script>' : ""}
 </body>
 </html>`;
     }
@@ -1069,7 +1105,7 @@ ${p2}
     }
 
     async function openOnePagePrint(container) {
-      const btn = container.querySelector("#cvp-print");
+      const btn = container.querySelector("#cvp-print-toggle");
       // window.open precisa ser síncrono no clique, senão o popup blocker segura.
       const w = window.open("", "_blank");
       if (!w) { alert("O navegador bloqueou a janela do report. Libere pop-ups para este site e tente de novo."); return; }
@@ -1090,6 +1126,131 @@ ${p2}
       }
     }
 
+    // ---------------------------------------------------------------- envio por e-mail
+    // O Supabase Edge Function (Deno) nao roda navegador headless, entao o PDF
+    // nasce no proprio navegador (html2pdf.js, ja carregado via CDN no
+    // index.html) a partir do MESMO html do One Page Report -- so sem o
+    // script de auto-print (senao abriria o dialogo de impressao do sistema
+    // enquanto o usuario so queria mandar e-mail).
+
+    function reportFilename() {
+      return `painel-vendas-${MONTHS[month - 1].toLowerCase()}-${year}.pdf`;
+    }
+
+    async function generateReportPdfBase64() {
+      if (typeof window.html2pdf !== "function") {
+        throw new Error("Biblioteca de geração de PDF não carregou. Recarregue a página e tente de novo.");
+      }
+      const [mesData, ytdData] = await Promise.all([fetchPainelData("mes"), fetchPainelData("ytd")]);
+      const html = buildPrintDoc(mesData, ytdData, false);
+
+      const iframe = document.createElement("iframe");
+      iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:1400px;height:900px;border:0;";
+      document.body.appendChild(iframe);
+      try {
+        await new Promise((resolve, reject) => {
+          iframe.onload = () => resolve();
+          iframe.onerror = () => reject(new Error("Falha ao montar o conteúdo do relatório."));
+          iframe.srcdoc = html;
+        });
+        const body = iframe.contentDocument && iframe.contentDocument.body;
+        if (!body) throw new Error("Falha ao montar o conteúdo do relatório.");
+        const dataUri = await window.html2pdf().set({
+          margin: 0,
+          filename: reportFilename(),
+          image: { type: "jpeg", quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
+          pagebreak: { mode: ["css", "legacy"] }
+        }).from(body).output("datauristring");
+        const base64 = String(dataUri || "").split(",")[1] || "";
+        if (!base64) throw new Error("PDF gerado veio vazio.");
+        return base64;
+      } finally {
+        iframe.remove();
+      }
+    }
+
+    let emailEl = null;
+
+    function closeEmailModal() {
+      if (!emailEl) return;
+      emailEl.remove();
+      emailEl = null;
+      document.removeEventListener("keydown", onEmailKey);
+    }
+    function onEmailKey(e) { if (e.key === "Escape") closeEmailModal(); }
+
+    function openEmailModal(container) {
+      closeEmailModal();
+      const mLabel = MONTHS[month - 1];
+      const backdrop = document.createElement("div");
+      backdrop.className = "cvp-email-backdrop";
+      backdrop.innerHTML = `
+        <div class="cvp-email">
+          <h3>Enviar por e-mail</h3>
+          <p class="hint">Painel de Vendas — ${escapeHtml(mLabel)}/${year}, em PDF anexado.</p>
+          <label for="cvp-email-to">Destinatário(s)</label>
+          <input id="cvp-email-to" type="text" placeholder="email@empresa.com, outro@empresa.com" autocomplete="off">
+          <div class="cvp-email-msg" id="cvp-email-msg"></div>
+          <div class="cvp-email-actions">
+            <button type="button" id="cvp-email-cancel">Cancelar</button>
+            <button type="button" id="cvp-email-send" class="primary">Enviar</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(backdrop);
+      emailEl = backdrop;
+      backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeEmailModal(); });
+      backdrop.querySelector("#cvp-email-cancel").addEventListener("click", closeEmailModal);
+      setTimeout(() => document.addEventListener("keydown", onEmailKey), 0);
+      const input = backdrop.querySelector("#cvp-email-to");
+      const msgEl = backdrop.querySelector("#cvp-email-msg");
+      const sendBtn = backdrop.querySelector("#cvp-email-send");
+      input.focus();
+
+      function setMsg(text, kind) {
+        msgEl.textContent = text || "";
+        msgEl.className = "cvp-email-msg" + (kind ? ` ${kind}` : "");
+      }
+
+      async function handleSend() {
+        const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const to = input.value.split(",").map((s) => s.trim()).filter(Boolean);
+        if (!to.length) { setMsg("Informe ao menos um destinatário.", "err"); return; }
+        const invalid = to.filter((e) => !EMAIL_RE.test(e));
+        if (invalid.length) { setMsg(`E-mail inválido: ${invalid.join(", ")}`, "err"); return; }
+
+        sendBtn.disabled = true;
+        input.disabled = true;
+        try {
+          setMsg("Gerando PDF…", "warn");
+          const pdfBase64 = await generateReportPdfBase64();
+          if (emailEl !== backdrop) return; // fechou durante a geração
+          setMsg("Enviando e-mail…", "warn");
+          await callEdgeFunction("send-report-email", {
+            to,
+            subject: `Painel de Vendas — ${mLabel}/${year}`,
+            filename: reportFilename(),
+            body_text: `Segue em anexo o Painel de Vendas de ${mLabel}/${year} (mês e acumulado YTD).`,
+            pdf_base64: pdfBase64
+          });
+          if (emailEl !== backdrop) return;
+          setMsg("E-mail enviado com sucesso.", "ok");
+          setTimeout(() => { if (emailEl === backdrop) closeEmailModal(); }, 1400);
+        } catch (e) {
+          console.error("enviar por e-mail:", e);
+          if (emailEl !== backdrop) return;
+          setMsg(e?.message || "Falha ao enviar o e-mail.", "err");
+          sendBtn.disabled = false;
+          input.disabled = false;
+        }
+      }
+
+      sendBtn.addEventListener("click", handleSend);
+      input.addEventListener("keydown", (e) => { if (e.key === "Enter") handleSend(); });
+    }
+
     // ---------------------------------------------------------------- events
 
     function bind(container) {
@@ -1100,7 +1261,28 @@ ${p2}
       container.querySelector("#cvp-scenario")?.addEventListener("change", async (e) => {
         scenarioId = e.target.value || null; await reloadAndRender(container);
       });
-      container.querySelector("#cvp-print")?.addEventListener("click", () => openOnePagePrint(container));
+
+      const toggleBtn = container.querySelector("#cvp-print-toggle");
+      const menu = container.querySelector("#cvp-print-menu");
+      const closeMenu = () => { if (menu) menu.hidden = true; toggleBtn?.setAttribute("aria-expanded", "false"); };
+      toggleBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!menu) return;
+        menu.hidden = !menu.hidden;
+        toggleBtn.setAttribute("aria-expanded", String(!menu.hidden));
+      });
+      menu?.addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-action]"); if (!b) return;
+        closeMenu();
+        if (b.dataset.action === "print") openOnePagePrint(container);
+        else if (b.dataset.action === "email") openEmailModal(container);
+      });
+      // container.innerHTML e reconstruido a cada render() (troca de periodo/
+      // cenario) -- sem remover o listener antigo antes, cada render empilharia
+      // um novo listener global no document (vazamento). So 1 por vez.
+      if (docMenuClickHandler) document.removeEventListener("click", docMenuClickHandler);
+      docMenuClickHandler = closeMenu;
+      document.addEventListener("click", docMenuClickHandler);
     }
 
     // Enquanto o usuario esta "dentro" do relatorio, o mes/ano seguem o
