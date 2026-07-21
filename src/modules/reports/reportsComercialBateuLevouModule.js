@@ -123,14 +123,17 @@
 
     // pct=null quando meta=0 E real=0 (sem dado nenhum no periodo). meta=0 com
     // real>0 conta como bateu (100%), por decisao do usuario -- nao ha meta
-    // cadastrada pra "nao bater".
+    // cadastrada pra "nao bater". "Bateu" exige alem do %: pelo menos 2
+    // maquinas vendidas no periodo (vender só 1 nao ganha a campanha, mesmo
+    // que baixe a meta de 1 unidade).
+    const MIN_QTD_BATEU = 2;
     function computeRow(r) {
       const realQtd = Number(r.real_qtd) || 0;
       const metaQtd = Number(r.meta_qtd) || 0;
       let pct = null;
       if (metaQtd > 0) pct = (realQtd / metaQtd) * 100;
       else if (realQtd > 0) pct = 100;
-      const bateu = pct !== null && pct >= 100;
+      const bateu = pct !== null && pct >= 100 && realQtd >= MIN_QTD_BATEU;
       return { responsavel: r.responsavel, territorios: r.territorios || "", realQtd, metaQtd, pct, bateu };
     }
 
@@ -223,8 +226,8 @@
       const body = rows.map((r, i) => {
         const pos = i + 1;
         const pctLabel = r.pct === null ? "—" : `${r.pct.toFixed(0)}%`;
-        const pctCls = r.pct === null ? "" : r.pct >= 100 ? "pos" : r.pct >= 80 ? "" : "neg";
-        const barColor = r.pct === null ? "#6b7280" : r.pct >= 100 ? "#22c55e" : r.pct >= 80 ? "#f59e0b" : "#ef4444";
+        const pctCls = r.pct === null ? "" : r.bateu ? "pos" : r.pct >= 80 ? "" : "neg";
+        const barColor = r.pct === null ? "#6b7280" : r.bateu ? "#22c55e" : r.pct >= 80 ? "#f59e0b" : "#ef4444";
         const barPct = r.pct === null ? 0 : Math.min(r.pct, 100);
         const trophy = r.bateu ? `<span class="cbl-trophy">🏆</span>` : "";
         return `<tr class="cbl-row${r.bateu ? " bateu" : ""}">
