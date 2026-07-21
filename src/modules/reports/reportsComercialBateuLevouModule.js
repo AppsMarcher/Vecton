@@ -21,7 +21,7 @@
     let month = Number(state.currentPeriod?.month || 6);
     let scenarioId = null;
     let scenarios = [];
-    let scenariosYear = null;
+    let scenarioInitialized = false;
     let grao = [];
     let pecuaria = [];
     let loadedKey = null;
@@ -112,8 +112,13 @@
 
     function paramsKey() { return `${year}|${month}|${scenarioId || "budget"}`; }
 
+    // Sempre busca ao vivo (sem cache por ano) -- senao um cenario criado
+    // durante a mesma sessao/ano nunca aparece sem recarregar a pagina. So
+    // re-resolve o default (Fcst 5+7 ou 1o cenario) na 1a carga OU se o
+    // cenario que estava selecionado deixou de existir -- nunca sobrescreve
+    // uma escolha manual do usuario (inclusive Budget=null) so por causa do
+    // refetch.
     async function loadScenarios() {
-      if (scenariosYear === year) return;
       scenarios = [];
       if (isSupabaseConfigured()) {
         try {
@@ -122,8 +127,11 @@
           scenarios = rows || [];
         } catch (e) { console.warn("cenarios:", e); scenarios = []; }
       }
-      scenariosYear = year;
-      if (!scenarioId || !scenarios.some((s) => s.id === scenarioId)) {
+      if (!scenarioInitialized) {
+        const fcst = scenarios.find((s) => /fcst|5\s*\+\s*7/i.test(s.name));
+        scenarioId = (fcst || scenarios[0])?.id || null;
+        scenarioInitialized = true;
+      } else if (scenarioId && !scenarios.some((s) => s.id === scenarioId)) {
         const fcst = scenarios.find((s) => /fcst|5\s*\+\s*7/i.test(s.name));
         scenarioId = (fcst || scenarios[0])?.id || null;
       }
@@ -415,7 +423,7 @@
       if (reportId !== REPORT_ID) return false;
       const prevYear = year;
       syncFromHeader();
-      if (year !== prevYear) scenariosYear = null;
+      if (year !== prevYear) scenarioInitialized = false;
       if (loadedKey === paramsKey() && (grao.length || pecuaria.length)) {
         render(container);
         loadData().then(() => render(container)).catch((e) => console.error(e));

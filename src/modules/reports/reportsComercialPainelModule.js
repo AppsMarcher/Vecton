@@ -35,7 +35,7 @@
     let currentCoord = null;
     let scenarioId = null;
     let scenarios = [];
-    let scenariosYear = null;
+    let scenarioInitialized = false;
     let coords = [];              // [{nome,gestor,terrs:{terr:{grao,pecuaria,pecas}}}] — por coordenacao de ROTEAMENTO (totais)
     let regioes = [];             // idem, mas por CASA geografica (regiao=coord do Grao) — detalhe matricial
     let tipos = [];               // [{tipo, fat_val, cart_val, meta_val, y1_val, y2_val, y3_val}] (Pecas/Transgrain/Acessorios)
@@ -210,8 +210,13 @@
 
     function paramsKey() { return `${year}|${month}|${period}|${scenarioId || "budget"}`; }
 
+    // Sempre busca ao vivo (sem cache por ano) -- senao um cenario criado
+    // durante a mesma sessao/ano nunca aparece sem recarregar a pagina. So
+    // re-resolve o default (Fcst 5+7 ou 1o cenario) na 1a carga OU se o
+    // cenario que estava selecionado deixou de existir -- nunca sobrescreve
+    // uma escolha manual do usuario (inclusive Budget=null) so por causa do
+    // refetch.
     async function loadScenarios() {
-      if (scenariosYear === year) return;
       scenarios = [];
       if (isSupabaseConfigured()) {
         try {
@@ -220,8 +225,11 @@
           scenarios = rows || [];
         } catch (e) { console.warn("cenarios:", e); scenarios = []; }
       }
-      scenariosYear = year;
-      if (!scenarioId || !scenarios.some((s) => s.id === scenarioId)) {
+      if (!scenarioInitialized) {
+        const fcst = scenarios.find((s) => /fcst|5\s*\+\s*7/i.test(s.name));
+        scenarioId = (fcst || scenarios[0])?.id || null;
+        scenarioInitialized = true;
+      } else if (scenarioId && !scenarios.some((s) => s.id === scenarioId)) {
         const fcst = scenarios.find((s) => /fcst|5\s*\+\s*7/i.test(s.name));
         scenarioId = (fcst || scenarios[0])?.id || null;
       }
@@ -1379,6 +1387,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
 
     function renderSelectedPainel(container, reportId) {
       if (reportId !== REPORT_ID) { enteredPainel = false; return false; }
+      const prevYear = year;
       if (!enteredPainel) {
         // Toda vez que ENTRA no relatorio (nao a cada re-render), reseta pro
         // mes calendario real de hoje + aba "Mes" -- ignora o que estiver no
@@ -1395,6 +1404,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       } else {
         syncFromHeader();
       }
+      if (year !== prevYear) scenarioInitialized = false;
       if (loadedKey === paramsKey() && coords.length) {
         // Tem cache pros mesmos parametros: mostra na hora (sem flash), mas
         // SEMPRE revalida em background — uma carga aplicada em outra tela pode
