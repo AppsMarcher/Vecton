@@ -1049,11 +1049,11 @@
       </section>`;
     }
 
-    // autoPrint=false tambem e usado pro caminho de captura (html2pdf/e-mail):
-    // alem de nao disparar window.print(), remove o @media screen (fundo
-    // cinza + sombra + margem "preview de tela") -- o html2canvas renderiza em
-    // modo screen, entao sem isso a captura sairia com o visual de preview em
-    // vez do layout limpo de impressao.
+    // autoPrint=false tambem e usado pro caminho de e-mail (Browserless
+    // gerando o PDF a partir deste mesmo html no servidor): alem de nao
+    // disparar window.print(), remove o @media screen (fundo cinza + sombra +
+    // margem "preview de tela") -- o PDF deve sair no layout limpo de
+    // impressao, nao no visual de preview em tela.
     function buildPrintDoc(mesData, ytdData, autoPrint = true) {
       const scenarioName = scenarios.find((s) => s.id === scenarioId)?.name || "Budget";
       const mLabel = MONTHS[month - 1];
@@ -1146,62 +1146,21 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
     }
 
     // ---------------------------------------------------------------- envio por e-mail
-    // O Supabase Edge Function (Deno) nao roda navegador headless, entao o PDF
-    // nasce no proprio navegador (html2pdf.js, ja carregado via CDN no
-    // index.html) a partir do MESMO html do One Page Report -- so sem o
-    // script de auto-print (senao abriria o dialogo de impressao do sistema
-    // enquanto o usuario so queria mandar e-mail).
+    // O PDF nasce no SERVIDOR (Edge Function -> Browserless, Chrome de
+    // verdade) a partir do MESMO html do One Page Report, garantindo
+    // fidelidade identica ao "Imprimir" -- depois de 3 tentativas com
+    // html2canvas (aproximacao por screenshot no navegador) saindo com
+    // defeito visual, desistimos de gerar o PDF no cliente. Aqui so montamos
+    // o html (sem o script de auto-print, que so faz sentido na janela de
+    // impressao) e mandamos pra function converter e anexar no e-mail.
 
     function reportFilename() {
       return `painel-vendas-${MONTHS[month - 1].toLowerCase()}-${year}.pdf`;
     }
 
-    async function generateReportPdfBase64() {
-      if (typeof window.html2pdf !== "function") {
-        throw new Error("Biblioteca de geração de PDF não carregou. Recarregue a página e tente de novo.");
-      }
+    async function buildReportHtmlForEmail() {
       const [mesData, ytdData] = await Promise.all([fetchPainelData("mes"), fetchPainelData("ytd")]);
-      const html = buildPrintDoc(mesData, ytdData, false);
-
-      const iframe = document.createElement("iframe");
-      iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:1400px;height:900px;border:0;";
-      document.body.appendChild(iframe);
-      try {
-        // document.write() no contentDocument (nao srcdoc): e o MESMO
-        // mecanismo que a janela de impressao ja usa com sucesso (abaixo, em
-        // openOnePagePrint) -- srcdoc, em alguns navegadores, cria um
-        // documento com origem "opaca", o que faz o html2canvas tratar o
-        // conteudo como cross-origin e devolver um canvas preto/vazio mesmo
-        // com backgroundColor configurado.
-        const doc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (!doc) throw new Error("Falha ao montar o conteúdo do relatório.");
-        await new Promise((resolve, reject) => {
-          iframe.onload = () => resolve();
-          iframe.onerror = () => reject(new Error("Falha ao montar o conteúdo do relatório."));
-          doc.open();
-          doc.write(html);
-          doc.close();
-        });
-        const body = iframe.contentDocument && iframe.contentDocument.body;
-        if (!body) throw new Error("Falha ao montar o conteúdo do relatório.");
-        const dataUri = await window.html2pdf().set({
-          margin: 0,
-          filename: reportFilename(),
-          image: { type: "jpeg", quality: 0.95 },
-          // backgroundColor explicito: sem isso, area nao coberta por um
-          // background proprio fica transparente no canvas, e a conversao
-          // pra JPEG (sem canal alpha) "achata" transparencia em PRETO --
-          // bug classico da dupla html2canvas+JPEG.
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-          jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
-          pagebreak: { mode: ["css", "legacy"] }
-        }).from(body).output("datauristring");
-        const base64 = String(dataUri || "").split(",")[1] || "";
-        if (!base64) throw new Error("PDF gerado veio vazio.");
-        return base64;
-      } finally {
-        iframe.remove();
-      }
+      return buildPrintDoc(mesData, ytdData, false);
     }
 
     let emailEl = null;
@@ -1331,17 +1290,17 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
         sendBtn.disabled = true;
         fields.forEach((el) => { el.disabled = true; });
         try {
-          setMsg("Gerando PDF…", "warn");
-          const pdfBase64 = await generateReportPdfBase64();
-          if (emailEl !== backdrop) return; // fechou durante a geração
-          setMsg("Enviando e-mail…", "warn");
+          setMsg("Montando relatório…", "warn");
+          const html = await buildReportHtmlForEmail();
+          if (emailEl !== backdrop) return; // fechou durante a montagem
+          setMsg("Gerando PDF e enviando e-mail…", "warn");
           await callEdgeFunction("send-report-email", {
             to,
             cc: cc.length ? cc : undefined,
             subject: subjectInput.value.trim(),
             filename: reportFilename(),
             body_text: textInput.value,
-            pdf_base64: pdfBase64
+            html
           });
           if (emailEl !== backdrop) return;
           if (rememberChk.checked) saveRecipients(to.concat(cc));
