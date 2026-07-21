@@ -1167,10 +1167,20 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:1400px;height:900px;border:0;";
       document.body.appendChild(iframe);
       try {
+        // document.write() no contentDocument (nao srcdoc): e o MESMO
+        // mecanismo que a janela de impressao ja usa com sucesso (abaixo, em
+        // openOnePagePrint) -- srcdoc, em alguns navegadores, cria um
+        // documento com origem "opaca", o que faz o html2canvas tratar o
+        // conteudo como cross-origin e devolver um canvas preto/vazio mesmo
+        // com backgroundColor configurado.
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!doc) throw new Error("Falha ao montar o conteúdo do relatório.");
         await new Promise((resolve, reject) => {
           iframe.onload = () => resolve();
           iframe.onerror = () => reject(new Error("Falha ao montar o conteúdo do relatório."));
-          iframe.srcdoc = html;
+          doc.open();
+          doc.write(html);
+          doc.close();
         });
         const body = iframe.contentDocument && iframe.contentDocument.body;
         if (!body) throw new Error("Falha ao montar o conteúdo do relatório.");
