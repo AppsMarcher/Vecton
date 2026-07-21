@@ -163,8 +163,8 @@
         .cvp-email-row { display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--cvp-line); padding:9px 0; flex:none; }
         .cvp-email-row label { flex:none; width:64px; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--cvp-faint); }
         .cvp-email-row input { flex:1; min-width:0; background:transparent; border:none; color:#fff; font-size:13px; font-family:inherit; padding:4px 0; outline:none; }
-        .cvp-email-row-text { align-items:flex-start; border-bottom:none; flex:1; min-height:0; margin-top:4px; }
-        .cvp-email-row-text label { padding-top:4px; }
+        .cvp-email-row-text { align-items:stretch; border-bottom:none; flex:1; min-height:0; margin-top:4px; }
+        .cvp-email-row-text label { align-self:flex-start; padding-top:4px; }
         .cvp-email-text { flex:1; min-height:0; resize:none; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:10px; color:#fff; font-size:13px; font-family:inherit; line-height:1.5; padding:10px 12px; outline:none; }
         .cvp-email-text:focus { border-color:#4f7cff; }
         .cvp-email-attach { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--cvp-soft); background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:8px; padding:6px 10px; margin:6px 0 2px; align-self:flex-start; }
