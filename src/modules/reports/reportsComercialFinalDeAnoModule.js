@@ -21,7 +21,7 @@
     let month = Number(state.currentPeriod?.month || 6);
     let scenarioId = null;
     let scenarios = [];
-    let scenarioInitialized = false;
+    let scenarioUserSet = false;
     let rows = [];
     let loadedKey = null;
     let loading = false;
@@ -109,11 +109,15 @@
     function paramsKey() { return `${year}|${month}|${scenarioId || "budget"}`; }
 
     // Sempre busca ao vivo (sem cache por ano) -- senao um cenario criado
-    // durante a mesma sessao/ano nunca aparia sem recarregar a pagina. So
-    // re-resolve o default (Fcst 5+7 ou 1o cenario) na 1a carga OU se o
-    // cenario que estava selecionado deixou de existir -- nunca sobrescreve
-    // uma escolha manual do usuario (inclusive Budget=null) so por causa do
-    // refetch.
+    // durante a mesma sessao/ano nunca aparece sem recarregar a pagina.
+    // Enquanto o usuario nao mexeu manualmente no seletor (`scenarioUserSet`
+    // false), re-resolve o default (Fcst 5+7 ou 1o cenario) TODA vez -- isso
+    // e' necessario pra auto-curar o caso em que o 1o fetch (ex: org ainda
+    // resolvendo a sessao) veio vazio e travou em "Budget" pra sempre (bug
+    // encontrado pelo usuario: dropdown so mostrava Budget mesmo com Fcst 5+7
+    // cadastrado). Depois que o usuario escolhe manualmente (mesmo Budget),
+    // a escolha fica travada e so e' recalculada se o cenario escolhido
+    // deixar de existir na lista.
     async function loadScenarios() {
       scenarios = [];
       if (isSupabaseConfigured()) {
@@ -124,11 +128,8 @@
           scenarios = rowsRes || [];
         } catch (e) { console.warn("cenarios:", e); scenarios = []; }
       }
-      if (!scenarioInitialized) {
-        const fcst = scenarios.find((s) => /fcst|5\s*\+\s*7/i.test(s.name));
-        scenarioId = (fcst || scenarios[0])?.id || null;
-        scenarioInitialized = true;
-      } else if (scenarioId && !scenarios.some((s) => s.id === scenarioId)) {
+      const stillExists = scenarioId && scenarios.some((s) => s.id === scenarioId);
+      if ((!scenarioUserSet && !scenarioId) || (scenarioId && !stillExists)) {
         const fcst = scenarios.find((s) => /fcst|5\s*\+\s*7/i.test(s.name));
         scenarioId = (fcst || scenarios[0])?.id || null;
       }
@@ -213,7 +214,7 @@
     }
 
     function bind(container) {
-      container.querySelector("#cfa-scenario")?.addEventListener("change", (e) => { scenarioId = e.target.value || null; reload(container); });
+      container.querySelector("#cfa-scenario")?.addEventListener("change", (e) => { scenarioId = e.target.value || null; scenarioUserSet = true; reload(container); });
     }
 
     async function reload(container) {
@@ -396,7 +397,7 @@
       if (reportId !== REPORT_ID) return false;
       const prevYear = year;
       syncFromHeader();
-      if (year !== prevYear) scenarioInitialized = false;
+      if (year !== prevYear) scenarioUserSet = false;
       if (loadedKey === paramsKey() && rows.length) {
         render(container);
         loadData().then(() => render(container)).catch((e) => console.error(e));

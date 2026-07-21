@@ -35,7 +35,7 @@
     let currentCoord = null;
     let scenarioId = null;
     let scenarios = [];
-    let scenarioInitialized = false;
+    let scenarioUserSet = false;
     let coords = [];              // [{nome,gestor,terrs:{terr:{grao,pecuaria,pecas}}}] — por coordenacao de ROTEAMENTO (totais)
     let regioes = [];             // idem, mas por CASA geografica (regiao=coord do Grao) — detalhe matricial
     let tipos = [];               // [{tipo, fat_val, cart_val, meta_val, y1_val, y2_val, y3_val}] (Pecas/Transgrain/Acessorios)
@@ -211,11 +211,15 @@
     function paramsKey() { return `${year}|${month}|${period}|${scenarioId || "budget"}`; }
 
     // Sempre busca ao vivo (sem cache por ano) -- senao um cenario criado
-    // durante a mesma sessao/ano nunca aparece sem recarregar a pagina. So
-    // re-resolve o default (Fcst 5+7 ou 1o cenario) na 1a carga OU se o
-    // cenario que estava selecionado deixou de existir -- nunca sobrescreve
-    // uma escolha manual do usuario (inclusive Budget=null) so por causa do
-    // refetch.
+    // durante a mesma sessao/ano nunca aparece sem recarregar a pagina.
+    // Enquanto o usuario nao mexeu manualmente no seletor (`scenarioUserSet`
+    // false), re-resolve o default (Fcst 5+7 ou 1o cenario) TODA vez -- isso
+    // e' necessario pra auto-curar o caso em que o 1o fetch (ex: org ainda
+    // resolvendo a sessao) veio vazio e travou em "Budget" pra sempre (bug
+    // encontrado pelo usuario: dropdown so mostrava Budget mesmo com Fcst 5+7
+    // cadastrado). Depois que o usuario escolhe manualmente (mesmo Budget),
+    // a escolha fica travada e so e' recalculada se o cenario escolhido
+    // deixar de existir na lista.
     async function loadScenarios() {
       scenarios = [];
       if (isSupabaseConfigured()) {
@@ -225,11 +229,8 @@
           scenarios = rows || [];
         } catch (e) { console.warn("cenarios:", e); scenarios = []; }
       }
-      if (!scenarioInitialized) {
-        const fcst = scenarios.find((s) => /fcst|5\s*\+\s*7/i.test(s.name));
-        scenarioId = (fcst || scenarios[0])?.id || null;
-        scenarioInitialized = true;
-      } else if (scenarioId && !scenarios.some((s) => s.id === scenarioId)) {
+      const stillExists = scenarioId && scenarios.some((s) => s.id === scenarioId);
+      if ((!scenarioUserSet && !scenarioId) || (scenarioId && !stillExists)) {
         const fcst = scenarios.find((s) => /fcst|5\s*\+\s*7/i.test(s.name));
         scenarioId = (fcst || scenarios[0])?.id || null;
       }
@@ -1336,7 +1337,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
         period = b.dataset.p; await reloadAndRender(container);
       });
       container.querySelector("#cvp-scenario")?.addEventListener("change", async (e) => {
-        scenarioId = e.target.value || null; await reloadAndRender(container);
+        scenarioId = e.target.value || null; scenarioUserSet = true; await reloadAndRender(container);
       });
 
       const toggleBtn = container.querySelector("#cvp-print-toggle");
@@ -1404,7 +1405,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       } else {
         syncFromHeader();
       }
-      if (year !== prevYear) scenarioInitialized = false;
+      if (year !== prevYear) scenarioUserSet = false;
       if (loadedKey === paramsKey() && coords.length) {
         // Tem cache pros mesmos parametros: mostra na hora (sem flash), mas
         // SEMPRE revalida em background — uma carga aplicada em outra tela pode
