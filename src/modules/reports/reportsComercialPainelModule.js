@@ -160,11 +160,10 @@
         .cvp-email-x { background:none; border:none; color:#6b7280; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; }
         .cvp-email-x:hover { color:#fff; }
         .cvp-email-body { flex:1; min-height:0; overflow-y:auto; padding:14px 20px; display:flex; flex-direction:column; }
-        .cvp-email-row { display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--cvp-line); padding:9px 0; flex:none; }
+        .cvp-email-row { display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,.16); padding:9px 0; flex:none; }
         .cvp-email-row label { flex:none; width:64px; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--cvp-faint); }
         .cvp-email-row input { flex:1; min-width:0; background:transparent; border:none; color:#fff; font-size:13px; font-family:inherit; padding:4px 0; outline:none; }
         .cvp-email-row-text { align-items:stretch; border-bottom:none; flex:1; min-height:0; margin-top:4px; }
-        .cvp-email-row-text label { align-self:flex-start; padding-top:4px; }
         .cvp-email-text { flex:1; min-height:0; resize:none; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:10px; color:#fff; font-size:13px; font-family:inherit; line-height:1.5; padding:10px 12px; outline:none; }
         .cvp-email-text:focus { border-color:#4f7cff; }
         .cvp-email-attach { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--cvp-soft); background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:8px; padding:6px 10px; margin:6px 0 2px; align-self:flex-start; }
@@ -174,7 +173,7 @@
         .cvp-email-msg.ok { color:var(--cvp-pos); }
         .cvp-email-msg.warn { color:#f59e0b; }
         .cvp-email-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 20px; border-top:1px solid #2a2d34; flex:none; }
-        .cvp-email-remember { display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--cvp-soft); cursor:pointer; user-select:none; }
+        .cvp-email-remember { display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--cvp-soft); cursor:pointer; user-select:none; white-space:nowrap; flex:none; }
         .cvp-email-remember input { accent-color:#4f7cff; }
         .cvp-email-actions { display:flex; justify-content:flex-end; gap:8px; }
         .cvp-email-actions button { border-radius:10px; padding:9px 16px; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer; border:1px solid var(--cvp-line); background:transparent; color:var(--cvp-soft); }
@@ -1266,8 +1265,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
               <span>${escapeHtml(reportFilename())}</span>
             </div>
             <div class="cvp-email-row cvp-email-row-text">
-              <label for="cvp-email-text">Texto</label>
-              <textarea id="cvp-email-text" class="cvp-email-text">${escapeHtml(defaultBody)}</textarea>
+              <textarea id="cvp-email-text" class="cvp-email-text" aria-label="Texto do e-mail">${escapeHtml(defaultBody)}</textarea>
             </div>
             <datalist id="cvp-email-suggest">${suggestOpts}</datalist>
           </div>
