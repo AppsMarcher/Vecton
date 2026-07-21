@@ -166,7 +166,8 @@
         .cvp-email-row-text { align-items:stretch; border-bottom:none; flex:1; min-height:0; margin-top:4px; }
         .cvp-email-text { flex:1; min-height:0; resize:none; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:10px; color:#fff; font-size:13px; font-family:inherit; line-height:1.5; padding:10px 12px; outline:none; }
         .cvp-email-text:focus { border-color:#4f7cff; }
-        .cvp-email-attach { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--cvp-soft); background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:8px; padding:6px 10px; margin:6px 0 2px; align-self:flex-start; }
+        .cvp-email-attach-wrap { border-bottom:1px solid rgba(255,255,255,.16); padding:9px 0; flex:none; }
+        .cvp-email-attach { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--cvp-soft); background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:8px; padding:6px 10px; align-self:flex-start; }
         .cvp-email-attach svg { width:13px; height:13px; flex:none; color:var(--cvp-faint); }
         .cvp-email-msg { font-size:12px; padding:0 20px; min-height:16px; flex:none; }
         .cvp-email-msg.err { color:var(--cvp-neg); }
@@ -1260,9 +1261,11 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
               <label for="cvp-email-subject">Assunto</label>
               <input id="cvp-email-subject" type="text" value="${escapeHtml(defaultSubject)}">
             </div>
-            <div class="cvp-email-attach">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-              <span>${escapeHtml(reportFilename())}</span>
+            <div class="cvp-email-attach-wrap">
+              <div class="cvp-email-attach">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                <span>${escapeHtml(reportFilename())}</span>
+              </div>
             </div>
             <div class="cvp-email-row cvp-email-row-text">
               <textarea id="cvp-email-text" class="cvp-email-text" aria-label="Texto do e-mail">${escapeHtml(defaultBody)}</textarea>
