@@ -49,6 +49,7 @@
         .cfa-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
         .cfa-period { display:flex; align-items:center; gap:8px; background:var(--cfa-panel); border:1px solid var(--cfa-line); border-radius:12px; padding:6px 10px; }
         .cfa-period select { background:transparent; border:none; color:var(--cfa-text); font-size:13px; font-family:inherit; padding:6px 4px; outline:none; }
+        .cfa-period select option { background:#121317; color:#fff; }
         .cfa-period .lbl { font-size:11px; color:var(--cfa-faint); text-transform:uppercase; letter-spacing:.04em; }
         .cfa-extrato-btn { border:1px solid var(--cfa-line); background:transparent; color:var(--cfa-soft); font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; }
         .cfa-extrato-btn:hover { color:var(--cfa-text); border-color:#4f7cff; }

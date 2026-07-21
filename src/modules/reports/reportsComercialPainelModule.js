@@ -58,6 +58,7 @@
         .cvp-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
         .cvp-period { display:flex; align-items:center; gap:8px; background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:12px; padding:6px; }
         .cvp-period select { background:transparent; border:none; color:var(--cvp-text); font-size:13px; font-family:inherit; padding:6px 8px; outline:none; }
+        .cvp-period select option { background:#121317; color:#fff; }
         .cvp-seg { display:flex; gap:2px; background:var(--cvp-bg-soft); border-radius:8px; padding:2px; }
         .cvp-seg button { border:none; background:transparent; color:var(--cvp-soft); font-size:12px; font-family:inherit; font-weight:500; padding:6px 12px; border-radius:6px; cursor:pointer; }
         .cvp-seg button.active { background:#4f7cff; color:#fff; }

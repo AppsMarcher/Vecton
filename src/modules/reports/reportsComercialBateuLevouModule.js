@@ -49,6 +49,7 @@
         .cbl-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
         .cbl-period { display:flex; align-items:center; gap:8px; background:var(--cbl-panel); border:1px solid var(--cbl-line); border-radius:12px; padding:6px 10px; }
         .cbl-period select { background:transparent; border:none; color:var(--cbl-text); font-size:13px; font-family:inherit; padding:6px 4px; outline:none; }
+        .cbl-period select option { background:#121317; color:#fff; }
         .cbl-period .lbl { font-size:11px; color:var(--cbl-faint); text-transform:uppercase; letter-spacing:.04em; }
         .cbl-hero { display:flex; gap:14px; background:var(--cbl-panel); border:1px solid var(--cbl-line); border-radius:16px; padding:18px 22px; margin-bottom:24px; flex-wrap:wrap; }
         .cbl-hero-stat { min-width:120px; }
