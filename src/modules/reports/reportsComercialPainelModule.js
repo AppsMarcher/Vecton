@@ -1036,6 +1036,11 @@
       </section>`;
     }
 
+    // autoPrint=false tambem e usado pro caminho de captura (html2pdf/e-mail):
+    // alem de nao disparar window.print(), remove o @media screen (fundo
+    // cinza + sombra + margem "preview de tela") -- o html2canvas renderiza em
+    // modo screen, entao sem isso a captura sairia com o visual de preview em
+    // vez do layout limpo de impressao.
     function buildPrintDoc(mesData, ytdData, autoPrint = true) {
       const scenarioName = scenarios.find((s) => s.id === scenarioId)?.name || "Budget";
       const mLabel = MONTHS[month - 1];
@@ -1079,10 +1084,10 @@
   .pc tr.ttl td { font-weight:700; }
   .pc tr.fat td { font-weight:600; background:#f5f5f5; }
   .pempty { padding:20mm; text-align:center; color:#888; font-size:11px; }
-  @media screen {
+  ${autoPrint ? `@media screen {
     body { background:#8a8f98; padding:14px; }
     .page { background:#fff; margin:0 auto 14px; padding:7mm; box-shadow:0 3px 18px rgba(0,0,0,.35); }
-  }
+  }` : ""}
 </style>
 </head>
 <body>
@@ -1160,7 +1165,11 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
           margin: 0,
           filename: reportFilename(),
           image: { type: "jpeg", quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true },
+          // backgroundColor explicito: sem isso, area nao coberta por um
+          // background proprio fica transparente no canvas, e a conversao
+          // pra JPEG (sem canal alpha) "achata" transparencia em PRETO --
+          // bug classico da dupla html2canvas+JPEG.
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
           jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
           pagebreak: { mode: ["css", "legacy"] }
         }).from(body).output("datauristring");
