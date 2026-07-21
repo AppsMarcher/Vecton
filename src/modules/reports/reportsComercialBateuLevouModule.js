@@ -59,8 +59,25 @@
         .cbl-section { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--cbl-faint); margin:22px 0 10px; }
         .cbl-boards { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
         .cbl-board { background:var(--cbl-panel); border:1px solid var(--cbl-line); border-radius:16px; overflow:hidden; }
-        .cbl-board-head { display:flex; align-items:center; gap:8px; padding:14px 18px; border-bottom:1px solid var(--cbl-line); font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+        .cbl-board-head { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:14px 18px; border-bottom:1px solid var(--cbl-line); font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+        .cbl-board-head-left { display:flex; align-items:center; gap:8px; }
         .cbl-dot { width:8px; height:8px; border-radius:50%; }
+        .cbl-extrato-btn { border:1px solid var(--cbl-line); background:transparent; color:var(--cbl-soft); font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; }
+        .cbl-extrato-btn:hover { color:var(--cbl-text); border-color:#4f7cff; }
+        .cbl-pop-backdrop { position:fixed; inset:0; z-index:9800; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:32px; }
+        .cbl-pop { background:#121317; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:90vw; height:90vh; display:flex; flex-direction:column; overflow:hidden; }
+        .cbl-pop-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 18px; border-bottom:1px solid #2a2d34; font-size:11px; font-weight:600; color:#a1a7b3; text-transform:uppercase; letter-spacing:.05em; }
+        .cbl-pop-x { background:none; border:none; color:#6b7280; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; }
+        .cbl-pop-x:hover { color:#fff; }
+        .cbl-pop-body { overflow:auto; }
+        .cbl-pop-tbl { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+        .cbl-pop-tbl th, .cbl-pop-tbl td { padding:6px 12px; font-size:11px; text-align:left; white-space:nowrap; }
+        .cbl-pop-tbl th { position:sticky; top:0; background:#121317; color:#6b7280; font-weight:500; font-size:9px; text-transform:uppercase; letter-spacing:.03em; border-bottom:1px solid #2a2d34; z-index:1; cursor:pointer; user-select:none; }
+        .cbl-pop-tbl th:hover { color:#a1a7b3; }
+        .cbl-pop-tbl .num { text-align:right; }
+        .cbl-pop-tbl td.mut { color:#a1a7b3; }
+        .cbl-pop-tbl tbody tr:not(:last-child) td { border-bottom:1px solid rgba(255,255,255,.05); }
+        .cbl-pop-tbl tfoot td { border-top:1px solid #2a2d34; font-weight:600; color:#fff; position:sticky; bottom:0; background:#121317; }
         .cbl-tbl-wrap { overflow-x:auto; }
         .cbl-tbl { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
         .cbl-tbl th, .cbl-tbl td { padding:9px 12px; font-size:12px; text-align:right; white-space:nowrap; }
@@ -152,6 +169,7 @@
 
     function render(container) {
       ensureStyle();
+      closeExtratoPopover();
       const scenOpts = scenarios.length
         ? scenarios.map((s) => `<option value="${escapeHtml(s.id)}"${s.id === scenarioId ? " selected" : ""}>${escapeHtml(s.name)}</option>`).join("")
         : `<option value="">(sem cenário)</option>`;
@@ -216,10 +234,14 @@
       `;
     }
 
-    function boardHtml(title, dotColor, rows) {
+    function boardHtml(title, dotColor, rows, linha) {
+      const head = (inner) => `<div class="cbl-board-head">
+        <div class="cbl-board-head-left"><span class="cbl-dot" style="background:${dotColor}"></span>${inner}</div>
+        <button type="button" class="cbl-extrato-btn" data-extrato="${escapeHtml(linha)}">Extrato</button>
+      </div>`;
       if (!rows.length) {
         return `<div class="cbl-board">
-          <div class="cbl-board-head"><span class="cbl-dot" style="background:${dotColor}"></span>${escapeHtml(title)}</div>
+          ${head(escapeHtml(title))}
           <div class="cbl-empty">Sem RCs nessa linha no período.</div>
         </div>`;
       }
@@ -240,7 +262,7 @@
         </tr>`;
       }).join("");
       return `<div class="cbl-board">
-        <div class="cbl-board-head"><span class="cbl-dot" style="background:${dotColor}"></span>${escapeHtml(title)} <span style="font-weight:400;color:var(--cbl-faint);font-size:11px;margin-left:6px">${rows.length} RCs</span></div>
+        ${head(`${escapeHtml(title)} <span style="font-weight:400;color:var(--cbl-faint);font-size:11px;margin-left:6px">${rows.length} RCs</span>`)}
         <div class="cbl-tbl-wrap"><table class="cbl-tbl">
           <thead><tr><th>#</th><th>RC</th><th>Território</th><th>Real (un)</th><th>Meta (un)</th><th>Atingimento</th></tr></thead>
           <tbody>${body}</tbody>
@@ -253,10 +275,107 @@
       wrap.innerHTML = `
         <p class="cbl-section">Rankings</p>
         <div class="cbl-boards">
-          ${boardHtml("Grão", "#4f7cff", grao)}
-          ${boardHtml("Pecuária", "#f59e0b", pecuaria)}
+          ${boardHtml("Grão", "#4f7cff", grao, "Grão")}
+          ${boardHtml("Pecuária", "#f59e0b", pecuaria, "Pecuária")}
         </div>
       `;
+      wrap.querySelectorAll(".cbl-extrato-btn").forEach((btn) => btn.addEventListener("click", () => openExtratoPopover(btn.dataset.extrato)));
+    }
+
+    // ---------------------------------------------------------------- extrato popover
+    // Botao EXTRATO de cada board: lista as transacoes (Faturado) de TODOS os
+    // RCs elegiveis daquela linha no periodo -- mesma estrutura do popover do
+    // Painel de Vendas, trocando Tipo por RC e sem a coluna Cultura (lista ja
+    // e especifica de 1 linha so).
+
+    let popEl = null;
+    let popRows = [];
+    let popSort = { key: null, dir: 1 };
+
+    function fmtFullR$(v) { return "R$ " + nf(v || 0); }
+
+    function closeExtratoPopover() {
+      if (!popEl) return;
+      popEl.remove(); popEl = null;
+      document.removeEventListener("keydown", onPopKey);
+    }
+    function onPopKey(e) { if (e.key === "Escape") closeExtratoPopover(); }
+
+    function renderPopTable(rows) {
+      if (!rows.length) return `<div class="cbl-empty" style="padding:22px">Sem transações no período.</div>`;
+      const NUM = ["quantidade", "valor"];
+      const items = rows.slice();
+      if (popSort.key) {
+        const k = popSort.key, d = popSort.dir, isNum = NUM.includes(k);
+        items.sort((a, b) => isNum
+          ? d * ((Number(a[k]) || 0) - (Number(b[k]) || 0))
+          : d * String(a[k] || "").localeCompare(String(b[k] || ""), "pt-BR"));
+      }
+      const sortTh = (key, label, cls) => {
+        const active = popSort.key === key;
+        const arrow = active ? (popSort.dir === 1 ? " ↑" : " ↓") : "";
+        return `<th data-sort="${key}"${cls ? ` class="${cls}"` : ""}${active ? ' style="color:#7aa2ff"' : ""}>${label}${arrow}</th>`;
+      };
+      let totQ = 0, totV = 0;
+      const body = items.map((r) => {
+        totQ += Number(r.quantidade) || 0; totV += Number(r.valor) || 0;
+        const cidadeUf = [r.cidade, r.uf].filter(Boolean).join("/");
+        return `<tr>
+          <td>${escapeHtml(r.responsavel || "")}</td>
+          <td>${escapeHtml(r.territorio || "")}</td>
+          <td class="mut">${escapeHtml(r.cod_cliente || "")}</td>
+          <td>${escapeHtml(r.cliente || "")}</td>
+          <td class="mut">${escapeHtml(cidadeUf)}</td>
+          <td class="mut">${escapeHtml(r.cod_produto || "")}</td>
+          <td>${escapeHtml(r.produto || "")}</td>
+          <td class="num">${nf(r.quantidade)}</td>
+          <td class="num">${fmtFullR$(r.valor)}</td>
+        </tr>`;
+      }).join("");
+      return `<table class="cbl-pop-tbl">
+        <thead><tr>${sortTh("responsavel", "RC")}${sortTh("territorio", "Território")}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}</tr></thead>
+        <tbody>${body}</tbody>
+        <tfoot><tr><td colspan="7">Total · ${items.length} ${items.length === 1 ? "linha" : "linhas"}</td><td class="num">${nf(totQ)}</td><td class="num">${fmtFullR$(totV)}</td></tr></tfoot>
+      </table>`;
+    }
+
+    function paintPopTable() {
+      if (!popEl) return;
+      const body = popEl.querySelector(".cbl-pop-body");
+      if (!body) return;
+      body.innerHTML = renderPopTable(popRows);
+      body.querySelectorAll(".cbl-pop-tbl th[data-sort]").forEach((th) => th.addEventListener("click", () => {
+        const key = th.dataset.sort;
+        if (popSort.key === key) popSort.dir *= -1; else { popSort.key = key; popSort.dir = 1; }
+        paintPopTable();
+      }));
+    }
+
+    async function openExtratoPopover(linha) {
+      closeExtratoPopover();
+      const backdrop = document.createElement("div");
+      backdrop.className = "cbl-pop-backdrop";
+      backdrop.innerHTML = `<div class="cbl-pop">
+          <div class="cbl-pop-head"><span>Extrato · ${escapeHtml(linha)} · ${escapeHtml(MONTHS[month - 1])}/${year}</span><button class="cbl-pop-x" type="button" aria-label="Fechar">✕</button></div>
+          <div class="cbl-pop-body"><div class="cbl-empty" style="padding:22px">Carregando…</div></div>
+        </div>`;
+      document.body.appendChild(backdrop);
+      popEl = backdrop;
+      backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeExtratoPopover(); });
+      backdrop.querySelector(".cbl-pop-x").addEventListener("click", closeExtratoPopover);
+      setTimeout(() => document.addEventListener("keydown", onPopKey), 0);
+
+      let rows = [];
+      try {
+        if (isSupabaseConfigured()) {
+          const org = await resolveOrganizationId();
+          rows = await callSupabaseRpc("comercial_bateu_levou_extrato", { p_org: org, p_year: year, p_month: month, p_linha: linha });
+        }
+      } catch (e) { console.error("extrato:", e); }
+      if (popEl !== backdrop) return;
+      popRows = rows || [];
+      popSort = { key: null, dir: 1 };
+      paintPopTable();
     }
 
     // ---------------------------------------------------------------- entry
