@@ -147,7 +147,7 @@
         .cvp-drill { cursor:pointer; }
         .cvp-drill:hover { color:#7aa2ff; text-decoration:underline; text-underline-offset:2px; }
         .cvp-pop-backdrop { position:fixed; inset:0; z-index:9800; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:32px; }
-        .cvp-pop { background:#121317; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:min(1240px,96vw); max-height:86vh; display:flex; flex-direction:column; overflow:hidden; }
+        .cvp-pop { background:#121317; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:90vw; height:90vh; display:flex; flex-direction:column; overflow:hidden; }
         .cvp-pop-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 18px; border-bottom:1px solid #2a2d34; font-size:11px; font-weight:600; color:#a1a7b3; text-transform:uppercase; letter-spacing:.05em; }
         .cvp-pop-x { background:none; border:none; color:#6b7280; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; }
         .cvp-pop-x:hover { color:#fff; }
