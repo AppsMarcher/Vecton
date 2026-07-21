@@ -71,6 +71,7 @@
         .cfa-tbl tbody tr:not(:last-child) td { border-bottom:1px solid rgba(255,255,255,.05); }
         .cfa-pos-num { color:var(--cfa-faint); font-weight:600; }
         .cfa-name { font-weight:600; }
+        .cfa-name-sub { font-weight:400; color:var(--cfa-faint); font-size:11px; }
         .cfa-row.lider { background:rgba(245,197,24,0.08); }
         .cfa-row.lider .cfa-pos-num { color:var(--cfa-gold); }
         .cfa-trophy { margin-right:4px; }
@@ -160,6 +161,21 @@
     function nf(v) { return Math.round(v || 0).toLocaleString("pt-BR"); }
     function fmtR$(v) { return "R$ " + nf(v); }
 
+    // Nomes repetidos (ex: "Gustavo" em RO e em RS Sul -- pessoas diferentes,
+    // so coincidencia de primeiro nome, ja tratado na RPC via "casa"
+    // geografica) precisam de desambiguacao visual -- senao aparecem 2 linhas
+    // com o MESMO texto de nome e ninguem consegue distinguir quem é quem.
+    function nameCounts() {
+      const m = new Map();
+      rows.forEach((r) => m.set(r.responsavel, (m.get(r.responsavel) || 0) + 1));
+      return m;
+    }
+    function displayName(r, counts) {
+      const dup = (counts.get(r.responsavel) || 0) > 1;
+      if (!dup) return escapeHtml(r.responsavel);
+      return `${escapeHtml(r.responsavel)}<span class="cfa-name-sub"> · ${escapeHtml(r.territorios)}</span>`;
+    }
+
     // ---------------------------------------------------------------- render
 
     function render(container) {
@@ -216,6 +232,9 @@
       const withPct = rows.filter((r) => r.pct !== null);
       const media = withPct.length ? withPct.reduce((s, r) => s + r.pct, 0) / withPct.length : 0;
       const lider = rows[0];
+      const liderCounts = nameCounts();
+      const liderDup = lider && (liderCounts.get(lider.responsavel) || 0) > 1;
+      const liderLabel = lider ? `${escapeHtml(lider.responsavel)}${liderDup ? ` <span style="font-size:12px;color:var(--cfa-faint)">· ${escapeHtml(lider.territorios)}</span>` : ""}` : "—";
       const heroEl = container.querySelector("#cfa-hero");
       heroEl.innerHTML = `
         <div class="cfa-hero">
@@ -225,13 +244,14 @@
           <div class="cfa-hero-sep"></div>
           <div class="cfa-hero-stat"><p class="cfa-hero-label">Atingimento médio</p><p class="cfa-hero-val">${media.toFixed(0)}%</p></div>
           <div class="cfa-hero-sep"></div>
-          <div class="cfa-hero-stat"><p class="cfa-hero-label">Líder do ano</p><p class="cfa-hero-val" style="font-size:18px">🏆 ${escapeHtml(lider?.responsavel || "—")}</p></div>
+          <div class="cfa-hero-stat"><p class="cfa-hero-label">Líder do ano</p><p class="cfa-hero-val" style="font-size:18px">🏆 ${liderLabel}</p></div>
         </div>
       `;
     }
 
     function renderBoard(container) {
       const wrap = container.querySelector("#cfa-board-wrap");
+      const counts = nameCounts();
       const body = rows.map((r, i) => {
         const pos = i + 1;
         const pctLabel = r.pct === null ? "—" : `${r.pct.toFixed(0)}%`;
@@ -241,7 +261,7 @@
         const trophy = pos === 1 ? `<span class="cfa-trophy">🏆</span>` : "";
         return `<tr class="cfa-row${pos === 1 ? " lider" : ""}">
           <td class="cfa-pos-num">${pos}</td>
-          <td class="cfa-name">${trophy}${escapeHtml(r.responsavel)}</td>
+          <td class="cfa-name">${trophy}${displayName(r, counts)}</td>
           <td>${escapeHtml(r.territorios)}</td>
           <td>${fmtR$(r.realVal)}</td>
           <td>${fmtR$(r.metaVal)}</td>
