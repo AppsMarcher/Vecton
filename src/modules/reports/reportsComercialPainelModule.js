@@ -1084,7 +1084,7 @@
   .col > :first-child { margin-top:0; }
   .pc table { width:100%; border-collapse:collapse; table-layout:fixed; }
   .pc th, .pc td { font-size:6.6px; line-height:1.15; padding:.42mm .7mm; text-align:right;
-    border:.5px solid #cfcfcf; font-variant-numeric:tabular-nums; overflow:hidden; white-space:nowrap; }
+    border:.25px solid #e4e4e4; font-variant-numeric:tabular-nums; overflow:hidden; white-space:nowrap; }
   .pc thead th { color:#fff; font-weight:600; font-size:6px; letter-spacing:.03em; border-color:rgba(0,0,0,.18); }
   .pc th.nm { text-align:left; font-size:7px; font-weight:700; }
   .pc th.nm .nmw { display:flex; align-items:center; gap:.8mm; }
