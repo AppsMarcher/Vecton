@@ -147,7 +147,8 @@
         .cvp-print:hover { color:var(--cvp-text); border-color:#4f7cff; }
         .cvp-print:disabled { opacity:.55; cursor:default; }
         .cvp-print svg { width:14px; height:14px; }
-        .cvp-print-menu { position:absolute; top:calc(100% + 6px); right:0; z-index:120; background:var(--cvp-panel-hover); border:1px solid var(--cvp-line); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.45); min-width:180px; padding:6px; display:flex; flex-direction:column; gap:2px; }
+        .cvp-print-menu { position:absolute; top:calc(100% + 6px); right:0; z-index:120; background:var(--cvp-panel-hover); border:1px solid var(--cvp-line); border-radius:12px; box-shadow:0 12px 32px rgba(0,0,0,.45); min-width:180px; padding:6px; display:none; flex-direction:column; gap:2px; }
+        .cvp-print-menu.open { display:flex; }
         .cvp-print-menu button { display:flex; align-items:center; gap:8px; background:transparent; border:none; color:var(--cvp-soft); font-size:12.5px; font-family:inherit; font-weight:500; padding:8px 10px; border-radius:8px; cursor:pointer; text-align:left; width:100%; }
         .cvp-print-menu button:hover { background:rgba(255,255,255,.06); color:var(--cvp-text); }
         .cvp-print-menu svg { width:14px; height:14px; flex:none; }
@@ -364,7 +365,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                   Exportar
                 </button>
-                <div class="cvp-print-menu" id="cvp-print-menu" hidden>
+                <div class="cvp-print-menu" id="cvp-print-menu">
                   <button type="button" data-action="print">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                     Imprimir
@@ -1264,12 +1265,18 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
 
       const toggleBtn = container.querySelector("#cvp-print-toggle");
       const menu = container.querySelector("#cvp-print-menu");
-      const closeMenu = () => { if (menu) menu.hidden = true; toggleBtn?.setAttribute("aria-expanded", "false"); };
+      // Nao usar `hidden`/`el.hidden` aqui -- a classe `.cvp-print-menu` tem
+      // `display` proprio, que sobrescreve o atributo `hidden` (especificidade
+      // do seletor de classe vence a regra `[hidden]` do UA stylesheet, mesmo
+      // que empatada em pontos, por vir depois na cascata). Visibilidade
+      // controlada só pela classe `.open` (display:flex explicito).
+      const closeMenu = () => { menu?.classList.remove("open"); toggleBtn?.setAttribute("aria-expanded", "false"); };
       toggleBtn?.addEventListener("click", (e) => {
         e.stopPropagation();
         if (!menu) return;
-        menu.hidden = !menu.hidden;
-        toggleBtn.setAttribute("aria-expanded", String(!menu.hidden));
+        const willOpen = !menu.classList.contains("open");
+        menu.classList.toggle("open", willOpen);
+        toggleBtn.setAttribute("aria-expanded", String(willOpen));
       });
       menu?.addEventListener("click", (e) => {
         const b = e.target.closest("button[data-action]"); if (!b) return;
