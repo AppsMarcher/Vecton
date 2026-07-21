@@ -153,17 +153,30 @@
         .cvp-print-menu button:hover { background:rgba(255,255,255,.06); color:var(--cvp-text); }
         .cvp-print-menu svg { width:14px; height:14px; flex:none; }
         .cvp-email-backdrop { position:fixed; inset:0; z-index:9900; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:20px; }
-        .cvp-email { background:#121317; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:min(420px,94vw); padding:20px 22px; }
-        .cvp-email h3 { font-size:14px; font-weight:600; margin:0 0 4px; }
-        .cvp-email p.hint { font-size:11.5px; color:var(--cvp-faint); margin:0 0 16px; }
-        .cvp-email label { display:block; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--cvp-faint); margin-bottom:6px; }
-        .cvp-email input { width:100%; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:10px; color:#fff; font-size:13px; font-family:inherit; padding:10px 12px; outline:none; }
-        .cvp-email input:focus { border-color:#4f7cff; }
-        .cvp-email-msg { font-size:12px; margin-top:10px; min-height:16px; }
+        .cvp-email { background:#121317; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:60vw; height:60vh; min-width:420px; min-height:380px; display:flex; flex-direction:column; overflow:hidden; }
+        .cvp-email-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; border-bottom:1px solid #2a2d34; flex:none; }
+        .cvp-email-head h3 { font-size:14px; font-weight:600; margin:0; }
+        .cvp-email-head p { font-size:11.5px; color:var(--cvp-faint); margin:2px 0 0; }
+        .cvp-email-x { background:none; border:none; color:#6b7280; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; }
+        .cvp-email-x:hover { color:#fff; }
+        .cvp-email-body { flex:1; min-height:0; overflow-y:auto; padding:14px 20px; display:flex; flex-direction:column; }
+        .cvp-email-row { display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--cvp-line); padding:9px 0; flex:none; }
+        .cvp-email-row label { flex:none; width:64px; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--cvp-faint); }
+        .cvp-email-row input { flex:1; min-width:0; background:transparent; border:none; color:#fff; font-size:13px; font-family:inherit; padding:4px 0; outline:none; }
+        .cvp-email-row-text { align-items:flex-start; border-bottom:none; flex:1; min-height:0; margin-top:4px; }
+        .cvp-email-row-text label { padding-top:4px; }
+        .cvp-email-text { flex:1; min-height:0; resize:none; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:10px; color:#fff; font-size:13px; font-family:inherit; line-height:1.5; padding:10px 12px; outline:none; }
+        .cvp-email-text:focus { border-color:#4f7cff; }
+        .cvp-email-attach { display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--cvp-soft); background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:8px; padding:6px 10px; margin:6px 0 2px; align-self:flex-start; }
+        .cvp-email-attach svg { width:13px; height:13px; flex:none; color:var(--cvp-faint); }
+        .cvp-email-msg { font-size:12px; padding:0 20px; min-height:16px; flex:none; }
         .cvp-email-msg.err { color:var(--cvp-neg); }
         .cvp-email-msg.ok { color:var(--cvp-pos); }
         .cvp-email-msg.warn { color:#f59e0b; }
-        .cvp-email-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+        .cvp-email-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 20px; border-top:1px solid #2a2d34; flex:none; }
+        .cvp-email-remember { display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--cvp-soft); cursor:pointer; user-select:none; }
+        .cvp-email-remember input { accent-color:#4f7cff; }
+        .cvp-email-actions { display:flex; justify-content:flex-end; gap:8px; }
         .cvp-email-actions button { border-radius:10px; padding:9px 16px; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer; border:1px solid var(--cvp-line); background:transparent; color:var(--cvp-soft); }
         .cvp-email-actions button:hover { color:var(--cvp-text); border-color:#4f7cff; }
         .cvp-email-actions button.primary { background:#4f7cff; border-color:#4f7cff; color:#fff; }
@@ -1183,6 +1196,31 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
 
     let emailEl = null;
 
+    // Destinatarios lembrados entre envios (localStorage, por navegador/usuario
+    // -- nao e um cadastro de servidor). Toggle unico controla as duas pontas:
+    // ligado = salva os e-mails usados E sugere os ja salvos; desligado = nem
+    // salva nem sugere (nao fica juntando dado silenciosamente).
+    const EMAIL_SUGGEST_LIST_KEY = "vp_cvp_email_recipients_v1";
+    const EMAIL_SUGGEST_TOGGLE_KEY = "vp_cvp_email_suggest_on_v1";
+    const MAX_SAVED_RECIPIENTS = 30;
+
+    function getSuggestEnabled() {
+      try { return localStorage.getItem(EMAIL_SUGGEST_TOGGLE_KEY) !== "0"; } catch (_) { return true; } // default ligado
+    }
+    function setSuggestEnabled(on) {
+      try { localStorage.setItem(EMAIL_SUGGEST_TOGGLE_KEY, on ? "1" : "0"); } catch (_) { /* localStorage indisponivel */ }
+    }
+    function getSavedRecipients() {
+      try { return JSON.parse(localStorage.getItem(EMAIL_SUGGEST_LIST_KEY) || "[]"); } catch (_) { return []; }
+    }
+    function saveRecipients(emails) {
+      if (!getSuggestEnabled() || !emails.length) return;
+      try {
+        const merged = Array.from(new Set([...emails, ...getSavedRecipients()])).slice(0, MAX_SAVED_RECIPIENTS);
+        localStorage.setItem(EMAIL_SUGGEST_LIST_KEY, JSON.stringify(merged));
+      } catch (_) { /* localStorage indisponivel/cheio -- nao trava o envio */ }
+    }
+
     function closeEmailModal() {
       if (!emailEl) return;
       emailEl.remove();
@@ -1194,45 +1232,93 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
     function openEmailModal(container) {
       closeEmailModal();
       const mLabel = MONTHS[month - 1];
+      const defaultSubject = `Painel de Vendas — ${mLabel}/${year}`;
+      const signature = state.profile?.name || "";
+      const defaultBody = `Olá,\n\nSegue em anexo o Painel de Vendas de ${mLabel}/${year} (mês e acumulado YTD).\n\nAtenciosamente,\n${signature}`;
+      const suggestOn = getSuggestEnabled();
+      const suggestOpts = suggestOn
+        ? getSavedRecipients().map((e) => `<option value="${escapeHtml(e)}">`).join("")
+        : "";
+
       const backdrop = document.createElement("div");
       backdrop.className = "cvp-email-backdrop";
       backdrop.innerHTML = `
         <div class="cvp-email">
-          <h3>Enviar por e-mail</h3>
-          <p class="hint">Painel de Vendas — ${escapeHtml(mLabel)}/${year}, em PDF anexado.</p>
-          <label for="cvp-email-to">Destinatário(s)</label>
-          <input id="cvp-email-to" type="text" placeholder="email@empresa.com, outro@empresa.com" autocomplete="off">
+          <div class="cvp-email-head">
+            <div><h3>Enviar por e-mail</h3><p>Painel de Vendas — ${escapeHtml(mLabel)}/${year}</p></div>
+            <button type="button" class="cvp-email-x" aria-label="Fechar">✕</button>
+          </div>
+          <div class="cvp-email-body">
+            <div class="cvp-email-row">
+              <label for="cvp-email-to">Para</label>
+              <input id="cvp-email-to" type="text" list="cvp-email-suggest" placeholder="email@empresa.com, outro@empresa.com" autocomplete="off">
+            </div>
+            <div class="cvp-email-row">
+              <label for="cvp-email-cc">Cc</label>
+              <input id="cvp-email-cc" type="text" list="cvp-email-suggest" placeholder="opcional" autocomplete="off">
+            </div>
+            <div class="cvp-email-row">
+              <label for="cvp-email-subject">Assunto</label>
+              <input id="cvp-email-subject" type="text" value="${escapeHtml(defaultSubject)}">
+            </div>
+            <div class="cvp-email-attach">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+              <span>${escapeHtml(reportFilename())}</span>
+            </div>
+            <div class="cvp-email-row cvp-email-row-text">
+              <label for="cvp-email-text">Texto</label>
+              <textarea id="cvp-email-text" class="cvp-email-text">${escapeHtml(defaultBody)}</textarea>
+            </div>
+            <datalist id="cvp-email-suggest">${suggestOpts}</datalist>
+          </div>
           <div class="cvp-email-msg" id="cvp-email-msg"></div>
-          <div class="cvp-email-actions">
-            <button type="button" id="cvp-email-cancel">Cancelar</button>
-            <button type="button" id="cvp-email-send" class="primary">Enviar</button>
+          <div class="cvp-email-footer">
+            <label class="cvp-email-remember"><input type="checkbox" id="cvp-email-remember"${suggestOn ? " checked" : ""}> Lembrar destinatários para próximos envios</label>
+            <div class="cvp-email-actions">
+              <button type="button" id="cvp-email-cancel">Cancelar</button>
+              <button type="button" id="cvp-email-send" class="primary">Enviar</button>
+            </div>
           </div>
         </div>
       `;
       document.body.appendChild(backdrop);
       emailEl = backdrop;
       backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeEmailModal(); });
+      backdrop.querySelector(".cvp-email-x").addEventListener("click", closeEmailModal);
       backdrop.querySelector("#cvp-email-cancel").addEventListener("click", closeEmailModal);
       setTimeout(() => document.addEventListener("keydown", onEmailKey), 0);
-      const input = backdrop.querySelector("#cvp-email-to");
+
+      const toInput = backdrop.querySelector("#cvp-email-to");
+      const ccInput = backdrop.querySelector("#cvp-email-cc");
+      const subjectInput = backdrop.querySelector("#cvp-email-subject");
+      const textInput = backdrop.querySelector("#cvp-email-text");
+      const rememberChk = backdrop.querySelector("#cvp-email-remember");
       const msgEl = backdrop.querySelector("#cvp-email-msg");
       const sendBtn = backdrop.querySelector("#cvp-email-send");
-      input.focus();
+      const fields = [toInput, ccInput, subjectInput, textInput];
+      toInput.focus();
+
+      rememberChk.addEventListener("change", () => setSuggestEnabled(rememberChk.checked));
 
       function setMsg(text, kind) {
         msgEl.textContent = text || "";
         msgEl.className = "cvp-email-msg" + (kind ? ` ${kind}` : "");
       }
+      function parseEmails(raw) {
+        return raw.split(",").map((s) => s.trim()).filter(Boolean);
+      }
 
       async function handleSend() {
         const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const to = input.value.split(",").map((s) => s.trim()).filter(Boolean);
-        if (!to.length) { setMsg("Informe ao menos um destinatário.", "err"); return; }
-        const invalid = to.filter((e) => !EMAIL_RE.test(e));
+        const to = parseEmails(toInput.value);
+        const cc = parseEmails(ccInput.value);
+        if (!to.length) { setMsg("Informe ao menos um destinatário em Para.", "err"); return; }
+        const invalid = to.concat(cc).filter((e) => !EMAIL_RE.test(e));
         if (invalid.length) { setMsg(`E-mail inválido: ${invalid.join(", ")}`, "err"); return; }
+        if (!subjectInput.value.trim()) { setMsg("Informe o assunto.", "err"); return; }
 
         sendBtn.disabled = true;
-        input.disabled = true;
+        fields.forEach((el) => { el.disabled = true; });
         try {
           setMsg("Gerando PDF…", "warn");
           const pdfBase64 = await generateReportPdfBase64();
@@ -1240,12 +1326,14 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
           setMsg("Enviando e-mail…", "warn");
           await callEdgeFunction("send-report-email", {
             to,
-            subject: `Painel de Vendas — ${mLabel}/${year}`,
+            cc: cc.length ? cc : undefined,
+            subject: subjectInput.value.trim(),
             filename: reportFilename(),
-            body_text: `Segue em anexo o Painel de Vendas de ${mLabel}/${year} (mês e acumulado YTD).`,
+            body_text: textInput.value,
             pdf_base64: pdfBase64
           });
           if (emailEl !== backdrop) return;
+          if (rememberChk.checked) saveRecipients(to.concat(cc));
           setMsg("E-mail enviado com sucesso.", "ok");
           setTimeout(() => { if (emailEl === backdrop) closeEmailModal(); }, 1400);
         } catch (e) {
@@ -1253,12 +1341,11 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
           if (emailEl !== backdrop) return;
           setMsg(e?.message || "Falha ao enviar o e-mail.", "err");
           sendBtn.disabled = false;
-          input.disabled = false;
+          fields.forEach((el) => { el.disabled = false; });
         }
       }
 
       sendBtn.addEventListener("click", handleSend);
-      input.addEventListener("keydown", (e) => { if (e.key === "Enter") handleSend(); });
     }
 
     // ---------------------------------------------------------------- events
