@@ -736,7 +736,16 @@ const comVendedoresMod = createCadastroModule({
   fields: [
     { key: "codigo", label: "Código", required: true, lockOnEdit: true },
     { key: "nome", label: "Nome", required: true },
-    { key: "cargo", label: "Cargo", required: true },
+    { key: "cargo", label: "Cargo", required: true, type: "select", options: [
+      { value: "Gerente Comercial", label: "Gerente Comercial" },
+      { value: "Coordenador Sul", label: "Coordenador Sul" },
+      { value: "Coordenador Norte", label: "Coordenador Norte" },
+      { value: "Coordenador Oeste", label: "Coordenador Oeste" },
+      { value: "Coordenador Pecuária", label: "Coordenador Pecuária" },
+      { value: "Especialista Exportação", label: "Especialista Exportação" },
+      { value: "Representando Comercial", label: "Representando Comercial" },
+      { value: "Vendedor", label: "Vendedor" }
+    ] },
     { key: "situacao", label: "Situação", required: true, type: "select", options: [
       { value: "ativo", label: "Ativo" }, { value: "historico", label: "Histórico" }
     ] }
