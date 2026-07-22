@@ -181,6 +181,7 @@ const views = {
   comTipos: document.querySelector("#comTipos-view"),
   comCulturas: document.querySelector("#comCulturas-view"),
   comLinhasNegocio: document.querySelector("#comLinhasNegocio-view"),
+  comVendedores: document.querySelector("#comVendedores-view"),
   comAtribuicao: document.querySelector("#comAtribuicao-view"),
   comercialVendas: document.querySelector("#comercialVendas-view"),
   comercialPlanejado: document.querySelector("#comercialPlanejado-view")
@@ -728,6 +729,19 @@ const comClientesMod = createCadastroModule({
   ]
 }, comercialCadastroDeps);
 
+const comVendedoresMod = createCadastroModule({
+  table: "comercial_vendedores", idPrefix: "com-vendedores",
+  titleSingular: "Vendedor", titlePlural: "Vendedores", newLabel: "Novo vendedor",
+  conflictKeys: ["organization_id", "codigo"], searchable: true,
+  fields: [
+    { key: "codigo", label: "Código", required: true, lockOnEdit: true },
+    { key: "nome", label: "Nome", required: true },
+    { key: "situacao", label: "Situação", required: true, type: "select", options: [
+      { value: "ativo", label: "Ativo" }, { value: "historico", label: "Histórico" }
+    ] }
+  ]
+}, comercialCadastroDeps);
+
 // Atribuição usa exclusion constraint (não unique simples) para impedir
 // vigências sobrepostas — por isso cria com INSERT puro, não upsert.
 const comAtribuicaoMod = createCadastroModule({
@@ -742,8 +756,10 @@ const comAtribuicaoMod = createCadastroModule({
       options: () => comLinhasNegocioMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
     { key: "coordenacao_id", label: "Coordenação", required: true, type: "select",
       options: () => comCoordenacoesMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
-    { key: "cod_vendedor", label: "Código do vendedor", required: false },
-    { key: "responsavel", label: "Responsável", required: true },
+    { key: "cod_vendedor", label: "Vendedor", required: true, type: "select",
+      options: () => comVendedoresMod.getRows().filter((r) => r.situacao === "ativo").map((r) => ({ value: r.codigo, label: `${r.codigo} - ${r.nome}` })),
+      autoFill: { target: "responsavel", value: (codigo) => comVendedoresMod.getRows().find((r) => r.codigo === codigo)?.nome } },
+    { key: "responsavel", label: "Nome do vendedor", required: true },
     { key: "data_inicio", label: "Início da vigência", required: true, type: "date" },
     { key: "data_fim", label: "Fim da vigência", required: false, type: "date" }
   ]
@@ -756,6 +772,7 @@ const comercialModules = {
   comCoordenacoes: comCoordenacoesMod,
   comTerritorios: comTerritoriosMod,
   comClientes: comClientesMod,
+  comVendedores: comVendedoresMod,
   comProdutos: {
     loadAndRender: async () => {
       await Promise.all([comTiposMod.loadAndRender(), comCulturasMod.loadAndRender()]);
@@ -769,6 +786,7 @@ const comercialModules = {
         comTerritoriosMod.loadAndRender(),
         comLinhasNegocioMod.loadAndRender(),
         comCoordenacoesMod.loadAndRender()
+        , comVendedoresMod.loadAndRender()
       ]);
       await comAtribuicaoMod.loadAndRender();
     },

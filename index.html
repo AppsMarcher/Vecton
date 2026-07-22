@@ -246,6 +246,7 @@
               <button class="submenu-button" type="button" data-view="comTipos"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-target"></use></svg><span>Tipo</span></button>
               <button class="submenu-button" type="button" data-view="comCulturas"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-activity"></use></svg><span>Cultura</span></button>
               <button class="submenu-button" type="button" data-view="comLinhasNegocio"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-pie"></use></svg><span>Linha de Negócio</span></button>
+              <button class="submenu-button" type="button" data-view="comVendedores"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-users"></use></svg><span>Vendedores</span></button>
               <button class="submenu-button" type="button" data-view="comAtribuicao"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-sliders"></use></svg><span>Atribuição</span></button>
             </div>
           </div>
@@ -890,6 +891,19 @@
         </div>
       </section>
 
+      <section id="comVendedores-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div><h2 class="cadastro-title">Vendedores</h2><p class="cadastro-subtitle">Código estável, nome de exibição e situação para as campanhas comerciais.</p></div>
+            <button id="com-vendedores-add-btn" class="primary-button" type="button">+ Novo vendedor</button>
+          </div>
+          <div class="content-card cadastro-table-card"><table class="data-table cadastro-table">
+            <thead><tr><th>Código</th><th>Nome</th><th>Situação</th><th></th></tr></thead>
+            <tbody id="com-vendedores-table-body"><tr><td colspan="4" class="users-empty">Carregando...</td></tr></tbody>
+          </table></div>
+        </div>
+      </section>
+
       <section id="comAtribuicao-view" class="content-view">
         <div class="cadastro-shell">
           <div class="cadastro-header">
@@ -1269,13 +1283,13 @@
   <script src="cc-structure.js?v=20260719r"></script>
   <script src="supabase-config.js?v=20260719r"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="src/core/constants.js?v=20260719r"></script>
+  <script src="src/core/constants.js?v=20260722b"></script>
   <script src="src/core/utils.js?v=20260719r"></script>
   <script src="src/core/storage.js?v=20260719r"></script>
   <script src="src/modules/auth/authSession.js?v=20260719r"></script>
   <script src="src/modules/actuals/actualsModule.js?v=20260719r"></script>
   <script src="src/modules/budget/budgetModule.js?v=20260719r"></script>
-  <script src="src/modules/navigation/navigationModule.js?v=20260713b"></script>
+  <script src="src/modules/navigation/navigationModule.js?v=20260722b"></script>
   <script src="src/modules/ui/headerModule.js?v=20260719r"></script>
   <script src="src/modules/ui/branchTreeModule.js?v=20260719r"></script>
   <script src="src/modules/ui/dreTreeModule.js?v=20260719r"></script>
@@ -1295,7 +1309,7 @@
   <script src="src/modules/reports/reportsSectionsModule.js?v=20260721b"></script>
   <script src="src/modules/users/usersModule.js?v=20260713h"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
-  <script src="src/modules/comercial/comercialCadastroModule.js?v=20260719r"></script>
+  <script src="src/modules/comercial/comercialCadastroModule.js?v=20260722b"></script>
   <script src="src/modules/comercial/comercialVendasCargaModule.js?v=20260722a"></script>
   <script src="src/modules/comercial/comercialPlanejadoCargaModule.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsComercialPainelModule.js?v=20260721n"></script>
@@ -1307,12 +1321,9 @@
   <script src="src/modules/dashboard/dashboardModule.js?v=20260720e"></script>
   <script src="src/modules/dashboard/dashboardVisuals.js?v=20260720e"></script>
   <script src="src/modules/dashboard/marketTicker.js?v=20260713a"></script>
-  <script src="app.js?v=20260722a"></script>
+  <script src="app.js?v=20260722b"></script>
 </body>
 </html>
-
-
-
 
 
 
