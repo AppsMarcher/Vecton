@@ -43,7 +43,7 @@
       });
       const paramsViews = [
         "branchPlan", "drePlan", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles",
-        "comProdutos", "comClientes", "comTerritorios", "comCoordenacoes", "comTipos", "comCulturas", "comLinhasNegocio", "comAtribuicao",
+        "comProdutos", "comClientes", "comTerritorios", "comCoordenacoes", "comTipos", "comCulturas", "comLinhasNegocio", "comVendedores", "comAtribuicao",
         "comercialVendas", "comercialPlanejado"
       ];
       paramsToggle.classList.toggle("active", paramsViews.includes(activeView));
