@@ -731,11 +731,12 @@ const comClientesMod = createCadastroModule({
 
 const comVendedoresMod = createCadastroModule({
   table: "comercial_vendedores", idPrefix: "com-vendedores",
-  titleSingular: "Vendedor", titlePlural: "Vendedores", newLabel: "Novo vendedor",
+  titleSingular: "Integrante", titlePlural: "Time Comercial", newLabel: "Novo integrante",
   conflictKeys: ["organization_id", "codigo"], searchable: true,
   fields: [
     { key: "codigo", label: "Código", required: true, lockOnEdit: true },
     { key: "nome", label: "Nome", required: true },
+    { key: "cargo", label: "Cargo", required: true },
     { key: "situacao", label: "Situação", required: true, type: "select", options: [
       { value: "ativo", label: "Ativo" }, { value: "historico", label: "Histórico" }
     ] }
