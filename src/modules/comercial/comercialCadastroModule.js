@@ -230,6 +230,14 @@
       overlay.querySelector(`#${idPrefix}-cancel`).addEventListener("click", close);
       overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
 
+      fields.forEach((field) => {
+        if (!field.autoFill) return;
+        const source = overlay.querySelector(`#${idPrefix}-f-${field.key}`);
+        const target = overlay.querySelector(`#${idPrefix}-f-${field.autoFill.target}`);
+        if (!source || !target) return;
+        source.addEventListener("change", () => { target.value = field.autoFill.value(source.value) || ""; });
+      });
+
       saveBtn.addEventListener("click", () => saveForm(row, overlay, feedback, saveBtn));
 
       const firstInput = overlay.querySelector(".users-invite-body input, .users-invite-body select");
