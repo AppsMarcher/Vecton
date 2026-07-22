@@ -742,6 +742,7 @@ const comAtribuicaoMod = createCadastroModule({
       options: () => comLinhasNegocioMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
     { key: "coordenacao_id", label: "Coordenação", required: true, type: "select",
       options: () => comCoordenacoesMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
+    { key: "cod_vendedor", label: "Código do vendedor", required: false },
     { key: "responsavel", label: "Responsável", required: true },
     { key: "data_inicio", label: "Início da vigência", required: true, type: "date" },
     { key: "data_fim", label: "Fim da vigência", required: false, type: "date" }
