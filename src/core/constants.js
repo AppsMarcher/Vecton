@@ -85,6 +85,7 @@ const VIEW_HEADER_METADATA = {
   comTipos:          { kicker: "PARÂMETROS", title: "Tipo" },
   comCulturas:       { kicker: "PARÂMETROS", title: "Cultura" },
   comLinhasNegocio:  { kicker: "PARÂMETROS", title: "Linha de Negócio" },
+  comVendedores:     { kicker: "PARÂMETROS", title: "Vendedores" },
   comAtribuicao:     { kicker: "PARÂMETROS", title: "Atribuição Território → Responsável" },
   comercialVendas:   { kicker: "PARÂMETROS", title: "Carga de Vendas realizadas" },
   comercialPlanejado:{ kicker: "PARÂMETROS", title: "Carga de Vendas planejadas" }
