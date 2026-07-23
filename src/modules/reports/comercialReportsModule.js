@@ -135,7 +135,9 @@
         .vcr-preview-panel .vcr-loading,.vcr-preview-panel .vcr-empty{padding:20px;text-align:center;color:var(--text-faint);font-size:11px}
         .vcr-month-layout{display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:18px;align-items:start}
         .vcr-month-kpis{display:grid;gap:10px;align-content:start}
-        .vcr-month-chart{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);display:grid;gap:4px;max-height:520px;overflow:auto}
+        .vcr-month-chart{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);display:grid;gap:8px}
+        .vcr-combo-svg{width:100%;height:220px}
+        .vcr-combo-label{font-size:9px;fill:var(--text-faint);text-anchor:middle}
         @media(max-width:780px){.vcr-month-layout{grid-template-columns:1fr}}
         .vcr-report{display:grid;gap:18px}.vcr-report-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}.vcr-report-head h1{font-size:21px;margin:3px 0}.vcr-kicker{margin:0;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint)}
         .vcr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.vcr-stat{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel)}.vcr-stat span{display:block;font-size:10px;color:var(--text-faint);text-transform:uppercase}.vcr-stat strong{display:block;font-size:21px;margin-top:5px}
@@ -685,6 +687,134 @@
     // Layout dedicado do eixo Mês: metade resumo (realizado/meta acumulados
     // no período, variam com o cenário escolhido no topo) + metade gráfico de
     // barras mês a mês (real vs meta), em vez da tabela genérica.
+    const MONTH_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+    function hexToRgb(color) {
+      const hex = String(color || "").trim().replace("#", "");
+      if (hex.length !== 6) return { r: 20, g: 184, b: 166 };
+      return { r: parseInt(hex.slice(0, 2), 16), g: parseInt(hex.slice(2, 4), 16), b: parseInt(hex.slice(4, 6), 16) };
+    }
+    function mixColor(color, target, amount) {
+      const base = hexToRgb(color), to = hexToRgb(target);
+      const t = Math.max(0, Math.min(1, amount));
+      return `rgb(${Math.round(base.r + (to.r - base.r) * t)}, ${Math.round(base.g + (to.g - base.g) * t)}, ${Math.round(base.b + (to.b - base.b) * t)})`;
+    }
+    function rgbaColor(color, alpha) {
+      const c = hexToRgb(color);
+      return `rgba(${c.r}, ${c.g}, ${c.b}, ${Math.max(0, Math.min(1, alpha))})`;
+    }
+
+    // Mesma técnica visual do combo chart do Dashboard (renderDashComboChart em
+    // dashboardVisuals.js): barra sólida com gradiente/glow pro mês com
+    // realizado, barra tracejada "fantasma" pro mês só com meta/forecast, linha
+    // suave conectando o atingimento % mês a mês. Reimplementado aqui (sem
+    // tooltip interativo) porque comercialReportsModule.js monta HTML estático
+    // via innerHTML, não tem os containerId/eventos do módulo do Dashboard.
+    function renderMonthComboChart(rows, barColor = "#14b8a6", lineColor = "#7aa2ff") {
+      const byMonth = new Map(rows.map((row) => [Number(row.row_key.slice(5, 7)) - 1, row]));
+      const barVals = [], targetVals = [], lineVals = [];
+      for (let i = 0; i < 12; i += 1) {
+        const row = byMonth.get(i);
+        barVals.push(row ? Number(row.realized) || 0 : 0);
+        targetVals.push(row ? Number(row.target) || 0 : 0);
+        lineVals.push(row && row.attainment_pct !== null && row.attainment_pct !== undefined ? Number(row.attainment_pct) / 100 : null);
+      }
+      const hasTarget = targetVals.some((v) => v !== 0);
+
+      const W = 720, H = 220, PAD_L = 8, PAD_R = 8, PAD_B = 24, PAD_T = 12;
+      const chartW = W - PAD_L - PAD_R;
+      const chartH = H - PAD_B - PAD_T;
+      const groupW = chartW / 12;
+      const barW = Math.min(groupW * 0.55, 34);
+      const ghostBarW = Math.min(groupW * 0.8, 44);
+
+      const realIdxs = barVals.map((v, i) => ({ v, i })).filter(({ v }) => v !== 0).map(({ i }) => i);
+      const targetIdxs = targetVals.map((v, i) => ({ v, i })).filter(({ v }) => v !== 0).map(({ i }) => i);
+      const realSet = new Set(realIdxs);
+      const targetSet = new Set(targetIdxs);
+
+      const allBarVals = [...realIdxs.map((i) => barVals[i]), ...targetIdxs.map((i) => targetVals[i])];
+      const hasNeg = allBarVals.some((v) => v < 0);
+      const barMax = Math.max(...allBarVals.map(Math.abs), 1);
+      const maxV = Math.max(...allBarVals, 0);
+      const minV = Math.min(...allBarVals, 0);
+      const zeroY = hasNeg ? PAD_T + chartH * (maxV / (maxV - minV || 1)) : PAD_T + chartH;
+
+      const barRect = (value) => {
+        if (!hasNeg) {
+          const h = Math.max(1, (value / barMax) * chartH);
+          return { y: zeroY - h, h };
+        }
+        const range = maxV - minV || 1;
+        const h = Math.max(1, Math.abs(value) / range * chartH);
+        return { y: value >= 0 ? zeroY - h : zeroY, h };
+      };
+
+      const activeLineVals = realIdxs.map((i) => lineVals[i]).filter((v) => v !== null && Number.isFinite(v));
+      const lineMin = Math.min(...activeLineVals, 0);
+      const lineMax = Math.max(...activeLineVals, 0.01);
+      const lineRange = lineMax - lineMin || 0.01;
+      const lineY = (v) => PAD_T + chartH * (1 - (v - lineMin) / lineRange);
+
+      const topGlow = mixColor(barColor, "#ffffff", 0.22);
+      const midTone = mixColor(barColor, "#ffffff", 0.08);
+      const deepTone = mixColor(barColor, "#050816", 0.42);
+      const gradId = `vcr-combo-grad-${Math.random().toString(36).slice(2, 8)}`;
+      const glowId = `vcr-combo-glow-${Math.random().toString(36).slice(2, 8)}`;
+
+      let bars = "", labels = "", linePts = [], dots = "";
+      for (let i = 0; i < 12; i += 1) {
+        const xCenter = PAD_L + i * groupW + groupW / 2;
+        labels += `<text x="${xCenter.toFixed(1)}" y="${H - 6}" class="vcr-combo-label">${escapeHtml(MONTH_ABBR[i])}</text>`;
+        if (targetSet.has(i)) {
+          const { y, h } = barRect(targetVals[i]);
+          const xGhost = xCenter - ghostBarW / 2;
+          bars += `<rect x="${xGhost.toFixed(1)}" y="${y.toFixed(1)}" width="${ghostBarW.toFixed(1)}" height="${h.toFixed(1)}" fill="${rgbaColor(barColor, 0.14)}" stroke="${rgbaColor(barColor, 0.45)}" stroke-width="1" stroke-dasharray="3,3" rx="4"><title>${escapeHtml(MONTH_ABBR[i])}: meta ${targetVals[i].toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</title></rect>`;
+        }
+        if (realSet.has(i)) {
+          const value = barVals[i];
+          const { y, h } = barRect(value);
+          const xBar = xCenter - barW / 2;
+          const glossH = Math.max(6, h * 0.28);
+          bars += `<g>
+            <rect x="${xBar.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="url(#${gradId})" rx="4" filter="url(#${glowId})"><title>${escapeHtml(MONTH_ABBR[i])}: realizado ${value.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</title></rect>
+            <rect x="${(xBar + 1.1).toFixed(1)}" y="${(y + 1.2).toFixed(1)}" width="${Math.max(barW - 2.2, 1).toFixed(1)}" height="${Math.max(glossH - 1.2, 1).toFixed(1)}" fill="rgba(255,255,255,0.14)" rx="3"/>
+          </g>`;
+          if (lineVals[i] !== null) {
+            const ly = lineY(lineVals[i]);
+            linePts.push({ x: xCenter, y: ly });
+            dots += `<circle cx="${xCenter.toFixed(1)}" cy="${ly.toFixed(1)}" r="3" fill="${lineColor}"><title>${escapeHtml(MONTH_ABBR[i])}: ${(lineVals[i] * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% atingimento</title></circle>`;
+          }
+        }
+      }
+
+      let linePath = "";
+      if (linePts.length > 1) {
+        let d = `M ${linePts[0].x.toFixed(1)} ${linePts[0].y.toFixed(1)}`;
+        for (let k = 1; k < linePts.length; k += 1) {
+          const prev = linePts[k - 1], curr = linePts[k];
+          const cpx = ((prev.x + curr.x) / 2).toFixed(1);
+          d += ` C ${cpx} ${prev.y.toFixed(1)}, ${cpx} ${curr.y.toFixed(1)}, ${curr.x.toFixed(1)} ${curr.y.toFixed(1)}`;
+        }
+        linePath = `<path d="${d}" fill="none" stroke="${lineColor}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+      }
+
+      const zeroLine = `<line x1="${PAD_L}" y1="${zeroY.toFixed(1)}" x2="${W - PAD_R}" y2="${zeroY.toFixed(1)}" stroke="var(--line)" stroke-width="1" stroke-dasharray="3,3"/>`;
+      const defs = `<defs>
+        <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${topGlow}"/><stop offset="22%" stop-color="${midTone}"/><stop offset="100%" stop-color="${deepTone}"/>
+        </linearGradient>
+        <filter id="${glowId}" x="-30%" y="-20%" width="160%" height="170%">
+          <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="${rgbaColor(barColor, 0.24)}"/>
+        </filter>
+      </defs>`;
+
+      return `<div class="vcr-legend"><span><i style="background:${barColor}"></i>Realizado</span>${hasTarget ? `<span><i style="background:transparent;border:1px dashed ${barColor}"></i>Meta</span>` : ""}${linePts.length ? `<span><i style="background:${lineColor}"></i>Atingimento %</span>` : ""}</div>
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="vcr-combo-svg">
+        ${defs}${zeroLine}${bars}${linePath}${dots}${labels}
+      </svg>`;
+    }
+
     function renderMonthAxisReport(payload) {
       const rows = payload.rows || [];
       const summary = payload.summary || [];
@@ -697,7 +827,6 @@
       const totalTargetItem = summary.find((item) => item.key === "target_total");
       const totalTarget = totalTargetItem ? Number(totalTargetItem.value) : null;
       const attainment = totalTarget && totalTarget > 0 ? (totalRealized / totalTarget) * 100 : null;
-      const max = Math.max(1, ...rows.flatMap((row) => [Math.abs(Number(row.realized) || 0), Math.abs(Number(row.target) || 0)]));
       return `<div class="vcr-month-layout">
         <div class="vcr-month-kpis">
           <div class="vcr-stat"><span>Realizado acumulado</span><strong>${escapeHtml(fmt(totalRealized))}</strong></div>
@@ -705,8 +834,7 @@
           <div class="vcr-stat"><span>Atingimento</span><strong>${attainment !== null ? escapeHtml(`${attainment.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`) : "—"}</strong></div>` : ""}
         </div>
         <div class="vcr-month-chart">
-          <div class="vcr-legend"><span><i style="background:var(--blue)"></i>Realizado</span>${totalTargetItem ? `<span><i style="background:var(--text-faint)"></i>Meta</span>` : ""}</div>
-          ${rows.length ? rows.map((row) => `<div class="vcr-bar-row"><span>${escapeHtml(row.label)}</span><span class="vcr-pair"><span class="vcr-bar-track"><span class="vcr-bar-fill" style="width:${Math.min(100, Math.abs(Number(row.realized) || 0) / max * 100)}%"></span></span>${totalTargetItem ? `<span class="vcr-bar-track"><span class="vcr-bar-fill target" style="width:${Math.min(100, Math.abs(Number(row.target) || 0) / max * 100)}%"></span></span>` : ""}</span><strong>${escapeHtml(fmt(row.realized))}</strong></div>`).join("") : `<div class="vcr-empty">Sem resultados para o período.</div>`}
+          ${rows.length ? renderMonthComboChart(rows) : `<div class="vcr-empty">Sem resultados para o período.</div>`}
         </div>
       </div>`;
     }
