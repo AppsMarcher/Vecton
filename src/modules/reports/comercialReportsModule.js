@@ -76,9 +76,14 @@
         .vcr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.vcr-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
         .vcr-field{display:grid;gap:6px;font-size:11px;color:var(--text-soft)}.vcr-field input,.vcr-field select,.vcr-field textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:9px;font:inherit}.vcr-field textarea{min-height:72px;resize:vertical}
         .vcr-field select option,.vcr-team-tools select option{background:#1a1d26;color:var(--text)}
-        .vcr-checks{display:flex;flex-wrap:wrap;gap:8px}.vcr-check{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;font-size:11px;color:var(--text-soft)}
-        .vcr-team-tools{display:flex;gap:8px;flex-wrap:wrap}.vcr-team-tools input,.vcr-team-tools select{border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:8px;padding:8px}
-        .vcr-team-list{max-height:190px;overflow:auto;border:1px solid var(--line-soft);border-radius:10px}.vcr-team-row{display:grid;grid-template-columns:28px 84px 1fr 180px 80px 150px;gap:8px;align-items:center;padding:8px 10px;font-size:11px;border-bottom:1px solid var(--line-soft)}.vcr-team-row:last-child{border:0}.vcr-team-row.invalid{opacity:.62}
+        .vcr-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.vcr-check{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:10.5px;color:var(--text-soft);line-height:1.25}
+        .vcr-team-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+        .vcr-team-tools-filters{display:flex;gap:8px;flex:1;min-width:260px}
+        .vcr-team-tools-filters input{flex:1;min-width:150px}
+        .vcr-team-tools-filters select{width:auto;min-width:150px}
+        .vcr-team-tools-actions{display:flex;gap:8px;flex-wrap:wrap}
+        .vcr-team-tools input,.vcr-team-tools select{width:auto;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:8px;padding:8px 10px;font-size:11px}
+        .vcr-team-list{max-height:190px;overflow:auto;border:1px solid var(--line-soft);border-radius:10px}.vcr-team-row{display:grid;grid-template-columns:28px 84px 1fr 180px 80px 150px;gap:8px;align-items:center;padding:7px 10px;font-size:11px;border-bottom:1px solid var(--line-soft)}.vcr-team-row:last-child{border:0}.vcr-team-row.invalid{opacity:.62}
         .vcr-modal-actions{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:9px}.vcr-feedback{margin-right:auto;color:var(--neg);font-size:12px;align-self:center}
         .vcr-report{display:grid;gap:18px}.vcr-report-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}.vcr-report-head h1{font-size:21px;margin:3px 0}.vcr-kicker{margin:0;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint)}
         .vcr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.vcr-stat{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel)}.vcr-stat span{display:block;font-size:10px;color:var(--text-faint);text-transform:uppercase}.vcr-stat strong{display:block;font-size:21px;margin-top:5px}
@@ -90,7 +95,7 @@
         .vcr-pair{display:grid;gap:3px}.vcr-bar-fill.target{background:var(--text-faint)}.vcr-line-chart{width:100%;height:190px}.vcr-line-chart polyline{fill:none;stroke-width:2}.vcr-line-labels{display:flex;justify-content:space-between;color:var(--text-faint);font-size:9px}.vcr-legend{display:flex;gap:14px;font-size:10px;color:var(--text-soft);margin-bottom:8px}.vcr-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
         .vcr-compliance{border:1px solid var(--line);border-radius:14px;padding:0 14px;background:var(--panel)}.vcr-compliance summary{cursor:pointer;padding:13px 0;font-size:11px;font-weight:600}.vcr-compliance ul{margin:0 0 14px;padding-left:18px;color:var(--text-soft);font-size:11px;display:grid;gap:5px}
         .vcr-loading,.vcr-empty{padding:50px;text-align:center;color:var(--text-faint)}
-        @media(max-width:780px){.vcr-grid,.vcr-grid.two{grid-template-columns:1fr}.vcr-team-row{grid-template-columns:28px 70px 1fr}.vcr-team-row span:nth-last-child(-n+2){display:none}.vcr-ranking-stack{grid-template-columns:1fr}}
+        @media(max-width:780px){.vcr-grid,.vcr-grid.two{grid-template-columns:1fr}.vcr-team-row{grid-template-columns:28px 70px 1fr}.vcr-team-row span:nth-last-child(-n+2){display:none}.vcr-ranking-stack{grid-template-columns:1fr}.vcr-team-tools-filters,.vcr-team-tools-actions{width:100%}.vcr-team-tools-filters select{flex:1}}
       `;
       document.head.appendChild(style);
     }
@@ -153,7 +158,7 @@
       button.type = "button";
       button.className = "reports-report-card vcr-create-card";
       button.dataset.vcrCreateCard = "true";
-      button.innerHTML = `<span style="font-size:20px">+</span><span>Criar relatório comercial personalizado</span>`;
+      button.innerHTML = `<span style="font-size:20px">+</span><span>Novo relatório Comercial</span>`;
       button.addEventListener("click", () => openCreator(null));
       body.appendChild(button);
     }
@@ -240,17 +245,33 @@
         <div class="vcr-modal" role="dialog" aria-modal="true">
           <div class="vcr-modal-head"><div><p class="vcr-kicker">Criador de Relatórios Comerciais</p><h3>${report ? "Editar relatório" : "Novo relatório"}</h3></div><button class="vcr-close" type="button">×</button></div>
           <div class="vcr-modal-body">
-            <section class="vcr-section"><h4>Identificação</h4><div class="vcr-grid">
+            <section class="vcr-section"><h4>Identificação</h4>
               <label class="vcr-field">Nome<input id="vcr-name" value="${escapeHtml(report?.nome || "")}" maxlength="80"></label>
-              <label class="vcr-field">Status<select id="vcr-status"><option value="draft" ${report?.status === "draft" || !report ? "selected" : ""}>Rascunho</option><option value="active" ${report?.status === "active" ? "selected" : ""}>Ativo</option><option value="closed" ${report?.status === "closed" ? "selected" : ""}>Encerrado</option></select></label>
-              <label class="vcr-field">Modalidade<select id="vcr-mode"><option value="monthly" ${report?.modalidade === "monthly" || !report ? "selected" : ""}>Mensal não cumulativa</option><option value="annual_ytd" ${report?.modalidade === "annual_ytd" ? "selected" : ""}>Anual cumulativa YTD</option></select></label>
-              <label class="vcr-field">Data inicial<input id="vcr-start" type="date" value="${escapeHtml(report?.data_inicio || "")}"></label>
-              <label class="vcr-field">Data final<input id="vcr-end" type="date" value="${escapeHtml(report?.data_fim || "")}"></label>
-              <label class="vcr-field">Ordem do card<input id="vcr-order" type="number" min="0" value="${Number(report?.display_order || 0)}"></label>
-            </div><label class="vcr-field">Descrição<textarea id="vcr-description">${escapeHtml(report?.descricao || "")}</textarea></label></section>
+              <div class="vcr-grid">
+                <label class="vcr-field">Status<select id="vcr-status"><option value="draft" ${report?.status === "draft" || !report ? "selected" : ""}>Rascunho</option><option value="active" ${report?.status === "active" ? "selected" : ""}>Ativo</option><option value="closed" ${report?.status === "closed" ? "selected" : ""}>Encerrado</option></select></label>
+                <label class="vcr-field">Modalidade<select id="vcr-mode"><option value="monthly" ${report?.modalidade === "monthly" || !report ? "selected" : ""}>Mensal não cumulativa</option><option value="annual_ytd" ${report?.modalidade === "annual_ytd" ? "selected" : ""}>Anual cumulativa YTD</option></select></label>
+                <label class="vcr-field">Ordem do card<input id="vcr-order" type="number" min="0" value="${Number(report?.display_order || 0)}"></label>
+              </div>
+              <div class="vcr-grid two">
+                <label class="vcr-field">Data inicial<input id="vcr-start" type="date" value="${escapeHtml(report?.data_inicio || "")}"></label>
+                <label class="vcr-field">Data final<input id="vcr-end" type="date" value="${escapeHtml(report?.data_fim || "")}"></label>
+              </div>
+              <label class="vcr-field">Descrição<textarea id="vcr-description">${escapeHtml(report?.descricao || "")}</textarea></label>
+            </section>
 
-            <section class="vcr-section"><h4>Participantes</h4>${checkGroup("vcr-cargo", CARGOS, config.cargos || [])}
-              <div class="vcr-team-tools"><input id="vcr-team-search" placeholder="Pesquisar nome ou código"><select id="vcr-team-cargo"><option value="">Todos os cargos</option>${CARGOS.map((c) => `<option>${escapeHtml(c)}</option>`).join("")}</select><select id="vcr-team-status" disabled><option value="">Somente ativos</option></select><button type="button" class="ghost-button" id="vcr-team-select-all">Selecionar todos</button><button type="button" class="ghost-button" id="vcr-team-all">Selecionar filtrados</button><button type="button" class="ghost-button" id="vcr-team-none">Desmarcar todos</button></div>
+            <section class="vcr-section"><h4>Participantes</h4>
+              <div class="vcr-field"><span>Cargos participantes</span>${checkGroup("vcr-cargo", CARGOS, config.cargos || [])}</div>
+              <div class="vcr-team-tools">
+                <div class="vcr-team-tools-filters">
+                  <input id="vcr-team-search" placeholder="Pesquisar nome ou código">
+                  <select id="vcr-team-cargo"><option value="">Todos os cargos</option>${CARGOS.map((c) => `<option>${escapeHtml(c)}</option>`).join("")}</select>
+                </div>
+                <div class="vcr-team-tools-actions">
+                  <button type="button" class="ghost-button" id="vcr-team-select-all">Selecionar todos</button>
+                  <button type="button" class="ghost-button" id="vcr-team-all">Selecionar filtrados</button>
+                  <button type="button" class="ghost-button" id="vcr-team-none">Desmarcar todos</button>
+                </div>
+              </div>
               <div class="vcr-team-list">${(team || []).map((person) => `<label class="vcr-team-row ${person.vigente === false ? "invalid" : ""}" data-name="${escapeHtml(`${person.codigo} ${person.nome}`.toLowerCase())}" data-cargo="${escapeHtml(person.cargo || "")}" data-status="${escapeHtml(person.situacao || "")}"><input type="checkbox" name="vcr-person" value="${escapeHtml(person.codigo)}" ${(config.selected_codes || []).includes(person.codigo) ? "checked" : ""}><strong>${escapeHtml(person.codigo)}</strong><span>${escapeHtml(person.nome)}</span><span>${escapeHtml(person.cargo || "—")}</span><span>${escapeHtml(person.situacao)}</span><span>${person.vigente === false ? "Fora da vigência" : `${escapeHtml(person.data_inicio || "")} — ${escapeHtml(person.data_fim || "aberta")}`}</span></label>`).join("")}</div>
               <p class="vcr-note">Somente integrantes com status ativo no Time Comercial participam dos relatórios.</p>
             </section>
@@ -291,14 +312,12 @@
       const paint = () => {
         const term = overlay.querySelector("#vcr-team-search").value.trim().toLowerCase();
         const cargo = overlay.querySelector("#vcr-team-cargo").value;
-        const status = overlay.querySelector("#vcr-team-status").value;
         overlay.querySelectorAll(".vcr-team-row").forEach((row) => {
-          row.hidden = Boolean((term && !row.dataset.name.includes(term)) || (cargo && row.dataset.cargo !== cargo) || (status && row.dataset.status !== status));
+          row.hidden = Boolean((term && !row.dataset.name.includes(term)) || (cargo && row.dataset.cargo !== cargo));
         });
       };
       overlay.querySelector("#vcr-team-search").addEventListener("input", paint);
       overlay.querySelector("#vcr-team-cargo").addEventListener("change", paint);
-      overlay.querySelector("#vcr-team-status").addEventListener("change", paint);
       overlay.querySelector("#vcr-team-select-all").addEventListener("click", () => overlay.querySelectorAll('.vcr-team-row input').forEach((input) => { input.checked = true; }));
       overlay.querySelector("#vcr-team-all").addEventListener("click", () => overlay.querySelectorAll(".vcr-team-row:not([hidden]) input").forEach((input) => { input.checked = true; }));
       overlay.querySelector("#vcr-team-none").addEventListener("click", () => overlay.querySelectorAll('[name="vcr-person"]').forEach((input) => { input.checked = false; }));
