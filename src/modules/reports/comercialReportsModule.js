@@ -45,10 +45,14 @@
       },
       {
         id: "composition",
-        label: "Composição por produto/cultura",
-        description: "Quanto cada produto ou cultura representou no período.",
-        rowAxis: "product",
+        label: "Vendas de máquinas por cultura",
+        description: "Cada vendedor, quanto vendeu em Grão e Pecuária dentro de Máquinas.",
+        rowAxis: "seller",
         advanced: false,
+        // Filtro fixo (não é uma opção no formulário): Peças/Transgrain/
+        // Acessórios não têm cultura, então esse recorte só faz sentido
+        // restrito a Máquinas — ver blankConfig/buildConfigFromForm.
+        cultureMachinesOnly: true,
       },
       {
         id: "campaign",
@@ -244,6 +248,7 @@
     function blankConfig(template) {
       const rowAxis = template?.rowAxis || "seller";
       const nonAdvanced = !template || !template.advanced;
+      const cultureMachinesOnly = Boolean(template?.cultureMachinesOnly);
       return {
         schema_version: 1,
         origins: ["FAT"],
@@ -253,7 +258,7 @@
         selection_type: "general",
         selected_codes: [],
         participant_list_version: 1,
-        product_types: [],
+        product_types: cultureMachinesOnly ? ["Máquinas"] : [],
         cultures: [],
         product_type_ids: [],
         culture_ids: [],
@@ -265,18 +270,22 @@
         conditions: { minimum_quantity: 0, minimum_attainment_pct: 100, requires_target: true, zero_target_policy: "null" },
         ranking: { enabled: !nonAdvanced, metric: "attainment_pct", direction: "desc", tie_breaker: "quantity" },
         award: { enabled: false, rule: "conditions_met" },
-        groupings: [],
+        groupings: cultureMachinesOnly ? ["culture"] : [],
         scenario_mode: "runtime",
         charts: [],
       };
     }
 
+    // "composition" (Vendas de máquinas por cultura) é eixo vendedor com
+    // groupings=['culture'] — precisa ser distinguido de "Comparativo do
+    // time" (mesmo eixo, sem essa quebra) antes de cair no fallback genérico.
     function inferTemplateId(report, config) {
       if (report?.report_kind === "bateu_levou" || report?.report_kind === "final_ano") return "campaign";
       const axis = config?.row_axis || "seller";
       if (axis === "month") return "seller_monthly";
       if (axis === "product" || axis === "culture") return "composition";
       if (config?.ranking?.enabled || config?.award?.enabled) return "campaign";
+      if ((config?.groupings || []).includes("culture")) return "composition";
       return "team_comparison";
     }
 
@@ -621,6 +630,7 @@
       const metrics = checkedValues(overlay, "vcr-metric");
       const selectedCodes = checkedValues(overlay, "vcr-person");
       const isSingle = template.id === "seller_monthly";
+      const cultureMachinesOnly = Boolean(template.cultureMachinesOnly);
       let error = null;
       if (!metrics.length) error = "Selecione ao menos uma métrica.";
       if (isSingle && selectedCodes.length !== 1) error = "Escolha exatamente 1 vendedor.";
@@ -636,7 +646,7 @@
           selected_codes: selectedCodes,
           participant_list_version: Number(previousConfig.participant_list_version || 0) + 1,
           product_type_ids: [], culture_ids: [], territory_ids: previousConfig.territory_ids || [],
-          product_types: [], cultures: [],
+          product_types: cultureMachinesOnly ? ["Máquinas"] : [], cultures: [],
           row_axis: template.rowAxis,
           primary_metric: metrics[0] || "quantity",
           complementary_metrics: metrics.slice(1),
@@ -644,7 +654,7 @@
           conditions: { minimum_quantity: 0, minimum_attainment_pct: 0, requires_target: false, zero_target_policy: "real_is_100" },
           ranking: { enabled: false, metric: "quantity", direction: "desc", tie_breaker: "revenue" },
           award: { enabled: false, rule: "conditions_met" },
-          groupings: [],
+          groupings: cultureMachinesOnly ? ["culture"] : [],
           scenario_mode: "runtime",
           charts: [],
         },
@@ -680,7 +690,10 @@
         });
         if (config.row_axis === "month") {
           panel.innerHTML = renderMonthAxisReport(payload);
-        } else if (config.row_axis === "product" || config.row_axis === "culture") {
+        } else if (
+          config.row_axis === "product" || config.row_axis === "culture"
+          || (config.row_axis === "seller" && (config.groupings || []).includes("culture") && !config.ranking?.enabled && !config.award?.enabled)
+        ) {
           panel.innerHTML = renderCompositionReport(payload);
         } else {
           const columns = (payload.columns || []).filter((c) => c.visible !== false).sort((a, b) => a.order - b.order);
@@ -1145,14 +1158,19 @@
       return `<div class="vcr-metric-stack">${metrics.map((metric) => renderTeamMetricPanel(payload, metric)).join("")}</div>`;
     }
 
-    // Eixo Produto/Cultura ("Composição por produto/cultura"): quando o eixo é
-    // 'product', cada linha já vem com row.segment = cultura (migration 085) —
-    // separa em 3 seções (Grãos/Pecuária/Sem cultura), igual ao Bateu-Levou
-    // por segmento. Quando o eixo é 'culture' (não usado por nenhum template
-    // hoje, mas suportado pelo motor), mostra 1 tabela só, sem sub-quebra.
-    // Realizado/Meta/Var reaproveitam buildMetricRows (mesma função do
-    // Comparativo do time) — o motor agora devolve target_quantity/
-    // target_revenue por linha, então a Meta fica certa em qualquer métrica.
+    // Painel segmentado por cultura, reaproveitado por 2 relatórios:
+    // - Eixo Produto/Cultura (row_axis='product'): linha = grupo de produto
+    //   (tipo), row.segment = cultura (migration 085) — 3 seções possíveis
+    //   (Grãos/Pecuária/Sem cultura, ex: Peças/Transgrain/Acessórios).
+    // - Eixo Vendedor + groupings=['culture'] (template "Vendas de máquinas
+    //   por cultura", sempre filtrado a Tipo=Máquinas): linha = vendedor,
+    //   row.segment = cultura — como Máquinas sempre tem cultura obrigatória
+    //   (regra de carga), só aparecem as seções Grãos/Pecuária (nunca "Sem
+    //   cultura", que fica com 0 linhas e some sozinho).
+    // Eixo Cultura isolado (row_axis='culture', não usado por nenhum
+    // template hoje) cai numa tabela só, sem sub-quebra. Realizado/Meta/Var
+    // reaproveitam buildMetricRows (mesma função do Comparativo do time) — o
+    // motor devolve target_quantity/target_revenue por linha em todo eixo.
     function cultureBucket(value) {
       const normalized = String(value || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
       if (normalized.startsWith("gra")) return "graos";
@@ -1165,10 +1183,9 @@
       { key: "sem_cultura", title: "Sem cultura" },
     ];
 
-    function renderCompositionMetricPanel(payload, metric) {
+    function renderSegmentedMetricPanel(payload, metric, { rowKey, columnLabel, sortPrefix, flat }) {
       const config = payload.config || {};
       const rows = payload.rows || [];
-      const isCultureAxis = config.row_axis === "culture";
       const isPercent = metric === "margin";
       const isCurrency = !isPercent && metric !== "quantity";
       const hasTarget = metric !== "margin";
@@ -1176,7 +1193,7 @@
       const metricRows = buildMetricRows(rows, metric, zeroTargetPolicy);
       const metricLabel = METRIC_LABELS[metric] || metric;
       const realizedType = isPercent ? "percentage" : isCurrency ? "currency" : "number";
-      const columns = [{ key: "label", label: isCultureAxis ? "Cultura" : "Produto", type: "text" }];
+      const columns = [{ key: rowKey, label: columnLabel, type: "text" }];
       columns.push({ key: "realized", label: "Realizado", type: realizedType });
       if (hasTarget) {
         columns.push({ key: "target", label: "Meta", type: realizedType });
@@ -1184,9 +1201,10 @@
         columns.push({ key: "overachievement_pct", label: "Var %", type: "percentage" });
       }
       const chartRows = metricRows.slice().sort((a, b) => (Number(b.realized) || 0) - (Number(a.realized) || 0));
-      const boardsHtml = isCultureAxis
+      const chartLabelKey = rowKey === "nome" ? "nome" : "label";
+      const boardsHtml = flat
         ? (() => {
-            const sortKey = `comp:${payload.report?.id}:${metric}`;
+            const sortKey = `${sortPrefix}:${payload.report?.id}:${metric}`;
             const sortState = rankingSorts.get(sortKey) || null;
             const sortedRows = sortRankingRows(metricRows, columns, sortState);
             return `<section class="vcr-ranking-board" data-vcr-ranking-board data-sort-key="${escapeHtml(sortKey)}">
@@ -1196,7 +1214,7 @@
         : CULTURE_SECTIONS.map((section) => {
             const sectionRows = metricRows.filter((row) => cultureBucket(row.segment) === section.key);
             if (!sectionRows.length) return "";
-            const sortKey = `comp:${payload.report?.id}:${metric}:${section.key}`;
+            const sortKey = `${sortPrefix}:${payload.report?.id}:${metric}:${section.key}`;
             const sortState = rankingSorts.get(sortKey) || null;
             const sortedRows = sortRankingRows(sectionRows, columns, sortState);
             return `<section class="vcr-ranking-board" data-vcr-ranking-board data-sort-key="${escapeHtml(sortKey)}">
@@ -1211,9 +1229,22 @@
         </div>
         <div class="vcr-team-chart">
           <div class="vcr-rank-title">Ranking por ${escapeHtml(metricLabel.toLowerCase())} <span title="Ranking por ${escapeHtml(metricLabel.toLowerCase())} no período, do maior pro menor.">ⓘ</span></div>
-          ${renderRankBarChart(chartRows, metric)}
+          ${renderRankBarChart(chartRows.map((row) => ({ ...row, nome: row[chartLabelKey] })), metric)}
         </div>
       </div>`;
+    }
+
+    function renderCompositionMetricPanel(payload, metric) {
+      const axis = payload.config?.row_axis;
+      if (axis === "seller") {
+        return renderSegmentedMetricPanel(payload, metric, { rowKey: "nome", columnLabel: "Vendedor", sortPrefix: "cultseller", flat: false });
+      }
+      return renderSegmentedMetricPanel(payload, metric, {
+        rowKey: "label",
+        columnLabel: axis === "culture" ? "Cultura" : "Produto",
+        sortPrefix: "comp",
+        flat: axis === "culture",
+      });
     }
 
     function renderCompositionReport(payload) {
@@ -1230,7 +1261,10 @@
       const rows = payload.rows || [];
       const isBateuLevou = payload.report?.kind === "bateu_levou";
       const isMonthAxis = payload.config?.row_axis === "month";
-      const isComposition = payload.config?.row_axis === "product" || payload.config?.row_axis === "culture";
+      const isSellerCultureComposition = payload.config?.row_axis === "seller"
+        && !payload.config?.ranking?.enabled && !payload.config?.award?.enabled
+        && (payload.config?.groupings || []).includes("culture");
+      const isComposition = payload.config?.row_axis === "product" || payload.config?.row_axis === "culture" || isSellerCultureComposition;
       const isTeamComparison = !isMonthAxis && !isComposition && payload.config?.row_axis === "seller"
         && !payload.config?.ranking?.enabled && !payload.config?.award?.enabled;
       const scenarioOptions = `<option value="" ${!scenarioId ? "selected" : ""}>Budget</option>` + scenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}" ${scenario.id === scenarioId ? "selected" : ""}>${escapeHtml(scenario.name)}</option>`).join("");
