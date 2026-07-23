@@ -133,6 +133,10 @@
         @media(max-width:780px){.vcr-template-grid{grid-template-columns:1fr}}
         .vcr-preview-panel{border:1px dashed var(--line);border-radius:14px;padding:15px;display:grid;gap:12px}
         .vcr-preview-panel .vcr-loading,.vcr-preview-panel .vcr-empty{padding:20px;text-align:center;color:var(--text-faint);font-size:11px}
+        .vcr-month-layout{display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:18px;align-items:start}
+        .vcr-month-kpis{display:grid;gap:10px;align-content:start}
+        .vcr-month-chart{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);display:grid;gap:4px;max-height:520px;overflow:auto}
+        @media(max-width:780px){.vcr-month-layout{grid-template-columns:1fr}}
         .vcr-report{display:grid;gap:18px}.vcr-report-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}.vcr-report-head h1{font-size:21px;margin:3px 0}.vcr-kicker{margin:0;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint)}
         .vcr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.vcr-stat{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel)}.vcr-stat span{display:block;font-size:10px;color:var(--text-faint);text-transform:uppercase}.vcr-stat strong{display:block;font-size:21px;margin-top:5px}
         .vcr-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.vcr-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.vcr-table th,.vcr-table td{padding:9px 11px;border-bottom:1px solid var(--line-soft);font-size:11px;white-space:nowrap;text-align:left}.vcr-table th{color:var(--text-faint);font-size:9px;text-transform:uppercase;background:var(--panel);position:sticky;top:0}.vcr-table td.num,.vcr-table th.num{text-align:right}.vcr-pill{display:inline-flex;padding:3px 7px;border-radius:99px;background:var(--panel-hover)}.vcr-pill.ok{color:var(--pos);background:rgba(34,197,94,.1)}.vcr-pill.no{color:var(--neg);background:rgba(248,113,113,.1)}
@@ -642,9 +646,7 @@
       panel.hidden = false;
       panel.innerHTML = `<div class="vcr-loading">Gerando pré-visualização...</div>`;
       const status = report ? overlay.querySelector("#vcr-status")?.value || report.status : "draft";
-      const modalidade = template.advanced
-        ? overlay.querySelector("#vcr-mode")?.value
-        : (template.id === "seller_monthly" ? "monthly" : "monthly");
+      const modalidade = template.advanced ? overlay.querySelector("#vcr-mode")?.value : templateModalidade(template);
       const dataInicio = template.advanced ? (overlay.querySelector("#vcr-start")?.value || null) : (report?.data_inicio || null);
       const dataFim = template.advanced ? (overlay.querySelector("#vcr-end")?.value || null) : (report?.data_fim || null);
       try {
@@ -659,14 +661,54 @@
           p_month: month,
           p_scenario_id: null,
         });
-        const columns = (payload.columns || []).filter((c) => c.visible !== false).sort((a, b) => a.order - b.order);
-        panel.innerHTML = `
-          <div class="vcr-summary">${(payload.summary || []).map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && config.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
-          ${tableMarkup(columns, payload.rows || [], { empty: "Sem resultados para o período." })}
-        `;
+        if (config.row_axis === "month") {
+          panel.innerHTML = renderMonthAxisReport(payload);
+        } else {
+          const columns = (payload.columns || []).filter((c) => c.visible !== false).sort((a, b) => a.order - b.order);
+          panel.innerHTML = `
+            <div class="vcr-summary">${(payload.summary || []).map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && config.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
+            ${tableMarkup(columns, payload.rows || [], { empty: "Sem resultados para o período." })}
+          `;
+        }
       } catch (err) {
         panel.innerHTML = `<div class="vcr-empty">Erro ao pré-visualizar: ${escapeHtml(String(err?.message || err))}</div>`;
       }
+    }
+
+    // "Desempenho de um vendedor" (row_axis=month) grava modalidade YTD pra
+    // que o motor resolva sozinho a janela Jan→mês selecionado (acumulado).
+    // Os demais templates simplificados seguem mensal, como hoje.
+    function templateModalidade(template) {
+      return template.id === "seller_monthly" ? "annual_ytd" : "monthly";
+    }
+
+    // Layout dedicado do eixo Mês: metade resumo (realizado/meta acumulados
+    // no período, variam com o cenário escolhido no topo) + metade gráfico de
+    // barras mês a mês (real vs meta), em vez da tabela genérica.
+    function renderMonthAxisReport(payload) {
+      const rows = payload.rows || [];
+      const summary = payload.summary || [];
+      const primary = payload.config?.primary_metric || "quantity";
+      const isCurrency = primary !== "quantity";
+      const fmt = (value) => isCurrency
+        ? Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+        : Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+      const totalRealized = summary.find((item) => item.key === "realized_total")?.value ?? rows.reduce((acc, row) => acc + (Number(row.realized) || 0), 0);
+      const totalTargetItem = summary.find((item) => item.key === "target_total");
+      const totalTarget = totalTargetItem ? Number(totalTargetItem.value) : null;
+      const attainment = totalTarget && totalTarget > 0 ? (totalRealized / totalTarget) * 100 : null;
+      const max = Math.max(1, ...rows.flatMap((row) => [Math.abs(Number(row.realized) || 0), Math.abs(Number(row.target) || 0)]));
+      return `<div class="vcr-month-layout">
+        <div class="vcr-month-kpis">
+          <div class="vcr-stat"><span>Realizado acumulado</span><strong>${escapeHtml(fmt(totalRealized))}</strong></div>
+          ${totalTargetItem ? `<div class="vcr-stat"><span>Meta acumulada</span><strong>${escapeHtml(fmt(totalTarget))}</strong></div>
+          <div class="vcr-stat"><span>Atingimento</span><strong>${attainment !== null ? escapeHtml(`${attainment.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`) : "—"}</strong></div>` : ""}
+        </div>
+        <div class="vcr-month-chart">
+          <div class="vcr-legend"><span><i style="background:var(--blue)"></i>Realizado</span>${totalTargetItem ? `<span><i style="background:var(--text-faint)"></i>Meta</span>` : ""}</div>
+          ${rows.length ? rows.map((row) => `<div class="vcr-bar-row"><span>${escapeHtml(row.label)}</span><span class="vcr-pair"><span class="vcr-bar-track"><span class="vcr-bar-fill" style="width:${Math.min(100, Math.abs(Number(row.realized) || 0) / max * 100)}%"></span></span>${totalTargetItem ? `<span class="vcr-bar-track"><span class="vcr-bar-fill target" style="width:${Math.min(100, Math.abs(Number(row.target) || 0) / max * 100)}%"></span></span>` : ""}</span><strong>${escapeHtml(fmt(row.realized))}</strong></div>`).join("") : `<div class="vcr-empty">Sem resultados para o período.</div>`}
+        </div>
+      </div>`;
     }
 
     async function saveCreator(overlay, report, previousConfig, org, template) {
@@ -702,7 +744,7 @@
             descricao: overlay.querySelector("#vcr-description").value.trim(),
             status: report?.status || "draft",
             report_kind: report?.report_kind || "custom",
-            modalidade: "monthly",
+            modalidade: templateModalidade(template),
             data_inicio: report?.data_inicio || null,
             data_fim: report?.data_fim || null,
             display_order: Number(report?.display_order || 0),
@@ -812,8 +854,10 @@
       const scenarioOptions = `<option value="" ${!scenarioId ? "selected" : ""}>Budget</option>` + scenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}" ${scenario.id === scenarioId ? "selected" : ""}>${escapeHtml(scenario.name)}</option>`).join("");
       container.innerHTML = `<div class="vcr-report">
         <header class="vcr-report-head"><div><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${formatDateBR(payload.period?.effective_start)} — ${formatDateBR(payload.period?.effective_end)}</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="vcr-inline-field">Cenário<select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
+        ${payload.config?.row_axis === "month" ? renderMonthAxisReport(payload) : `
         <div class="vcr-summary">${summary.map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && payload.config?.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
         ${isBateuLevou ? renderBateuRankings(columns, rows, payload.report.id) : tableMarkup(columns, rows)}
+        `}
         ${renderCharts(payload.charts || [], rows)}
         <details class="vcr-compliance" open><summary>Critérios e regras aplicadas · versão ${Number(payload.report?.version || 0)}</summary><ul>${(payload.compliance?.rules || []).map((rule) => `<li>${escapeHtml(rule)}</li>`).join("")}</ul></details>
       </div>`;
