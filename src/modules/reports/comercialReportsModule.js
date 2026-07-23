@@ -84,12 +84,13 @@
         .vcr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.vcr-stat{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel)}.vcr-stat span{display:block;font-size:10px;color:var(--text-faint);text-transform:uppercase}.vcr-stat strong{display:block;font-size:21px;margin-top:5px}
         .vcr-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.vcr-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.vcr-table th,.vcr-table td{padding:9px 11px;border-bottom:1px solid var(--line-soft);font-size:11px;white-space:nowrap;text-align:left}.vcr-table th{color:var(--text-faint);font-size:9px;text-transform:uppercase;background:var(--panel);position:sticky;top:0}.vcr-table td.num,.vcr-table th.num{text-align:right}.vcr-pill{display:inline-flex;padding:3px 7px;border-radius:99px;background:var(--panel-hover)}.vcr-pill.ok{color:var(--pos);background:rgba(34,197,94,.1)}.vcr-pill.no{color:var(--neg);background:rgba(248,113,113,.1)}
         .vcr-table tbody tr[data-vcr-code]{cursor:pointer}.vcr-table tbody tr[data-vcr-code]:hover{background:var(--panel-hover)}.vcr-movements{width:min(1400px,97vw)}.vcr-movement-table{min-width:1180px}
-        .vcr-ranking-stack{display:grid;gap:18px}.vcr-ranking-board{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}.vcr-ranking-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line);flex-wrap:wrap}.vcr-ranking-title{display:flex;align-items:center;gap:9px}.vcr-ranking-title h3{margin:0;font-size:13px}.vcr-ranking-title span{font-size:10px;color:var(--text-faint)}.vcr-ranking-dot{width:8px;height:8px;border-radius:50%;background:var(--blue)}.vcr-ranking-board.pecuaria .vcr-ranking-dot{background:#f59e0b}.vcr-ranking-board th[data-vcr-sort]{cursor:pointer;user-select:none}.vcr-ranking-board th[data-vcr-sort]:hover{color:var(--text-soft)}.vcr-ranking-board th[data-vcr-sort].active{color:#7aa2ff}
+        .vcr-movement-table th[data-vcr-msort]{cursor:pointer;user-select:none}.vcr-movement-table th[data-vcr-msort]:hover{color:var(--text-soft)}.vcr-movement-table th[data-vcr-msort].active{color:#7aa2ff}
+        .vcr-ranking-stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}.vcr-ranking-board{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}.vcr-ranking-board .vcr-table-wrap{border:0;border-radius:0}.vcr-ranking-board .vcr-table th,.vcr-ranking-board .vcr-table td{padding:8px 9px;font-size:10.5px}.vcr-ranking-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line);flex-wrap:wrap}.vcr-ranking-title{display:flex;align-items:center;gap:9px}.vcr-ranking-title h3{margin:0;font-size:13px}.vcr-ranking-title span{font-size:10px;color:var(--text-faint)}.vcr-ranking-dot{width:8px;height:8px;border-radius:50%;background:var(--blue)}.vcr-ranking-board.pecuaria .vcr-ranking-dot{background:#f59e0b}.vcr-ranking-board th[data-vcr-sort]{cursor:pointer;user-select:none}.vcr-ranking-board th[data-vcr-sort]:hover{color:var(--text-soft)}.vcr-ranking-board th[data-vcr-sort].active{color:#7aa2ff}
         .vcr-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.vcr-chart{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel)}.vcr-chart h3{font-size:12px;margin:0 0 12px}.vcr-bar-row{display:grid;grid-template-columns:minmax(90px,1fr) 3fr 70px;gap:8px;align-items:center;font-size:10px;margin:7px 0}.vcr-bar-track{height:7px;background:var(--panel-hover);border-radius:99px;overflow:hidden}.vcr-bar-fill{height:100%;background:var(--blue);border-radius:99px}
         .vcr-pair{display:grid;gap:3px}.vcr-bar-fill.target{background:var(--text-faint)}.vcr-line-chart{width:100%;height:190px}.vcr-line-chart polyline{fill:none;stroke-width:2}.vcr-line-labels{display:flex;justify-content:space-between;color:var(--text-faint);font-size:9px}.vcr-legend{display:flex;gap:14px;font-size:10px;color:var(--text-soft);margin-bottom:8px}.vcr-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
         .vcr-compliance{border:1px solid var(--line);border-radius:14px;padding:0 14px;background:var(--panel)}.vcr-compliance summary{cursor:pointer;padding:13px 0;font-size:11px;font-weight:600}.vcr-compliance ul{margin:0 0 14px;padding-left:18px;color:var(--text-soft);font-size:11px;display:grid;gap:5px}
         .vcr-loading,.vcr-empty{padding:50px;text-align:center;color:var(--text-faint)}
-        @media(max-width:780px){.vcr-grid,.vcr-grid.two{grid-template-columns:1fr}.vcr-team-row{grid-template-columns:28px 70px 1fr}.vcr-team-row span:nth-last-child(-n+2){display:none}}
+        @media(max-width:780px){.vcr-grid,.vcr-grid.two{grid-template-columns:1fr}.vcr-team-row{grid-template-columns:28px 70px 1fr}.vcr-team-row span:nth-last-child(-n+2){display:none}.vcr-ranking-stack{grid-template-columns:1fr}}
       `;
       document.head.appendChild(style);
     }
@@ -475,8 +476,10 @@
       });
     }
 
+    const BATEU_HIDDEN_COLUMNS = new Set(["segment", "cargo", "status", "eligible", "situation", "reason"]);
+
     function renderBateuRankings(columns, rows, reportId) {
-      const rankColumns = columns.filter((column) => column.key !== "segment");
+      const rankColumns = columns.filter((column) => !BATEU_HIDDEN_COLUMNS.has(column.key));
       const definitionsBySegment = [
         { key: "graos", title: "Grãos", className: "graos", matches: (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().startsWith("gra") },
         { key: "pecuaria", title: "Pecuária", className: "pecuaria", matches: (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().startsWith("pec") },
@@ -557,15 +560,36 @@
           ["territorio", "Território"], ["regional", "Regional"],
           ["movimento_considerado", "Considerado"], ["motivo_exclusao", "Motivo da exclusão"],
         ];
+        const numericKeys = new Set(["quantidade", "faturamento", "margem_percentual"]);
         const consideredMovements = (movements || []).filter((movement) => movement.movimento_considerado === true);
-        const body = consideredMovements.map((movement) => `<tr>${columns.map(([key]) => {
-          let value = movement[key];
-          if (key === "faturamento") value = Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-          else if (key === "margem_percentual" && value !== null) value = `${(Number(value) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
-          else if (typeof value === "boolean") value = value ? "Sim" : "Não";
-          return `<td>${escapeHtml(value ?? "—")}</td>`;
-        }).join("")}</tr>`).join("");
-        overlay.querySelector(".vcr-modal-body").innerHTML = `<div class="vcr-table-wrap"><table class="vcr-table vcr-movement-table"><thead><tr>${columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}" class="vcr-empty">Nenhum movimento considerado para este realizado.</td></tr>`}</tbody></table></div>`;
+        let sortState = null;
+        const paintMovements = () => {
+          const sorted = sortState ? consideredMovements.slice().sort((a, b) => {
+            const av = a[sortState.key];
+            const bv = b[sortState.key];
+            if (sortState.key === "data") return sortState.dir * (new Date(av || 0) - new Date(bv || 0));
+            if (numericKeys.has(sortState.key)) return sortState.dir * ((Number(av) || 0) - (Number(bv) || 0));
+            return sortState.dir * String(av ?? "").localeCompare(String(bv ?? ""), "pt-BR", { numeric: true });
+          }) : consideredMovements;
+          const body = sorted.map((movement) => `<tr>${columns.map(([key]) => {
+            let value = movement[key];
+            if (key === "faturamento") value = Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            else if (key === "margem_percentual" && value !== null) value = `${(Number(value) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
+            else if (typeof value === "boolean") value = value ? "Sim" : "Não";
+            return `<td>${escapeHtml(value ?? "—")}</td>`;
+          }).join("")}</tr>`).join("");
+          overlay.querySelector(".vcr-modal-body").innerHTML = `<div class="vcr-table-wrap"><table class="vcr-table vcr-movement-table"><thead><tr>${columns.map(([key, label]) => {
+            const active = sortState?.key === key;
+            const arrow = active ? (sortState.dir === 1 ? " ↑" : " ↓") : "";
+            return `<th data-vcr-msort="${escapeHtml(key)}" class="${active ? "active" : ""}">${escapeHtml(label)}${arrow}</th>`;
+          }).join("")}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}" class="vcr-empty">Nenhum movimento considerado para este realizado.</td></tr>`}</tbody></table></div>`;
+          overlay.querySelectorAll("th[data-vcr-msort]").forEach((header) => header.addEventListener("click", () => {
+            const key = header.dataset.vcrMsort;
+            sortState = sortState?.key === key ? { key, dir: sortState.dir * -1 } : { key, dir: 1 };
+            paintMovements();
+          }));
+        };
+        paintMovements();
       } catch (error) {
         if (activeOverlay === overlay) overlay.querySelector(".vcr-modal-body").innerHTML = `<div class="vcr-empty">Erro ao carregar movimentos: ${escapeHtml(String(error?.message || error))}</div>`;
       }
