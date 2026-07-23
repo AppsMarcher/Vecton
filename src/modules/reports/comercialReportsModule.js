@@ -133,6 +133,8 @@
         @media(max-width:780px){.vcr-template-grid{grid-template-columns:1fr}}
         .vcr-preview-panel{border:1px dashed var(--line);border-radius:14px;padding:15px;display:grid;gap:12px}
         .vcr-preview-panel .vcr-loading,.vcr-preview-panel .vcr-empty{padding:20px;text-align:center;color:var(--text-faint);font-size:11px}
+        .vcr-metric-stack{display:grid;gap:18px}
+        .vcr-metric-title{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600}
         .vcr-month-layout{display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:18px;align-items:start}
         .vcr-month-kpis{display:grid;gap:10px;align-content:start}
         .vcr-month-chart{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel);display:grid;gap:8px}
@@ -691,7 +693,7 @@
 
     function hexToRgb(color) {
       const hex = String(color || "").trim().replace("#", "");
-      if (hex.length !== 6) return { r: 20, g: 184, b: 166 };
+      if (hex.length !== 6) return { r: 79, g: 124, b: 255 };
       return { r: parseInt(hex.slice(0, 2), 16), g: parseInt(hex.slice(2, 4), 16), b: parseInt(hex.slice(4, 6), 16) };
     }
     function mixColor(color, target, amount) {
@@ -710,14 +712,22 @@
     // suave conectando o atingimento % mês a mês. Reimplementado aqui (sem
     // tooltip interativo) porque comercialReportsModule.js monta HTML estático
     // via innerHTML, não tem os containerId/eventos do módulo do Dashboard.
-    function renderMonthComboChart(rows, barColor = "#14b8a6", lineColor = "#7aa2ff") {
+    function renderMonthComboChart(rows, metric, hasTargetMetric, zeroTargetPolicy, barColor = "#4f7cff", lineColor = "#a5b4fc") {
+      const targetKey = metric === "quantity" ? "target_quantity" : metric === "revenue" ? "target_revenue" : null;
       const byMonth = new Map(rows.map((row) => [Number(row.row_key.slice(5, 7)) - 1, row]));
       const barVals = [], targetVals = [], lineVals = [];
       for (let i = 0; i < 12; i += 1) {
         const row = byMonth.get(i);
-        barVals.push(row ? Number(row.realized) || 0 : 0);
-        targetVals.push(row ? Number(row.target) || 0 : 0);
-        lineVals.push(row && row.attainment_pct !== null && row.attainment_pct !== undefined ? Number(row.attainment_pct) / 100 : null);
+        const realized = row ? Number(row[metric]) || 0 : 0;
+        const target = hasTargetMetric && targetKey && row ? Number(row[targetKey]) || 0 : 0;
+        barVals.push(realized);
+        targetVals.push(target);
+        let attain = null;
+        if (hasTargetMetric) {
+          if (target > 0) attain = realized / target;
+          else if (realized > 0 && zeroTargetPolicy === "real_is_100") attain = 1;
+        }
+        lineVals.push(attain);
       }
       const hasTarget = targetVals.some((v) => v !== 0);
 
@@ -815,28 +825,44 @@
       </svg>`;
     }
 
-    function renderMonthAxisReport(payload) {
-      const rows = payload.rows || [];
-      const summary = payload.summary || [];
-      const primary = payload.config?.primary_metric || "quantity";
-      const isCurrency = primary !== "quantity";
+    const METRIC_LABELS = { quantity: "Volume", revenue: "Faturamento", margin: "Margem" };
+
+    // 1 painel (KPIs + gráfico) por métrica selecionada — antes só a métrica
+    // principal aparecia, mesmo marcando Volume+Faturamento+Margem juntos.
+    function renderMetricPanel(rows, metric, periodCutoff, zeroTargetPolicy) {
+      const isCurrency = metric !== "quantity";
       const fmt = (value) => isCurrency
         ? Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
         : Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
-      const totalRealized = summary.find((item) => item.key === "realized_total")?.value ?? rows.reduce((acc, row) => acc + (Number(row.realized) || 0), 0);
-      const totalTargetItem = summary.find((item) => item.key === "target_total");
-      const totalTarget = totalTargetItem ? Number(totalTargetItem.value) : null;
+      const hasTargetMetric = metric !== "margin";
+      const targetKey = metric === "quantity" ? "target_quantity" : metric === "revenue" ? "target_revenue" : null;
+      const accumulated = rows.filter((row) => row.row_key <= periodCutoff);
+      const totalRealized = accumulated.reduce((acc, row) => acc + (Number(row[metric]) || 0), 0);
+      const totalTarget = hasTargetMetric && targetKey ? accumulated.reduce((acc, row) => acc + (Number(row[targetKey]) || 0), 0) : null;
       const attainment = totalTarget && totalTarget > 0 ? (totalRealized / totalTarget) * 100 : null;
       return `<div class="vcr-month-layout">
         <div class="vcr-month-kpis">
+          <span class="vcr-metric-title">${escapeHtml(METRIC_LABELS[metric] || metric)}</span>
           <div class="vcr-stat"><span>Realizado acumulado</span><strong>${escapeHtml(fmt(totalRealized))}</strong></div>
-          ${totalTargetItem ? `<div class="vcr-stat"><span>Meta acumulada</span><strong>${escapeHtml(fmt(totalTarget))}</strong></div>
+          ${totalTarget !== null ? `<div class="vcr-stat"><span>Meta acumulada</span><strong>${escapeHtml(fmt(totalTarget))}</strong></div>
           <div class="vcr-stat"><span>Atingimento</span><strong>${attainment !== null ? escapeHtml(`${attainment.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`) : "—"}</strong></div>` : ""}
         </div>
         <div class="vcr-month-chart">
-          ${rows.length ? renderMonthComboChart(rows) : `<div class="vcr-empty">Sem resultados para o período.</div>`}
+          ${renderMonthComboChart(rows, metric, hasTargetMetric, zeroTargetPolicy)}
         </div>
       </div>`;
+    }
+
+    function renderMonthAxisReport(payload) {
+      const rows = payload.rows || [];
+      const config = payload.config || {};
+      const metrics = [config.primary_metric, ...(config.complementary_metrics || [])].filter(
+        (metric, index, arr) => metric && arr.indexOf(metric) === index
+      );
+      if (!rows.length) return `<div class="vcr-empty">Sem resultados para o período.</div>`;
+      const periodCutoff = String(payload.period?.effective_end || "").slice(0, 7);
+      const zeroTargetPolicy = config.conditions?.zero_target_policy || "null";
+      return `<div class="vcr-metric-stack">${metrics.map((metric) => renderMetricPanel(rows, metric, periodCutoff, zeroTargetPolicy)).join("")}</div>`;
     }
 
     async function saveCreator(overlay, report, previousConfig, org, template) {
