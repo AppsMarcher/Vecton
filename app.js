@@ -64,6 +64,7 @@ const { createComercialPainelModule } = window.VECTON_COMERCIAL_PAINEL;
 const { createComercialMapaModule } = window.VECTON_COMERCIAL_MAPA;
 const { createComercialBateuLevouModule } = window.VECTON_COMERCIAL_BATEU_LEVOU;
 const { createComercialFinalDeAnoModule } = window.VECTON_COMERCIAL_FINAL_DE_ANO;
+const { createComercialReportsModule } = window.VECTON_COMERCIAL_REPORTS;
 const { createReportsHelpersModule } = window.VECTON_REPORTS_HELPERS;
 const { createDashboardCardsModule } = window.VECTON_DASHBOARD_CARDS;
 const { createDashboardModule } = window.VECTON_DASHBOARD_MODULE;
@@ -743,7 +744,7 @@ const comVendedoresMod = createCadastroModule({
       { value: "Coordenador Oeste", label: "Coordenador Oeste" },
       { value: "Coordenador Pecuária", label: "Coordenador Pecuária" },
       { value: "Especialista Exportação", label: "Especialista Exportação" },
-      { value: "Representando Comercial", label: "Representando Comercial" },
+      { value: "Representante Comercial", label: "Representante Comercial" },
       { value: "Vendedor", label: "Vendedor" }
     ] },
     { key: "situacao", label: "Situação", required: true, type: "select", options: [
@@ -1267,6 +1268,25 @@ const reportsSectionsModule = createReportSectionsModule ? createReportSectionsM
   authenticatedFetch,
 }) : _sectionsNoop;
 
+const comercialReportsModule = createComercialReportsModule({
+  escapeHtml,
+  state,
+  resolveOrganizationId,
+  fetchSupabaseRowsSafe,
+  callSupabaseRpc,
+  isSupabaseConfigured,
+  getAccessRole,
+  setSelectedReportId: (value) => { selectedReportId = value; },
+  renderReportsView,
+  getReportTitles: () => REPORT_TITLES,
+  onCatalogChanged: async () => {
+    await reportsSectionsModule.loadSections();
+    reportsSectionsModule.renderSections();
+    comercialReportsModule.mountCreateButton();
+    applyReportAccess();
+  },
+});
+
 bootstrap();
 
 async function bootstrap() {
@@ -1646,8 +1666,12 @@ async function hydrateFromSupabase() {
     initReportCardEdit();
     await reportsBuilderModule.loadCustomReports();
     reportsBuilderModule.injectCatalogCards();
+    await comercialReportsModule.loadDefinitions();
+    comercialReportsModule.injectCatalogCards();
     await reportsSectionsModule.loadSections();
     reportsSectionsModule.renderSections();
+    comercialReportsModule.mountCreateButton();
+    applyReportAccess();
     setSyncStatus("Banco de Dados Online", "ok");
     if (canManageUsers()) void loadAndRenderUsers();
   } catch (error) {
@@ -1815,7 +1839,7 @@ function canSeeReport(reportId) {
   if (role === "super_admin" || role === "admin") return true;
   // Comercial é allowlist fixa (Painel/Mapa/Bateu-Levou) — não recebe extras nem
   // as regras de manager/analyst, mesmo que extra_report_ids venha preenchido.
-  if (role === "comercial") return ["comercialPainel", "comercialMapa", "comercialBateuLevou", "comercialFinalDeAno"].includes(reportId);
+  if (role === "comercial") return String(reportId).startsWith("comercialRelatorio_") || ["comercialPainel", "comercialMapa", "comercialBateuLevou", "comercialFinalDeAno"].includes(reportId);
   if (getExtraReportIds().includes(reportId)) return true;
   if (role === "manager") return true;
   if (role === "analyst") return !isConsolidatedReport(reportId);
@@ -2739,6 +2763,7 @@ function renderReportsView() {
 
   const rendered =
     reportsBuilderModule.handleBuilderView(detailPanel, selectedReportId) ||
+    comercialReportsModule.renderSelectedReport(detailPanel, selectedReportId) ||
     comercialPainelModule.renderSelectedPainel(detailPanel, selectedReportId) ||
     comercialMapaModule.renderSelectedMapa(detailPanel, selectedReportId) ||
     comercialBateuLevouModule.renderSelectedBateuLevou(detailPanel, selectedReportId) ||
