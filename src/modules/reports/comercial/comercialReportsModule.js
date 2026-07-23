@@ -27,6 +27,28 @@
     let activeOverlay = null;
     let runtimeToken = 0;
     const rankingSorts = new Map();
+    // reportId -> scenarioId (null = Budget). Ausente = ainda não resolvido;
+    // a primeira renderização de cada relatório assume o cenário favorito da
+    // organização (is_default em forecast_scenarios), nunca o Budget fixo.
+    const scenarioSelections = new Map();
+
+    async function resolveDefaultScenario(year) {
+      try {
+        const org = await resolveOrganizationId();
+        const scenarios = await fetchSupabaseRowsSafe(
+          "forecast_scenarios",
+          `organization_id=eq.${org}&reference_year=eq.${year}&order=created_at.asc&select=id,is_default`
+        );
+        const fav = (scenarios || []).find((scenario) => scenario.is_default);
+        return fav ? fav.id : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function resetScenarioSelections() {
+      scenarioSelections.clear();
+    }
 
     function isAdmin() {
       return ["admin", "super_admin"].includes(getAccessRole());
@@ -553,7 +575,11 @@
         ${renderCharts(payload.charts || [], rows)}
         <details class="vcr-compliance" open><summary>Critérios e regras aplicadas · versão ${Number(payload.report?.version || 0)}</summary><ul>${(payload.compliance?.rules || []).map((rule) => `<li>${escapeHtml(rule)}</li>`).join("")}</ul></details>
       </div>`;
-      container.querySelector("#vcr-runtime-scenario")?.addEventListener("change", (event) => loadAndRenderRuntime(container, payload.report.id, event.target.value || null));
+      container.querySelector("#vcr-runtime-scenario")?.addEventListener("change", (event) => {
+        const scenarioId = event.target.value || null;
+        scenarioSelections.set(payload.report.id, scenarioId);
+        loadAndRenderRuntime(container, payload.report.id, scenarioId);
+      });
       if (isBateuLevou) bindRankingSorts(container, payload, scenarios, scenarioId);
       container.querySelector("#vcr-officialize")?.addEventListener("click", async (event) => {
         const button = event.currentTarget;
@@ -663,11 +689,23 @@
       if (!id) return false;
       const report = definitions.find((item) => item.id === id);
       if (!report) return false;
-      loadAndRenderRuntime(container, id, null);
+      if (scenarioSelections.has(id)) {
+        loadAndRenderRuntime(container, id, scenarioSelections.get(id));
+      } else {
+        container.innerHTML = `<div class="vcr-loading">Carregando relatório comercial...</div>`;
+        const year = Number(state.currentPeriod?.year || new Date().getFullYear());
+        resolveDefaultScenario(year).then((scenarioId) => {
+          scenarioSelections.set(id, scenarioId);
+          loadAndRenderRuntime(container, id, scenarioId);
+        });
+      }
       return true;
     }
 
-    return { loadDefinitions, injectCatalogCards, mountCreateButton, renderSelectedReport };
+    return {
+      loadDefinitions, injectCatalogCards, mountCreateButton, renderSelectedReport,
+      resetScenarioSelections,
+    };
   }
 
   window.VECTON_COMERCIAL_REPORTS = { createComercialReportsModule };
