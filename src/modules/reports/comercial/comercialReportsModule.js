@@ -149,7 +149,7 @@
         origins: ["FAT"],
         cargos: ["Representante Comercial"],
         active_only: true,
-        include_historical: true,
+        include_historical: false,
         selection_type: "general",
         selected_codes: [],
         participant_list_version: 1,
@@ -194,6 +194,7 @@
       (periodRows || []).forEach((person) => {
         if (currentByCode.has(person.cod_vendedor)) return;
         const current = centralByCode.get(person.cod_vendedor);
+        if (!current || current.situacao !== "ativo") return;
         currentByCode.set(person.cod_vendedor, {
           ...person,
           codigo: person.cod_vendedor,
@@ -203,7 +204,8 @@
       });
       (config.selected_codes || []).forEach((code) => {
         if (!currentByCode.has(code)) {
-          const person = centralByCode.get(code) || { codigo: code, nome: `Código ${code}`, cargo: "", situacao: "historico" };
+          const person = centralByCode.get(code);
+          if (!person || person.situacao !== "ativo") return;
           currentByCode.set(code, { ...person, vigente: false });
         }
       });
@@ -224,10 +226,9 @@
             </div><label class="vcr-field">Descrição<textarea id="vcr-description">${escapeHtml(report?.descricao || "")}</textarea></label></section>
 
             <section class="vcr-section"><h4>Participantes</h4>${checkGroup("vcr-cargo", CARGOS, config.cargos || [])}
-              <div class="vcr-team-tools"><input id="vcr-team-search" placeholder="Pesquisar nome ou código"><select id="vcr-team-cargo"><option value="">Todos os cargos</option>${CARGOS.map((c) => `<option>${escapeHtml(c)}</option>`).join("")}</select><select id="vcr-team-status"><option value="">Todos os status</option><option value="ativo">Ativo</option><option value="historico">Histórico</option></select><button type="button" class="ghost-button" id="vcr-team-select-all">Selecionar todos</button><button type="button" class="ghost-button" id="vcr-team-all">Selecionar filtrados</button><button type="button" class="ghost-button" id="vcr-team-none">Desmarcar todos</button></div>
+              <div class="vcr-team-tools"><input id="vcr-team-search" placeholder="Pesquisar nome ou código"><select id="vcr-team-cargo"><option value="">Todos os cargos</option>${CARGOS.map((c) => `<option>${escapeHtml(c)}</option>`).join("")}</select><select id="vcr-team-status" disabled><option value="">Somente ativos</option></select><button type="button" class="ghost-button" id="vcr-team-select-all">Selecionar todos</button><button type="button" class="ghost-button" id="vcr-team-all">Selecionar filtrados</button><button type="button" class="ghost-button" id="vcr-team-none">Desmarcar todos</button></div>
               <div class="vcr-team-list">${(team || []).map((person) => `<label class="vcr-team-row ${person.vigente === false ? "invalid" : ""}" data-name="${escapeHtml(`${person.codigo} ${person.nome}`.toLowerCase())}" data-cargo="${escapeHtml(person.cargo || "")}" data-status="${escapeHtml(person.situacao || "")}"><input type="checkbox" name="vcr-person" value="${escapeHtml(person.codigo)}" ${(config.selected_codes || []).includes(person.codigo) ? "checked" : ""}><strong>${escapeHtml(person.codigo)}</strong><span>${escapeHtml(person.nome)}</span><span>${escapeHtml(person.cargo || "—")}</span><span>${escapeHtml(person.situacao)}</span><span>${person.vigente === false ? "Fora da vigência" : `${escapeHtml(person.data_inicio || "")} — ${escapeHtml(person.data_fim || "aberta")}`}</span></label>`).join("")}</div>
-              <label class="vcr-check"><input type="checkbox" id="vcr-active" ${config.active_only !== false ? "checked" : ""}>Somente situação ativa na data do movimento</label>
-              <label class="vcr-check"><input type="checkbox" id="vcr-historical" ${config.include_historical !== false ? "checked" : ""}>Incluir integrantes históricos quando vigentes no período</label>
+              <p class="vcr-note">Somente integrantes com status ativo no Time Comercial participam dos relatórios.</p>
             </section>
 
             <section class="vcr-section"><h4>Dados e segmentação</h4><div><span class="vcr-kicker">Origem</span>${checkGroup("vcr-origin", ["FAT", "CART"], config.origins || [])}</div><div><span class="vcr-kicker">Produtos</span>${checkGroup("vcr-product", (productTypes || []).map((item) => ({ value: item.id, label: item.nome })), config.product_type_ids || [])}</div><div><span class="vcr-kicker">Culturas</span>${checkGroup("vcr-culture", (cultures || []).map((item) => ({ value: item.id, label: item.nome })), config.culture_ids || [])}</div><label class="vcr-check"><input type="checkbox" id="vcr-group-culture" ${(config.groupings || []).includes("culture") ? "checked" : ""}>Separar resultado por cultura</label></section>
@@ -356,8 +357,8 @@
         schema_version: 1,
         origins,
         cargos,
-        active_only: overlay.querySelector("#vcr-active").checked,
-        include_historical: overlay.querySelector("#vcr-historical").checked,
+        active_only: true,
+        include_historical: false,
         selection_type: selectedCodes.length === 0 ? "general" : selectedCodes.length === 1 ? "individual" : "partial",
         selected_codes: selectedCodes,
         participant_list_version: Number(previousConfig.participant_list_version || 0) + 1,
