@@ -75,7 +75,8 @@
         .vcr-section h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint)}
         .vcr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.vcr-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.vcr-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
         .vcr-field{display:grid;gap:6px;font-size:11px;color:var(--text-soft)}.vcr-field input,.vcr-field select,.vcr-field textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:9px;font:inherit}.vcr-field textarea{min-height:72px;resize:vertical}
-        .vcr-field select option,.vcr-team-tools select option{background:#1a1d26;color:var(--text)}
+        .vcr-field select option,.vcr-team-tools select option,.vcr-inline-field select option{background:#1a1d26;color:var(--text)}
+        .vcr-inline-field{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-soft);white-space:nowrap}.vcr-inline-field select{width:auto;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:8px 10px;font:inherit}
         .vcr-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.vcr-checks.compact{display:flex;flex-wrap:wrap}.vcr-checks.compact .vcr-check{flex:0 0 auto}.vcr-check{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:10.5px;color:var(--text-soft);line-height:1.25}
         .vcr-team-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
         .vcr-team-tools-filters{display:flex;gap:8px;flex:1;min-width:260px}
@@ -459,6 +460,11 @@
       }
     }
 
+    function formatDateBR(value) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ""));
+      return match ? `${match[3]}/${match[2]}/${match[1]}` : String(value || "");
+    }
+
     function formatValue(value, column) {
       if (value === null || value === undefined || value === "") return "—";
       if (column.type === "currency") return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -541,7 +547,7 @@
       const isBateuLevou = payload.report?.kind === "bateu_levou";
       const scenarioOptions = `<option value="" ${!scenarioId ? "selected" : ""}>Budget</option>` + scenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}" ${scenario.id === scenarioId ? "selected" : ""}>${escapeHtml(scenario.name)}</option>`).join("");
       container.innerHTML = `<div class="vcr-report">
-        <header class="vcr-report-head"><div><p class="vcr-kicker">Comercial · configuração v${Number(payload.report?.version || 0)}</p><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${escapeHtml(payload.period?.effective_start || "")} — ${escapeHtml(payload.period?.effective_end || "")}</span></div><div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap"><label class="vcr-field" style="min-width:190px">Cenário<select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
+        <header class="vcr-report-head"><div><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${formatDateBR(payload.period?.effective_start)} — ${formatDateBR(payload.period?.effective_end)}</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="vcr-inline-field">Cenário<select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
         <div class="vcr-summary">${summary.map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && payload.config?.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
         ${isBateuLevou ? renderBateuRankings(columns, rows, payload.report.id) : tableMarkup(columns, rows)}
         ${renderCharts(payload.charts || [], rows)}
