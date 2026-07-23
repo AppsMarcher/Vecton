@@ -45,14 +45,17 @@
       },
       {
         id: "composition",
-        label: "Vendas de máquinas por cultura",
-        description: "Cada vendedor, quanto vendeu em Grão e Pecuária dentro de Máquinas.",
+        label: "Performance por vendedor e cultura",
+        description: "Faturamento ou margem de cada vendedor: Total, Grãos, Pecuária e Outros (Peças/Transgrain/Acessórios).",
         rowAxis: "seller",
         advanced: false,
-        // Filtro fixo (não é uma opção no formulário): Peças/Transgrain/
-        // Acessórios não têm cultura, então esse recorte só faz sentido
-        // restrito a Máquinas — ver blankConfig/buildConfigFromForm.
-        cultureMachinesOnly: true,
+        // groupings=['culture'] fixo (não é opção no formulário) — sem
+        // restrição de tipo, pra "Outros" (Peças/Transgrain/Acessórios, que
+        // não tem cultura) entrar na quebra junto com Grão/Pecuária.
+        forceCultureGrouping: true,
+        // Volume não faz sentido aqui (o pedido era só faturamento/margem
+        // por vendedor) — restringe os chips de métrica do formulário.
+        allowedMetrics: ["revenue", "margin"],
       },
       {
         id: "campaign",
@@ -248,7 +251,8 @@
     function blankConfig(template) {
       const rowAxis = template?.rowAxis || "seller";
       const nonAdvanced = !template || !template.advanced;
-      const cultureMachinesOnly = Boolean(template?.cultureMachinesOnly);
+      const forceCultureGrouping = Boolean(template?.forceCultureGrouping);
+      const defaultMetric = template?.allowedMetrics?.[0] || "quantity";
       return {
         schema_version: 1,
         origins: ["FAT"],
@@ -258,19 +262,19 @@
         selection_type: "general",
         selected_codes: [],
         participant_list_version: 1,
-        product_types: cultureMachinesOnly ? ["Máquinas"] : [],
+        product_types: [],
         cultures: [],
         product_type_ids: [],
         culture_ids: [],
         territory_ids: [],
         row_axis: rowAxis,
-        primary_metric: "quantity",
+        primary_metric: defaultMetric,
         complementary_metrics: [],
         evaluation: "target_reached",
         conditions: { minimum_quantity: 0, minimum_attainment_pct: 100, requires_target: true, zero_target_policy: "null" },
         ranking: { enabled: !nonAdvanced, metric: "attainment_pct", direction: "desc", tie_breaker: "quantity" },
         award: { enabled: false, rule: "conditions_met" },
-        groupings: cultureMachinesOnly ? ["culture"] : [],
+        groupings: forceCultureGrouping ? ["culture"] : [],
         scenario_mode: "runtime",
         charts: [],
       };
@@ -299,12 +303,13 @@
       return `<div class="vcr-checks">${options.map((option) => { const value = typeof option === "object" ? option.value : option; const label = typeof option === "object" ? option.label : labels[value] || value; return `<label class="vcr-check"><input type="checkbox" name="${name}" value="${escapeHtml(value)}" ${selected.includes(value) ? "checked" : ""}>${escapeHtml(label)}</label>`; }).join("")}</div>`;
     }
 
-    function metricChips(name, selected) {
-      const options = [
+    function metricChips(name, selected, allowed) {
+      const allOptions = [
         { value: "quantity", label: "Volume" },
         { value: "revenue", label: "Faturamento" },
         { value: "margin", label: "Margem" },
       ];
+      const options = allowed ? allOptions.filter((option) => allowed.includes(option.value)) : allOptions;
       return `<div class="vcr-chips">${options.map((option) => `<label class="vcr-chip"><input type="checkbox" name="${name}" value="${option.value}" ${selected.includes(option.value) ? "checked" : ""}>${escapeHtml(option.label)}</label>`).join("")}</div>`;
     }
 
@@ -498,7 +503,7 @@
             </section>
 
             <section class="vcr-section"><h4>Métricas</h4>
-              ${metricChips("vcr-metric", config.primary_metric ? [config.primary_metric, ...(config.complementary_metrics || [])] : ["quantity"])}
+              ${metricChips("vcr-metric", config.primary_metric ? [config.primary_metric, ...(config.complementary_metrics || [])] : ["quantity"], template.allowedMetrics)}
               <p class="vcr-note">A primeira métrica marcada vira a coluna principal; as demais aparecem como colunas extras.</p>
             </section>
       `;
@@ -630,7 +635,7 @@
       const metrics = checkedValues(overlay, "vcr-metric");
       const selectedCodes = checkedValues(overlay, "vcr-person");
       const isSingle = template.id === "seller_monthly";
-      const cultureMachinesOnly = Boolean(template.cultureMachinesOnly);
+      const forceCultureGrouping = Boolean(template.forceCultureGrouping);
       let error = null;
       if (!metrics.length) error = "Selecione ao menos uma métrica.";
       if (isSingle && selectedCodes.length !== 1) error = "Escolha exatamente 1 vendedor.";
@@ -646,15 +651,15 @@
           selected_codes: selectedCodes,
           participant_list_version: Number(previousConfig.participant_list_version || 0) + 1,
           product_type_ids: [], culture_ids: [], territory_ids: previousConfig.territory_ids || [],
-          product_types: cultureMachinesOnly ? ["Máquinas"] : [], cultures: [],
+          product_types: [], cultures: [],
           row_axis: template.rowAxis,
-          primary_metric: metrics[0] || "quantity",
+          primary_metric: metrics[0] || template.allowedMetrics?.[0] || "quantity",
           complementary_metrics: metrics.slice(1),
           evaluation: "rank_quantity",
           conditions: { minimum_quantity: 0, minimum_attainment_pct: 0, requires_target: false, zero_target_policy: "real_is_100" },
           ranking: { enabled: false, metric: "quantity", direction: "desc", tie_breaker: "revenue" },
           award: { enabled: false, rule: "conditions_met" },
-          groupings: cultureMachinesOnly ? ["culture"] : [],
+          groupings: forceCultureGrouping ? ["culture"] : [],
           scenario_mode: "runtime",
           charts: [],
         },
@@ -1234,10 +1239,84 @@
       </div>`;
     }
 
+    // "Performance por vendedor e cultura": 4 cards empilhados (Total, Grãos,
+    // Pecuária, Outros), cada um comparando os vendedores do escopo — não
+    // resume tudo numa linha só por tipo (esse era o problema do desenho
+    // anterior). Total = soma das 3 quebras por vendedor (client-side, sem
+    // precisar de outra chamada de RPC). Outros = Peças/Transgrain/
+    // Acessórios (produtos sem cultura, sempre presentes já que este
+    // template não filtra mais por tipo).
+    const SELLER_CULTURE_SECTIONS = [
+      { key: "total", title: "Total" },
+      { key: "graos", title: "Grãos" },
+      { key: "pecuaria", title: "Pecuária" },
+      { key: "sem_cultura", title: "Outros" },
+    ];
+
+    function sumSellerRows(rows) {
+      const totals = new Map();
+      rows.forEach((row) => {
+        const key = row.cod_vendedor || row.nome;
+        const acc = totals.get(key) || {
+          cod_vendedor: row.cod_vendedor, nome: row.nome,
+          quantity: 0, revenue: 0, margin: 0, target_quantity: 0, target_revenue: 0,
+        };
+        acc.quantity += Number(row.quantity) || 0;
+        acc.revenue += Number(row.revenue) || 0;
+        acc.margin += Number(row.margin) || 0;
+        acc.target_quantity += Number(row.target_quantity) || 0;
+        acc.target_revenue += Number(row.target_revenue) || 0;
+        totals.set(key, acc);
+      });
+      return [...totals.values()];
+    }
+
+    function renderSellerCultureBreakdownPanel(payload, metric) {
+      const config = payload.config || {};
+      const rows = payload.rows || [];
+      const isPercent = metric === "margin";
+      const isCurrency = !isPercent && metric !== "quantity";
+      const hasTarget = metric !== "margin";
+      const zeroTargetPolicy = config.conditions?.zero_target_policy || "null";
+      const metricLabel = METRIC_LABELS[metric] || metric;
+      const realizedType = isPercent ? "percentage" : isCurrency ? "currency" : "number";
+      const columns = [{ key: "nome", label: "Vendedor", type: "text" }];
+      columns.push({ key: "realized", label: "Realizado", type: realizedType });
+      if (hasTarget) {
+        columns.push({ key: "target", label: "Meta", type: realizedType });
+        columns.push({ key: "var_abs", label: isCurrency ? "Var R$" : "Var", type: realizedType });
+        columns.push({ key: "overachievement_pct", label: "Var %", type: "percentage" });
+      }
+      const segmentedRows = buildMetricRows(rows, metric, zeroTargetPolicy);
+      const totalRows = buildMetricRows(sumSellerRows(rows), metric, zeroTargetPolicy);
+      const cardsHtml = SELLER_CULTURE_SECTIONS.map((section) => {
+        const sectionRows = section.key === "total"
+          ? totalRows
+          : segmentedRows.filter((row) => cultureBucket(row.segment) === section.key);
+        const sortKey = `cultbreak:${payload.report?.id}:${metric}:${section.key}`;
+        const sortState = rankingSorts.get(sortKey) || null;
+        const sortedRows = sortRankingRows(sectionRows, columns, sortState);
+        const chartRows = sectionRows.slice().sort((a, b) => (Number(b.realized) || 0) - (Number(a.realized) || 0));
+        return `<div class="vcr-team-split">
+          <div class="vcr-team-table">
+            <section class="vcr-ranking-board" data-vcr-ranking-board data-sort-key="${escapeHtml(sortKey)}">
+              <header class="vcr-ranking-head"><div class="vcr-ranking-title"><i class="vcr-ranking-dot"></i><h3>${escapeHtml(metricLabel)} ${escapeHtml(section.title)}</h3><span>${sortedRows.length} vendedor(es)</span></div></header>
+              ${tableMarkup(columns, sortedRows, { embedded: true, sortable: true, sortState, empty: "Sem resultados para o período." })}
+            </section>
+          </div>
+          <div class="vcr-team-chart">
+            <div class="vcr-rank-title">Ranking · ${escapeHtml(section.title)} <span title="Ranking por ${escapeHtml(metricLabel.toLowerCase())} no período, do maior pro menor.">ⓘ</span></div>
+            ${renderRankBarChart(chartRows, metric)}
+          </div>
+        </div>`;
+      }).join("");
+      return `<div class="vcr-metric-stack">${cardsHtml}</div>`;
+    }
+
     function renderCompositionMetricPanel(payload, metric) {
       const axis = payload.config?.row_axis;
       if (axis === "seller") {
-        return renderSegmentedMetricPanel(payload, metric, { rowKey: "nome", columnLabel: "Vendedor", sortPrefix: "cultseller", flat: false });
+        return renderSellerCultureBreakdownPanel(payload, metric);
       }
       return renderSegmentedMetricPanel(payload, metric, {
         rowKey: "label",
