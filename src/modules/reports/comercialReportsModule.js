@@ -73,10 +73,10 @@
         .vcr-modal-head h3{margin:0;font-size:18px}.vcr-close{border:0;background:none;color:var(--text-faint);font-size:22px;cursor:pointer}
         .vcr-modal-body{padding:20px 22px;overflow:auto;display:grid;gap:18px}.vcr-section{border:1px solid var(--line-soft);border-radius:14px;padding:15px;display:grid;gap:12px}
         .vcr-section h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint)}
-        .vcr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.vcr-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+        .vcr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.vcr-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.vcr-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
         .vcr-field{display:grid;gap:6px;font-size:11px;color:var(--text-soft)}.vcr-field input,.vcr-field select,.vcr-field textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:9px;font:inherit}.vcr-field textarea{min-height:72px;resize:vertical}
         .vcr-field select option,.vcr-team-tools select option{background:#1a1d26;color:var(--text)}
-        .vcr-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.vcr-check{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:10.5px;color:var(--text-soft);line-height:1.25}
+        .vcr-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.vcr-checks.compact{display:flex;flex-wrap:wrap}.vcr-checks.compact .vcr-check{flex:0 0 auto}.vcr-check{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:10.5px;color:var(--text-soft);line-height:1.25}
         .vcr-team-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
         .vcr-team-tools-filters{display:flex;gap:8px;flex:1;min-width:260px}
         .vcr-team-tools-filters input{flex:1;min-width:150px}
@@ -95,7 +95,7 @@
         .vcr-pair{display:grid;gap:3px}.vcr-bar-fill.target{background:var(--text-faint)}.vcr-line-chart{width:100%;height:190px}.vcr-line-chart polyline{fill:none;stroke-width:2}.vcr-line-labels{display:flex;justify-content:space-between;color:var(--text-faint);font-size:9px}.vcr-legend{display:flex;gap:14px;font-size:10px;color:var(--text-soft);margin-bottom:8px}.vcr-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
         .vcr-compliance{border:1px solid var(--line);border-radius:14px;padding:0 14px;background:var(--panel)}.vcr-compliance summary{cursor:pointer;padding:13px 0;font-size:11px;font-weight:600}.vcr-compliance ul{margin:0 0 14px;padding-left:18px;color:var(--text-soft);font-size:11px;display:grid;gap:5px}
         .vcr-loading,.vcr-empty{padding:50px;text-align:center;color:var(--text-faint)}
-        @media(max-width:780px){.vcr-grid,.vcr-grid.two{grid-template-columns:1fr}.vcr-team-row{grid-template-columns:28px 70px 1fr}.vcr-team-row span:nth-last-child(-n+2){display:none}.vcr-ranking-stack{grid-template-columns:1fr}.vcr-team-tools-filters,.vcr-team-tools-actions{width:100%}.vcr-team-tools-filters select{flex:1}}
+        @media(max-width:780px){.vcr-grid,.vcr-grid.two,.vcr-grid.four{grid-template-columns:1fr}.vcr-team-row{grid-template-columns:28px 70px 1fr}.vcr-team-row span:nth-last-child(-n+2){display:none}.vcr-ranking-stack{grid-template-columns:1fr}.vcr-team-tools-filters,.vcr-team-tools-actions{width:100%}.vcr-team-tools-filters select{flex:1}}
       `;
       document.head.appendChild(style);
     }
@@ -278,15 +278,20 @@
 
             <section class="vcr-section"><h4>Dados e segmentação</h4><div><span class="vcr-kicker">Origem</span>${checkGroup("vcr-origin", ["FAT", "CART"], config.origins || [])}</div><div><span class="vcr-kicker">Produtos</span>${checkGroup("vcr-product", (productTypes || []).map((item) => ({ value: item.id, label: item.nome })), config.product_type_ids || [])}</div><div><span class="vcr-kicker">Culturas</span>${checkGroup("vcr-culture", (cultures || []).map((item) => ({ value: item.id, label: item.nome })), config.culture_ids || [])}</div><label class="vcr-check"><input type="checkbox" id="vcr-group-culture" ${(config.groupings || []).includes("culture") ? "checked" : ""}>Separar resultado por cultura</label></section>
 
-            <section class="vcr-section"><h4>Métricas e avaliação</h4><div class="vcr-grid">
-              <label class="vcr-field">Métrica principal<select id="vcr-primary"><option value="quantity" ${config.primary_metric === "quantity" ? "selected" : ""}>Quantidade</option><option value="revenue" ${config.primary_metric === "revenue" ? "selected" : ""}>Faturamento</option></select></label>
-              <label class="vcr-field">Critério<select id="vcr-evaluation"><option value="target_reached" ${config.evaluation === "target_reached" ? "selected" : ""}>Atingiu a meta</option><option value="highest_attainment" ${config.evaluation === "highest_attainment" ? "selected" : ""}>Maior atingimento</option><option value="highest_overachievement" ${config.evaluation === "highest_overachievement" ? "selected" : ""}>Maior superação</option><option value="rank_quantity" ${config.evaluation === "rank_quantity" ? "selected" : ""}>Ranking por quantidade</option><option value="rank_revenue" ${config.evaluation === "rank_revenue" ? "selected" : ""}>Ranking por faturamento</option></select></label>
-              <label class="vcr-field">Quantidade mínima<input id="vcr-min-qtd" type="number" step="0.01" value="${Number(config.conditions?.minimum_quantity || 0)}"></label>
-              <label class="vcr-field">Atingimento mínimo (%)<input id="vcr-min-pct" type="number" step="0.01" value="${Number(config.conditions?.minimum_attainment_pct || 0)}"></label>
-              <label class="vcr-check"><input type="checkbox" id="vcr-requires-target" ${config.conditions?.requires_target ? "checked" : ""}>Exigir meta válida</label>
-              <label class="vcr-check"><input type="checkbox" id="vcr-ranking" ${config.ranking?.enabled !== false ? "checked" : ""}>Exibir ranking</label>
-              <label class="vcr-check"><input type="checkbox" id="vcr-award" ${config.award?.enabled ? "checked" : ""}>Exibir premiação</label>
-            </div><div><span class="vcr-kicker">Métricas complementares</span>${checkGroup("vcr-complement", ["quantity", "revenue"], config.complementary_metrics || [])}</div></section>
+            <section class="vcr-section"><h4>Métricas e avaliação</h4>
+              <div class="vcr-grid four">
+                <label class="vcr-field">Métrica principal<select id="vcr-primary"><option value="quantity" ${config.primary_metric === "quantity" ? "selected" : ""}>Quantidade</option><option value="revenue" ${config.primary_metric === "revenue" ? "selected" : ""}>Faturamento</option></select></label>
+                <label class="vcr-field">Critério<select id="vcr-evaluation"><option value="target_reached" ${config.evaluation === "target_reached" ? "selected" : ""}>Atingiu a meta</option><option value="highest_attainment" ${config.evaluation === "highest_attainment" ? "selected" : ""}>Maior atingimento</option><option value="highest_overachievement" ${config.evaluation === "highest_overachievement" ? "selected" : ""}>Maior superação</option><option value="rank_quantity" ${config.evaluation === "rank_quantity" ? "selected" : ""}>Ranking por quantidade</option><option value="rank_revenue" ${config.evaluation === "rank_revenue" ? "selected" : ""}>Ranking por faturamento</option></select></label>
+                <label class="vcr-field">Quantidade mínima<input id="vcr-min-qtd" type="number" step="0.01" value="${Number(config.conditions?.minimum_quantity || 0)}"></label>
+                <label class="vcr-field">Atingimento mínimo (%)<input id="vcr-min-pct" type="number" step="0.01" value="${Number(config.conditions?.minimum_attainment_pct || 0)}"></label>
+              </div>
+              <div class="vcr-checks compact">
+                <label class="vcr-check"><input type="checkbox" id="vcr-requires-target" ${config.conditions?.requires_target ? "checked" : ""}>Exigir meta válida</label>
+                <label class="vcr-check"><input type="checkbox" id="vcr-ranking" ${config.ranking?.enabled !== false ? "checked" : ""}>Exibir ranking</label>
+                <label class="vcr-check"><input type="checkbox" id="vcr-award" ${config.award?.enabled ? "checked" : ""}>Exibir premiação</label>
+              </div>
+              <div><span class="vcr-kicker">Métricas complementares</span>${checkGroup("vcr-complement", ["quantity", "revenue"], config.complementary_metrics || [])}</div>
+            </section>
 
             <section class="vcr-section"><h4>Visualizações</h4>${checkGroup("vcr-chart", ["ranking_bar", "target_vs_actual", "time_line", "product_distribution", "culture_distribution", "eligibility"], (config.charts || []).map((c) => c.type))}<label class="vcr-field" style="max-width:180px">Top N<input id="vcr-chart-top" type="number" min="1" max="50" value="${Number(config.charts?.[0]?.top_n || 10)}"></label><p style="margin:0;color:var(--text-faint);font-size:11px">Nenhum gráfico é habilitado automaticamente.</p></section>
           </div>
