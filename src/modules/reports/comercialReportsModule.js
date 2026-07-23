@@ -23,6 +23,42 @@
       "Representante Comercial", "Vendedor",
     ];
 
+    // Templates guiam o wizard do Criador. Os 3 simplificados escondem
+    // cargos/ranking/meta/premiação/gráficos (não fazem sentido fora de uma
+    // campanha) e resolvem sozinhos o eixo de linha da tabela. "Campanha" é o
+    // formulário completo original — usado pelo Bateu-Levou/Final de Ano e por
+    // qualquer relatório avançado novo.
+    const REPORT_TEMPLATES = [
+      {
+        id: "seller_monthly",
+        label: "Desempenho de um vendedor",
+        description: "Evolução mês a mês de 1 vendedor: volume, faturamento e margem.",
+        rowAxis: "month",
+        advanced: false,
+      },
+      {
+        id: "team_comparison",
+        label: "Comparativo do time",
+        description: "Quem vendeu mais no período — sem meta, sem premiação.",
+        rowAxis: "seller",
+        advanced: false,
+      },
+      {
+        id: "composition",
+        label: "Composição por produto/cultura",
+        description: "Quanto cada produto ou cultura representou no período.",
+        rowAxis: "product",
+        advanced: false,
+      },
+      {
+        id: "campaign",
+        label: "Campanha (avançado)",
+        description: "Ranking com meta, elegibilidade e premiação — Bateu-Levou/Final de Ano.",
+        rowAxis: "seller",
+        advanced: true,
+      },
+    ];
+
     let definitions = [];
     let activeOverlay = null;
     let runtimeToken = 0;
@@ -78,14 +114,25 @@
         .vcr-field select option,.vcr-team-tools select option,.vcr-inline-field select option{background:#1a1d26;color:var(--text)}
         .vcr-inline-field{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-soft);white-space:nowrap}.vcr-inline-field select{width:auto;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:8px 10px;font:inherit}
         .vcr-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.vcr-checks.compact{display:flex;flex-wrap:wrap}.vcr-checks.compact .vcr-check{flex:0 0 auto}.vcr-check{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:10.5px;color:var(--text-soft);line-height:1.25}
+        .vcr-chips{display:flex;flex-wrap:wrap;gap:8px}.vcr-chip{display:flex;align-items:center;gap:7px;padding:9px 14px;border:1px solid var(--line);border-radius:99px;font-size:12px;color:var(--text-soft);cursor:pointer;user-select:none}.vcr-chip:has(input:checked){border-color:#14b8a6;color:var(--text);background:rgba(20,184,166,.12)}.vcr-chip input{accent-color:#14b8a6}
         .vcr-team-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
         .vcr-team-tools-filters{display:flex;gap:8px;flex:1;min-width:260px}
         .vcr-team-tools-filters input{flex:1;min-width:150px}
         .vcr-team-tools-filters select{width:auto;min-width:150px}
         .vcr-team-tools-actions{display:flex;gap:8px;flex-wrap:wrap}
         .vcr-team-tools input,.vcr-team-tools select{width:auto;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:8px;padding:8px 10px;font-size:11px}
-        .vcr-team-list{max-height:190px;overflow:auto;border:1px solid var(--line-soft);border-radius:10px}.vcr-team-row{display:grid;grid-template-columns:28px 84px 1fr 180px 80px 150px;gap:8px;align-items:center;padding:7px 10px;font-size:11px;border-bottom:1px solid var(--line-soft)}.vcr-team-row:last-child{border:0}.vcr-team-row.invalid{opacity:.62}
+        .vcr-team-list{max-height:320px;overflow:auto;border:1px solid var(--line-soft);border-radius:10px}.vcr-team-row{display:grid;grid-template-columns:28px 84px 1fr 180px 80px 150px;gap:8px;align-items:center;padding:7px 10px;font-size:11px;border-bottom:1px solid var(--line-soft)}.vcr-team-row:last-child{border:0}.vcr-team-row.invalid{opacity:.62}
+        .vcr-team-list.simple .vcr-team-row{grid-template-columns:28px 84px 1fr 180px}
+        .vcr-team-count{font-size:11px;color:var(--text-faint)}
         .vcr-modal-actions{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:9px}.vcr-feedback{margin-right:auto;color:var(--neg);font-size:12px;align-self:center}
+        .vcr-template-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:22px}
+        .vcr-template-card{border:1px solid var(--line);border-radius:16px;padding:18px;text-align:left;background:var(--panel);cursor:pointer;display:grid;gap:6px;transition:border-color .15s,background .15s}
+        .vcr-template-card:hover{border-color:#14b8a6;background:rgba(20,184,166,.06)}
+        .vcr-template-card strong{font-size:14px}.vcr-template-card span{font-size:11.5px;color:var(--text-faint);line-height:1.35}
+        .vcr-template-card.advanced{border-style:dashed}
+        @media(max-width:780px){.vcr-template-grid{grid-template-columns:1fr}}
+        .vcr-preview-panel{border:1px dashed var(--line);border-radius:14px;padding:15px;display:grid;gap:12px}
+        .vcr-preview-panel .vcr-loading,.vcr-preview-panel .vcr-empty{padding:20px;text-align:center;color:var(--text-faint);font-size:11px}
         .vcr-report{display:grid;gap:18px}.vcr-report-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}.vcr-report-head h1{font-size:21px;margin:3px 0}.vcr-kicker{margin:0;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint)}
         .vcr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.vcr-stat{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel)}.vcr-stat span{display:block;font-size:10px;color:var(--text-faint);text-transform:uppercase}.vcr-stat strong{display:block;font-size:21px;margin-top:5px}
         .vcr-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.vcr-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.vcr-table th,.vcr-table td{padding:9px 11px;border-bottom:1px solid var(--line-soft);font-size:11px;white-space:nowrap;text-align:left}.vcr-table th{color:var(--text-faint);font-size:9px;text-transform:uppercase;background:var(--panel);position:sticky;top:0}.vcr-table td.num,.vcr-table th.num{text-align:right}.vcr-pill{display:inline-flex;padding:3px 7px;border-radius:99px;background:var(--panel-hover)}.vcr-pill.ok{color:var(--pos);background:rgba(34,197,94,.1)}.vcr-pill.no{color:var(--neg);background:rgba(248,113,113,.1)}
@@ -173,11 +220,13 @@
       return rows?.[0]?.config || null;
     }
 
-    function blankConfig() {
+    function blankConfig(template) {
+      const rowAxis = template?.rowAxis || "seller";
+      const nonAdvanced = !template || !template.advanced;
       return {
         schema_version: 1,
         origins: ["FAT"],
-        cargos: ["Representante Comercial"],
+        cargos: [],
         active_only: true,
         include_historical: false,
         selection_type: "general",
@@ -187,11 +236,13 @@
         cultures: [],
         product_type_ids: [],
         culture_ids: [],
+        territory_ids: [],
+        row_axis: rowAxis,
         primary_metric: "quantity",
         complementary_metrics: [],
         evaluation: "target_reached",
         conditions: { minimum_quantity: 0, minimum_attainment_pct: 100, requires_target: true, zero_target_policy: "null" },
-        ranking: { enabled: true, metric: "attainment_pct", direction: "desc", tie_breaker: "quantity" },
+        ranking: { enabled: !nonAdvanced, metric: "attainment_pct", direction: "desc", tie_breaker: "quantity" },
         award: { enabled: false, rule: "conditions_met" },
         groupings: [],
         scenario_mode: "runtime",
@@ -199,12 +250,74 @@
       };
     }
 
+    function inferTemplateId(report, config) {
+      if (report?.report_kind === "bateu_levou" || report?.report_kind === "final_ano") return "campaign";
+      const axis = config?.row_axis || "seller";
+      if (axis === "month") return "seller_monthly";
+      if (axis === "product" || axis === "culture") return "composition";
+      if (config?.ranking?.enabled || config?.award?.enabled) return "campaign";
+      return "team_comparison";
+    }
+
     function checkGroup(name, options, selected) {
-      const labels = { quantity: "Quantidade", revenue: "Faturamento" };
+      const labels = {
+        quantity: "Quantidade", revenue: "Faturamento", margin: "Margem",
+        ranking_bar: "Ranking em barras", target_vs_actual: "Meta vs. realizado",
+        time_line: "Evolução no tempo", product_distribution: "Composição por produto",
+        culture_distribution: "Composição por cultura", eligibility: "Elegibilidade",
+      };
       return `<div class="vcr-checks">${options.map((option) => { const value = typeof option === "object" ? option.value : option; const label = typeof option === "object" ? option.label : labels[value] || value; return `<label class="vcr-check"><input type="checkbox" name="${name}" value="${escapeHtml(value)}" ${selected.includes(value) ? "checked" : ""}>${escapeHtml(label)}</label>`; }).join("")}</div>`;
     }
 
+    function metricChips(name, selected) {
+      const options = [
+        { value: "quantity", label: "Volume" },
+        { value: "revenue", label: "Faturamento" },
+        { value: "margin", label: "Margem" },
+      ];
+      return `<div class="vcr-chips">${options.map((option) => `<label class="vcr-chip"><input type="checkbox" name="${name}" value="${option.value}" ${selected.includes(option.value) ? "checked" : ""}>${escapeHtml(option.label)}</label>`).join("")}</div>`;
+    }
+
+    // Passo 0: grade de templates. So aparece pra relatorio novo — editar um
+    // relatorio existente pula direto pro modo inferido (inferTemplateId).
+    function openTemplatePicker() {
+      ensureStyles();
+      closeOverlay();
+      const overlay = document.createElement("div");
+      overlay.className = "vcr-overlay";
+      overlay.innerHTML = `
+        <div class="vcr-modal" role="dialog" aria-modal="true" style="width:min(760px,96vw)">
+          <div class="vcr-modal-head"><div><p class="vcr-kicker">Criador de Relatórios Comerciais</p><h3>O que você quer fazer?</h3></div><button class="vcr-close" type="button">×</button></div>
+          <div class="vcr-template-grid">
+            ${REPORT_TEMPLATES.map((template) => `
+              <button type="button" class="vcr-template-card ${template.advanced ? "advanced" : ""}" data-template="${template.id}">
+                <strong>${escapeHtml(template.label)}</strong>
+                <span>${escapeHtml(template.description)}</span>
+              </button>
+            `).join("")}
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      activeOverlay = overlay;
+      overlay.querySelector(".vcr-close").addEventListener("click", closeOverlay);
+      overlay.addEventListener("click", (event) => { if (event.target === overlay) closeOverlay(); });
+      overlay.querySelectorAll("[data-template]").forEach((card) => {
+        card.addEventListener("click", () => {
+          const template = REPORT_TEMPLATES.find((t) => t.id === card.dataset.template);
+          openCreatorForm(null, template);
+        });
+      });
+    }
+
     async function openCreator(report) {
+      if (!report) {
+        openTemplatePicker();
+        return;
+      }
+      await openCreatorForm(report, null);
+    }
+
+    async function openCreatorForm(report, templateArg) {
       ensureStyles();
       closeOverlay();
       const org = await resolveOrganizationId();
@@ -212,13 +325,15 @@
       const month = Number(state.currentPeriod?.month || 1);
       const periodStart = `${year}-${String(month).padStart(2, "0")}-01`;
       const periodEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
-      const [config, centralTeam, periodRows, productTypes, cultures] = await Promise.all([
-        loadConfig(report).then((value) => value || blankConfig()),
+      const [configLoaded, centralTeam, periodRows, productTypes, cultures] = await Promise.all([
+        loadConfig(report),
         fetchSupabaseRowsSafe("comercial_vendedores", `organization_id=eq.${org}&order=nome.asc&select=codigo,nome,cargo,situacao`),
         fetchSupabaseRowsSafe("comercial_vendedor_vigencias", `organization_id=eq.${org}&data_inicio=lte.${periodEnd}&or=(data_fim.is.null,data_fim.gte.${periodStart})&order=data_inicio.desc&select=cod_vendedor,nome,cargo,situacao,data_inicio,data_fim`),
         fetchSupabaseRowsSafe("comercial_tipos", `organization_id=eq.${org}&order=nome.asc&select=id,nome`),
         fetchSupabaseRowsSafe("comercial_culturas", `organization_id=eq.${org}&order=nome.asc&select=id,nome`),
       ]);
+      const template = templateArg || REPORT_TEMPLATES.find((t) => t.id === inferTemplateId(report, configLoaded)) || REPORT_TEMPLATES[3];
+      const config = configLoaded || blankConfig(template);
       const centralByCode = new Map((centralTeam || []).map((person) => [person.codigo, person]));
       const currentByCode = new Map();
       (periodRows || []).forEach((person) => {
@@ -240,12 +355,39 @@
         }
       });
       const team = [...currentByCode.values()].sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR"));
+
       const overlay = document.createElement("div");
       overlay.className = "vcr-overlay";
       overlay.innerHTML = `
         <div class="vcr-modal" role="dialog" aria-modal="true">
-          <div class="vcr-modal-head"><div><p class="vcr-kicker">Criador de Relatórios Comerciais</p><h3>${report ? "Editar relatório" : "Novo relatório"}</h3></div><button class="vcr-close" type="button">×</button></div>
+          <div class="vcr-modal-head"><div><p class="vcr-kicker">Criador de Relatórios Comerciais · ${escapeHtml(template.label)}</p><h3>${report ? "Editar relatório" : "Novo relatório"}</h3></div><button class="vcr-close" type="button">×</button></div>
           <div class="vcr-modal-body">
+            ${template.advanced ? advancedSectionsHtml(report, config, team, productTypes, cultures) : simpleSectionsHtml(report, config, team, template)}
+            <div class="vcr-preview-panel" id="vcr-preview-panel" hidden></div>
+          </div>
+          <div class="vcr-modal-actions">
+            <span class="vcr-feedback"></span>
+            ${report ? `<button type="button" class="ghost-button vcr-duplicate">Duplicar</button>` : ""}
+            ${report?.status === "draft" ? `<button type="button" class="delete-button vcr-delete">Excluir rascunho</button>` : ""}
+            <button type="button" class="ghost-button vcr-preview-btn">Pré-visualizar</button>
+            <button type="button" class="ghost-button vcr-cancel">Cancelar</button>
+            <button type="button" class="primary-button vcr-save">${report ? "Salvar nova versão" : "Criar relatório"}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      activeOverlay = overlay;
+      overlay.querySelector(".vcr-close").addEventListener("click", closeOverlay);
+      overlay.querySelector(".vcr-cancel").addEventListener("click", closeOverlay);
+      overlay.addEventListener("click", (event) => { if (event.target === overlay) closeOverlay(); });
+      bindTeamFilters(overlay, template);
+      overlay.querySelector(".vcr-save").addEventListener("click", () => saveCreator(overlay, report, config, org, template));
+      overlay.querySelector(".vcr-preview-btn").addEventListener("click", () => runPreview(overlay, report, config, org, template, year, month));
+      overlay.querySelector(".vcr-duplicate")?.addEventListener("click", () => duplicateReport(report, config, org, overlay));
+      overlay.querySelector(".vcr-delete")?.addEventListener("click", () => deleteDraft(report, overlay));
+    }
+
+    function advancedSectionsHtml(report, config, team, productTypes, cultures) {
+      return `
             <section class="vcr-section"><h4>Identificação</h4>
               <label class="vcr-field">Nome<input id="vcr-name" value="${escapeHtml(report?.nome || "")}" maxlength="80"></label>
               <div class="vcr-grid">
@@ -291,22 +433,45 @@
                 <label class="vcr-check"><input type="checkbox" id="vcr-ranking" ${config.ranking?.enabled !== false ? "checked" : ""}>Exibir ranking</label>
                 <label class="vcr-check"><input type="checkbox" id="vcr-award" ${config.award?.enabled ? "checked" : ""}>Exibir premiação</label>
               </div>
-              <div><span class="vcr-kicker">Métricas complementares</span>${checkGroup("vcr-complement", ["quantity", "revenue"], config.complementary_metrics || [])}</div>
+              <div><span class="vcr-kicker">Métricas complementares</span>${checkGroup("vcr-complement", ["quantity", "revenue", "margin"], config.complementary_metrics || [])}</div>
             </section>
 
             <section class="vcr-section"><h4>Visualizações</h4>${checkGroup("vcr-chart", ["ranking_bar", "target_vs_actual", "time_line", "product_distribution", "culture_distribution", "eligibility"], (config.charts || []).map((c) => c.type))}<label class="vcr-field" style="max-width:180px">Top N<input id="vcr-chart-top" type="number" min="1" max="50" value="${Number(config.charts?.[0]?.top_n || 10)}"></label><p style="margin:0;color:var(--text-faint);font-size:11px">Nenhum gráfico é habilitado automaticamente.</p></section>
-          </div>
-          <div class="vcr-modal-actions"><span class="vcr-feedback"></span>${report ? `<button type="button" class="ghost-button vcr-duplicate">Duplicar</button>` : ""}${report?.status === "draft" ? `<button type="button" class="delete-button vcr-delete">Excluir rascunho</button>` : ""}<button type="button" class="ghost-button vcr-cancel">Cancelar</button><button type="button" class="primary-button vcr-save">Salvar nova versão</button></div>
-        </div>`;
-      document.body.appendChild(overlay);
-      activeOverlay = overlay;
-      overlay.querySelector(".vcr-close").addEventListener("click", closeOverlay);
-      overlay.querySelector(".vcr-cancel").addEventListener("click", closeOverlay);
-      overlay.addEventListener("click", (event) => { if (event.target === overlay) closeOverlay(); });
-      bindTeamFilters(overlay);
-      overlay.querySelector(".vcr-save").addEventListener("click", () => saveCreator(overlay, report, config, org));
-      overlay.querySelector(".vcr-duplicate")?.addEventListener("click", () => duplicateReport(report, config, org, overlay));
-      overlay.querySelector(".vcr-delete")?.addEventListener("click", () => deleteDraft(report, overlay));
+      `;
+    }
+
+    // Templates simplificados: sem cargos, sem ranking/meta/premiação, sem
+    // gráficos configuráveis. So nome + escopo (quem) + metricas (o que).
+    function simpleSectionsHtml(report, config, team, template) {
+      const isSingle = template.id === "seller_monthly";
+      const selected = config.selected_codes || [];
+      return `
+            <section class="vcr-section"><h4>Nome</h4>
+              <label class="vcr-field">Nome do relatório<input id="vcr-name" value="${escapeHtml(report?.nome || "")}" maxlength="80" placeholder="Ex.: Desempenho mensal — Juarez"></label>
+              <input type="hidden" id="vcr-status" value="${escapeHtml(report?.status || "draft")}">
+              <input type="hidden" id="vcr-order" value="${Number(report?.display_order || 0)}">
+              <label class="vcr-field">Descrição (opcional)<textarea id="vcr-description">${escapeHtml(report?.descricao || "")}</textarea></label>
+            </section>
+
+            <section class="vcr-section"><h4>${isSingle ? "Vendedor" : "Escopo"}</h4>
+              <div class="vcr-team-tools">
+                <div class="vcr-team-tools-filters">
+                  <input id="vcr-team-search" placeholder="Pesquisar nome ou código">
+                </div>
+                ${isSingle ? "" : `<div class="vcr-team-tools-actions">
+                  <button type="button" class="ghost-button" id="vcr-team-all">Selecionar filtrados</button>
+                  <button type="button" class="ghost-button" id="vcr-team-none">Desmarcar todos</button>
+                </div>`}
+              </div>
+              <div class="vcr-team-list simple">${(team || []).map((person) => `<label class="vcr-team-row ${person.vigente === false ? "invalid" : ""}" data-name="${escapeHtml(`${person.codigo} ${person.nome}`.toLowerCase())}"><input type="${isSingle ? "radio" : "checkbox"}" name="vcr-person" value="${escapeHtml(person.codigo)}" ${selected.includes(person.codigo) ? "checked" : ""}><strong>${escapeHtml(person.codigo)}</strong><span>${escapeHtml(person.nome)}</span><span>${escapeHtml(person.cargo || "—")}</span></label>`).join("")}</div>
+              <p class="vcr-note">${isSingle ? "Escolha 1 vendedor." : "Deixe tudo desmarcado para incluir o time inteiro."}</p>
+            </section>
+
+            <section class="vcr-section"><h4>Métricas</h4>
+              ${metricChips("vcr-metric", config.primary_metric ? [config.primary_metric, ...(config.complementary_metrics || [])] : ["quantity"])}
+              <p class="vcr-note">A primeira métrica marcada vira a coluna principal; as demais aparecem como colunas extras.</p>
+            </section>
+      `;
     }
 
     function closeOverlay() {
@@ -314,19 +479,19 @@
       activeOverlay = null;
     }
 
-    function bindTeamFilters(overlay) {
+    function bindTeamFilters(overlay, template) {
       const paint = () => {
-        const term = overlay.querySelector("#vcr-team-search").value.trim().toLowerCase();
-        const cargo = overlay.querySelector("#vcr-team-cargo").value;
+        const term = overlay.querySelector("#vcr-team-search")?.value.trim().toLowerCase() || "";
+        const cargo = overlay.querySelector("#vcr-team-cargo")?.value || "";
         overlay.querySelectorAll(".vcr-team-row").forEach((row) => {
           row.hidden = Boolean((term && !row.dataset.name.includes(term)) || (cargo && row.dataset.cargo !== cargo));
         });
       };
-      overlay.querySelector("#vcr-team-search").addEventListener("input", paint);
-      overlay.querySelector("#vcr-team-cargo").addEventListener("change", paint);
-      overlay.querySelector("#vcr-team-select-all").addEventListener("click", () => overlay.querySelectorAll('.vcr-team-row input').forEach((input) => { input.checked = true; }));
-      overlay.querySelector("#vcr-team-all").addEventListener("click", () => overlay.querySelectorAll(".vcr-team-row:not([hidden]) input").forEach((input) => { input.checked = true; }));
-      overlay.querySelector("#vcr-team-none").addEventListener("click", () => overlay.querySelectorAll('[name="vcr-person"]').forEach((input) => { input.checked = false; }));
+      overlay.querySelector("#vcr-team-search")?.addEventListener("input", paint);
+      overlay.querySelector("#vcr-team-cargo")?.addEventListener("change", paint);
+      overlay.querySelector("#vcr-team-select-all")?.addEventListener("click", () => overlay.querySelectorAll('.vcr-team-row input').forEach((input) => { input.checked = true; }));
+      overlay.querySelector("#vcr-team-all")?.addEventListener("click", () => overlay.querySelectorAll(".vcr-team-row:not([hidden]) input").forEach((input) => { input.checked = true; }));
+      overlay.querySelector("#vcr-team-none")?.addEventListener("click", () => overlay.querySelectorAll('[name="vcr-person"]').forEach((input) => { input.checked = false; }));
     }
 
     function checkedValues(overlay, name) {
@@ -380,69 +545,168 @@
       }
     }
 
-    async function saveCreator(overlay, report, previousConfig, org) {
+    // Monta o config a partir do formulario (avancado ou simplificado) sem
+    // gravar nada — reaproveitado pelo Salvar e pelo Pre-visualizar.
+    function buildConfigFromForm(overlay, previousConfig, template) {
+      if (template.advanced) {
+        const cargos = checkedValues(overlay, "vcr-cargo");
+        const origins = checkedValues(overlay, "vcr-origin");
+        const selectedCodes = checkedValues(overlay, "vcr-person");
+        const primary = overlay.querySelector("#vcr-primary").value;
+        const evaluation = overlay.querySelector("#vcr-evaluation").value;
+        const charts = checkedValues(overlay, "vcr-chart").map((type) => ({
+          type,
+          metric: type === "target_vs_actual" ? primary : evaluation === "highest_overachievement" ? "overachievement_pct" : primary,
+          grouping: type === "time_line" ? "month" : "seller",
+          ordering: "desc",
+          top_n: Number(overlay.querySelector("#vcr-chart-top").value || 10),
+          series: type === "time_line" ? "ytd" : "absolute",
+        }));
+        return {
+          config: {
+            ...previousConfig,
+            schema_version: 1,
+            origins, cargos,
+            active_only: true,
+            include_historical: false,
+            selection_type: selectedCodes.length === 0 ? "general" : selectedCodes.length === 1 ? "individual" : "partial",
+            selected_codes: selectedCodes,
+            participant_list_version: Number(previousConfig.participant_list_version || 0) + 1,
+            product_type_ids: checkedValues(overlay, "vcr-product"),
+            culture_ids: checkedValues(overlay, "vcr-culture"),
+            territory_ids: previousConfig.territory_ids || [],
+            row_axis: "seller",
+            product_types: [], cultures: [],
+            primary_metric: primary,
+            complementary_metrics: checkedValues(overlay, "vcr-complement").filter((metric) => metric !== primary),
+            evaluation,
+            conditions: {
+              ...previousConfig.conditions,
+              minimum_quantity: Number(overlay.querySelector("#vcr-min-qtd").value || 0),
+              minimum_attainment_pct: Number(overlay.querySelector("#vcr-min-pct").value || 0),
+              requires_target: overlay.querySelector("#vcr-requires-target").checked,
+              zero_target_policy: overlay.querySelector("#vcr-requires-target").checked ? "null" : "real_is_100",
+            },
+            ranking: { enabled: overlay.querySelector("#vcr-ranking").checked, metric: evaluation, direction: "desc", tie_breaker: primary },
+            award: { ...previousConfig.award, enabled: overlay.querySelector("#vcr-award").checked, rule: previousConfig.award?.rule || "conditions_met" },
+            groupings: overlay.querySelector("#vcr-group-culture").checked ? ["culture"] : [],
+            scenario_mode: "runtime",
+            charts,
+          },
+          error: !cargos.length || !origins.length ? "Selecione pelo menos um cargo e uma origem." : null,
+        };
+      }
+
+      const metrics = checkedValues(overlay, "vcr-metric");
+      const selectedCodes = checkedValues(overlay, "vcr-person");
+      const isSingle = template.id === "seller_monthly";
+      let error = null;
+      if (!metrics.length) error = "Selecione ao menos uma métrica.";
+      if (isSingle && selectedCodes.length !== 1) error = "Escolha exatamente 1 vendedor.";
+      return {
+        config: {
+          ...previousConfig,
+          schema_version: 1,
+          origins: ["FAT"],
+          cargos: [],
+          active_only: true,
+          include_historical: false,
+          selection_type: selectedCodes.length === 0 ? "general" : selectedCodes.length === 1 ? "individual" : "partial",
+          selected_codes: selectedCodes,
+          participant_list_version: Number(previousConfig.participant_list_version || 0) + 1,
+          product_type_ids: [], culture_ids: [], territory_ids: previousConfig.territory_ids || [],
+          product_types: [], cultures: [],
+          row_axis: template.rowAxis,
+          primary_metric: metrics[0] || "quantity",
+          complementary_metrics: metrics.slice(1),
+          evaluation: "rank_quantity",
+          conditions: { minimum_quantity: 0, minimum_attainment_pct: 0, requires_target: false, zero_target_policy: "real_is_100" },
+          ranking: { enabled: false, metric: "quantity", direction: "desc", tie_breaker: "revenue" },
+          award: { enabled: false, rule: "conditions_met" },
+          groupings: [],
+          scenario_mode: "runtime",
+          charts: [],
+        },
+        error,
+      };
+    }
+
+    async function runPreview(overlay, report, previousConfig, org, template, year, month) {
+      const panel = overlay.querySelector("#vcr-preview-panel");
+      const { config, error } = buildConfigFromForm(overlay, previousConfig, template);
+      if (error) {
+        panel.hidden = false;
+        panel.innerHTML = `<div class="vcr-empty">${escapeHtml(error)}</div>`;
+        return;
+      }
+      panel.hidden = false;
+      panel.innerHTML = `<div class="vcr-loading">Gerando pré-visualização...</div>`;
+      const status = report ? overlay.querySelector("#vcr-status")?.value || report.status : "draft";
+      const modalidade = template.advanced
+        ? overlay.querySelector("#vcr-mode")?.value
+        : (template.id === "seller_monthly" ? "monthly" : "monthly");
+      const dataInicio = template.advanced ? (overlay.querySelector("#vcr-start")?.value || null) : (report?.data_inicio || null);
+      const dataFim = template.advanced ? (overlay.querySelector("#vcr-end")?.value || null) : (report?.data_fim || null);
+      try {
+        const payload = await callSupabaseRpc("comercial_report_preview", {
+          p_organization_id: org,
+          p_report_kind: report?.report_kind || "custom",
+          p_modalidade: modalidade,
+          p_data_inicio: dataInicio,
+          p_data_fim: dataFim,
+          p_config: config,
+          p_year: year,
+          p_month: month,
+          p_scenario_id: null,
+        });
+        const columns = (payload.columns || []).filter((c) => c.visible !== false).sort((a, b) => a.order - b.order);
+        panel.innerHTML = `
+          <div class="vcr-summary">${(payload.summary || []).map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && config.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
+          ${tableMarkup(columns, payload.rows || [], { empty: "Sem resultados para o período." })}
+        `;
+      } catch (err) {
+        panel.innerHTML = `<div class="vcr-empty">Erro ao pré-visualizar: ${escapeHtml(String(err?.message || err))}</div>`;
+      }
+    }
+
+    async function saveCreator(overlay, report, previousConfig, org, template) {
       const feedback = overlay.querySelector(".vcr-feedback");
       const save = overlay.querySelector(".vcr-save");
       const nome = overlay.querySelector("#vcr-name").value.trim();
-      const cargos = checkedValues(overlay, "vcr-cargo");
-      const origins = checkedValues(overlay, "vcr-origin");
-      if (!nome || !cargos.length || !origins.length) {
-        feedback.textContent = "Preencha o nome e selecione pelo menos um cargo e uma origem.";
+      if (!nome) {
+        feedback.textContent = "Preencha o nome do relatório.";
         return;
       }
-      const selectedCodes = checkedValues(overlay, "vcr-person");
-      const primary = overlay.querySelector("#vcr-primary").value;
-      const evaluation = overlay.querySelector("#vcr-evaluation").value;
-      const charts = checkedValues(overlay, "vcr-chart").map((type) => ({
-        type,
-        metric: type === "target_vs_actual" ? primary : evaluation === "highest_overachievement" ? "overachievement_pct" : primary,
-        grouping: type === "time_line" ? "month" : "seller",
-        ordering: "desc",
-        top_n: Number(overlay.querySelector("#vcr-chart-top").value || 10),
-        series: type === "time_line" ? "ytd" : "absolute",
-      }));
-      const config = {
-        ...previousConfig,
-        schema_version: 1,
-        origins,
-        cargos,
-        active_only: true,
-        include_historical: false,
-        selection_type: selectedCodes.length === 0 ? "general" : selectedCodes.length === 1 ? "individual" : "partial",
-        selected_codes: selectedCodes,
-        participant_list_version: Number(previousConfig.participant_list_version || 0) + 1,
-        product_type_ids: checkedValues(overlay, "vcr-product"),
-        culture_ids: checkedValues(overlay, "vcr-culture"),
-        product_types: [],
-        cultures: [],
-        primary_metric: primary,
-        complementary_metrics: checkedValues(overlay, "vcr-complement").filter((metric) => metric !== primary),
-        evaluation,
-        conditions: {
-          ...previousConfig.conditions,
-          minimum_quantity: Number(overlay.querySelector("#vcr-min-qtd").value || 0),
-          minimum_attainment_pct: Number(overlay.querySelector("#vcr-min-pct").value || 0),
-          requires_target: overlay.querySelector("#vcr-requires-target").checked,
-          zero_target_policy: overlay.querySelector("#vcr-requires-target").checked ? "null" : "real_is_100",
-        },
-        ranking: { enabled: overlay.querySelector("#vcr-ranking").checked, metric: evaluation, direction: "desc", tie_breaker: primary },
-        award: { ...previousConfig.award, enabled: overlay.querySelector("#vcr-award").checked, rule: previousConfig.award?.rule || "conditions_met" },
-        groupings: overlay.querySelector("#vcr-group-culture").checked ? ["culture"] : [],
-        scenario_mode: "runtime",
-        charts,
-      };
-      const definition = {
-        organization_id: org,
-        slug: report?.slug || `custom-${crypto.randomUUID()}`,
-        nome,
-        descricao: overlay.querySelector("#vcr-description").value.trim(),
-        status: overlay.querySelector("#vcr-status").value,
-        report_kind: report?.report_kind || "custom",
-        modalidade: overlay.querySelector("#vcr-mode").value,
-        data_inicio: overlay.querySelector("#vcr-start").value || null,
-        data_fim: overlay.querySelector("#vcr-end").value || null,
-        display_order: Number(overlay.querySelector("#vcr-order").value || 0),
-      };
+      const { config, error } = buildConfigFromForm(overlay, previousConfig, template);
+      if (error) {
+        feedback.textContent = error;
+        return;
+      }
+      const definition = template.advanced
+        ? {
+            organization_id: org,
+            slug: report?.slug || `custom-${crypto.randomUUID()}`,
+            nome,
+            descricao: overlay.querySelector("#vcr-description").value.trim(),
+            status: overlay.querySelector("#vcr-status").value,
+            report_kind: report?.report_kind || "custom",
+            modalidade: overlay.querySelector("#vcr-mode").value,
+            data_inicio: overlay.querySelector("#vcr-start").value || null,
+            data_fim: overlay.querySelector("#vcr-end").value || null,
+            display_order: Number(overlay.querySelector("#vcr-order").value || 0),
+          }
+        : {
+            organization_id: org,
+            slug: report?.slug || `custom-${crypto.randomUUID()}`,
+            nome,
+            descricao: overlay.querySelector("#vcr-description").value.trim(),
+            status: report?.status || "draft",
+            report_kind: report?.report_kind || "custom",
+            modalidade: "monthly",
+            data_inicio: report?.data_inicio || null,
+            data_fim: report?.data_fim || null,
+            display_order: Number(report?.display_order || 0),
+          };
       save.disabled = true; save.textContent = "Salvando..."; feedback.textContent = "";
       try {
         await callSupabaseRpc("comercial_report_save", {
@@ -453,10 +717,10 @@
         });
         closeOverlay();
         await refreshCatalog();
-      } catch (error) {
-        console.error(error);
-        feedback.textContent = String(error?.message || "Erro ao salvar o relatório.");
-        save.disabled = false; save.textContent = "Salvar nova versão";
+      } catch (error2) {
+        console.error(error2);
+        feedback.textContent = String(error2?.message || "Erro ao salvar o relatório.");
+        save.disabled = false; save.textContent = report ? "Salvar nova versão" : "Criar relatório";
       }
     }
 
@@ -475,7 +739,7 @@
     }
 
     function tableRowsHtml(columns, rows) {
-      return rows.map((row) => `<tr data-vcr-code="${escapeHtml(row.cod_vendedor || "")}" data-vcr-segment="${escapeHtml(row.segment || "")}">${columns.map((column) => {
+      return rows.map((row) => `<tr ${row.cod_vendedor ? `data-vcr-code="${escapeHtml(row.cod_vendedor)}" data-vcr-segment="${escapeHtml(row.segment || "")}"` : ""}>${columns.map((column) => {
         const value = row[column.key];
         const numeric = ["currency", "percentage", "number", "integer"].includes(column.type);
         const pill = ["boolean", "status"].includes(column.type);
@@ -511,8 +775,8 @@
     function renderBateuRankings(columns, rows, reportId) {
       const rankColumns = columns.filter((column) => !BATEU_HIDDEN_COLUMNS.has(column.key));
       const definitionsBySegment = [
-        { key: "graos", title: "Grãos", className: "graos", matches: (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().startsWith("gra") },
-        { key: "pecuaria", title: "Pecuária", className: "pecuaria", matches: (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().startsWith("pec") },
+        { key: "graos", title: "Grãos", className: "graos", matches: (value) => String(value || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().startsWith("gra") },
+        { key: "pecuaria", title: "Pecuária", className: "pecuaria", matches: (value) => String(value || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().startsWith("pec") },
       ];
       return `<div class="vcr-ranking-stack">${definitionsBySegment.map((segment) => {
         const sortKey = `${reportId}:${segment.key}`;
