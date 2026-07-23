@@ -1052,28 +1052,58 @@
     // Tela dividida do template "Comparativo do time": metade tabela
     // (Nome|Meta|Real|Var%, ordenável pelo cabeçalho — mesmo padrão de
     // classificação já usado no Bateu-Levou) + metade ranking colorido.
-    function renderTeamComparisonReport(payload) {
+    // Constrói uma "visão" das linhas prontas pra 1 métrica específica (Meta e
+    // Var% recalculados client-side a partir de target_quantity/target_revenue,
+    // já que o motor só devolve os dois brutos, não um "Var%" por métrica).
+    // Margem nunca tem meta (planejado não tem margem).
+    function buildMetricRows(rows, metric, zeroTargetPolicy) {
+      const targetKey = metric === "quantity" ? "target_quantity" : metric === "revenue" ? "target_revenue" : null;
+      return rows.map((row) => {
+        const realized = Number(row[metric]) || 0;
+        const target = targetKey ? Number(row[targetKey]) || 0 : null;
+        let varPct = null;
+        if (target !== null) {
+          if (target > 0) varPct = (realized / target - 1) * 100;
+          else if (realized > 0 && zeroTargetPolicy === "real_is_100") varPct = 0;
+        }
+        return { ...row, realized, target, overachievement_pct: varPct };
+      });
+    }
+
+    function renderTeamMetricPanel(payload, metric) {
       const rows = payload.rows || [];
-      const primary = payload.config?.primary_metric || "quantity";
-      const isCurrency = primary !== "quantity";
-      const metricLabel = METRIC_LABELS[primary] || "Receita";
-      const columns = [
-        { key: "nome", label: "Nome", type: "text" },
-        { key: "target", label: "Meta", type: isCurrency ? "currency" : "number" },
-        { key: "realized", label: "Real", type: isCurrency ? "currency" : "number" },
-        { key: "overachievement_pct", label: "Var %", type: "percentage" },
-      ];
-      const sortKey = `team:${payload.report?.id}`;
+      const isCurrency = metric !== "quantity";
+      const hasTarget = metric !== "margin";
+      const zeroTargetPolicy = payload.config?.conditions?.zero_target_policy || "null";
+      const metricRows = buildMetricRows(rows, metric, zeroTargetPolicy);
+      const metricLabel = METRIC_LABELS[metric] || metric;
+      const columns = [{ key: "nome", label: "Nome", type: "text" }];
+      if (hasTarget) columns.push({ key: "target", label: "Meta", type: isCurrency ? "currency" : "number" });
+      columns.push({ key: "realized", label: "Real", type: isCurrency ? "currency" : "number" });
+      if (hasTarget) columns.push({ key: "overachievement_pct", label: "Var %", type: "percentage" });
+
+      const sortKey = `team:${payload.report?.id}:${metric}`;
       const sortState = rankingSorts.get(sortKey) || { key: "realized", dir: -1 };
-      const sortedRows = sortRankingRows(rows, columns, sortState);
-      const chartRows = rows.slice().sort((a, b) => (Number(b.realized) || 0) - (Number(a.realized) || 0));
+      const sortedRows = sortRankingRows(metricRows, columns, sortState);
+      const chartRows = metricRows.slice().sort((a, b) => (Number(b.realized) || 0) - (Number(a.realized) || 0));
       return `<div class="vcr-team-split" data-vcr-team-sort-key="${escapeHtml(sortKey)}">
-        <div class="vcr-team-table">${tableMarkup(columns, sortedRows, { sortable: true, sortState, empty: "Sem resultados para o período." })}</div>
+        <div class="vcr-team-table">
+          <span class="vcr-metric-title">${escapeHtml(metricLabel)}</span>
+          ${tableMarkup(columns, sortedRows, { sortable: true, sortState, empty: "Sem resultados para o período." })}
+        </div>
         <div class="vcr-team-chart">
           <div class="vcr-rank-title">Ranking por ${escapeHtml(metricLabel.toLowerCase())} <span title="Ranking por ${escapeHtml(metricLabel.toLowerCase())} no período, do maior pro menor.">ⓘ</span></div>
-          ${renderRankBarChart(chartRows, primary)}
+          ${renderRankBarChart(chartRows, metric)}
         </div>
       </div>`;
+    }
+
+    function renderTeamComparisonReport(payload) {
+      const config = payload.config || {};
+      const metrics = [config.primary_metric, ...(config.complementary_metrics || [])].filter(
+        (metric, index, arr) => metric && arr.indexOf(metric) === index
+      );
+      return `<div class="vcr-metric-stack">${metrics.map((metric) => renderTeamMetricPanel(payload, metric)).join("")}</div>`;
     }
 
     function renderPayload(container, payload, scenarios, scenarioId) {
@@ -1103,7 +1133,7 @@
       if (isTeamComparison) {
         container.querySelectorAll(".vcr-team-table th[data-vcr-sort]").forEach((header) => {
           header.addEventListener("click", () => {
-            const stateKey = container.querySelector("[data-vcr-team-sort-key]")?.dataset.vcrTeamSortKey;
+            const stateKey = header.closest("[data-vcr-team-sort-key]")?.dataset.vcrTeamSortKey;
             const columnKey = header.dataset.vcrSort;
             const current = rankingSorts.get(stateKey);
             rankingSorts.set(stateKey, current?.key === columnKey
