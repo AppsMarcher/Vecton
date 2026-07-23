@@ -26,7 +26,7 @@
     let definitions = [];
     let activeOverlay = null;
     let runtimeToken = 0;
-    const classificationFilters = new Map();
+    const rankingSorts = new Map();
 
     function isAdmin() {
       return ["admin", "super_admin"].includes(getAccessRole());
@@ -61,7 +61,7 @@
         .vcr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.vcr-stat{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel)}.vcr-stat span{display:block;font-size:10px;color:var(--text-faint);text-transform:uppercase}.vcr-stat strong{display:block;font-size:21px;margin-top:5px}
         .vcr-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.vcr-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.vcr-table th,.vcr-table td{padding:9px 11px;border-bottom:1px solid var(--line-soft);font-size:11px;white-space:nowrap;text-align:left}.vcr-table th{color:var(--text-faint);font-size:9px;text-transform:uppercase;background:var(--panel);position:sticky;top:0}.vcr-table td.num,.vcr-table th.num{text-align:right}.vcr-pill{display:inline-flex;padding:3px 7px;border-radius:99px;background:var(--panel-hover)}.vcr-pill.ok{color:var(--pos);background:rgba(34,197,94,.1)}.vcr-pill.no{color:var(--neg);background:rgba(248,113,113,.1)}
         .vcr-table tbody tr[data-vcr-code]{cursor:pointer}.vcr-table tbody tr[data-vcr-code]:hover{background:var(--panel-hover)}.vcr-movements{width:min(1400px,97vw)}.vcr-movement-table{min-width:1180px}
-        .vcr-ranking-stack{display:grid;gap:18px}.vcr-ranking-board{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}.vcr-ranking-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line);flex-wrap:wrap}.vcr-ranking-title{display:flex;align-items:center;gap:9px}.vcr-ranking-title h3{margin:0;font-size:13px}.vcr-ranking-title span{font-size:10px;color:var(--text-faint)}.vcr-ranking-dot{width:8px;height:8px;border-radius:50%;background:var(--blue)}.vcr-ranking-board.pecuaria .vcr-ranking-dot{background:#f59e0b}.vcr-classification-filter{min-width:180px}
+        .vcr-ranking-stack{display:grid;gap:18px}.vcr-ranking-board{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}.vcr-ranking-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line);flex-wrap:wrap}.vcr-ranking-title{display:flex;align-items:center;gap:9px}.vcr-ranking-title h3{margin:0;font-size:13px}.vcr-ranking-title span{font-size:10px;color:var(--text-faint)}.vcr-ranking-dot{width:8px;height:8px;border-radius:50%;background:var(--blue)}.vcr-ranking-board.pecuaria .vcr-ranking-dot{background:#f59e0b}.vcr-ranking-board th[data-vcr-sort]{cursor:pointer;user-select:none}.vcr-ranking-board th[data-vcr-sort]:hover{color:var(--text-soft)}.vcr-ranking-board th[data-vcr-sort].active{color:#7aa2ff}
         .vcr-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.vcr-chart{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel)}.vcr-chart h3{font-size:12px;margin:0 0 12px}.vcr-bar-row{display:grid;grid-template-columns:minmax(90px,1fr) 3fr 70px;gap:8px;align-items:center;font-size:10px;margin:7px 0}.vcr-bar-track{height:7px;background:var(--panel-hover);border-radius:99px;overflow:hidden}.vcr-bar-fill{height:100%;background:var(--blue);border-radius:99px}
         .vcr-pair{display:grid;gap:3px}.vcr-bar-fill.target{background:var(--text-faint)}.vcr-line-chart{width:100%;height:190px}.vcr-line-chart polyline{fill:none;stroke-width:2}.vcr-line-labels{display:flex;justify-content:space-between;color:var(--text-faint);font-size:9px}.vcr-legend{display:flex;gap:14px;font-size:10px;color:var(--text-soft);margin-bottom:8px}.vcr-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
         .vcr-compliance{border:1px solid var(--line);border-radius:14px;padding:0 14px;background:var(--panel)}.vcr-compliance summary{cursor:pointer;padding:13px 0;font-size:11px;font-weight:600}.vcr-compliance ul{margin:0 0 14px;padding-left:18px;color:var(--text-soft);font-size:11px;display:grid;gap:5px}
@@ -410,13 +410,8 @@
       return String(value);
     }
 
-    function classificationOf(row) {
-      if (!row.eligible) return "ineligible";
-      return row.awarded ? "awarded" : "not_awarded";
-    }
-
-    function tableRowsHtml(columns, rows, includeClassification = false) {
-      return rows.map((row) => `<tr data-vcr-code="${escapeHtml(row.cod_vendedor || "")}"${includeClassification ? ` data-vcr-classification-row="${classificationOf(row)}"` : ""}>${columns.map((column) => {
+    function tableRowsHtml(columns, rows) {
+      return rows.map((row) => `<tr data-vcr-code="${escapeHtml(row.cod_vendedor || "")}">${columns.map((column) => {
         const value = row[column.key];
         const numeric = ["currency", "percentage", "number", "integer"].includes(column.type);
         const pill = ["boolean", "status"].includes(column.type);
@@ -426,9 +421,25 @@
 
     function tableMarkup(columns, rows, options = {}) {
       const body = rows.length
-        ? tableRowsHtml(columns, rows, Boolean(options.classification))
+        ? tableRowsHtml(columns, rows)
         : `<tr><td colspan="${columns.length}" class="vcr-empty">${escapeHtml(options.empty || "Sem resultados para o período.")}</td></tr>`;
-      return `<div class="vcr-table-wrap"${options.embedded ? ' style="border:0;border-radius:0"' : ""}><table class="vcr-table"><thead><tr>${columns.map((column) => `<th class="${["currency", "percentage", "number", "integer"].includes(column.type) ? "num" : ""}">${escapeHtml(column.label)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`;
+      return `<div class="vcr-table-wrap"${options.embedded ? ' style="border:0;border-radius:0"' : ""}><table class="vcr-table"><thead><tr>${columns.map((column) => {
+        const active = options.sortState?.key === column.key;
+        const arrow = active ? (options.sortState.dir === 1 ? " ↑" : " ↓") : "";
+        return `<th class="${["currency", "percentage", "number", "integer"].includes(column.type) ? "num " : ""}${active ? "active" : ""}"${options.sortable ? ` data-vcr-sort="${escapeHtml(column.key)}"` : ""}>${escapeHtml(column.label)}${arrow}</th>`;
+      }).join("")}</tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    function sortRankingRows(rows, columns, sortState) {
+      if (!sortState?.key) return rows;
+      const column = columns.find((item) => item.key === sortState.key);
+      const numeric = ["currency", "percentage", "number", "integer", "boolean"].includes(column?.type);
+      return rows.slice().sort((a, b) => {
+        const av = a[sortState.key];
+        const bv = b[sortState.key];
+        if (numeric) return sortState.dir * ((Number(av) || 0) - (Number(bv) || 0));
+        return sortState.dir * String(av ?? "").localeCompare(String(bv ?? ""), "pt-BR", { numeric: true });
+      });
     }
 
     function renderBateuRankings(columns, rows, reportId) {
@@ -438,35 +449,28 @@
         { key: "pecuaria", title: "Pecuária", className: "pecuaria", matches: (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().startsWith("pec") },
       ];
       return `<div class="vcr-ranking-stack">${definitionsBySegment.map((segment) => {
-        const segmentRows = rows.filter((row) => segment.matches(row.segment));
-        const filterKey = `${reportId}:${segment.key}`;
-        const selected = classificationFilters.get(filterKey) || "all";
-        return `<section class="vcr-ranking-board ${segment.className}" data-vcr-ranking-board data-filter-key="${escapeHtml(filterKey)}">
-          <header class="vcr-ranking-head"><div class="vcr-ranking-title"><i class="vcr-ranking-dot"></i><h3>Ranking ${escapeHtml(segment.title)}</h3><span>${segmentRows.length} integrante(s)</span></div>
-            <select class="opex-filter-select vcr-classification-filter" data-vcr-classification-filter aria-label="Classificação do ranking ${escapeHtml(segment.title)}">
-              <option value="all" ${selected === "all" ? "selected" : ""}>Classificação: todos</option>
-              <option value="awarded" ${selected === "awarded" ? "selected" : ""}>Bateu</option>
-              <option value="not_awarded" ${selected === "not_awarded" ? "selected" : ""}>Não bateu</option>
-              <option value="ineligible" ${selected === "ineligible" ? "selected" : ""}>Inelegíveis</option>
-            </select>
-          </header>
-          ${tableMarkup(rankColumns, segmentRows, { embedded: true, classification: true, empty: `Sem integrantes no ranking de ${segment.title}.` })}
+        const sortKey = `${reportId}:${segment.key}`;
+        const sortState = rankingSorts.get(sortKey) || null;
+        const segmentRows = sortRankingRows(rows.filter((row) => segment.matches(row.segment)), rankColumns, sortState);
+        return `<section class="vcr-ranking-board ${segment.className}" data-vcr-ranking-board data-sort-key="${escapeHtml(sortKey)}">
+          <header class="vcr-ranking-head"><div class="vcr-ranking-title"><i class="vcr-ranking-dot"></i><h3>Ranking ${escapeHtml(segment.title)}</h3><span>${segmentRows.length} integrante(s)</span></div></header>
+          ${tableMarkup(rankColumns, segmentRows, { embedded: true, sortable: true, sortState, empty: `Sem integrantes no ranking de ${segment.title}.` })}
         </section>`;
       }).join("")}</div>`;
     }
 
-    function bindClassificationFilters(container) {
-      container.querySelectorAll("[data-vcr-classification-filter]").forEach((select) => {
-        const apply = () => {
-          const board = select.closest("[data-vcr-ranking-board]");
-          const value = select.value;
-          classificationFilters.set(board.dataset.filterKey, value);
-          board.querySelectorAll("[data-vcr-classification-row]").forEach((row) => {
-            row.hidden = value !== "all" && row.dataset.vcrClassificationRow !== value;
-          });
-        };
-        select.addEventListener("change", apply);
-        apply();
+    function bindRankingSorts(container, payload, scenarios, scenarioId) {
+      container.querySelectorAll("[data-vcr-ranking-board] th[data-vcr-sort]").forEach((header) => {
+        header.addEventListener("click", () => {
+          const board = header.closest("[data-vcr-ranking-board]");
+          const stateKey = board.dataset.sortKey;
+          const columnKey = header.dataset.vcrSort;
+          const current = rankingSorts.get(stateKey);
+          rankingSorts.set(stateKey, current?.key === columnKey
+            ? { key: columnKey, dir: current.dir * -1 }
+            : { key: columnKey, dir: 1 });
+          renderPayload(container, payload, scenarios, scenarioId);
+        });
       });
     }
 
@@ -539,7 +543,7 @@
         <details class="vcr-compliance" open><summary>Critérios e regras aplicadas · versão ${Number(payload.report?.version || 0)}</summary><ul>${(payload.compliance?.rules || []).map((rule) => `<li>${escapeHtml(rule)}</li>`).join("")}</ul></details>
       </div>`;
       container.querySelector("#vcr-runtime-scenario")?.addEventListener("change", (event) => loadAndRenderRuntime(container, payload.report.id, event.target.value || null));
-      if (isBateuLevou) bindClassificationFilters(container);
+      if (isBateuLevou) bindRankingSorts(container, payload, scenarios, scenarioId);
       container.querySelector("#vcr-officialize")?.addEventListener("click", async (event) => {
         const button = event.currentTarget;
         button.disabled = true; button.textContent = "Oficializando...";
