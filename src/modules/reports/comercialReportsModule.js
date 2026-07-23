@@ -680,6 +680,8 @@
         });
         if (config.row_axis === "month") {
           panel.innerHTML = renderMonthAxisReport(payload);
+        } else if (config.row_axis === "product" || config.row_axis === "culture") {
+          panel.innerHTML = renderCompositionReport(payload);
         } else {
           const columns = (payload.columns || []).filter((c) => c.visible !== false).sort((a, b) => a.order - b.order);
           panel.innerHTML = `
@@ -1143,22 +1145,102 @@
       return `<div class="vcr-metric-stack">${metrics.map((metric) => renderTeamMetricPanel(payload, metric)).join("")}</div>`;
     }
 
+    // Eixo Produto/Cultura ("Composição por produto/cultura"): quando o eixo é
+    // 'product', cada linha já vem com row.segment = cultura (migration 085) —
+    // separa em 3 seções (Grãos/Pecuária/Sem cultura), igual ao Bateu-Levou
+    // por segmento. Quando o eixo é 'culture' (não usado por nenhum template
+    // hoje, mas suportado pelo motor), mostra 1 tabela só, sem sub-quebra.
+    // Realizado/Meta/Var reaproveitam buildMetricRows (mesma função do
+    // Comparativo do time) — o motor agora devolve target_quantity/
+    // target_revenue por linha, então a Meta fica certa em qualquer métrica.
+    function cultureBucket(value) {
+      const normalized = String(value || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+      if (normalized.startsWith("gra")) return "graos";
+      if (normalized.startsWith("pec")) return "pecuaria";
+      return "sem_cultura";
+    }
+    const CULTURE_SECTIONS = [
+      { key: "graos", title: "Grãos" },
+      { key: "pecuaria", title: "Pecuária" },
+      { key: "sem_cultura", title: "Sem cultura" },
+    ];
+
+    function renderCompositionMetricPanel(payload, metric) {
+      const config = payload.config || {};
+      const rows = payload.rows || [];
+      const isCultureAxis = config.row_axis === "culture";
+      const isPercent = metric === "margin";
+      const isCurrency = !isPercent && metric !== "quantity";
+      const hasTarget = metric !== "margin";
+      const zeroTargetPolicy = config.conditions?.zero_target_policy || "null";
+      const metricRows = buildMetricRows(rows, metric, zeroTargetPolicy);
+      const metricLabel = METRIC_LABELS[metric] || metric;
+      const realizedType = isPercent ? "percentage" : isCurrency ? "currency" : "number";
+      const columns = [{ key: "label", label: isCultureAxis ? "Cultura" : "Produto", type: "text" }];
+      columns.push({ key: "realized", label: "Realizado", type: realizedType });
+      if (hasTarget) {
+        columns.push({ key: "target", label: "Meta", type: realizedType });
+        columns.push({ key: "var_abs", label: isCurrency ? "Var R$" : "Var", type: realizedType });
+        columns.push({ key: "overachievement_pct", label: "Var %", type: "percentage" });
+      }
+      const chartRows = metricRows.slice().sort((a, b) => (Number(b.realized) || 0) - (Number(a.realized) || 0));
+      const boardsHtml = isCultureAxis
+        ? (() => {
+            const sortKey = `comp:${payload.report?.id}:${metric}`;
+            const sortState = rankingSorts.get(sortKey) || null;
+            const sortedRows = sortRankingRows(metricRows, columns, sortState);
+            return `<section class="vcr-ranking-board" data-vcr-ranking-board data-sort-key="${escapeHtml(sortKey)}">
+              ${tableMarkup(columns, sortedRows, { embedded: true, sortable: true, sortState, empty: "Sem resultados para o período." })}
+            </section>`;
+          })()
+        : CULTURE_SECTIONS.map((section) => {
+            const sectionRows = metricRows.filter((row) => cultureBucket(row.segment) === section.key);
+            if (!sectionRows.length) return "";
+            const sortKey = `comp:${payload.report?.id}:${metric}:${section.key}`;
+            const sortState = rankingSorts.get(sortKey) || null;
+            const sortedRows = sortRankingRows(sectionRows, columns, sortState);
+            return `<section class="vcr-ranking-board" data-vcr-ranking-board data-sort-key="${escapeHtml(sortKey)}">
+              <header class="vcr-ranking-head"><div class="vcr-ranking-title"><i class="vcr-ranking-dot"></i><h3>${escapeHtml(section.title)}</h3><span>${sortedRows.length} item(ns)</span></div></header>
+              ${tableMarkup(columns, sortedRows, { embedded: true, sortable: true, sortState, empty: `Sem resultados em ${section.title}.` })}
+            </section>`;
+          }).join("");
+      return `<div class="vcr-team-split">
+        <div class="vcr-team-table">
+          <span class="vcr-metric-title">${escapeHtml(metricLabel)}</span>
+          <div class="vcr-ranking-stack">${boardsHtml}</div>
+        </div>
+        <div class="vcr-team-chart">
+          <div class="vcr-rank-title">Ranking por ${escapeHtml(metricLabel.toLowerCase())} <span title="Ranking por ${escapeHtml(metricLabel.toLowerCase())} no período, do maior pro menor.">ⓘ</span></div>
+          ${renderRankBarChart(chartRows, metric)}
+        </div>
+      </div>`;
+    }
+
+    function renderCompositionReport(payload) {
+      const config = payload.config || {};
+      const metrics = [config.primary_metric, ...(config.complementary_metrics || [])].filter(
+        (metric, index, arr) => metric && arr.indexOf(metric) === index
+      );
+      return `<div class="vcr-metric-stack">${metrics.map((metric) => renderCompositionMetricPanel(payload, metric)).join("")}</div>`;
+    }
+
     function renderPayload(container, payload, scenarios, scenarioId) {
       const columns = (payload.columns || []).filter((column) => column.visible !== false).sort((a, b) => a.order - b.order);
       const summary = payload.summary || [];
       const rows = payload.rows || [];
       const isBateuLevou = payload.report?.kind === "bateu_levou";
       const isMonthAxis = payload.config?.row_axis === "month";
-      const isTeamComparison = !isMonthAxis && payload.config?.row_axis === "seller"
+      const isComposition = payload.config?.row_axis === "product" || payload.config?.row_axis === "culture";
+      const isTeamComparison = !isMonthAxis && !isComposition && payload.config?.row_axis === "seller"
         && !payload.config?.ranking?.enabled && !payload.config?.award?.enabled;
       const scenarioOptions = `<option value="" ${!scenarioId ? "selected" : ""}>Budget</option>` + scenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}" ${scenario.id === scenarioId ? "selected" : ""}>${escapeHtml(scenario.name)}</option>`).join("");
       container.innerHTML = `<div class="vcr-report">
         <header class="vcr-report-head"><div><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${formatDateBR(payload.period?.effective_start)} — ${formatDateBR(payload.period?.effective_end)}</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="vcr-inline-field">Cenário<select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
-        ${isMonthAxis ? renderMonthAxisReport(payload) : isTeamComparison ? renderTeamComparisonReport(payload) : `
+        ${isMonthAxis ? renderMonthAxisReport(payload) : isTeamComparison ? renderTeamComparisonReport(payload) : isComposition ? renderCompositionReport(payload) : `
         <div class="vcr-summary">${summary.map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && payload.config?.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
         ${isBateuLevou ? renderBateuRankings(columns, rows, payload.report.id) : tableMarkup(columns, rows)}
         `}
-        ${isTeamComparison ? "" : renderCharts(payload.charts || [], rows)}
+        ${isTeamComparison || isComposition ? "" : renderCharts(payload.charts || [], rows)}
         <details class="vcr-compliance" open><summary>Critérios e regras aplicadas · versão ${Number(payload.report?.version || 0)}</summary><ul>${(payload.compliance?.rules || []).map((rule) => `<li>${escapeHtml(rule)}</li>`).join("")}</ul></details>
       </div>`;
       container.querySelector("#vcr-runtime-scenario")?.addEventListener("change", (event) => {
@@ -1166,7 +1248,7 @@
         scenarioSelections.set(payload.report.id, scenarioId);
         loadAndRenderRuntime(container, payload.report.id, scenarioId);
       });
-      if (isBateuLevou) bindRankingSorts(container, payload, scenarios, scenarioId);
+      if (isBateuLevou || isComposition) bindRankingSorts(container, payload, scenarios, scenarioId);
       if (isTeamComparison) {
         container.querySelectorAll(".vcr-team-table th[data-vcr-sort]").forEach((header) => {
           header.addEventListener("click", () => {
