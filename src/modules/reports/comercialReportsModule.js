@@ -141,6 +141,19 @@
         .vcr-combo-svg{width:100%;height:220px}
         .vcr-combo-label{font-size:9px;fill:var(--text-faint);text-anchor:middle}
         @media(max-width:780px){.vcr-month-layout{grid-template-columns:1fr}}
+        .vcr-team-split{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+        .vcr-rank-title{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+        .vcr-team-chart{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--panel)}
+        .vcr-rankbar-row{display:grid;grid-template-columns:22px minmax(60px,120px) 1fr auto;gap:10px;align-items:center;margin:10px 0}
+        .vcr-rankbar-pos{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+        .vcr-rankbar-name{font-size:11.5px;color:var(--text-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .vcr-rankbar-track{height:16px;border-radius:99px;background:var(--panel-hover);overflow:hidden}
+        .vcr-rankbar-fill{display:block;height:100%;border-radius:99px}
+        .vcr-rankbar-val{font-size:12px;white-space:nowrap;min-width:64px;text-align:right}
+        .vcr-rankbar-axis{display:grid;grid-template-columns:22px minmax(60px,120px) 1fr auto;gap:10px;margin-top:6px}
+        .vcr-rankbar-axis::before{content:"";grid-column:1/3}
+        .vcr-rankbar-axis-ticks{grid-column:3;display:flex;justify-content:space-between;font-size:9px;color:var(--text-faint)}
+        @media(max-width:900px){.vcr-team-split{grid-template-columns:1fr}}
         .vcr-report{display:grid;gap:18px}.vcr-report-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}.vcr-report-head h1{font-size:21px;margin:3px 0}.vcr-kicker{margin:0;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint)}
         .vcr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.vcr-stat{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel)}.vcr-stat span{display:block;font-size:10px;color:var(--text-faint);text-transform:uppercase}.vcr-stat strong{display:block;font-size:21px;margin-top:5px}
         .vcr-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.vcr-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.vcr-table th,.vcr-table td{padding:9px 11px;border-bottom:1px solid var(--line-soft);font-size:11px;white-space:nowrap;text-align:left}.vcr-table th{color:var(--text-faint);font-size:9px;text-transform:uppercase;background:var(--panel);position:sticky;top:0}.vcr-table td.num,.vcr-table th.num{text-align:right}.vcr-pill{display:inline-flex;padding:3px 7px;border-radius:99px;background:var(--panel-hover)}.vcr-pill.ok{color:var(--pos);background:rgba(34,197,94,.1)}.vcr-pill.no{color:var(--neg);background:rgba(248,113,113,.1)}
@@ -1000,19 +1013,85 @@
       });
     }
 
+    const RANK_COLORS = ["#3b82f6", "#a855f7", "#ec4899", "#14b8a6", "#f97316", "#eab308", "#22c55e", "#ef4444"];
+
+    // Ranking horizontal colorido (1 cor por posição), estilo "print 2":
+    // barra arredondada, comprimento proporcional ao valor, régua de escala
+    // embaixo, valor sempre alinhado no fim da faixa (não no fim da barra).
+    function renderRankBarChart(rows, metric) {
+      const isCurrency = metric !== "quantity";
+      const fmtShort = (value) => {
+        const abs = Math.abs(value);
+        if (isCurrency) {
+          if (abs >= 1e6) return `R$ ${(value / 1e6).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
+          if (abs >= 1e3) return `R$ ${(value / 1e3).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}k`;
+          return `R$ ${value.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
+        }
+        return value.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+      };
+      const max = Math.max(1, ...rows.map((row) => Math.abs(Number(row.realized) || 0)));
+      const ticks = 4;
+      const axis = Array.from({ length: ticks + 1 }, (_, i) => (max * i) / ticks);
+      const rowsHtml = rows.length
+        ? rows.map((row, index) => {
+            const value = Number(row.realized) || 0;
+            const color = RANK_COLORS[index % RANK_COLORS.length];
+            const width = Math.max(2, Math.abs(value) / max * 100);
+            return `<div class="vcr-rankbar-row">
+              <span class="vcr-rankbar-pos" style="background:${color}">${index + 1}</span>
+              <span class="vcr-rankbar-name">${escapeHtml(row.nome || row.cod_vendedor || "")}</span>
+              <span class="vcr-rankbar-track"><span class="vcr-rankbar-fill" style="width:${width}%;background:${color}"></span></span>
+              <strong class="vcr-rankbar-val" style="color:${color}">${escapeHtml(fmtShort(value))}</strong>
+            </div>`;
+          }).join("")
+        : `<div class="vcr-empty">Sem resultados para o período.</div>`;
+      return `${rowsHtml}
+        <div class="vcr-rankbar-axis"><span class="vcr-rankbar-axis-ticks">${axis.map((value) => `<span>${escapeHtml(fmtShort(value))}</span>`).join("")}</span></div>`;
+    }
+
+    // Tela dividida do template "Comparativo do time": metade tabela
+    // (Nome|Meta|Real|Var%, ordenável pelo cabeçalho — mesmo padrão de
+    // classificação já usado no Bateu-Levou) + metade ranking colorido.
+    function renderTeamComparisonReport(payload) {
+      const rows = payload.rows || [];
+      const primary = payload.config?.primary_metric || "quantity";
+      const isCurrency = primary !== "quantity";
+      const metricLabel = METRIC_LABELS[primary] || "Receita";
+      const columns = [
+        { key: "nome", label: "Nome", type: "text" },
+        { key: "target", label: "Meta", type: isCurrency ? "currency" : "number" },
+        { key: "realized", label: "Real", type: isCurrency ? "currency" : "number" },
+        { key: "overachievement_pct", label: "Var %", type: "percentage" },
+      ];
+      const sortKey = `team:${payload.report?.id}`;
+      const sortState = rankingSorts.get(sortKey) || { key: "realized", dir: -1 };
+      const sortedRows = sortRankingRows(rows, columns, sortState);
+      const chartRows = rows.slice().sort((a, b) => (Number(b.realized) || 0) - (Number(a.realized) || 0));
+      return `<div class="vcr-team-split" data-vcr-team-sort-key="${escapeHtml(sortKey)}">
+        <div class="vcr-team-table">${tableMarkup(columns, sortedRows, { sortable: true, sortState, empty: "Sem resultados para o período." })}</div>
+        <div class="vcr-team-chart">
+          <div class="vcr-rank-title">Ranking por ${escapeHtml(metricLabel.toLowerCase())} <span title="Ranking por ${escapeHtml(metricLabel.toLowerCase())} no período, do maior pro menor.">ⓘ</span></div>
+          ${renderRankBarChart(chartRows, primary)}
+        </div>
+      </div>`;
+    }
+
     function renderPayload(container, payload, scenarios, scenarioId) {
       const columns = (payload.columns || []).filter((column) => column.visible !== false).sort((a, b) => a.order - b.order);
       const summary = payload.summary || [];
       const rows = payload.rows || [];
       const isBateuLevou = payload.report?.kind === "bateu_levou";
+      const isMonthAxis = payload.config?.row_axis === "month";
+      const isTeamComparison = !isMonthAxis && payload.config?.row_axis === "seller"
+        && !payload.config?.ranking?.enabled && !payload.config?.award?.enabled;
       const scenarioOptions = `<option value="" ${!scenarioId ? "selected" : ""}>Budget</option>` + scenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}" ${scenario.id === scenarioId ? "selected" : ""}>${escapeHtml(scenario.name)}</option>`).join("");
       container.innerHTML = `<div class="vcr-report">
         <header class="vcr-report-head"><div><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${formatDateBR(payload.period?.effective_start)} — ${formatDateBR(payload.period?.effective_end)}</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="vcr-inline-field">Cenário<select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
-        ${payload.config?.row_axis === "month" ? renderMonthAxisReport(payload) : `
+        ${isMonthAxis ? renderMonthAxisReport(payload) : isTeamComparison ? renderTeamComparisonReport(payload) : `
         <div class="vcr-summary">${summary.map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && payload.config?.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
         ${isBateuLevou ? renderBateuRankings(columns, rows, payload.report.id) : tableMarkup(columns, rows)}
         `}
-        ${renderCharts(payload.charts || [], rows)}
+        ${isTeamComparison ? "" : renderCharts(payload.charts || [], rows)}
         <details class="vcr-compliance" open><summary>Critérios e regras aplicadas · versão ${Number(payload.report?.version || 0)}</summary><ul>${(payload.compliance?.rules || []).map((rule) => `<li>${escapeHtml(rule)}</li>`).join("")}</ul></details>
       </div>`;
       container.querySelector("#vcr-runtime-scenario")?.addEventListener("change", (event) => {
@@ -1021,6 +1100,19 @@
         loadAndRenderRuntime(container, payload.report.id, scenarioId);
       });
       if (isBateuLevou) bindRankingSorts(container, payload, scenarios, scenarioId);
+      if (isTeamComparison) {
+        container.querySelectorAll(".vcr-team-table th[data-vcr-sort]").forEach((header) => {
+          header.addEventListener("click", () => {
+            const stateKey = container.querySelector("[data-vcr-team-sort-key]")?.dataset.vcrTeamSortKey;
+            const columnKey = header.dataset.vcrSort;
+            const current = rankingSorts.get(stateKey);
+            rankingSorts.set(stateKey, current?.key === columnKey
+              ? { key: columnKey, dir: current.dir * -1 }
+              : { key: columnKey, dir: 1 });
+            renderPayload(container, payload, scenarios, scenarioId);
+          });
+        });
+      }
       container.querySelectorAll("tr[data-vcr-code]").forEach((row) => row.addEventListener("click", () => openMovements(payload.report.id, row.dataset.vcrCode, scenarioId, payload.report.name, row.dataset.vcrSegment || null)));
     }
 
