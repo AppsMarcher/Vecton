@@ -53,6 +53,7 @@
         .vcr-section h4{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint)}
         .vcr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.vcr-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
         .vcr-field{display:grid;gap:6px;font-size:11px;color:var(--text-soft)}.vcr-field input,.vcr-field select,.vcr-field textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:9px;font:inherit}.vcr-field textarea{min-height:72px;resize:vertical}
+        .vcr-field select option,.vcr-team-tools select option{background:#1a1d26;color:var(--text)}
         .vcr-checks{display:flex;flex-wrap:wrap;gap:8px}.vcr-check{display:flex;align-items:center;gap:7px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;font-size:11px;color:var(--text-soft)}
         .vcr-team-tools{display:flex;gap:8px;flex-wrap:wrap}.vcr-team-tools input,.vcr-team-tools select{border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:8px;padding:8px}
         .vcr-team-list{max-height:190px;overflow:auto;border:1px solid var(--line-soft);border-radius:10px}.vcr-team-row{display:grid;grid-template-columns:28px 84px 1fr 180px 80px 150px;gap:8px;align-items:center;padding:8px 10px;font-size:11px;border-bottom:1px solid var(--line-soft)}.vcr-team-row:last-child{border:0}.vcr-team-row.invalid{opacity:.62}
