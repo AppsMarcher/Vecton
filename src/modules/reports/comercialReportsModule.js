@@ -64,7 +64,7 @@
       const style = document.createElement("style");
       style.id = "vcr-style";
       style.textContent = `
-        .vcr-create-card{min-height:132px;border-style:dashed!important;display:flex!important;align-items:center;justify-content:center;gap:8px;color:var(--blue)!important;font-weight:600}
+        .vcr-create-card{border-style:dashed!important;align-items:center!important;justify-content:center;gap:6px;text-align:center;color:#14b8a6!important;font-weight:600}.vcr-create-card span:last-child{font-size:11.5px;line-height:1.25}
         .vcr-card-status{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint)}
         .vcr-edit-btn{position:absolute;bottom:10px;right:10px;width:26px;height:26px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;color:var(--text-faint);background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);cursor:pointer;z-index:2}.vcr-edit-btn svg{width:13px;height:13px;pointer-events:none}.vcr-edit-btn:hover{color:var(--text);background:rgba(255,255,255,.12)}
         .vcr-overlay{position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,.64);display:flex;align-items:center;justify-content:center;padding:24px}
@@ -153,7 +153,7 @@
       button.type = "button";
       button.className = "reports-report-card vcr-create-card";
       button.dataset.vcrCreateCard = "true";
-      button.innerHTML = `<span style="font-size:20px">+</span><span>Criar relatório</span>`;
+      button.innerHTML = `<span style="font-size:20px">+</span><span>Criar relatório comercial personalizado</span>`;
       button.addEventListener("click", () => openCreator(null));
       body.appendChild(button);
     }
