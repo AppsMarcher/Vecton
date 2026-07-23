@@ -40,10 +40,10 @@
       UPSERT_CHUNK_SIZE
     } = deps;
 
-    const TEMPLATE_URL = "templates/modelo-carga-vendas.xlsx";
+    const TEMPLATE_URL = "templates/modelo-carga-vendas-vendedor.xlsx";
     const CHUNK = UPSERT_CHUNK_SIZE || 500;
     const ROWS_PER_PAGE = 200;
-    const COL_COUNT = 12;
+    const COL_COUNT = 13;
 
     if (!Array.isArray(state.comercialRealizadoBatches)) state.comercialRealizadoBatches = [];
     if (!state.comercialRealizadoRowsByBatch || typeof state.comercialRealizadoRowsByBatch !== "object") {
@@ -347,6 +347,7 @@
         ${th("codProduto", "comven-col-produto", "Produto")}
         ${th("codCliente", "comven-col-cliente", "Cliente")}
         ${th("codTerritorio", "comven-col-territorio", "Território")}
+        ${th("codVendedor", "comven-col-vendedor", "Cód. vendedor")}
         ${th("quantidade", "comven-col-qtd", "Qtd")}
         ${th("valor", "comven-col-valor", "Valor")}
         ${th("mbPct", "comven-col-mb", "%MB")}
@@ -376,6 +377,7 @@
             (row.codProduto || "").toLowerCase().includes(filter) ||
             (row.codCliente || "").toLowerCase().includes(filter) ||
             (row.codTerritorio || "").toLowerCase().includes(filter) ||
+            (row.codVendedor || "").toLowerCase().includes(filter) ||
             (row.tipo || "").toLowerCase().includes(filter) ||
             (row.origem || "").toLowerCase().includes(filter) ||
             String(row.rowNumber).includes(filter) ||
@@ -426,6 +428,7 @@
           <td class="comven-col-produto"><input class="actuals-field" data-field="codProduto" type="text" maxlength="20" value="${escapeHtml(row.codProduto || "")}"></td>
           <td class="comven-col-cliente"><input class="actuals-field" data-field="codCliente" type="text" maxlength="20" value="${escapeHtml(row.codCliente || "")}"></td>
           <td class="comven-col-territorio"><input class="actuals-field" data-field="codTerritorio" type="text" maxlength="30" value="${escapeHtml(row.codTerritorio || "")}"></td>
+          <td class="comven-col-vendedor"><input class="actuals-field" data-field="codVendedor" type="text" inputmode="numeric" maxlength="20" value="${escapeHtml(row.codVendedor || "")}"></td>
           <td class="comven-col-qtd"><input class="actuals-field actuals-field-amount" data-field="quantidade" type="text" maxlength="15" value="${escapeHtml(row.quantidade == null ? "" : String(row.quantidade))}"></td>
           <td class="comven-col-valor"><input class="actuals-field actuals-field-amount" data-field="valor" type="text" maxlength="18" value="${escapeHtml(formatAmountInput(row.valor))}"></td>
           <td class="comven-col-mb"><input class="actuals-field" data-field="mbPct" type="text" maxlength="8" value="${escapeHtml(formatMbPct(row.mbPct))}"></td>
@@ -544,6 +547,7 @@
           codProduto: "",
           codCliente: "",
           codTerritorio: "",
+          codVendedor: "",
           quantidade: "",
           valor: "",
           mbPct: ""
@@ -664,6 +668,7 @@
         codProduto: rowElement.querySelector('[data-field="codProduto"]').value,
         codCliente: rowElement.querySelector('[data-field="codCliente"]').value,
         codTerritorio: rowElement.querySelector('[data-field="codTerritorio"]').value,
+        codVendedor: rowElement.querySelector('[data-field="codVendedor"]').value,
         quantidade: rowElement.querySelector('[data-field="quantidade"]').value,
         valor: rowElement.querySelector('[data-field="valor"]').value,
         mbPct: rowElement.querySelector('[data-field="mbPct"]').value
@@ -695,7 +700,7 @@
         if (isSupabaseConfigured()) {
           const [fresh] = await fetchSupabaseRowsSafe(
             "comercial_realizado_import_rows",
-            `id=eq.${encodeURIComponent(rowId)}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,cod_territorio,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&limit=1`
+            `id=eq.${encodeURIComponent(rowId)}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,cod_territorio,cod_vendedor,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&limit=1`
           );
           if (fresh) {
             const normalized = normalizeRow(fresh);
@@ -778,6 +783,7 @@
         cod_produto: row.codProduto || null,
         cod_cliente: row.codCliente || null,
         cod_territorio: row.codTerritorio || null,
+        cod_vendedor: row.codVendedor || null,
         quantidade: row.quantidade == null || Number.isNaN(Number(row.quantidade)) ? null : Number(row.quantidade),
         valor: row.valor == null || Number.isNaN(Number(row.valor)) ? null : Number(row.valor),
         mb_pct: row.mbPct == null || Number.isNaN(Number(row.mbPct)) ? null : Number(row.mbPct),
@@ -840,7 +846,7 @@
       while (true) {
         const page = await fetchSupabaseRowsSafe(
           "comercial_realizado_import_rows",
-          `batch_id=eq.${batchId}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,cod_territorio,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&order=row_number.asc&limit=${pageSize}&offset=${offset}`
+          `batch_id=eq.${batchId}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,cod_territorio,cod_vendedor,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&order=row_number.asc&limit=${pageSize}&offset=${offset}`
         );
         if (!page || page.length === 0) break;
         allRows = allRows.concat(page);
@@ -954,6 +960,7 @@
         codProduto: sourceRow[headerMap.codProduto],
         codCliente: sourceRow[headerMap.codCliente],
         codTerritorio: headerMap.codTerritorio ? sourceRow[headerMap.codTerritorio] : "",
+        codVendedor: headerMap.codVendedor ? sourceRow[headerMap.codVendedor] : "",
         quantidade: sourceRow[headerMap.quantidade],
         valor: sourceRow[headerMap.valor],
         mbPct: headerMap.mbPct ? sourceRow[headerMap.mbPct] : "",
@@ -969,6 +976,7 @@
         codProduto: ["codproduto", "produto", "codprod", "codigoproduto"],
         codCliente: ["codcliente", "cliente", "codcli", "codigocliente"],
         codTerritorio: ["territorio", "regional", "regionalmarcher"],
+        codVendedor: ["codvendedor", "codigovendedor", "vendedorcodigo", "codvend"],
         quantidade: ["quantidade", "qtd", "qtde", "qtdpedido"],
         valor: ["valor", "valorpedido"],
         mbPct: ["mb", "mbpct", "margembruta", "margem", "percentmb"]
@@ -1014,6 +1022,7 @@
         codProduto: String(row.codProduto ?? row.cod_produto ?? "").trim(),
         codCliente: String(row.codCliente ?? row.cod_cliente ?? "").trim(),
         codTerritorio: String(row.codTerritorio ?? row.cod_territorio ?? "").trim(),
+        codVendedor: String(row.codVendedor ?? row.cod_vendedor ?? "").trim(),
         quantidade: qtd == null || qtd === "" ? null : Number(qtd),
         valor: val == null || val === "" ? null : Number(val),
         mbPct: mb == null || mb === "" ? null : Number(mb),
@@ -1037,6 +1046,7 @@
         codProduto: String(row.codProduto ?? "").trim(),
         codCliente: String(row.codCliente ?? "").trim(),
         codTerritorio: String(row.codTerritorio ?? "").trim(),
+        codVendedor: String(row.codVendedor ?? "").trim(),
         quantidade: Number.isNaN(qtd) ? null : qtd,
         valor: Number.isNaN(val) ? null : val,
         mbPct: mb,
