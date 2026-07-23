@@ -23,7 +23,6 @@
     const FALLBACK_ITEMS = [
       { section_id: "fallback-comercial", report_id: "comercialPainel", sort_order: 0 },
       { section_id: "fallback-comercial", report_id: "comercialMapa", sort_order: 1 },
-      { section_id: "fallback-comercial", report_id: "comercialFinalDeAno", sort_order: 2 },
       { section_id: "fallback-dre", report_id: "dreSocReal", sort_order: 0 },
       { section_id: "fallback-dre", report_id: "dreGerReal", sort_order: 1 },
       { section_id: "fallback-dre", report_id: "dreDfsReal", sort_order: 2 },
