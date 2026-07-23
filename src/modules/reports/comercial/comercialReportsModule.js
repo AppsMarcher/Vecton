@@ -603,14 +603,15 @@
           ["territorio", "Território"], ["regional", "Regional"],
           ["movimento_considerado", "Considerado"], ["motivo_exclusao", "Motivo da exclusão"],
         ];
-        const body = (movements || []).map((movement) => `<tr>${columns.map(([key]) => {
+        const consideredMovements = (movements || []).filter((movement) => movement.movimento_considerado === true);
+        const body = consideredMovements.map((movement) => `<tr>${columns.map(([key]) => {
           let value = movement[key];
           if (key === "faturamento") value = Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
           else if (key === "margem_percentual" && value !== null) value = `${(Number(value) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
           else if (typeof value === "boolean") value = value ? "Sim" : "Não";
           return `<td>${escapeHtml(value ?? "—")}</td>`;
         }).join("")}</tr>`).join("");
-        overlay.querySelector(".vcr-modal-body").innerHTML = `<div class="vcr-table-wrap"><table class="vcr-table vcr-movement-table"><thead><tr>${columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}" class="vcr-empty">Nenhum movimento encontrado.</td></tr>`}</tbody></table></div>`;
+        overlay.querySelector(".vcr-modal-body").innerHTML = `<div class="vcr-table-wrap"><table class="vcr-table vcr-movement-table"><thead><tr>${columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}" class="vcr-empty">Nenhum movimento considerado para este realizado.</td></tr>`}</tbody></table></div>`;
       } catch (error) {
         if (activeOverlay === overlay) overlay.querySelector(".vcr-modal-body").innerHTML = `<div class="vcr-empty">Erro ao carregar movimentos: ${escapeHtml(String(error?.message || error))}</div>`;
       }
