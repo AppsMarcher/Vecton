@@ -421,7 +421,7 @@
     }
 
     function tableRowsHtml(columns, rows) {
-      return rows.map((row) => `<tr data-vcr-code="${escapeHtml(row.cod_vendedor || "")}">${columns.map((column) => {
+      return rows.map((row) => `<tr data-vcr-code="${escapeHtml(row.cod_vendedor || "")}" data-vcr-segment="${escapeHtml(row.segment || "")}">${columns.map((column) => {
         const value = row[column.key];
         const numeric = ["currency", "percentage", "number", "integer"].includes(column.type);
         const pill = ["boolean", "status"].includes(column.type);
@@ -573,14 +573,14 @@
       });
       container.querySelector("#vcr-export-xlsx")?.addEventListener("click", () => { try { exportWorkbook(payload); } catch (error) { window.alert(String(error?.message || error)); } });
       container.querySelector("#vcr-export-pdf")?.addEventListener("click", () => { try { printPayload(payload); } catch (error) { window.alert(String(error?.message || error)); } });
-      container.querySelectorAll("tr[data-vcr-code]").forEach((row) => row.addEventListener("click", () => openMovements(payload.report.id, row.dataset.vcrCode, scenarioId, payload.report.name)));
+      container.querySelectorAll("tr[data-vcr-code]").forEach((row) => row.addEventListener("click", () => openMovements(payload.report.id, row.dataset.vcrCode, scenarioId, payload.report.name, row.dataset.vcrSegment || null)));
     }
 
-    async function openMovements(reportId, codVendedor, scenarioId, reportName) {
+    async function openMovements(reportId, codVendedor, scenarioId, reportName, segment) {
       closeOverlay();
       const overlay = document.createElement("div");
       overlay.className = "vcr-overlay";
-      overlay.innerHTML = `<div class="vcr-modal vcr-movements"><div class="vcr-modal-head"><div><p class="vcr-kicker">Detalhamento dos movimentos</p><h3>${escapeHtml(reportName)} · ${escapeHtml(codVendedor)}</h3></div><button class="vcr-close" type="button">×</button></div><div class="vcr-modal-body"><div class="vcr-loading">Carregando movimentos...</div></div></div>`;
+      overlay.innerHTML = `<div class="vcr-modal vcr-movements"><div class="vcr-modal-head"><div><p class="vcr-kicker">Detalhamento dos movimentos</p><h3>${escapeHtml(reportName)} · ${escapeHtml(codVendedor)}${segment ? ` · ${escapeHtml(segment)}` : ""}</h3></div><button class="vcr-close" type="button">×</button></div><div class="vcr-modal-body"><div class="vcr-loading">Carregando movimentos...</div></div></div>`;
       document.body.appendChild(overlay);
       activeOverlay = overlay;
       overlay.querySelector(".vcr-close").addEventListener("click", closeOverlay);
@@ -592,6 +592,7 @@
           p_month: Number(state.currentPeriod?.month || 1),
           p_scenario_id: scenarioId,
           p_cod_vendedor: codVendedor,
+          p_segment: segment || null,
         });
         if (activeOverlay !== overlay) return;
         const columns = [
