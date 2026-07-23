@@ -451,7 +451,7 @@
       const selected = config.selected_codes || [];
       return `
             <section class="vcr-section"><h4>Nome</h4>
-              <label class="vcr-field">Nome do relatório<input id="vcr-name" value="${escapeHtml(report?.nome || "")}" maxlength="80" placeholder="Ex.: Desempenho mensal — Juarez"></label>
+              <label class="vcr-field">Nome do relatório<input id="vcr-name" value="${escapeHtml(report?.nome || "")}" maxlength="80"></label>
               <input type="hidden" id="vcr-status" value="${escapeHtml(report?.status || "draft")}">
               <input type="hidden" id="vcr-order" value="${Number(report?.display_order || 0)}">
               <label class="vcr-field">Descrição (opcional)<textarea id="vcr-description">${escapeHtml(report?.descricao || "")}</textarea></label>
