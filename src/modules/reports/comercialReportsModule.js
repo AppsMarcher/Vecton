@@ -74,6 +74,11 @@
     // a primeira renderização de cada relatório assume o cenário favorito da
     // organização (is_default em forecast_scenarios), nunca o Budget fixo.
     const scenarioSelections = new Map();
+    // reportId -> "monthly"|"annual_ytd". Ausente = usa a modalidade oficial
+    // gravada no relatório (comportamento de sempre). Toggle ao vivo Mês/YTD
+    // (Comparativo do time / Performance por vendedor e cultura) — não
+    // altera a definição salva, só a chamada de comercial_report_execute.
+    const modalidadeSelections = new Map();
 
     async function resolveDefaultScenario(year) {
       try {
@@ -1346,9 +1351,17 @@
       const isComposition = payload.config?.row_axis === "product" || payload.config?.row_axis === "culture" || isSellerCultureComposition;
       const isTeamComparison = !isMonthAxis && !isComposition && payload.config?.row_axis === "seller"
         && !payload.config?.ranking?.enabled && !payload.config?.award?.enabled;
+      // Toggle ao vivo Mês/YTD: só faz sentido pros 2 relatórios de eixo
+      // vendedor sem timeline própria (Comparativo do time e Performance por
+      // vendedor e cultura) — "Desempenho de um vendedor" já é YTD fixo, e
+      // os demais eixos/campanhas não pediram essa opção.
+      const supportsModalidadeToggle = isTeamComparison || isSellerCultureComposition;
       const scenarioOptions = `<option value="" ${!scenarioId ? "selected" : ""}>Budget</option>` + scenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}" ${scenario.id === scenarioId ? "selected" : ""}>${escapeHtml(scenario.name)}</option>`).join("");
+      const modalidadeToggleHtml = supportsModalidadeToggle
+        ? `<label class="vcr-inline-field">Período<select id="vcr-runtime-modalidade"><option value="monthly" ${payload.report?.mode !== "annual_ytd" ? "selected" : ""}>Mês</option><option value="annual_ytd" ${payload.report?.mode === "annual_ytd" ? "selected" : ""}>YTD</option></select></label>`
+        : "";
       container.innerHTML = `<div class="vcr-report">
-        <header class="vcr-report-head"><div><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${formatDateBR(payload.period?.effective_start)} — ${formatDateBR(payload.period?.effective_end)}</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label class="vcr-inline-field">Cenário<select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
+        <header class="vcr-report-head"><div><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${formatDateBR(payload.period?.effective_start)} — ${formatDateBR(payload.period?.effective_end)}</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${modalidadeToggleHtml}<label class="vcr-inline-field">Cenário<select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
         ${isMonthAxis ? renderMonthAxisReport(payload) : isTeamComparison ? renderTeamComparisonReport(payload) : isComposition ? renderCompositionReport(payload) : `
         <div class="vcr-summary">${summary.map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && payload.config?.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
         ${isBateuLevou ? renderBateuRankings(columns, rows, payload.report.id) : tableMarkup(columns, rows)}
@@ -1359,7 +1372,11 @@
       container.querySelector("#vcr-runtime-scenario")?.addEventListener("change", (event) => {
         const scenarioId = event.target.value || null;
         scenarioSelections.set(payload.report.id, scenarioId);
-        loadAndRenderRuntime(container, payload.report.id, scenarioId);
+        loadAndRenderRuntime(container, payload.report.id, scenarioId, modalidadeSelections.get(payload.report.id));
+      });
+      container.querySelector("#vcr-runtime-modalidade")?.addEventListener("change", (event) => {
+        modalidadeSelections.set(payload.report.id, event.target.value);
+        loadAndRenderRuntime(container, payload.report.id, scenarioId, event.target.value);
       });
       if (isBateuLevou || isComposition) bindRankingSorts(container, payload, scenarios, scenarioId);
       if (isTeamComparison) {
@@ -1461,7 +1478,7 @@
       }).join("")}</div>`;
     }
 
-    async function loadAndRenderRuntime(container, reportId, scenarioId) {
+    async function loadAndRenderRuntime(container, reportId, scenarioId, modalidadeOverride) {
       const token = ++runtimeToken;
       container.innerHTML = `<div class="vcr-loading">Carregando relatório comercial...</div>`;
       try {
@@ -1469,7 +1486,7 @@
         const month = Number(state.currentPeriod?.month || 1);
         const org = await resolveOrganizationId();
         const [payload, scenarios] = await Promise.all([
-          callSupabaseRpc("comercial_report_execute", { p_report_id: reportId, p_year: year, p_month: month, p_scenario_id: scenarioId, p_persist: false }),
+          callSupabaseRpc("comercial_report_execute", { p_report_id: reportId, p_year: year, p_month: month, p_scenario_id: scenarioId, p_persist: false, p_modalidade_override: modalidadeOverride || null }),
           fetchSupabaseRowsSafe("forecast_scenarios", `organization_id=eq.${org}&reference_year=eq.${year}&order=created_at.asc&select=id,name`),
         ]);
         if (token !== runtimeToken) return;
@@ -1485,14 +1502,15 @@
       if (!id) return false;
       const report = definitions.find((item) => item.id === id);
       if (!report) return false;
+      const modalidadeOverride = modalidadeSelections.get(id);
       if (scenarioSelections.has(id)) {
-        loadAndRenderRuntime(container, id, scenarioSelections.get(id));
+        loadAndRenderRuntime(container, id, scenarioSelections.get(id), modalidadeOverride);
       } else {
         container.innerHTML = `<div class="vcr-loading">Carregando relatório comercial...</div>`;
         const year = Number(state.currentPeriod?.year || new Date().getFullYear());
         resolveDefaultScenario(year).then((scenarioId) => {
           scenarioSelections.set(id, scenarioId);
-          loadAndRenderRuntime(container, id, scenarioId);
+          loadAndRenderRuntime(container, id, scenarioId, modalidadeOverride);
         });
       }
       return true;
