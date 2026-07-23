@@ -62,7 +62,6 @@ const { createComercialVendasCargaModule } = window.VECTON_COMERCIAL_VENDAS_CARG
 const { createComercialPlanejadoCargaModule } = window.VECTON_COMERCIAL_PLANEJADO_CARGA;
 const { createComercialPainelModule } = window.VECTON_COMERCIAL_PAINEL;
 const { createComercialMapaModule } = window.VECTON_COMERCIAL_MAPA;
-const { createComercialFinalDeAnoModule } = window.VECTON_COMERCIAL_FINAL_DE_ANO;
 const { createComercialReportsModule } = window.VECTON_COMERCIAL_REPORTS;
 const { createReportsHelpersModule } = window.VECTON_REPORTS_HELPERS;
 const { createDashboardCardsModule } = window.VECTON_DASHBOARD_CARDS;
@@ -1125,14 +1124,6 @@ const comercialMapaModule = createComercialMapaModule({
   callSupabaseRpc,
   isSupabaseConfigured,
 });
-const comercialFinalDeAnoModule = createComercialFinalDeAnoModule({
-  escapeHtml,
-  state,
-  resolveOrganizationId,
-  fetchSupabaseRowsSafe,
-  callSupabaseRpc,
-  isSupabaseConfigured,
-});
 const headcountRenderModule = createHeadcountRenderModule({
   escapeHtml,
   formatMonthLabel,
@@ -1830,7 +1821,7 @@ function canSeeReport(reportId) {
   if (role === "super_admin" || role === "admin") return true;
   // Comercial é allowlist fixa (Painel/Mapa/Bateu-Levou) — não recebe extras nem
   // as regras de manager/analyst, mesmo que extra_report_ids venha preenchido.
-  if (role === "comercial") return String(reportId).startsWith("comercialRelatorio_") || ["comercialPainel", "comercialMapa", "comercialFinalDeAno"].includes(reportId);
+  if (role === "comercial") return String(reportId).startsWith("comercialRelatorio_") || ["comercialPainel", "comercialMapa"].includes(reportId);
   if (getExtraReportIds().includes(reportId)) return true;
   if (role === "manager") return true;
   if (role === "analyst") return !isConsolidatedReport(reportId);
@@ -2526,8 +2517,7 @@ const REPORT_TITLES = {
   headcountReal: "Headcount Realizado",
   headcountBudget: "Headcount Planejado",
   comercialPainel: "Painel de Vendas",
-  comercialMapa: "Mapa de Vendas",
-  comercialFinalDeAno: "Final de Ano"
+  comercialMapa: "Mapa de Vendas"
 };
 
 /*
@@ -2756,7 +2746,6 @@ function renderReportsView() {
     comercialReportsModule.renderSelectedReport(detailPanel, selectedReportId) ||
     comercialPainelModule.renderSelectedPainel(detailPanel, selectedReportId) ||
     comercialMapaModule.renderSelectedMapa(detailPanel, selectedReportId) ||
-    comercialFinalDeAnoModule.renderSelectedFinalDeAno(detailPanel, selectedReportId) ||
     reportsDreModule.renderSelectedDreReport(detailPanel, selectedReportId) ||
     reportsOpexModule.renderSelectedOpexReport(detailPanel, selectedReportId) ||
     reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId);
@@ -7242,6 +7231,7 @@ function handleDefaultScenarioChanged() {
   reportsOpexModule?.resetCompareSource?.();
   _opexBudgetSource = null;
   _hcBudgetSource = null;
+  comercialReportsModule?.resetScenarioSelections?.();
 }
 
 async function fetchScenarioLedgerForYear(scenarioId, year) {
