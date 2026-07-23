@@ -189,9 +189,18 @@
         fetchSupabaseRowsSafe("comercial_tipos", `organization_id=eq.${org}&order=nome.asc&select=id,nome`),
         fetchSupabaseRowsSafe("comercial_culturas", `organization_id=eq.${org}&order=nome.asc&select=id,nome`),
       ]);
-      const currentByCode = new Map();
-      (periodRows || []).forEach((person) => { if (!currentByCode.has(person.cod_vendedor)) currentByCode.set(person.cod_vendedor, { ...person, codigo: person.cod_vendedor, vigente: true }); });
       const centralByCode = new Map((centralTeam || []).map((person) => [person.codigo, person]));
+      const currentByCode = new Map();
+      (periodRows || []).forEach((person) => {
+        if (currentByCode.has(person.cod_vendedor)) return;
+        const current = centralByCode.get(person.cod_vendedor);
+        currentByCode.set(person.cod_vendedor, {
+          ...person,
+          codigo: person.cod_vendedor,
+          nome: current?.nome || person.nome,
+          vigente: true,
+        });
+      });
       (config.selected_codes || []).forEach((code) => {
         if (!currentByCode.has(code)) {
           const person = centralByCode.get(code) || { codigo: code, nome: `Código ${code}`, cargo: "", situacao: "historico" };
