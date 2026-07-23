@@ -726,12 +726,13 @@
     // tooltip interativo) porque comercialReportsModule.js monta HTML estático
     // via innerHTML, não tem os containerId/eventos do módulo do Dashboard.
     function renderMonthComboChart(rows, metric, hasTargetMetric, zeroTargetPolicy, barColor = "#4f7cff", lineColor = "#a5b4fc") {
+      const isPercent = metric === "margin";
       const targetKey = metric === "quantity" ? "target_quantity" : metric === "revenue" ? "target_revenue" : null;
       const byMonth = new Map(rows.map((row) => [Number(row.row_key.slice(5, 7)) - 1, row]));
       const barVals = [], targetVals = [], lineVals = [];
       for (let i = 0; i < 12; i += 1) {
         const row = byMonth.get(i);
-        const realized = row ? Number(row[metric]) || 0 : 0;
+        const realized = row ? (metricRealizedValue(row, metric) ?? 0) : 0;
         const target = hasTargetMetric && targetKey && row ? Number(row[targetKey]) || 0 : 0;
         barVals.push(realized);
         targetVals.push(target);
@@ -792,7 +793,7 @@
         if (targetSet.has(i)) {
           const { y, h } = barRect(targetVals[i]);
           const xGhost = xCenter - ghostBarW / 2;
-          bars += `<rect x="${xGhost.toFixed(1)}" y="${y.toFixed(1)}" width="${ghostBarW.toFixed(1)}" height="${h.toFixed(1)}" fill="${rgbaColor(barColor, 0.14)}" stroke="${rgbaColor(barColor, 0.45)}" stroke-width="1" stroke-dasharray="3,3" rx="4"><title>${escapeHtml(MONTH_ABBR[i])}: meta ${targetVals[i].toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</title></rect>`;
+          bars += `<rect x="${xGhost.toFixed(1)}" y="${y.toFixed(1)}" width="${ghostBarW.toFixed(1)}" height="${h.toFixed(1)}" fill="${rgbaColor(barColor, 0.14)}" stroke="${rgbaColor(barColor, 0.45)}" stroke-width="1" stroke-dasharray="3,3" rx="4"><title>${escapeHtml(MONTH_ABBR[i])}: meta ${escapeHtml(fmtMetricValue(targetVals[i], metric))}</title></rect>`;
         }
         if (realSet.has(i)) {
           const value = barVals[i];
@@ -840,24 +841,50 @@
 
     const METRIC_LABELS = { quantity: "Volume", revenue: "Faturamento", margin: "Margem" };
 
+    // Margem é sempre percentual (média ponderada valor*mb_pct / valor), nunca
+    // R$ absoluto — o motor devolve o numerador em R$ (row.margin) e o
+    // denominador (row.revenue) já brutos em toda linha; a divisão é feita
+    // aqui. Acumular margem exige somar numerador e denominador separadamente
+    // antes de dividir (nunca somar % de meses/pessoas diferentes direto).
+    function metricRealizedValue(row, metric) {
+      if (metric === "margin") {
+        const revenue = Number(row.revenue) || 0;
+        return revenue !== 0 ? (Number(row.margin) || 0) / revenue * 100 : null;
+      }
+      return Number(row[metric]) || 0;
+    }
+    function metricAccumulatedValue(rows, metric) {
+      if (metric === "margin") {
+        const marginSum = rows.reduce((acc, r) => acc + (Number(r.margin) || 0), 0);
+        const revenueSum = rows.reduce((acc, r) => acc + (Number(r.revenue) || 0), 0);
+        return revenueSum !== 0 ? (marginSum / revenueSum) * 100 : null;
+      }
+      return rows.reduce((acc, r) => acc + (Number(r[metric]) || 0), 0);
+    }
+    function fmtMetricValue(value, metric) {
+      if (value === null || value === undefined) return "—";
+      if (metric === "margin") return `${Number(value).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+      if (metric === "quantity") return Number(value).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+      return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
     // 1 painel (KPIs + gráfico) por métrica selecionada — antes só a métrica
     // principal aparecia, mesmo marcando Volume+Faturamento+Margem juntos.
     function renderMetricPanel(rows, metric, periodCutoff, zeroTargetPolicy) {
-      const isCurrency = metric !== "quantity";
-      const fmt = (value) => isCurrency
-        ? Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-        : Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 2 });
       const hasTargetMetric = metric !== "margin";
       const targetKey = metric === "quantity" ? "target_quantity" : metric === "revenue" ? "target_revenue" : null;
       const accumulated = rows.filter((row) => row.row_key <= periodCutoff);
-      const totalRealized = accumulated.reduce((acc, row) => acc + (Number(row[metric]) || 0), 0);
+      const totalRealized = metricAccumulatedValue(accumulated, metric);
       const totalTarget = hasTargetMetric && targetKey ? accumulated.reduce((acc, row) => acc + (Number(row[targetKey]) || 0), 0) : null;
-      const attainment = totalTarget && totalTarget > 0 ? (totalRealized / totalTarget) * 100 : null;
+      const attainment = hasTargetMetric && totalTarget && totalTarget > 0 && totalRealized !== null ? (totalRealized / totalTarget) * 100 : null;
+      const varAbs = totalTarget !== null && totalRealized !== null ? totalRealized - totalTarget : null;
+      const varAbsLabel = metric === "quantity" ? "Var acumulada" : "Var R$ acumulada";
       return `<div class="vcr-month-layout">
         <div class="vcr-month-kpis">
           <span class="vcr-metric-title">${escapeHtml(METRIC_LABELS[metric] || metric)}</span>
-          <div class="vcr-stat"><span>Realizado acumulado</span><strong>${escapeHtml(fmt(totalRealized))}</strong></div>
-          ${totalTarget !== null ? `<div class="vcr-stat"><span>Meta acumulada</span><strong>${escapeHtml(fmt(totalTarget))}</strong></div>
+          <div class="vcr-stat"><span>Realizado acumulado</span><strong>${escapeHtml(fmtMetricValue(totalRealized, metric))}</strong></div>
+          ${totalTarget !== null ? `<div class="vcr-stat"><span>Meta acumulada</span><strong>${escapeHtml(fmtMetricValue(totalTarget, metric))}</strong></div>
+          <div class="vcr-stat"><span>${escapeHtml(varAbsLabel)}</span><strong>${escapeHtml(fmtMetricValue(varAbs, metric))}</strong></div>
           <div class="vcr-stat"><span>Atingimento</span><strong>${attainment !== null ? escapeHtml(`${attainment.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`) : "—"}</strong></div>` : ""}
         </div>
         <div class="vcr-month-chart">
@@ -1019,8 +1046,10 @@
     // barra arredondada, comprimento proporcional ao valor, régua de escala
     // embaixo, valor sempre alinhado no fim da faixa (não no fim da barra).
     function renderRankBarChart(rows, metric) {
-      const isCurrency = metric !== "quantity";
+      const isPercent = metric === "margin";
+      const isCurrency = !isPercent && metric !== "quantity";
       const fmtShort = (value) => {
+        if (isPercent) return `${Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
         const abs = Math.abs(value);
         if (isCurrency) {
           if (abs >= 1e6) return `R$ ${(value / 1e6).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
@@ -1050,37 +1079,45 @@
     }
 
     // Tela dividida do template "Comparativo do time": metade tabela
-    // (Nome|Meta|Real|Var%, ordenável pelo cabeçalho — mesmo padrão de
-    // classificação já usado no Bateu-Levou) + metade ranking colorido.
-    // Constrói uma "visão" das linhas prontas pra 1 métrica específica (Meta e
-    // Var% recalculados client-side a partir de target_quantity/target_revenue,
-    // já que o motor só devolve os dois brutos, não um "Var%" por métrica).
-    // Margem nunca tem meta (planejado não tem margem).
+    // (Nome|Meta|Realizado|Var R$|Var%, ordenável pelo cabeçalho — mesmo
+    // padrão de classificação já usado no Bateu-Levou) + metade ranking
+    // colorido. Constrói uma "visão" das linhas prontas pra 1 métrica
+    // específica (Meta/Var recalculados client-side a partir de
+    // target_quantity/target_revenue, já que o motor só devolve os dois
+    // brutos, não um "Var%" por métrica). Margem nunca tem meta (planejado
+    // não tem margem) e é sempre percentual (metricRealizedValue).
     function buildMetricRows(rows, metric, zeroTargetPolicy) {
       const targetKey = metric === "quantity" ? "target_quantity" : metric === "revenue" ? "target_revenue" : null;
       return rows.map((row) => {
-        const realized = Number(row[metric]) || 0;
+        const realized = metricRealizedValue(row, metric) ?? 0;
         const target = targetKey ? Number(row[targetKey]) || 0 : null;
         let varPct = null;
+        let varAbs = null;
         if (target !== null) {
+          varAbs = realized - target;
           if (target > 0) varPct = (realized / target - 1) * 100;
           else if (realized > 0 && zeroTargetPolicy === "real_is_100") varPct = 0;
         }
-        return { ...row, realized, target, overachievement_pct: varPct };
+        return { ...row, realized, target, var_abs: varAbs, overachievement_pct: varPct };
       });
     }
 
     function renderTeamMetricPanel(payload, metric) {
       const rows = payload.rows || [];
-      const isCurrency = metric !== "quantity";
+      const isPercent = metric === "margin";
+      const isCurrency = !isPercent && metric !== "quantity";
       const hasTarget = metric !== "margin";
       const zeroTargetPolicy = payload.config?.conditions?.zero_target_policy || "null";
       const metricRows = buildMetricRows(rows, metric, zeroTargetPolicy);
       const metricLabel = METRIC_LABELS[metric] || metric;
+      const realizedType = isPercent ? "percentage" : isCurrency ? "currency" : "number";
       const columns = [{ key: "nome", label: "Nome", type: "text" }];
-      if (hasTarget) columns.push({ key: "target", label: "Meta", type: isCurrency ? "currency" : "number" });
-      columns.push({ key: "realized", label: "Real", type: isCurrency ? "currency" : "number" });
-      if (hasTarget) columns.push({ key: "overachievement_pct", label: "Var %", type: "percentage" });
+      columns.push({ key: "realized", label: "Realizado", type: realizedType });
+      if (hasTarget) columns.push({ key: "target", label: "Meta", type: realizedType });
+      if (hasTarget) {
+        columns.push({ key: "var_abs", label: isCurrency ? "Var R$" : "Var", type: realizedType });
+        columns.push({ key: "overachievement_pct", label: "Var %", type: "percentage" });
+      }
 
       const sortKey = `team:${payload.report?.id}:${metric}`;
       const sortState = rankingSorts.get(sortKey) || { key: "realized", dir: -1 };
