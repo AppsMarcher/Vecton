@@ -1,120 +1,329 @@
-﻿# VectonPlan
+# VectonPlan
 
-SPA de planejamento financeiro da **Marcher Brasil**. Roda no browser (Vanilla JS, sem framework/bundler) sobre **Supabase** (PostgreSQL + Auth + RLS, multitenancy via `organization_id`).
+SPA de planejamento financeiro, acompanhamento gerencial e gestão comercial da Marcher Brasil.
 
-> Caminho local: `C:\Users\rguimaraes\OneDrive - MARCHER BRASIL AGROINDUSTRIAL SA\Ãrea de Trabalho\VectonPlan`  
-> ProduÃ§Ã£o: **https://vecton.marcher.com.br** â€” mudanÃ§as de frontend exigem deploy dos arquivos + bump do `?v=` no `index.html`.
+- Produção: https://vecton.marcher.com.br
+- Frontend: HTML, CSS e JavaScript puro, sem framework ou bundler
+- Backend: Supabase (PostgreSQL, Auth, REST, RPC, RLS e Edge Functions)
+- Modelo de dados: multitenant por `organization_id`
 
-## Stack & arquivos-chave
+## Visão geral
 
-- `index.html` â€” shell Ãºnico da SPA; carrega ~25 scripts em ordem (a ordem importa).
-- `app.js` â€” orquestrador: instancia os mÃ³dulos e contÃ©m lÃ³gica de DRE, OPEX, Headcount, Reports e Dashboard, alÃ©m dos fetches Supabase e todos os helpers de RBAC.
-- `styles.css` â€” estilos globais (tema dark, tokens em `:root`).
-- `supabase-config.js` â€” URL + anonKey (org "Marcher Brasil").
-- `src/core/` â€” `constants.js`, `utils.js` (ex.: `normalizeCode` = sÃ³ dÃ­gitos), `storage.js`.
-- `src/modules/` â€” IIFEs com namespace `window.VECTON_*`; cada `createXxxModule({deps})` recebe dependÃªncias do `app.js`.
-  - `auth/authSession.js`, `navigation/navigationModule.js`, `ui/*`, `actuals/`, `budget/`, `headcount/`, `reports/` (DRE Soc/Ger, OPEX, Headcount), `dashboard/` (dashboardModule, dashboardCards, dashboardVisuals, marketTicker), `params/managementsModule.js`, `users/usersModule.js`.
-- `supabase/NNN_*.sql` â€” migrations numeradas (rodar no SQL Editor).
-- `supabase/functions/invite-user/index.ts` â€” Edge Function de convite (service_role).
+O VectonPlan reúne cinco áreas principais:
 
-## Modelo de acesso (RBAC) â€” **fail-closed**
+1. **Dashboard executivo**
+   - indicadores financeiros e de headcount;
+   - gráficos e drill-downs;
+   - ticker de mercado com câmbio, índices, juros, inflação e commodities.
 
-PapÃ©is (`user_profiles.access_role`): `super_admin`, `admin`, `manager` (Gestor), `analyst` (Analista).
+2. **Planejamento**
+   - criação e manutenção de cenários de forecast;
+   - combinação de realizado, budget e meses replanejados;
+   - consultas de DRE, OPEX e Headcount por cenário.
 
-### Regras por papel
-- **admin/super_admin**: enxergam tudo, sem restriÃ§Ã£o de CC ou gestÃ£o.
-- **Gestor**: vÃª catÃ¡logo completo (incluindo DRE consolidado). Dados travados na prÃ³pria gestÃ£o + gestÃµes extras + CCs avulsos.
-- **Analista**: nÃ£o vÃª DRE consolidado (`isConsolidatedReport`) nem Dashboard. OPEX e Headcount filtrados pela gestÃ£o/CCs permitidos.
-- **Dashboard**: exibiÃ§Ã£o primÃ¡ria **sempre consolidada** (empresa toda), mesmo para Gestor. RestriÃ§Ã£o vale sÃ³ no drill-down (clique â†’ relatÃ³rio; popover "sem acesso" para outras Ã¡reas).
+3. **Central de relatórios**
+   - DRE Societário, Gerencial e DFs;
+   - realizado, budget e cenários;
+   - OPEX e Headcount;
+   - Report Builder com relatórios personalizados;
+   - Painel de Vendas e Mapa de Vendas.
 
-### Tipos de acesso extra (colunas em `user_profiles`)
-| Campo | Tipo | Efeito |
-|---|---|---|
-| `management` | text | GestÃ£o primÃ¡ria do usuÃ¡rio |
-| `extra_managements` | text[] | GestÃµes adicionais com acesso **pleno** |
-| `extra_cc_ids` | uuid[] | CCs avulsos com acesso **parcial** (nÃ£o a gestÃ£o inteira) |
-| `extra_report_ids` | uuid[] | RelatÃ³rios liberados individualmente |
-| `extra_account_codes` | text[] | Contas contÃ¡beis liberadas individualmente |
+4. **Parâmetros e cargas financeiras**
+   - empresas e filiais;
+   - plano de contas;
+   - gestões e centros de custos;
+   - carga de realizado, planejado e headcount;
+   - usuários e perfis de acesso.
 
-### Helpers em `app.js`
-- `getUserManagement()` / `getExtraManagements()` / `getExtraCcIds()`
-- `getAllowedManagements()` â€” retorna `[primary, ...extras]` para restritos; `null` para admin.
-- `getPartialManagements()` â€” `Map<mgmt, ccId[]>` das gestÃµes acessÃ­veis sÃ³ via `extra_cc_ids` (nÃ£o a gestÃ£o inteira).
-- `getAllowedCcNumbers()` â€” `Set<string>` com nÃºmeros de CC permitidos (mapeia UUIDs via `state.costCenters`).
-- `resolveManagementFilter()` â€” filtro ativo de gestÃ£o para OPEX/Headcount; sentinela `"__no_cc__"` quando sem gestÃ£o.
-- `buildOpexCostCenterFilter()` / `buildOpexCcIdsFilter()` / `buildEffectiveOpexFilter()`
-- `canSeeReport()` / `canSeeAccount()` / `isAccessRestricted()`
+5. **Comercial**
+   - cadastros de produtos, clientes, territórios, coordenações, tipos, culturas e linhas de negócio;
+   - atribuição de responsáveis por território;
+   - cargas de vendas realizadas e planejadas;
+   - relatórios comerciais agregados no servidor.
 
-### Acesso parcial (management=null + extra_cc_ids)
-Perfil sem gestÃ£o primÃ¡ria mas com CCs avulsos liberados:
-- `getAllowedManagements()` â†’ `[]` (restrito, mas sem gestÃ£o plena).
-- `getPartialManagements()` â†’ `Map { "NomeGestÃ£o" => [uuid-cc] }`.
-- OPEX dropdown: exibe a gestÃ£o com sufixo "Â· parcial", dados filtrados sÃ³ pelos CCs autorizados.
-- Dashboard HC: idem â€” dropdown mostra "GestÃ£o Â· parcial"; nÃºmero e drilldown refletem apenas os CCs do usuÃ¡rio.
-- `resolveManagementFilter` retorna a gestÃ£o parcial como opÃ§Ã£o desbloqueada.
+## Como o frontend funciona
 
-### Gotchas recorrentes
-- Criar usuÃ¡rio de teste exige **DUAS** linhas: `organization_users` (membership â€” `is_org_member` consulta esta) **e** `user_profiles` (perfil/acesso).
-- `hidden` HTML Ã© sobrescrito por `display:grid` em `.menu-stack`. Sempre usar `el.style.display = "none"` para esconder via JS.
+O projeto é uma SPA estática. Não existe etapa de compilação.
 
-## Performance (padrÃµes obrigatÃ³rios)
+- `index.html` é o shell da aplicação e define a ordem de carregamento dos scripts.
+- `app.js` é o orquestrador central: mantém o estado da sessão, instancia os módulos, injeta dependências e contém parte relevante dos relatórios e integrações Supabase.
+- `styles.css` contém os tokens e estilos globais.
+- `supabase-config.js` fornece URL, anon key e nome da organização.
+- `seed-data.js`, `dre-structure.js` e `cc-structure.js` oferecem estruturas iniciais e fallback local.
+- `src/core/` contém constantes, armazenamento local e utilitários compartilhados.
+- `src/modules/` contém módulos IIFE publicados em namespaces `window.VECTON_*`.
 
-- **PaginaÃ§Ã£o por keyset** (`id=gt.${lastId}&order=id.asc`) sob Ã­ndice `(org, ano, mÃªs, id)`.
-- **Busca por gestÃ£o no servidor** para perfis restritos (`fetchActuals/BudgetLedgerForManagementYear`, `hcCostSource`).
-- **AgregaÃ§Ã£o server-side** no donut do dashboard: RPC `dash_opex_by_management` (migration 024).
-- **DIRETRIZ**: toda otimizaÃ§Ã£o no REALIZADO deve estar 100% espelhada no BUDGET/PLANEJADO.
+A ordem dos `<script>` em `index.html` é obrigatória: todos os módulos precisam estar carregados antes de `app.js`.
 
-## Migrations (histÃ³rico recente)
+### Estrutura dos módulos
 
-| Migration | ConteÃºdo |
+```text
+src/
+├── core/
+│   ├── constants.js
+│   ├── storage.js
+│   └── utils.js
+└── modules/
+    ├── actuals/       carga de realizado
+    ├── auth/          login, sessão, convite e recuperação
+    ├── budget/        carga de planejado
+    ├── comercial/     cadastros e cargas comerciais
+    ├── dashboard/     cockpit, cards, gráficos e ticker
+    ├── forecast/      cenários de planejamento
+    ├── headcount/     renderização de headcount
+    ├── navigation/    navegação e visibilidade dos menus
+    ├── params/        parâmetros administrativos
+    ├── reports/       relatórios financeiros, comerciais e builder
+    ├── ui/            árvores, diálogos, header e eventos
+    └── users/         usuários e concessões adicionais
+```
+
+## Execução local
+
+O app deve ser servido como conteúdo estático. Um servidor HTTP local é preferível a abrir o arquivo diretamente, principalmente por causa de autenticação, redirects e chamadas externas.
+
+Exemplo:
+
+```powershell
+python -m http.server 8080
+```
+
+Depois acesse `http://localhost:8080`.
+
+Antes de executar, confira `supabase-config.js`:
+
+```js
+window.FORECASTAPP_SUPABASE = {
+  projectUrl: "https://SEU-PROJETO.supabase.co",
+  anonKey: "SUA_ANON_KEY",
+  organizationName: "Marcher Brasil"
+};
+```
+
+A anon key pode ficar no navegador. A `service_role` nunca deve ser adicionada ao frontend.
+
+## Estado e autenticação
+
+- A sessão Supabase é persistida em `localStorage` na chave `forecastapp-auth-session-v1`.
+- O estado local usa `forecastapp-master-data-v2`.
+- Quando o Supabase está configurado, linhas volumosas de importação não são persistidas no navegador.
+- Tokens expirados são renovados com `refresh_token`; respostas `401` recebem uma tentativa automática após renovação.
+- Links de convite, recuperação e confirmação são tratados por `authSession.js`.
+- Usuário autenticado sem `user_profiles` é carregado com acesso mínimo de Analista, sem herdar o perfil salvo por outro usuário.
+
+## Perfis de acesso
+
+Papéis em `user_profiles.access_role`:
+
+| Papel | Interface atual |
 |---|---|
-| 020 | Colunas `extra_*` em `user_profiles` |
-| 022 | Ãndice `(org, ano, mÃªs, id)` em `budget_ledger_entries` |
-| 023 | Mesmos Ã­ndices em `actuals_ledger_entries` e `headcount_entries` |
-| 024 | RPC `dash_opex_by_management` â€” SECURITY DEFINER, agrega OPEX por gestÃ£o no servidor |
-| 025 | Tabela `custom_reports` (id, org_id, created_by, label, config jsonb) â€” RLS: membros leem; sÃ³ admin escreve |
+| `super_admin` | acesso total; pode administrar outros Super Admins |
+| `admin` | parâmetros, cargas, usuários, planejamento, dashboard e relatórios |
+| `manager` | dashboard e relatórios; OPEX/Headcount filtrados por gestão e concessões |
+| `analyst` | sem dashboard e DRE consolidado; acesso restrito a relatórios por CC |
+| `comercial` | entrada em Relatórios; apenas Painel e Mapa de Vendas na interface |
 
-## Report Builder (`src/modules/reports/reportsBuilderModule.js`)
+Concessões adicionais disponíveis no perfil:
 
-- MÃ³dulo IIFE (`window.VECTON_REPORTS_BUILDER`) integrado ao app.js como `reportsBuilderModule`.
-- Admin vÃª botÃ£o "Novo relatÃ³rio" no catÃ¡logo â†’ builder com drag de colunas, filtros e prÃ©-visualizaÃ§Ã£o.
-- RelatÃ³rios salvos em `custom_reports` (Supabase); visÃ­veis a todos os membros da org.
-- Dados: `actuals_ledger_entries` via cache existente (`reportsLedgerCache`). RBAC via `getAllowedCcNumbers()`.
-- Campos disponÃ­veis: `reference_year`, `reference_month`, `account_number`, `cost_center_number`, `management` (derivado client-side), `amount`, `load_type`, `branch_code`.
+| Campo | Uso |
+|---|---|
+| `management` | gestão principal |
+| `extra_managements` | gestões adicionais com acesso pleno |
+| `extra_cc_ids` | centros de custos avulsos |
+| `extra_report_ids` | relatórios adicionais |
+| `extra_account_codes` | contas contábeis adicionais |
+| `extra_branch_ids` | empresas/filiais adicionais |
 
-## Cache-busting
+Os principais helpers ficam em `app.js`: `getAllowedManagements()`, `getPartialManagements()`, `getAllowedCcNumbers()`, `canSeeReport()` e `canSeeAccount()`.
 
-`index.html` usa `?v=YYYYMMDD[letra]` em todos os `<script src>` e `<link>` locais. **A cada deploy**: find & replace da versÃ£o antiga pela nova. VersÃ£o atual: `20260624n`.
+### Atenção de segurança
 
-> F5 normal nÃ£o invalida cache HTTP (max-age=600 no GitHub Pages). Ctrl+Shift+R limpa HTTP mas nÃ£o localStorage. Aba anÃ´nima sempre pega versÃ£o nova.
+As restrições por gestão, CC e catálogo de relatórios são aplicadas principalmente no frontend. As migrations atuais permitem que membros da organização leiam vários ledgers completos. Portanto, ocultar um menu ou filtrar uma tabela no JavaScript não deve ser tratado como isolamento de dados no banco.
 
-## Convite de usuÃ¡rios
+A policy atual de `user_profiles` também permite escrita do próprio perfil sem restrição de colunas. Ela precisa ser endurecida para impedir alteração direta de `access_role` e demais campos administrativos pelo próprio usuário.
 
-- Modal "Convidar usuÃ¡rio" (ParÃ¢metros â†’ UsuÃ¡rios) â†’ Edge Function `invite-user` (service_role): cria auth user via `inviteUserByEmail` + `organization_users` + `user_profiles`. SÃ³ admin/super_admin; sÃ³ super_admin cria admin.
-- Deploy da funÃ§Ã£o: `supabase functions deploy invite-user --no-verify-jwt`.
-- **Definir senha**: ao clicar no link do email, `handleInviteRecoveryFlow` (authSession.js) detecta tokens no hash, exibe `#set-password-form`, faz `PUT /auth/v1/user`. Tokens limpos do hash com `history.replaceState`.
-- SMTP: Office365 com `no-reply@marcher.com.br`, configurado no painel Supabase.
-- Templates de email: HTML brandado, compatÃ­veis com Outlook â€” em `supabase/email-templates/`.
+Antes de considerar Gestor, Analista e Comercial fronteiras de segurança completas, as policies/RPCs devem reproduzir essas regras no PostgreSQL.
 
-## Status dos bugs de acesso resolvidos
+## Relatórios financeiros
 
-| # | Item | Status |
-|---|---|---|
-| 1 | Drilldown DRE SocietÃ¡rio (Real+Budget) por CC | âœ… |
-| 2 | Drilldown DRE Gerencial (Real+Budget) por CC | âœ… |
-| 3 | OPEX (Real+Planejado) travado na gestÃ£o + drilldown | âœ… |
-| 5 | Headcount (Real+Planejado) drilldown por CC | âœ… |
-| 6 | Dashboard headcount: primÃ¡rio consolidado, drill sÃ³ da gestÃ£o | âœ… |
-| 7 | Dashboard donut OPEX: drill respeita gestÃ£o principal + complementares + parciais | âœ… |
-| 8 | Menu ParÃ¢metros sÃ³ para super_admin/admin | âœ… |
-| 9 | OPEX dropdown: exibe sÃ³ gestÃµes permitidas + parciais (sem "Marcher" para restritos) | âœ… |
-| 10 | Ticker Soja/Milho: variaÃ§Ã£o % via localStorage (prev/today por data) | âœ… |
+### DRE
 
-## PendÃªncias
+- DRE Societário: estrutura baseada no plano de contas.
+- DRE Gerencial: linhas gerenciais calculadas por grupos de contas.
+- DRE DFs: apresentação baseada no modelo de demonstrações financeiras.
+- As versões Budget podem usar o budget oficial ou um cenário de forecast.
 
-- Validar visibilidade de "ParÃ¢metros" para Gestor RH (`mr.guima@gmail.com`) em prod.
-- Testes com perfil **Analista** (2026-06-24): validar acesso parcial `management=null` + `extra_cc_ids`.
+Percentuais mensais são calculados contra a Receita Líquida do próprio mês. Na coluna `TOTAL`, o cálculo correto é ponderado:
 
-## Como continuar
+```text
+soma do numerador no período / soma da Receita Líquida no período
+```
 
-MemÃ³ria detalhada: `~/.claude/projects/C--Claude/memory/project_vecton_plan.md`.
+Essa regra é usada nos percentuais do DRE Gerencial e nas linhas `%RL` do DRE DFs.
+
+### OPEX e Headcount
+
+- Perfis restritos recebem filtros por gestão e centros de custos.
+- O drill-down deve usar o mesmo recorte da tabela principal.
+- O dashboard pode mostrar visão consolidada, mas o drill-down respeita as concessões do usuário.
+- Budget e Forecast usam seletores de fonte nos relatórios aplicáveis.
+
+### Report Builder
+
+`src/modules/reports/reportsBuilderModule.js` permite criar relatórios personalizados com:
+
+- linhas e colunas configuráveis;
+- filtros por conta, CC e gestão;
+- fontes de realizado e planejado;
+- fórmulas e formatos numéricos;
+- persistência em `custom_reports`.
+
+## Comercial
+
+Os oito cadastros comerciais compartilham `createCadastroModule()` em `comercialCadastroModule.js`. As configurações e dependências são fornecidas pelo `app.js`.
+
+As cargas comerciais seguem o padrão:
+
+```text
+arquivo → batch → staging rows → validação → RPC de aplicação → ledger → auditoria
+```
+
+Principais tabelas:
+
+- `comercial_realizado_import_batches`, `comercial_realizado_import_rows` e `comercial_realizado_ledger_entries`;
+- `comercial_planejado_import_batches`, `comercial_planejado_import_rows` e `comercial_planejado_ledger_entries`;
+- tabelas de auditoria correspondentes;
+- `comercial_municipios_geo` para o mapa.
+
+Principais RPCs:
+
+- `comercial_painel_vendas`
+- `comercial_painel_tipos`
+- `comercial_painel_detalhe`
+- `comercial_mapa_vendas`
+
+## Supabase e migrations
+
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `070`.
+
+Resumo por fase:
+
+| Faixa | Escopo |
+|---|---|
+| `001–010` | organização, usuários, empresas, contas, CCs e estruturas DRE/CC |
+| `011–017` | carga e ledger de realizado/budget financeiro |
+| `018–024` | RBAC, concessões adicionais, gestões, índices e RPC do dashboard |
+| `025–031` | relatórios personalizados, forecast e correções de integridade |
+| `032–037` | cadastros e seeds comerciais |
+| `038–042` | cargas comerciais realizadas e planejadas |
+| `043–049` | painel comercial, detalhe e regras de validação |
+| `050–053` | geodados e Mapa de Vendas |
+| `054–055` | perfil Comercial e cidade/UF no detalhe do painel |
+
+### Divergências conhecidas do schema
+
+- Existem dois arquivos numerados como `025`: `025_create_custom_reports.sql` e `025_extra_managements.sql`. A ordem precisa ser controlada manualmente.
+- O frontend usa `headcount_import_batches`, `headcount_import_rows`, `headcount_entries` e `forecast_headcount_entries`, mas as migrations de criação dessas tabelas não estão neste checkout.
+- `supabase/README.md` ainda documenta somente a base inicial e não é a fonte completa do schema atual.
+- `_diag_mapa_sem_localizacao.sql` é diagnóstico, não migration de produção.
+
+Antes de alterar contratos de Headcount, valide o schema real do projeto Supabase e traga a definição correspondente para o repositório.
+
+## Edge Functions
+
+Funções disponíveis:
+
+- `invite-user`: cria o usuário no Auth, membership e perfil;
+- `resend-invite`: reenvia o convite original;
+- `set-user-password`: permite que administradores definam a senha de outro usuário conforme a hierarquia.
+
+As funções usam `service_role` somente no servidor e validam manualmente o token do chamador.
+
+Exemplo de deploy:
+
+```powershell
+supabase functions deploy invite-user --no-verify-jwt
+supabase functions deploy resend-invite --no-verify-jwt
+supabase functions deploy set-user-password --no-verify-jwt
+```
+
+## Importações e performance
+
+Padrões adotados:
+
+- paginação keyset por UUID (`id=gt.<ultimo_id>&order=id.asc`);
+- chunks de upsert para arquivos grandes;
+- agregações server-side quando o volume é elevado;
+- índices por organização, período e ID;
+- staging separado do ledger oficial;
+- auditoria de batches, linhas e lançamentos aplicados.
+
+Regra de manutenção: otimizações e correções do Realizado devem ser avaliadas também no Budget/Planejado equivalente.
+
+## Cache-busting e deploy
+
+Arquivos locais são referenciados em `index.html` com `?v=YYYYMMDD[sufixo]`.
+
+Versões relevantes neste checkout:
+
+- `styles.css?v=20260713j`
+- `app.js?v=20260714b`
+
+Ao publicar uma alteração:
+
+1. valide a sintaxe dos arquivos modificados;
+2. atualize o `?v=` somente dos assets alterados;
+3. publique os arquivos estáticos;
+4. confirme o carregamento da nova versão no navegador;
+5. para mudanças de banco, aplique a migration antes de liberar o frontend dependente dela.
+
+## Validação rápida
+
+Não existe suíte automatizada de testes neste checkout. Antes de entregar uma alteração, execute ao menos:
+
+```powershell
+node --check .\app.js
+```
+
+Para validar todos os módulos JavaScript:
+
+```powershell
+Get-ChildItem .\src -Recurse -Filter *.js | ForEach-Object { node --check $_.FullName }
+```
+
+Também confira:
+
+- se todos os scripts de `index.html` existem;
+- se a ordem de carregamento foi preservada;
+- se o cache-busting foi atualizado;
+- se o fluxo funciona para Admin e para pelo menos um perfil restrito;
+- se tabela principal e drill-down usam o mesmo recorte de acesso;
+- se mudanças de relatório mantêm Realizado, Budget e Forecast coerentes.
+
+## Limitações e dívida técnica
+
+- `app.js` ainda concentra grande parte da aplicação e deve ser alterado em etapas pequenas.
+- A arquitetura depende de globais `window.VECTON_*` e da ordem manual dos scripts.
+- Não há package manager, bundler, linter ou testes automatizados configurados.
+- O checkout não possui histórico Git utilizável.
+- Parte do schema de Headcount não está versionada.
+- A tela “Perfis de Acesso” é principalmente descritiva; contadores e botões “Ver usuários” ainda não possuem integração própria.
+- O XLSX é carregado por CDN externa.
+- As regras de leitura por perfil ainda precisam ser reforçadas no banco.
+
+## Pontos de entrada para manutenção
+
+| Tipo de ajuste | Arquivos principais |
+|---|---|
+| navegação e menus | `navigationModule.js`, `shellEventsModule.js`, `app.js` |
+| autenticação | `authSession.js`, Edge Functions e templates de e-mail |
+| usuários/RBAC | `usersModule.js`, helpers do `app.js`, migrations `018–020`, `027` e `054` |
+| realizado | `actualsModule.js` e migrations `011–015`, `028–029` |
+| budget | `budgetModule.js` e migrations `016`, `022`, `028`, `030` |
+| forecast | `forecastModule.js`, `reportsDreModule.js` e migration `026` |
+| DRE/OPEX/HC | `app.js` e `src/modules/reports/` |
+| dashboard | `src/modules/dashboard/` e migration `024` |
+| cadastros comerciais | `comercialCadastroModule.js`, configurações em `app.js`, migrations `032–037` |
+| cargas comerciais | `comercialVendasCargaModule.js`, `comercialPlanejadoCargaModule.js`, migrations `038–042` |
+| painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, migrations `043–055` |
+| campanhas e criador de relatórios comerciais | `src/modules/reports/comercialReportsModule.js`, migrations `064–069` |
