@@ -20,6 +20,8 @@ const {
   chunkArray,
   dateMatchesPeriod,
   escapeHtml,
+  exportButtonHtml,
+  exportRowsToExcel,
   formatActualsFieldName,
   formatActualsStatus,
   formatAmountInput,
@@ -2282,7 +2284,10 @@ function openHcCellPopover(ccNumber, ccName, month, year, colabs) {
           <p style="margin:0;font-size:0.85rem;font-weight:500;color:var(--text)">${head}</p>
           <p style="margin:3px 0 0;font-size:0.68rem;color:var(--text-faint)">${sub}</p>
         </div>
-        <button type="button" class="hc-popover-close" aria-label="Fechar" style="background:none;border:none;color:var(--text-faint);font-size:1.05rem;cursor:pointer;line-height:1">✕</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          ${rows.length ? exportButtonHtml() : ""}
+          <button type="button" class="hc-popover-close" aria-label="Fechar" style="background:none;border:none;color:var(--text-faint);font-size:1.05rem;cursor:pointer;line-height:1">✕</button>
+        </div>
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:0.74rem;color:var(--text)">
         <thead><tr style="color:var(--text-faint)">
@@ -2296,6 +2301,18 @@ function openHcCellPopover(ccNumber, ccName, month, year, colabs) {
   const close = () => backdrop.remove();
   backdrop.addEventListener("click", (e) => { if (e.target === backdrop) close(); });
   backdrop.querySelector(".hc-popover-close")?.addEventListener("click", close);
+  backdrop.querySelector(".vp-export-btn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    exportRowsToExcel(
+      rows,
+      [
+        { label: "Matrícula", value: (r) => r.matricula || "" },
+        { label: "Colaborador", value: (r) => r.colab || "" },
+        { label: "Cargo", value: (r) => r.cargo || "" },
+      ],
+      `Headcount_${ccName}_${formatMonthLabel(month)}_${year}`
+    );
+  });
   const esc = (e) => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc); } };
   document.addEventListener("keydown", esc);
   document.body.appendChild(backdrop);
@@ -4457,14 +4474,18 @@ function buildSocDrillPopover(lineName, monthLabel, code, entries, total, monthI
 
   let sortKey = "date", sortDir = 1;
 
-  function renderRows() {
+  function sortedEntries() {
     return entries.slice().sort((a, b) => {
       if (sortKey === "date")    return sortDir * (a.date    || "").localeCompare(b.date    || "");
       if (sortKey === "cc")      return sortDir * (a.cc      || "").localeCompare(b.cc      || "");
       if (sortKey === "history") return sortDir * (a.history || "").localeCompare(b.history || "");
       if (sortKey === "amount")  return sortDir * (a.amount - b.amount);
       return 0;
-    }).map((r) => `
+    });
+  }
+
+  function renderRows() {
+    return sortedEntries().map((r) => `
       <tr>
         <td style="padding:4px 8px 4px 0;font-size:0.72rem;color:var(--text-faint);white-space:nowrap">${escapeHtml(fmtDate(r.date))}</td>
         <td style="padding:4px 8px;font-size:0.72rem;color:var(--text-faint);white-space:nowrap;font-family:monospace">${escapeHtml(r.cc || "—")}</td>
@@ -4502,7 +4523,10 @@ function buildSocDrillPopover(lineName, monthLabel, code, entries, total, monthI
         <p style="font-size:0.65rem;color:var(--text-faint);letter-spacing:0.07em;text-transform:uppercase;margin:0 0 3px">${escapeHtml(monthLabel)} · ${escapeHtml(code)}</p>
         <h4 style="font-size:0.9rem;font-weight:600;color:var(--text);margin:0">${escapeHtml(lineName)}</h4>
       </div>
-      <button onclick="this.closest('[data-code]').remove()" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:18px;padding:0 0 0 12px;line-height:1">×</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        ${entries.length ? exportButtonHtml() : ""}
+        <button onclick="this.closest('[data-code]').remove()" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:18px;padding:0;line-height:1">×</button>
+      </div>
     </div>
     <div style="display:flex;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--line)">
       <span style="font-size:1.1rem;font-weight:700;color:var(--text)">${escapeHtml(fmt(total))}</span>
@@ -4526,6 +4550,21 @@ function buildSocDrillPopover(lineName, monthLabel, code, entries, total, monthI
     pop.querySelector("tbody").innerHTML = renderRows();
   });
 
+  pop.querySelector(".vp-export-btn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    exportRowsToExcel(
+      sortedEntries(),
+      [
+        { label: "Data", value: (r) => fmtDate(r.date) },
+        { label: "CC", value: (r) => r.cc || "" },
+        { label: "Nome CC", value: (r) => ccNameMap.get(r.cc || "") || "" },
+        { label: "Histórico", value: (r) => r.history || "" },
+        { label: "Valor", value: (r) => Number(r.amount) || 0 },
+      ],
+      `Detalhamento_${lineName}_${monthLabel}_${code}`
+    );
+  });
+
   return pop;
 }
 
@@ -4538,13 +4577,17 @@ function buildAuditPopover(lineName, monthLabel, rows, total, lineId, monthIdx) 
   const hasData = rows.length > 0;
   let sortKey = "code", sortDir = 1;
 
-  function renderRows() {
+  function sortedRows() {
     return rows.slice().sort((a, b) => {
       if (sortKey === "code")   return sortDir * (a.code || "").localeCompare(b.code || "");
       if (sortKey === "name")   return sortDir * (a.name || "").localeCompare(b.name || "");
       if (sortKey === "amount") return sortDir * (a.amount - b.amount);
       return 0;
-    }).map((r) => `
+    });
+  }
+
+  function renderRows() {
+    return sortedRows().map((r) => `
       <tr>
         <td class="gap-code">${escapeHtml(r.code)}</td>
         <td class="gap-name">${escapeHtml(r.name)}</td>
@@ -4569,6 +4612,7 @@ function buildAuditPopover(lineName, monthLabel, rows, total, lineId, monthIdx) 
     <div class="gap-header">
       <span class="gap-title">${escapeHtml(lineName)}</span>
       <span class="gap-badge">${escapeHtml(monthLabel)}</span>
+      ${hasData ? exportButtonHtml() : ""}
       <button class="gap-close" aria-label="Fechar">✕</button>
     </div>
     ${hasData ? `
@@ -4600,6 +4644,14 @@ function buildAuditPopover(lineName, monthLabel, rows, total, lineId, monthIdx) 
       sortKey = key;
       popover.querySelector("thead tr").innerHTML = renderThead();
       popover.querySelector("tbody").innerHTML = renderRows();
+    });
+    popover.querySelector(".vp-export-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      exportRowsToExcel(
+        sortedRows(),
+        [["code", "Conta"], ["name", "Descrição"], ["amount", "Valor"]],
+        `Detalhamento_${lineName}_${monthLabel}`
+      );
     });
   }
 

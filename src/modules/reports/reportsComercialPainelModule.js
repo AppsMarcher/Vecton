@@ -15,6 +15,7 @@
       isSupabaseConfigured,
       syncHeaderPeriod
     } = deps;
+    const { exportRowsToExcel, exportButtonHtml } = window.VECTON_CORE_UTILS;
 
     const REPORT_ID = "comercialPainel";
     const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -766,6 +767,32 @@
       </table>`;
     }
 
+    // Exporta as linhas de transação do popover de detalhe (exclui as linhas
+    // "resumo" sintéticas do drill do hero — não são transações reais).
+    function exportDetailPopoverRows(titulo) {
+      const NUM = ["quantidade", "valor"];
+      const items = popRows.filter((r) => !r.resumo);
+      if (popSort.key) {
+        const k = popSort.key, d = popSort.dir, isNum = NUM.includes(k);
+        items.sort((a, b) => isNum
+          ? d * ((Number(a[k]) || 0) - (Number(b[k]) || 0))
+          : d * String(a[k] || "").localeCompare(String(b[k] || ""), "pt-BR"));
+      }
+      const columns = [
+        { label: "Tipo", value: (r) => r.tipo || "" },
+        ...(popShowTerr ? [{ label: "Território", value: (r) => r.territorio || "" }] : []),
+        { label: "Cód. Cli.", value: (r) => r.cod_cliente || "" },
+        { label: "Cliente", value: (r) => r.cliente || "" },
+        { label: "Cidade/UF", value: (r) => [r.cidade, r.uf].filter(Boolean).join("/") },
+        { label: "Cult", value: (r) => r.cultura || "" },
+        { label: "Cód. Prod.", value: (r) => r.cod_produto || "" },
+        { label: "Produto", value: (r) => r.produto || "" },
+        { label: "Qtd", value: (r) => Number(r.quantidade) || 0 },
+        { label: "Valor", value: (r) => Number(r.valor) || 0 },
+      ];
+      exportRowsToExcel(items, columns, `Detalhamento_${titulo}`);
+    }
+
     // Renderiza a tabela no popover atual e liga o sort (setas ↑↓) nos cabecalhos.
     function paintPopTable() {
       if (!popEl) return;
@@ -786,13 +813,18 @@
       const backdrop = document.createElement("div");
       backdrop.className = "cvp-pop-backdrop";
       backdrop.innerHTML = `<div class="cvp-pop">
-          <div class="cvp-pop-head"><span>${escapeHtml(titulo)}</span><button class="cvp-pop-x" type="button" aria-label="Fechar">✕</button></div>
+          <div class="cvp-pop-head"><span>${escapeHtml(titulo)}</span><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div class="cvp-pop-export" style="display:none"></div><button class="cvp-pop-x" type="button" aria-label="Fechar">✕</button></div></div>
           <div class="cvp-pop-body"><div class="cvp-empty" style="padding:22px">Carregando…</div></div>
         </div>`;
       document.body.appendChild(backdrop);
       popEl = backdrop;
       backdrop.addEventListener("click", (e) => { if (e.target === backdrop) closeDetailPopover(); });
       backdrop.querySelector(".cvp-pop-x").addEventListener("click", closeDetailPopover);
+      backdrop.querySelector(".cvp-pop-export").innerHTML = exportButtonHtml();
+      backdrop.querySelector(".vp-export-btn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        exportDetailPopoverRows(titulo);
+      });
       setTimeout(() => document.addEventListener("keydown", onPopKey), 0);
 
       let rows = [];
@@ -826,6 +858,8 @@
       const singleTerr = scope.terr && !(scope.terrs && scope.terrs.length > 1);
       popShowTerr = !singleTerr;
       popSort = { key: null, dir: 1 };                 // cada abertura comeca na ordem padrao (valor desc)
+      const exportWrap = backdrop.querySelector(".cvp-pop-export");
+      if (exportWrap) exportWrap.style.display = popRows.some((r) => !r.resumo) ? "flex" : "none";
       paintPopTable();
     }
 

@@ -11,6 +11,7 @@
       setSelectedReportId, renderReportsView, getReportTitles, initFloatingScrollbar,
       onCatalogChanged, fetchScenariosForYear, fetchScenarioHeadcountForYear,
     } = deps;
+    const { exportRowsToExcel, exportButtonHtml } = window.VECTON_CORE_UTILS;
 
     function ensureDrillHoverStyle() {
       if (document.getElementById("vb-drill-style")) return;
@@ -467,6 +468,42 @@
       ], [...byCc.values()], { key: "total", dir: -1 });
     }
 
+    // Mesmo agrupamento/colunas do renderDrillBody, mas devolvido como dado (não HTML)
+    // pra alimentar o botão "Excel" do popover de drilldown.
+    function drillExportSpec(kind, rows) {
+      if (kind === "ledger-tx") {
+        return { rows, columns: [
+          { label: "Data", value: (r) => fmtDate(r.entry_date) },
+          { label: "CC", value: (r) => r.cost_center_number || "" },
+          { label: "Nome CC", value: (r) => r.cc_name || "" },
+          { label: "Conta", value: (r) => `${r.account_number || ""} ${r.account_name || ""}`.trim() },
+          { label: "Histórico", value: (r) => r.history || "" },
+          { label: "Valor", value: (r) => Number(r.amount) || 0 },
+        ] };
+      }
+      if (kind === "headcount") {
+        return { rows, columns: [
+          { label: "Matrícula", value: (r) => r.matricula || "" },
+          { label: "Nome", value: (r) => r.colab || "" },
+          { label: "Cargo", value: (r) => r.cargo || "" },
+          { label: "CC", value: (r) => r.cost_center_number || "" },
+          { label: "Nome CC", value: (r) => r.cc_name || "" },
+        ] };
+      }
+      const byCc = new Map();
+      rows.forEach((r) => {
+        const key = String(r.cost_center_number || "");
+        const cur = byCc.get(key) || { cc: key, name: r.cc_name || "", total: 0 };
+        cur.total += Number(r.amount) || 0;
+        byCc.set(key, cur);
+      });
+      return { rows: [...byCc.values()], columns: [
+        { label: "CC", value: (r) => r.cc || "" },
+        { label: "Nome CC", value: (r) => r.name || "" },
+        { label: "Valor", value: (r) => r.total },
+      ] };
+    }
+
     // Resumo mostrado no topo do popover — mesmo padrão do drilldown do DRE Societário
     // (total em destaque + contagem), pra não duplicar o total no rodapé da tabela.
     function drillSummaryHtml(kind, rows) {
@@ -499,7 +536,10 @@
             <p style="font-size:0.65rem;color:var(--text-faint);letter-spacing:0.07em;text-transform:uppercase;margin:0 0 3px">${escapeHtml(col.name || "")}</p>
             <h4 style="font-size:0.9rem;font-weight:600;color:var(--text);margin:0">${escapeHtml(row.name || "")}</h4>
           </div>
-          <button id="vbd-x" type="button" style="font-size:20px;background:none;border:none;cursor:pointer;color:var(--text-faint);line-height:1;padding:0 4px">&times;</button>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <div id="vbd-export-wrap" style="display:none"></div>
+            <button id="vbd-x" type="button" style="font-size:20px;background:none;border:none;cursor:pointer;color:var(--text-faint);line-height:1;padding:0 4px">&times;</button>
+          </div>
         </div>
         <div id="vbd-summary" style="display:none;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);flex-shrink:0"></div>
         <div id="vbd-body" style="flex:1;overflow:auto">
@@ -537,6 +577,14 @@
           const summary = overlay.querySelector("#vbd-summary");
           summary.style.display = "flex";
           summary.innerHTML = drillSummaryHtml(kind, rows);
+          const exportWrap = overlay.querySelector("#vbd-export-wrap");
+          exportWrap.style.display = "flex";
+          exportWrap.innerHTML = exportButtonHtml();
+          exportWrap.querySelector(".vp-export-btn").addEventListener("click", (e) => {
+            e.stopPropagation();
+            const spec = drillExportSpec(kind, rows);
+            exportRowsToExcel(spec.rows, spec.columns, `Detalhamento_${row.name || ""}_${col.name || ""}`);
+          });
         }
       } catch (err) {
         if (_drillPopover !== overlay) return;

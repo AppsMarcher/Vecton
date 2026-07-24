@@ -266,6 +266,43 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function sanitizeFilenamePart(value) {
+  return String(value || "")
+    .normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+    .replace(/[\\/:*?"<>|]/g, "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .slice(0, 80);
+}
+
+// Exporta linhas de um popover de detalhamento para .xlsx via SheetJS (window.XLSX,
+// já carregado globalmente pelo index.html). `columns` aceita tanto tuplas
+// [chave, rótulo] (lê row[chave]) quanto objetos {label, value(row)} pra casos
+// com dado derivado (ex.: nome do CC vindo de um Map auxiliar).
+function exportRowsToExcel(rows, columns, filenameBase) {
+  if (!window.XLSX || !rows || !rows.length) return;
+  const cols = columns.map((col) => (Array.isArray(col)
+    ? { label: col[1], value: (row) => row[col[0]] }
+    : col));
+  const header = cols.map((col) => col.label);
+  const data = rows.map((row) => cols.map((col) => {
+    const value = col.value(row);
+    return value === null || value === undefined ? "" : value;
+  }));
+  const worksheet = window.XLSX.utils.aoa_to_sheet([header, ...data]);
+  const workbook = window.XLSX.utils.book_new();
+  window.XLSX.utils.book_append_sheet(workbook, worksheet, "Detalhamento");
+  const safeName = sanitizeFilenamePart(filenameBase) || "detalhamento";
+  window.XLSX.writeFile(workbook, `${safeName}.xlsx`);
+}
+
+function exportButtonHtml(extraAttrs = "") {
+  return `<button type="button" class="vp-export-btn" title="Baixar detalhamento em Excel" ${extraAttrs}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg>
+    <span>Excel</span>
+  </button>`;
+}
+
 global.VECTON_CORE_UTILS = {
   buildEmptyRow,
   buildFunAvatars,
@@ -273,6 +310,8 @@ global.VECTON_CORE_UTILS = {
   chunkArray,
   dateMatchesPeriod,
   escapeHtml,
+  exportButtonHtml,
+  exportRowsToExcel,
   formatActualsFieldName,
   formatActualsStatus,
   formatAmountInput,

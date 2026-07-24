@@ -15,6 +15,7 @@
       getReportTitles,
       onCatalogChanged,
     } = deps;
+    const { exportRowsToExcel, exportButtonHtml } = window.VECTON_CORE_UTILS;
 
     const CARD_PREFIX = "comercialRelatorio_";
     const CARGOS = [
@@ -1399,7 +1400,7 @@
       closeOverlay();
       const overlay = document.createElement("div");
       overlay.className = "vcr-overlay";
-      overlay.innerHTML = `<div class="vcr-modal vcr-movements"><div class="vcr-modal-head"><div><p class="vcr-kicker">Detalhamento dos movimentos</p><h3>${escapeHtml(reportName)} · ${escapeHtml(codVendedor)}${segment ? ` · ${escapeHtml(segment)}` : ""}</h3></div><button class="vcr-close" type="button">×</button></div><div class="vcr-modal-body"><div class="vcr-loading">Carregando movimentos...</div></div></div>`;
+      overlay.innerHTML = `<div class="vcr-modal vcr-movements"><div class="vcr-modal-head"><div><p class="vcr-kicker">Detalhamento dos movimentos</p><h3>${escapeHtml(reportName)} · ${escapeHtml(codVendedor)}${segment ? ` · ${escapeHtml(segment)}` : ""}</h3></div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0"><div class="vcr-export-wrap" style="display:none"></div><button class="vcr-close" type="button">×</button></div></div><div class="vcr-modal-body"><div class="vcr-loading">Carregando movimentos...</div></div></div>`;
       document.body.appendChild(overlay);
       activeOverlay = overlay;
       overlay.querySelector(".vcr-close").addEventListener("click", closeOverlay);
@@ -1426,14 +1427,33 @@
         const numericKeys = new Set(["quantidade", "faturamento", "margem_percentual"]);
         const consideredMovements = (movements || []).filter((movement) => movement.movimento_considerado === true);
         let sortState = null;
+        const sortedMovements = () => sortState ? consideredMovements.slice().sort((a, b) => {
+          const av = a[sortState.key];
+          const bv = b[sortState.key];
+          if (sortState.key === "data") return sortState.dir * (new Date(av || 0) - new Date(bv || 0));
+          if (numericKeys.has(sortState.key)) return sortState.dir * ((Number(av) || 0) - (Number(bv) || 0));
+          return sortState.dir * String(av ?? "").localeCompare(String(bv ?? ""), "pt-BR", { numeric: true });
+        }) : consideredMovements;
+        const exportWrap = overlay.querySelector(".vcr-export-wrap");
+        if (exportWrap) {
+          exportWrap.style.display = consideredMovements.length ? "flex" : "none";
+          exportWrap.innerHTML = exportButtonHtml();
+          exportWrap.querySelector(".vp-export-btn")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const exportColumns = columns.map(([key, label]) => ({
+              label,
+              value: (movement) => {
+                const value = movement[key];
+                if (key === "margem_percentual" && value !== null && value !== undefined) return Number(value) * 100;
+                if (typeof value === "boolean") return value ? "Sim" : "Não";
+                return value ?? "";
+              },
+            }));
+            exportRowsToExcel(sortedMovements(), exportColumns, `Detalhamento_movimentos_${reportName}_${codVendedor}`);
+          });
+        }
         const paintMovements = () => {
-          const sorted = sortState ? consideredMovements.slice().sort((a, b) => {
-            const av = a[sortState.key];
-            const bv = b[sortState.key];
-            if (sortState.key === "data") return sortState.dir * (new Date(av || 0) - new Date(bv || 0));
-            if (numericKeys.has(sortState.key)) return sortState.dir * ((Number(av) || 0) - (Number(bv) || 0));
-            return sortState.dir * String(av ?? "").localeCompare(String(bv ?? ""), "pt-BR", { numeric: true });
-          }) : consideredMovements;
+          const sorted = sortedMovements();
           const body = sorted.map((movement) => `<tr>${columns.map(([key]) => {
             let value = movement[key];
             if (key === "faturamento") value = Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
