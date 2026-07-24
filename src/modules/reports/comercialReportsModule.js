@@ -958,11 +958,15 @@
             display_order: Number(overlay.querySelector("#vcr-order").value || 0),
           }
         : {
+            // Templates simplificados não têm campo de Status na UI (não são
+            // campanha, não fazem sentido como "rascunho" aguardando revisão)
+            // — sempre nascem/ficam "active", senão nunca aparecem pra quem
+            // não é admin (canSeeReport esconde draft de não-admin).
             organization_id: org,
             slug: report?.slug || `custom-${crypto.randomUUID()}`,
             nome,
             descricao: overlay.querySelector("#vcr-description").value.trim(),
-            status: report?.status || "draft",
+            status: "active",
             report_kind: report?.report_kind || "custom",
             modalidade: templateModalidade(template),
             data_inicio: report?.data_inicio || null,
