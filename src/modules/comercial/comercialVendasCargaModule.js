@@ -138,7 +138,7 @@
 
             <datalist id="comven-tipo-list"><option value="Máquinas"></option><option value="Peças"></option><option value="Transgrain"></option><option value="Acessórios"></option></datalist>
             <div class="table-shell actuals-table-shell">
-              <table class="data-table actuals-table">
+              <table class="data-table actuals-table comven-table">
                 <thead><tr></tr></thead>
                 <tbody id="comven-rows-body"></tbody>
               </table>

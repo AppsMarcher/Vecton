@@ -3497,6 +3497,27 @@ thead .col-frozen-3 {
 .comven-col-valor { width: 120px; min-width: 120px; }
 .comven-col-mb { width: 62px; min-width: 62px; max-width: 62px; padding-left: 2px; padding-right: 2px; }
 
+/* A carga realizada tem mais colunas que a planejada. Mantem as acoes
+   acessiveis enquanto os campos de venda continuam rolando horizontalmente. */
+.comven-table .actuals-col-action {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  min-width: 86px;
+  width: 86px;
+  background: var(--panel);
+  box-shadow: -10px 0 14px -12px rgba(0, 0, 0, 0.9);
+}
+
+.comven-table thead .actuals-col-action {
+  z-index: 3;
+  background: var(--panel-alt);
+}
+
+.comven-table tbody tr:hover .actuals-col-action {
+  background: var(--panel-hover);
+}
+
 @keyframes vp-spin {
   to { transform: rotate(360deg); }
 }
