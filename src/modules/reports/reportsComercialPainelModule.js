@@ -95,8 +95,8 @@
         .cvp-card-sub { font-size:11px; color:var(--cvp-faint); margin:1px 0 0; }
         .cvp-qty { font-size:24px; font-weight:600; font-variant-numeric:tabular-nums; line-height:1; }
         .cvp-qty .u { font-size:11.5px; color:var(--cvp-faint); font-weight:500; margin-left:3px; }
-        .cvp-split { display:flex; gap:14px; margin:8px 0; }
-        .cvp-split span { font-size:11px; color:var(--cvp-soft); } .cvp-split b { color:var(--cvp-text); font-variant-numeric:tabular-nums; }
+        .cvp-split { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:8px 0; }
+        .cvp-split span { font-size:11px; color:var(--cvp-soft); white-space:nowrap; } .cvp-split b { color:var(--cvp-text); font-variant-numeric:tabular-nums; }
         .cvp-fatline { font-size:11.5px; color:var(--cvp-faint); font-variant-numeric:tabular-nums; border-top:1px solid var(--cvp-line); padding-top:8px; margin-top:4px; display:flex; justify-content:space-between; }
         .cvp-detail { background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:16px; overflow:hidden; }
         .cvp-detail-head { display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--cvp-line); flex-wrap:wrap; gap:6px; }
@@ -562,10 +562,11 @@
         if (t.isPecas) {
           body = `<div class="cvp-card-sub" style="margin-bottom:4px">Faturado</div><div class="cvp-qty" style="font-size:20px">${fmtR$(t.val)}</div>`;
         } else {
-          const split = [
-            t.hasGrao ? `<span>Grão <b>${nf(t.grao)}</b></span>` : "",
-            t.hasPec ? `<span>Pecuária <b>${nf(t.pec)}</b></span>` : "",
-          ].join("");
+          // Slot fixo: Grao sempre na 1a coluna, Pecuaria sempre na 2a (grid no CSS).
+          // A linha que a coordenacao nao consolida vira um slot vazio, entao o
+          // rotulo que sobra fica na mesma posicao dos demais cards.
+          const split = (t.hasGrao ? `<span>Grão <b>${nf(t.grao)}</b></span>` : "<span></span>")
+            + (t.hasPec ? `<span>Pecuária <b>${nf(t.pec)}</b></span>` : "<span></span>");
           body = `<div class="cvp-qty">${nf(t.grao + t.pec)} <span class="u">un</span></div>
             <div class="cvp-split">${split}</div>
             <div class="cvp-fatline"><span>Faturado</span><span>${fmtR$(t.val)}</span></div>`;
