@@ -121,6 +121,11 @@
         .cvp-mini-tbl tbody tr:not(:last-child) td { border-bottom:1px solid rgba(255,255,255,.05); }
         .cvp-mini-tbl tr.fat td { font-weight:600; font-size:9.3px; color:var(--cvp-text); border-top:1px solid var(--cvp-line); }
         .cvp-mini-tbl tr.tkt td { font-size:9.3px; color:var(--cvp-soft); }
+        /* Linha memo: valor da casa geografica que consolida em OUTRA coordenacao.
+           Ilustrativa — nao entra em TTL/Faturado/Ticket nem no status vs meta. */
+        .cvp-mini-tbl tr.memo td { color:var(--cvp-faint); font-style:italic; opacity:.85; }
+        .cvp-mini-tbl tr.memo + tr td { border-top:1px dashed rgba(255,255,255,.12); }
+        .cvp-mini-foot { padding:0 2px 2px; font-size:9px; font-style:italic; color:var(--cvp-faint); line-height:1.35; }
         .cvp-empty { padding:40px; text-align:center; color:var(--cvp-faint); }
         .cvp-hero-tbl { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
         .cvp-hero-tbl th, .cvp-hero-tbl td { padding:6px 8px; font-size:12px; text-align:right; white-space:nowrap; }
@@ -270,6 +275,8 @@
         y2:   { q: Number(r.y2_qtd) || 0,   v: Number(r.y2_val) || 0 },
         y3:   { q: Number(r.y3_qtd) || 0,   v: Number(r.y3_val) || 0 },
         resp: r.responsavel || "",
+        coord: r.coordenacao || "",  // coord de ROTEAMENTO (quem soma de fato a linha)
+        gestor: r.gestor || "",
         orfao: !!r.orfao            // responsavel == gestor da coord de roteamento -> nao vira card
       };
     }
@@ -627,12 +634,29 @@
       }));
     }
 
-    function miniHtml(terr, name, grao, pec, pecas, isSum, scope) {
+    // Quem de fato consolida a Pecuaria da casa (rotulo do rodape do memo).
+    // Le a coord de ROTEAMENTO gravada em cada linha — sem hardcode de Paulo.
+    function memoOwner(terrs) {
+      const seen = [];
+      Object.values(terrs).forEach((t) => {
+        const p = t.pecuaria;
+        if (!p || !p.coord) return;
+        const label = p.gestor ? `${p.coord} (${p.gestor})` : p.coord;
+        if (!seen.includes(label)) seen.push(label);
+      });
+      return seen.join(" / ") || "outra coordenação";
+    }
+
+    // memo = linha ilustrativa (ex: Pecuaria da casa geografica do Yuri, que
+    // consolida no Paulo). Preenche SO a propria linha; TTL/Faturado/Ticket e o
+    // status "vs meta" continuam olhando so o que a coordenacao consolida.
+    function miniHtml(terr, name, grao, pec, pecas, isSum, scope, memo) {
       const valLines = pecas ? [pecas] : [grao, pec].filter(Boolean);
+      const pecMemo = !pec && memo ? memo.line : null;
       const rows = pecas
         ? `<tr class="fat"><td>Faturado</td>${valCells([pecas])}</tr>`
         : `<tr><td>Grão</td>${qtyCells(grao)}</tr>
-           <tr><td>Pecuária</td>${qtyCells(pec)}</tr>
+           <tr${pecMemo ? ' class="memo"' : ""}><td>Pecuária${pecMemo ? " *" : ""}</td>${qtyCells(pec || pecMemo)}</tr>
            <tr><td>TTL qtd</td>${ttlCells(grao, pec)}</tr>
            <tr class="fat"><td>Faturado</td>${valCells(valLines)}</tr>
            <tr class="tkt"><td>Ticket</td>${ticketCells(grao, pec)}</tr>`;
@@ -653,7 +677,8 @@
           <span class="cvp-mini-status" style="--dot-color:${dotColor};--dot-glow:${dotGlow}">${statusLabel}</span>
         </div>
         <div class="cvp-mini-wrap"><table class="cvp-mini-tbl"><thead><tr><th></th><th${drill("FAT")}>Fatur.</th><th${drill("FAT,CART")}>Fat.+Cart.</th><th>Meta</th><th>${year - 1}</th><th>${year - 2}</th><th>${year - 3}</th></tr></thead>
-        <tbody>${rows}</tbody></table></div></div>`;
+        <tbody>${rows}</tbody></table></div>
+        ${pecMemo ? `<div class="cvp-mini-foot">* Pecuária da região — ilustrativo, consolidado em ${escapeHtml(memo.owner)}. Fora do TTL, do Faturado e do vs meta.</div>` : ""}</div>`;
     }
 
     function renderDetail(container) {
@@ -667,12 +692,13 @@
       // Consolidado da aba = rollup de ROTEAMENTO (c) -> bate com o card do topo.
       // Sul/Norte ficam so-Grao (Pecuaria roteou pro Paulo); Oeste/Exportacao
       // incluem a propria Pecuaria (que fica na regiao).
-      const sumLine = (lk) => {
+      const sumFrom = (terrs, lk) => {
         const acc = { fat: { q: 0, v: 0 }, cart: { q: 0, v: 0 }, meta: { q: 0, v: 0 }, y1: { q: 0, v: 0 }, y2: { q: 0, v: 0 }, y3: { q: 0, v: 0 } };
         let has = false;
-        Object.values(c.terrs).forEach((t) => { if (t[lk]) { has = true; ["fat", "cart", "meta", "y1", "y2", "y3"].forEach((m) => { acc[m].q += t[lk][m].q; acc[m].v += t[lk][m].v; }); } });
+        Object.values(terrs).forEach((t) => { if (t[lk]) { has = true; ["fat", "cart", "meta", "y1", "y2", "y3"].forEach((m) => { acc[m].q += t[lk][m].q; acc[m].v += t[lk][m].v; }); } });
         return has ? acc : null;
       };
+      const sumLine = (lk) => sumFrom(c.terrs, lk);
 
       // Tabelas por territorio: por CASA geografica nas coordenacoes geograficas
       // (Sul/Norte/Oeste/Exportacao) -> traz o territorio com Grao E Pecuaria,
@@ -690,7 +716,12 @@
         // Consolidado: drill pela coordenacao de roteamento (popover ganha col Territorio).
         const graoSum = sumLine("grao"), pecSum = sumLine("pecuaria");
         const consLinhas = [graoSum && "Grão", pecSum && "Pecuária"].filter(Boolean);
-        cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", graoSum, pecSum, null, true, { coord: c.nome, linhas: consLinhas }));
+        // Coordenacao geografica que nao consolida Pecuaria (Sul/Norte -> roteia
+        // pro Paulo): mostra a Pecuaria da CASA como linha memo, so ilustrativa.
+        // Drill, TTL, Faturado, Ticket e vs meta seguem so o roteamento.
+        const memoLine = (!pecSum && src !== c) ? sumFrom(src.terrs, "pecuaria") : null;
+        const memo = memoLine ? { line: memoLine, owner: memoOwner(src.terrs) } : null;
+        cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", graoSum, pecSum, null, true, { coord: c.nome, linhas: consLinhas }, memo));
         // Territorios: resolve cada um (sameResp/split), depois funde os que
         // tem o mesmo responsavel nomeado em territorios diferentes (MA+PI).
         const terrBaseCards = [];
