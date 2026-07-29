@@ -305,13 +305,16 @@
     // Total de uma coordenacao (qtd Grao/Pecuaria + valor). Cards mostram o
     // FATURADO (real); a comparacao das 3 metricas fica no hero e no detalhe.
     function coordTotals(c) {
-      let grao = 0, pec = 0, val = 0;
+      let grao = 0, pec = 0, val = 0, hasGrao = false, hasPec = false;
       Object.values(c.terrs).forEach((t) => {
-        if (t.grao) { grao += t.grao.fat.q; val += t.grao.fat.v; }
-        if (t.pecuaria) { pec += t.pecuaria.fat.q; val += t.pecuaria.fat.v; }
+        if (t.grao) { grao += t.grao.fat.q; val += t.grao.fat.v; hasGrao = true; }
+        if (t.pecuaria) { pec += t.pecuaria.fat.q; val += t.pecuaria.fat.v; hasPec = true; }
         if (t.pecas) { val += t.pecas.fat.v; }
       });
-      return { grao, pec, val, isPecas: c.nome === "Peças" };
+      // hasGrao/hasPec = a coordenacao consolida aquela linha (mesmo criterio do
+      // sumLine do detalhe). Sul/Norte nao consolidam Pecuaria (roteia pro Paulo),
+      // entao o card omite o rotulo em vez de mostrar um zero que nao significa nada.
+      return { grao, pec, val, hasGrao, hasPec, isPecas: c.nome === "Peças" };
     }
 
     // ------------------------------------------------- fusao de card por responsavel
@@ -559,8 +562,12 @@
         if (t.isPecas) {
           body = `<div class="cvp-card-sub" style="margin-bottom:4px">Faturado</div><div class="cvp-qty" style="font-size:20px">${fmtR$(t.val)}</div>`;
         } else {
+          const split = [
+            t.hasGrao ? `<span>Grão <b>${nf(t.grao)}</b></span>` : "",
+            t.hasPec ? `<span>Pecuária <b>${nf(t.pec)}</b></span>` : "",
+          ].join("");
           body = `<div class="cvp-qty">${nf(t.grao + t.pec)} <span class="u">un</span></div>
-            <div class="cvp-split"><span>Grão <b>${nf(t.grao)}</b></span><span>Pecuária <b>${nf(t.pec)}</b></span></div>
+            <div class="cvp-split">${split}</div>
             <div class="cvp-fatline"><span>Faturado</span><span>${fmtR$(t.val)}</span></div>`;
         }
         return `<button class="cvp-card${c.nome === currentCoord ? " active" : ""}" data-coord="${escapeHtml(c.nome)}" style="--accent:${st.accent};--accent-soft:${st.soft}">
