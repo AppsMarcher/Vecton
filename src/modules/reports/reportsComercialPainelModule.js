@@ -942,7 +942,10 @@
     // Card do report. grao/pec = linhas de quantidade (null = linha apagada,
     // igual ao modelo); fatVals = os 6 valores da linha FATURA (sempre R$ cheio).
     function printCard(cfg) {
-      const { name, terr, colors, grao, pec, fatVals, label } = cfg;
+      const { name, terr, colors, grao, pec, fatVals, label, pecMemo } = cfg;
+      // memo = Pecuaria da casa geografica que consolida em OUTRA coordenacao
+      // (Sul/Norte -> Paulo). Preenche so a propria linha: TTL e FATURA ignoram.
+      const memo = !pec && pecMemo ? pecMemo : null;
       const cells = (line, k) => METRICS.map((m) => `<td>${line ? pfmt(line[m][k]) : ""}</td>`).join("");
       const empty = METRICS.map(() => "<td></td>").join("");
       const ttlCellsP = (grao || pec)
@@ -958,7 +961,7 @@
           </tr></thead>
           <tbody>
             <tr><td class="lab${grao ? "" : " off"}" colspan="2">GRÃO</td>${grao ? cells(grao, "q") : empty}</tr>
-            <tr><td class="lab${pec ? "" : " off"}" colspan="2">PECUÁRIA</td>${pec ? cells(pec, "q") : empty}</tr>
+            <tr${memo ? ' class="memo"' : ""}><td class="lab${(pec || memo) ? "" : " off"}" colspan="2">PECUÁRIA${memo ? " *" : ""}</td>${(pec || memo) ? cells(pec || memo, "q") : empty}</tr>
             <tr class="ttl" style="background:${colors.ttl}"><td class="lab" colspan="2">TTL qtd</td>${ttlCellsP}</tr>
             <tr class="fat"><td class="lab" colspan="2">FATURA</td>${METRICS.map((m) => `<td>${pfmt(fatVals[m])}</td>`).join("")}</tr>
           </tbody>
@@ -967,12 +970,12 @@
     }
 
     // Card a partir de linhas metricObj: FATURA = soma dos valores das linhas.
-    function cardFromLines(name, terr, colors, grao, pec, pecas, label) {
+    function cardFromLines(name, terr, colors, grao, pec, pecas, label, pecMemo) {
       const fatVals = {};
       METRICS.forEach((m) => {
         fatVals[m] = (grao ? grao[m].v : 0) + (pec ? pec[m].v : 0) + (pecas ? pecas[m].v : 0);
       });
-      return printCard({ name, terr, colors, grao, pec, fatVals, label });
+      return printCard({ name, terr, colors, grao, pec, fatVals, label, pecMemo });
     }
 
     // Grade FIXA dos cards de território — espelha a posição exata do modelo
@@ -1025,8 +1028,12 @@
       });
       const consolidated = (nome, terrLabel, colors, label) => {
         const c = coord(nome); if (!c) return "";
+        const pec = sumTerrLine(c, "pecuaria");
+        // Sem Pecuaria no roteamento (Sul/Norte) -> mostra a da CASA geografica
+        // como linha memo, ilustrativa. Mesma regra do painel ao vivo.
+        const memo = pec ? null : sumTerrLine(pr.find((x) => x.nome === nome), "pecuaria");
         return cardFromLines(c.gestor || nome, terrLabel, colors,
-          sumTerrLine(c, "grao"), sumTerrLine(c, "pecuaria"), sumTerrLine(c, "pecas"), label);
+          sumTerrLine(c, "grao"), pec, sumTerrLine(c, "pecas"), label, memo);
       };
       const col1Top = geralCard + consolidated("Sul", "SUL", PRINT_COLORS.sul, "REG. SUL");
       const col2Top = consolidated("Pecuária", "PECUÁRIA", PRINT_COLORS.pecuaria, "PECUÁRIA")
@@ -1179,6 +1186,8 @@
   .pc th.nm .tr { flex:none; font-weight:600; font-size:6.2px; opacity:.92; }
   .pc td.lab { text-align:left; font-size:6.3px; font-weight:600; letter-spacing:.02em; color:#333; }
   .pc td.lab.off { color:#b8b8b8; font-weight:400; }
+  /* Linha memo (ilustrativa, fora do TTL/FATURA): italico cinza no fundo claro. */
+  .pc tr.memo td { color:#8a8a8a; font-style:italic; font-weight:400; }
   .pc tr.ttl td { font-weight:700; }
   .pc tr.fat td { font-weight:600; background:#f5f5f5; }
   .pempty { padding:20mm; text-align:center; color:#888; font-size:11px; }
