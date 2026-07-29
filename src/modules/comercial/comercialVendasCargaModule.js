@@ -25,6 +25,7 @@
       formatMonthLabel,
       formatSyncError,
       getActualsStatusClass,
+      initFloatingScrollbar,
       isSupabaseConfigured,
       normalizeDateInput,
       normalizeHeaderName,
@@ -240,6 +241,8 @@
       renderBatchSummary();
       renderErrorLog();
       renderRowsTable();
+      const tableWrap = detail.querySelector(".actuals-table-shell");
+      if (tableWrap && initFloatingScrollbar) initFloatingScrollbar(tableWrap);
     }
 
     function renderBatchList() {

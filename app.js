@@ -828,6 +828,7 @@ const comVendasCargaMod = createComercialVendasCargaModule({
   formatMonthLabel,
   formatSyncError,
   getActualsStatusClass,
+  initFloatingScrollbar,
   isSupabaseConfigured,
   normalizeDateInput,
   normalizeHeaderName,
