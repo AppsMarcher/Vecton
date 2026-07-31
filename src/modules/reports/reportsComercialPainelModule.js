@@ -349,6 +349,33 @@
     // funde os que tem o MESMO responsavel NOMEADO (nunca "A definir"/vazio,
     // pra não juntar territórios distintos só por coincidência de placeholder)
     // cobrindo o MESMO conjunto de linhas em territórios diferentes.
+    // Ordem canonica das siglas num rotulo combinado: o territorio que ancora a
+    // grade fixa da impressao vem primeiro (sempre "MA_PI", nunca "PI_MA";
+    // sempre "RS NORTE_SC", nunca "SC_RS NORTE"). Sem isso o rotulo seguiria a
+    // ordem de chegada das linhas da RPC — que era o motivo de a tela mostrar
+    // "PI_MA" enquanto o One Page Report ja mostrava "MA_PI".
+    // Le PRINT_COL_LAYOUT, definido mais abaixo: so roda em tempo de render.
+    let _fixedAnchors = null;
+    function fixedAnchorSet() {
+      if (!_fixedAnchors) {
+        _fixedAnchors = new Set();
+        PRINT_COL_LAYOUT.forEach((col) => col.forEach((slot) => {
+          if (slot.terrs) _fixedAnchors.add(slot.terrs[0]);
+          else if (slot.terr) _fixedAnchors.add(slot.terr);
+        }));
+      }
+      return _fixedAnchors;
+    }
+
+    // So ordena o ROTULO. O array `terrs` fica na ordem original de propósito:
+    // `terrs[0]` decide a cor do card no fluxo da impressao (htmlForGroup).
+    function combinedTerrLabel(terrs) {
+      const anchors = fixedAnchorSet();
+      return [...terrs]
+        .sort((a, b) => (anchors.has(b) ? 1 : 0) - (anchors.has(a) ? 1 : 0))
+        .join("_");
+    }
+
     function mergeSameRespCards(baseCards) {
       const bySig = {}; const out = [];
       baseCards.forEach((card) => {
@@ -359,7 +386,7 @@
         out.push(grp);
       });
       return out.map((g) => ({
-        terr: g.terrs.join("_"),
+        terr: combinedTerrLabel(g.terrs),
         terrs: g.terrs,
         resp: g.resp,
         linhas: g.linhas,
@@ -1086,16 +1113,9 @@
         const key = mode === "grao" ? "Grão" : mode === "pec" ? "Pecuária" : null;
         return key ? ownerIdx[`${terr}|${key}`] : (ownerIdx[`${terr}|Grão`] ?? ownerIdx[`${terr}|Pecuária`]);
       };
-      // Territórios da grade fixa sempre entram PRIMEIRO no rótulo combinado
-      // (ex: sempre "RS NORTE_SC", nunca "SC_RS NORTE") — não pode depender da
-      // ordem de chegada das linhas da RPC.
-      const fixedAnchors = new Set();
-      PRINT_COL_LAYOUT.forEach((col) => col.forEach((slot) => {
-        if (slot.terrs) fixedAnchors.add(slot.terrs[0]); else if (slot.terr) fixedAnchors.add(slot.terr);
-      }));
-      const labelFor = (g) => [...g.terrs]
-        .sort((a, b) => (fixedAnchors.has(b) ? 1 : 0) - (fixedAnchors.has(a) ? 1 : 0))
-        .join("_");
+      // Mesma regra de rótulo combinado usada na tela (combinedTerrLabel):
+      // território da grade fixa primeiro, nunca a ordem de chegada da RPC.
+      const labelFor = (g) => combinedTerrLabel(g.terrs);
       const drawnGroups = new Set();   // evita desenhar o mesmo grupo fundido 2x
       const htmlForGroup = (idx, colorTerr) => {
         const g = mergedGroups[idx];
