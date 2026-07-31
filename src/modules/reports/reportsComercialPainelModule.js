@@ -40,6 +40,7 @@
     let coords = [];              // [{nome,gestor,terrs:{terr:{grao,pecuaria,pecas}}}] — por coordenacao de ROTEAMENTO (totais)
     let regioes = [];             // idem, mas por CASA geografica (regiao=coord do Grao) — detalhe matricial
     let tipos = [];               // [{tipo, fat_val, cart_val, meta_val, y1_val, y2_val, y3_val}] (Pecas/Transgrain/Acessorios)
+    let pecasVend = [];           // [{bucket:'titular'|'demais', cod_vendedor, vendedor, fat_val, cart_val, y1_val, y2_val, y3_val}] (087)
     let loadedKey = null;         // guarda params da ultima carga
     let loading = false;
     let docMenuClickHandler = null; // listener doc-level do menu Exportar (1 so, re-registrado a cada bind)
@@ -246,19 +247,27 @@
     async function loadData() {
       loading = true;
       await loadScenarios();
-      let rows = [], tiposRows = [];
+      let rows = [], tiposRows = [], pecasVendRows = [];
       if (isSupabaseConfigured()) {
         const org = await resolveOrganizationId();
         const payload = { p_org: org, p_year: year, p_month: month, p_period: period, p_scenario_id: scenarioId };
-        [rows, tiposRows] = await Promise.all([
+        // Quebra de Peças por vendedor (087). Sem p_scenario_id: a meta nao e
+        // quebrada — o detalhe do titular reaproveita a meta consolidada.
+        // Tolera 404 (migration ainda nao aplicada) -> detalhe cai no formato
+        // antigo, por territorio, em vez de quebrar o painel inteiro.
+        const { p_scenario_id, ...pecasPayload } = payload;
+        [rows, tiposRows, pecasVendRows] = await Promise.all([
           callSupabaseRpc("comercial_painel_vendas", payload),
-          callSupabaseRpc("comercial_painel_tipos", payload)
+          callSupabaseRpc("comercial_painel_tipos", payload),
+          callSupabaseRpc("comercial_painel_pecas_vendedor", pecasPayload)
+            .catch((e) => { console.warn("pecas por vendedor indisponivel:", e); return []; })
         ]);
       }
       const tr = transform(rows || []);
       coords = tr.coords;
       regioes = tr.regioes;
       tipos = tiposRows || [];
+      pecasVend = pecasVendRows || [];
       loadedKey = paramsKey();
       loading = false;
       if (!currentCoord || !coords.some((c) => c.nome === currentCoord)) {
@@ -708,6 +717,41 @@
         ${pecMemo ? `<div class="cvp-mini-foot">* Pecuária da região — ilustrativo, consolidado em ${escapeHtml(memo.owner)}. Fora do TTL, do Faturado e do vs meta.</div>` : ""}</div>`;
     }
 
+    // Quebra de Peças por vendedor (087) no formato que o miniHtml consome.
+    // - "demais" e calculado como TOTAL - titular (decisao do usuario), nao
+    //   somando linhas: garante que as duas tabelas fechem no consolidado mesmo
+    //   se a RPC e o rollup do painel divergirem por algum filtro.
+    // - Meta so no titular, igual a do total (decisao do usuario). "Demais"
+    //   fica com meta zero -> o miniHtml mostra "vs meta —" em vez de um
+    //   percentual que nao significa nada.
+    function pecasVendLines(consolidado) {
+      if (!consolidado || !pecasVend.length) return [];
+      const titular = pecasVend.find((r) => r.bucket === "titular");
+      if (!titular) return [];
+      const num = (v) => Number(v) || 0;
+      const zero = { q: 0, v: 0 };
+      const tLine = {
+        fat:  { q: 0, v: num(titular.fat_val) },
+        cart: { q: 0, v: num(titular.cart_val) },
+        meta: { ...consolidado.meta },
+        y1:   { q: 0, v: num(titular.y1_val) },
+        y2:   { q: 0, v: num(titular.y2_val) },
+        y3:   { q: 0, v: num(titular.y3_val) }
+      };
+      const resto = (m) => ({ q: 0, v: num(consolidado[m].v) - num(tLine[m].v) });
+      const dLine = {
+        fat: resto("fat"), cart: resto("cart"),
+        meta: { ...zero },
+        y1: resto("y1"), y2: resto("y2"), y3: resto("y3")
+      };
+      const nome = titular.vendedor || "Titular de Peças";
+      const cod = titular.cod_vendedor ? `cód. ${titular.cod_vendedor}` : "sem código na atribuição";
+      return [
+        { label: nome.toUpperCase(), sub: cod, line: tLine },
+        { label: "DEMAIS", sub: "total menos o titular", line: dLine }
+      ];
+    }
+
     function renderDetail(container) {
       closeDetailPopover();
       const c = coords.find((x) => x.nome === currentCoord) || coords[0];
@@ -737,8 +781,18 @@
 
       const cards = [];
       if (isPecas) {
-        cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", null, null, sumLine("pecas"), true));
-        Object.entries(src.terrs).forEach(([terr, t]) => { if (t.pecas) cards.push(miniHtml(terr, t.pecas.resp || "", null, null, t.pecas)); });
+        // 1) Consolidado: repete o total do card (100% das pecas, com a meta
+        //    nacional). 2) Titular da atribuicao nacional. 3) Demais.
+        const consPecas = sumLine("pecas");
+        cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", null, null, consPecas, true));
+        const vendCards = pecasVendLines(consPecas);
+        if (vendCards.length) {
+          vendCards.forEach((vc) => cards.push(miniHtml(vc.label, vc.sub, null, null, vc.line)));
+        } else {
+          // Migration 087 ainda nao aplicada: mantem o detalhe antigo por
+          // territorio em vez de deixar a aba vazia.
+          Object.entries(src.terrs).forEach(([terr, t]) => { if (t.pecas) cards.push(miniHtml(terr, t.pecas.resp || "", null, null, t.pecas)); });
+        }
       } else {
         // Consolidado: drill pela coordenacao de roteamento (popover ganha col Territorio).
         const graoSum = sumLine("grao"), pecSum = sumLine("pecuaria");
