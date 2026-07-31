@@ -180,7 +180,17 @@
         const newCode = String(formData.get("code") || "").trim();
         const newName = String(formData.get("name") || "").trim();
         const newType = String(formData.get("type") || "ADM").trim();
-        const newManagement = normalizeCostCenterManagement(formData.get("management"), (getState().managements || []).map(m => m.name));
+        // A gestao atual do CC entra na lista aceita: se ela saiu do cadastro
+        // (renomeada/excluida), salvar outro campo do CC nao pode zerar a
+        // gestao em silencio. O dropdown ja oferece so valores cadastrados +
+        // esse valor legado, entao nada novo passa por aqui.
+        const currentManagement = (getState().costCenters || [])
+          .find((cc) => cc.number === selectedNode.code)?.management || "";
+        const acceptedManagements = [
+          ...(getState().managements || []).map((m) => m.name),
+          currentManagement
+        ].filter(Boolean);
+        const newManagement = normalizeCostCenterManagement(formData.get("management"), acceptedManagements);
         const newNote = document.querySelector("#cc-node-note").value.trim();
 
         if (!newCode || !newName) {

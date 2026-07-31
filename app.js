@@ -316,7 +316,8 @@ const ccTreeModule = createCcTreeModule({
   setDragPayload: (value) => { dragPayload = value; },
   getDragPayload: () => dragPayload,
   handleCcDrop,
-  getLinkedCostCenter: (code) => state.costCenters.find((cc) => cc.number === code) || null
+  getLinkedCostCenter: (code) => state.costCenters.find((cc) => cc.number === code) || null,
+  getManagements: () => state.managements || []
 });
 const actualsModule = createActualsModule({
   ACTUALS_IMPORT_UPSERT_CHUNK_SIZE,
