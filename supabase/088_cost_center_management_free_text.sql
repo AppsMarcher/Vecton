@@ -1,5 +1,10 @@
 begin;
 
+-- NOTA DE NUMERACAO: este arquivo nasceu como 065_ e foi renumerado para 088_
+-- por colidir com 065_comercial_campanhas_por_vendedor.sql. Ele ja estava
+-- APLICADO em 2026-07-31, antes da 087 — a ordem real de aplicacao nao segue a
+-- numeracao aqui. Renomear nao re-executa nada; o conteudo e o mesmo.
+
 -- A gestao de um centro de custo passa a ser validada pelo cadastro
 -- (public.managements, tela Parametros > Gestoes) em vez de uma lista fixa.
 --
