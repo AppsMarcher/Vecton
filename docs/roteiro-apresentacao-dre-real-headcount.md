@@ -127,6 +127,7 @@ para que quem assumir saiba diagnosticar problemas novos, e não apenas repetir 
   - Renomear faz cascata nos CCs que usavam o nome antigo.
   - Excluir **não** apaga CC: os CCs vinculados ficam sem gestão (e caem em "Sem área" nos relatórios).
   - Para vincular ou trocar a gestão de um CC: **Parâmetros → Centro de Custos → selecionar o nó Analítico → campo Gestão → Salvar.**
+  - Desde 31/07/2026, gestão criada aqui fica imediatamente disponível no dropdown do cadastro de CC (antes a lista era fixa e a gestão nova não podia ser vinculada).
 - **Visual:** print da tela de Gestões com o aviso "a vinculação é definida no cadastro de Centros de Custo" em destaque, e seta apontando para o editor de CC.
 
 ---
@@ -409,6 +410,16 @@ para que quem assumir saiba diagnosticar problemas novos, e não apenas repetir 
 - **Visual:** card de contato + QR/link para este roteiro.
 
 ---
+
+## Deck gerado
+
+`Vecton_DRE_Real_Headcount_Handover.pptx` (37 slides) na raiz do projeto. É gerado por
+`tools/build-handover-deck.js` — editar o script e rodar de novo, para o deck acompanhar
+mudanças do sistema em vez de virar documento morto:
+
+```
+PPTX_LIB=<caminho>/node_modules/pptxgenjs node tools/build-handover-deck.js saida.pptx
+```
 
 ## Decisões fechadas
 
