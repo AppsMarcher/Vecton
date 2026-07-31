@@ -121,13 +121,13 @@ para que quem assumir saiba diagnosticar problemas novos, e não apenas repetir 
 - **Visual:** print do editor de CC com o campo Gestão destacado.
 
 ### Slide 11 — Gestões: cadastro do nome, não da vinculação
-- **Mensagem-chave:** a tela de Gestões **não** vincula CC. Ela só nomeia e mostra.
+- **Mensagem-chave:** a tela de Gestões **não** vincula CC. Ela só nomeia e mostra. **A amarração é feita na tela de Centros de Custo.**
 - **Conteúdo:**
   - Criar / renomear / excluir gestão; expandir mostra os CCs vinculados (**somente leitura** — o próprio app avisa isso na tela).
   - Renomear faz cascata nos CCs que usavam o nome antigo.
   - Excluir **não** apaga CC: os CCs vinculados ficam sem gestão (e caem em "Sem área" nos relatórios).
-  - ⚠️ **Ponto de atenção a validar antes de apresentar:** a lista de gestões do editor de CC é fixa no código (as 10 acima) e não lê da tela de Gestões. Criar uma gestão nova ali **pode não** ficar selecionável no CC. Verificar no ambiente antes de ensinar "crie uma gestão nova".
-- **Visual:** print da tela de Gestões com o aviso "a vinculação é definida no cadastro de Centros de Custo" em destaque.
+  - Para vincular ou trocar a gestão de um CC: **Parâmetros → Centro de Custos → selecionar o nó Analítico → campo Gestão → Salvar.**
+- **Visual:** print da tela de Gestões com o aviso "a vinculação é definida no cadastro de Centros de Custo" em destaque, e seta apontando para o editor de CC.
 
 ---
 
@@ -404,16 +404,19 @@ para que quem assumir saiba diagnosticar problemas novos, e não apenas repetir 
 - **Conteúdo:**
   - Onde estão os modelos de carga (botão **Modelo** em cada tela de carga).
   - Perfil necessário: **admin** (Parâmetros só aparece para admin/super admin).
-  - Débitos conhecidos a acompanhar: listas de contas fixas no código; lista de gestões fixa no editor de CC; validação de HC mais frouxa que a do DRE.
+  - Débitos conhecidos a acompanhar: listas de contas fixas no código (slide 33); validação de HC mais frouxa que a do DRE (slide 25).
   - Canal de escalonamento e como reportar (print do erro + nome do lote + mês).
 - **Visual:** card de contato + QR/link para este roteiro.
 
 ---
 
-## Pendências a confirmar antes de fechar o PPT
+## Decisões fechadas
 
-1. **Lista de gestões no editor de CC** — confirmar no ambiente se uma gestão criada em Parâmetros → Gestões aparece selecionável no cadastro de CC. Pelo código, a lista do editor é fixa. Isso muda a redação dos slides 11 e 32.
-2. **Prints** — precisamos capturar as telas logadas (catálogo de carga, lote com erro, popover de diagnóstico, editor de CC, relatório de Headcount nos 2 modos, popover de drilldown).
-3. **Nome/identificação da pessoa que assume** e se o deck deve incluir uma seção de acessos/credenciais.
-4. **Duração** — se precisar de versão curta (~20 min), cortar os blocos 1 e 7 para 1 slide cada e manter 3, 4, 5, 6 e 8 na íntegra.
-5. **Idioma/identidade visual** — usar o tema escuro do Vecton ou o template corporativo Marcher?
+- **Amarração CC ↔ Gestão:** descrita como é operada na prática — pela tela de **Centro de Custos**, campo Gestão do nó Analítico. A tela de Gestões cadastra apenas o nome.
+- **Identidade visual:** tema **Vecton** (dark), tokens de cor do próprio app (fundo escuro, azul de destaque, vermelho suave para valores negativos/alertas).
+
+## Pendências antes de fechar o PPT
+
+1. **Prints das telas logadas** — catálogo de carga, lote com erro (contador + badge + botão revalidar), popover de diagnóstico, editor de Plano de Contas, editor de CC com o campo Gestão, tela de Gestões, relatório de Headcount nos 2 modos, popover de drilldown do HC.
+2. **Nome/identificação da pessoa que assume** e se o deck deve incluir uma seção de acessos/credenciais.
+3. **Duração** — se precisar de versão curta (~20 min), cortar os blocos 1 e 7 para 1 slide cada e manter 3, 4, 5, 6 e 8 na íntegra.
