@@ -411,7 +411,7 @@
           <div class="vcr-modal-actions">
             <span class="vcr-feedback"></span>
             ${report ? `<button type="button" class="ghost-button vcr-duplicate">Duplicar</button>` : ""}
-            ${report?.status === "draft" ? `<button type="button" class="delete-button vcr-delete">Excluir rascunho</button>` : ""}
+            ${report && (report.report_kind || "custom") === "custom" ? `<button type="button" class="delete-button vcr-delete">Excluir relatório</button>` : ""}
             <button type="button" class="ghost-button vcr-preview-btn">Pré-visualizar</button>
             <button type="button" class="ghost-button vcr-cancel">Cancelar</button>
             <button type="button" class="primary-button vcr-save">${report ? "Salvar nova versão" : "Criar relatório"}</button>
@@ -426,7 +426,7 @@
       overlay.querySelector(".vcr-save").addEventListener("click", () => saveCreator(overlay, report, config, org, template));
       overlay.querySelector(".vcr-preview-btn").addEventListener("click", () => runPreview(overlay, report, config, org, template, year, month));
       overlay.querySelector(".vcr-duplicate")?.addEventListener("click", () => duplicateReport(report, config, org, overlay));
-      overlay.querySelector(".vcr-delete")?.addEventListener("click", () => deleteDraft(report, overlay));
+      overlay.querySelector(".vcr-delete")?.addEventListener("click", () => deleteReport(report, overlay));
     }
 
     function advancedSectionsHtml(report, config, team, productTypes, cultures) {
@@ -575,12 +575,15 @@
       }
     }
 
-    async function deleteDraft(report, overlay) {
-      if (!window.confirm(`Excluir o rascunho "${report.nome}"?`)) return;
+    // Exclusão definitiva (091): some com definição, versões, auditoria e
+    // execuções oficializadas. Só relatório personalizado — a RPC recusa
+    // bateu_levou/final_ano, e o botão nem aparece pra eles.
+    async function deleteReport(report, overlay) {
+      if (!window.confirm(`Excluir o relatório "${report.nome}"? Esta ação não pode ser desfeita.`)) return;
       const feedback = overlay.querySelector(".vcr-feedback");
       feedback.textContent = "Excluindo...";
       try {
-        await callSupabaseRpc("comercial_report_delete_draft", { p_report_id: report.id });
+        await callSupabaseRpc("comercial_report_delete", { p_report_id: report.id });
         closeOverlay();
         await refreshCatalog();
       } catch (error) {
