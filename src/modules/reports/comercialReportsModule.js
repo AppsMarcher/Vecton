@@ -1414,10 +1414,18 @@
           });
         });
       }
-      container.querySelectorAll("tr[data-vcr-code]").forEach((row) => row.addEventListener("click", () => openMovements(payload.report.id, row.dataset.vcrCode, scenarioId, payload.report.name, row.dataset.vcrSegment || null)));
+      container.querySelectorAll("tr[data-vcr-code]").forEach((row) => row.addEventListener("click", () => openMovements(payload.report.id, row.dataset.vcrCode, scenarioId, payload.report.name, row.dataset.vcrSegment || null, payload.report?.kind || null)));
     }
 
-    async function openMovements(reportId, codVendedor, scenarioId, reportName, segment) {
+    // Drilldown do Bateu-Levou: a campanha é grão/pecuária por vendedor, então
+    // origem, cargo, grupo, cultura e o par considerado/motivo (sempre
+    // "Sim"/vazio, já que a tabela só lista movimento considerado) não somam
+    // nada à leitura e saíram das colunas.
+    const BATEU_HIDDEN_MOVEMENT_COLUMNS = new Set([
+      "origem", "cargo", "grupo_produto", "cultura", "movimento_considerado", "motivo_exclusao",
+    ]);
+
+    async function openMovements(reportId, codVendedor, scenarioId, reportName, segment, reportKind) {
       closeOverlay();
       const overlay = document.createElement("div");
       overlay.className = "vcr-overlay";
@@ -1444,7 +1452,7 @@
           ["faturamento", "Faturamento"], ["margem_percentual", "% MB"],
           ["territorio", "Território"], ["regional", "Regional"],
           ["movimento_considerado", "Considerado"], ["motivo_exclusao", "Motivo da exclusão"],
-        ];
+        ].filter(([key]) => !(reportKind === "bateu_levou" && BATEU_HIDDEN_MOVEMENT_COLUMNS.has(key)));
         const numericKeys = new Set(["quantidade", "faturamento", "margem_percentual"]);
         const consideredMovements = (movements || []).filter((movement) => movement.movimento_considerado === true);
         let sortState = null;
