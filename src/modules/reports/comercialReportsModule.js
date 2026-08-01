@@ -1421,7 +1421,7 @@
     // é sempre "Sim"/vazio (a tabela só lista movimento considerado), e o resto
     // é dado de cadastro que não soma à leitura de cada campanha.
     const HIDDEN_MOVEMENT_COLUMNS_BY_KIND = {
-      bateu_levou: new Set(["origem", "cargo", "grupo_produto", "cultura", "movimento_considerado", "motivo_exclusao"]),
+      bateu_levou: new Set(["origem", "cargo", "grupo_produto", "cultura", "margem_percentual", "movimento_considerado", "motivo_exclusao"]),
       final_ano: new Set(["origem", "cargo", "margem_percentual", "movimento_considerado", "motivo_exclusao"]),
     };
 
