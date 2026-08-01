@@ -748,7 +748,7 @@
       const cod = titular.cod_vendedor ? `cód. ${titular.cod_vendedor}` : "sem código na atribuição";
       return [
         { label: nome.toUpperCase(), sub: cod, line: tLine },
-        { label: "DEMAIS", sub: "total menos o titular", line: dLine }
+        { label: "DEMAIS", sub: "Demais vendedores", line: dLine }
       ];
     }
 
