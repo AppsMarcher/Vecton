@@ -171,6 +171,7 @@
         .vcr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.vcr-stat{border:1px solid var(--line);border-radius:13px;padding:13px;background:var(--panel)}.vcr-stat span{display:block;font-size:10px;color:var(--text-faint);text-transform:uppercase}.vcr-stat strong{display:block;font-size:21px;margin-top:5px}
         .vcr-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}.vcr-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.vcr-table th,.vcr-table td{padding:9px 11px;border-bottom:1px solid var(--line-soft);font-size:11px;white-space:nowrap;text-align:left}.vcr-table th{color:var(--text-faint);font-size:9px;text-transform:uppercase;background:var(--panel);position:sticky;top:0}.vcr-table td.num,.vcr-table th.num{text-align:right}.vcr-table th[data-vcr-sort]{cursor:pointer;user-select:none}.vcr-table th[data-vcr-sort]:hover{color:var(--text-soft)}.vcr-table th[data-vcr-sort].active{color:#7aa2ff}.vcr-pill{display:inline-flex;padding:3px 7px;border-radius:99px;background:var(--panel-hover)}.vcr-pill.ok{color:var(--pos);background:rgba(34,197,94,.1)}.vcr-pill.no{color:var(--neg);background:rgba(248,113,113,.1)}
         .vcr-table tbody tr[data-vcr-code]{cursor:pointer}.vcr-table tbody tr[data-vcr-code]:hover{background:var(--panel-hover)}.vcr-movements{width:min(1400px,97vw)}.vcr-movement-table{min-width:1180px}
+        .vcr-table tfoot td{border-top:1px solid var(--line);font-weight:600;color:var(--text);position:sticky;bottom:0;background:var(--panel)}
         .vcr-movement-table th[data-vcr-msort]{cursor:pointer;user-select:none}.vcr-movement-table th[data-vcr-msort]:hover{color:var(--text-soft)}.vcr-movement-table th[data-vcr-msort].active{color:#7aa2ff}
         .vcr-ranking-stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}.vcr-ranking-board{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}.vcr-ranking-board .vcr-table-wrap{border:0;border-radius:0}.vcr-ranking-board .vcr-table th,.vcr-ranking-board .vcr-table td{padding:8px 9px;font-size:10.5px}.vcr-ranking-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line);flex-wrap:wrap}.vcr-ranking-title{display:flex;align-items:center;gap:9px}.vcr-ranking-title h3{margin:0;font-size:13px}.vcr-ranking-title span{font-size:10px;color:var(--text-faint)}.vcr-ranking-dot{width:8px;height:8px;border-radius:50%;background:var(--blue)}.vcr-ranking-board.pecuaria .vcr-ranking-dot{background:#f59e0b}.vcr-ranking-board th[data-vcr-sort]{cursor:pointer;user-select:none}.vcr-ranking-board th[data-vcr-sort]:hover{color:var(--text-soft)}.vcr-ranking-board th[data-vcr-sort].active{color:#7aa2ff}
         .vcr-rank-centered .vcr-table th,.vcr-rank-centered .vcr-table td,.vcr-rank-centered .vcr-table th.num,.vcr-rank-centered .vcr-table td.num{text-align:center}.vcr-rank-centered .vcr-table th:nth-child(-n+2),.vcr-rank-centered .vcr-table td:nth-child(-n+2){text-align:left}
@@ -1472,6 +1473,21 @@
             exportRowsToExcel(sortedMovements(), exportColumns, `Detalhamento_movimentos_${reportName}_${codVendedor}`);
           });
         }
+        // Rodapé totalizador, mesmo padrão do drilldown do Painel de Vendas:
+        // contagem de linhas + soma das colunas somáveis. "% MB" é razão, não
+        // soma — fica vazio em vez de mostrar um número sem significado.
+        const firstTotalIndex = columns.findIndex(([key]) => key === "quantidade");
+        const footMarkup = (sorted) => {
+          if (!sorted.length) return "";
+          const totalQuantidade = sorted.reduce((acc, movement) => acc + (Number(movement.quantidade) || 0), 0);
+          const totalFaturamento = sorted.reduce((acc, movement) => acc + (Number(movement.faturamento) || 0), 0);
+          const cells = columns.slice(firstTotalIndex).map(([key]) => {
+            if (key === "quantidade") return `<td>${escapeHtml(totalQuantidade.toLocaleString("pt-BR", { maximumFractionDigits: 2 }))}</td>`;
+            if (key === "faturamento") return `<td>${escapeHtml(totalFaturamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }))}</td>`;
+            return "<td></td>";
+          }).join("");
+          return `<tfoot><tr><td colspan="${firstTotalIndex}">Total · ${sorted.length} ${sorted.length === 1 ? "linha" : "linhas"}</td>${cells}</tr></tfoot>`;
+        };
         const paintMovements = () => {
           const sorted = sortedMovements();
           const body = sorted.map((movement) => `<tr>${columns.map(([key]) => {
@@ -1485,7 +1501,7 @@
             const active = sortState?.key === key;
             const arrow = active ? (sortState.dir === 1 ? " ↑" : " ↓") : "";
             return `<th data-vcr-msort="${escapeHtml(key)}" class="${active ? "active" : ""}">${escapeHtml(label)}${arrow}</th>`;
-          }).join("")}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}" class="vcr-empty">Nenhum movimento considerado para este realizado.</td></tr>`}</tbody></table></div>`;
+          }).join("")}</tr></thead><tbody>${body || `<tr><td colspan="${columns.length}" class="vcr-empty">Nenhum movimento considerado para este realizado.</td></tr>`}</tbody>${footMarkup(sorted)}</table></div>`;
           overlay.querySelectorAll("th[data-vcr-msort]").forEach((header) => header.addEventListener("click", () => {
             const key = header.dataset.vcrMsort;
             sortState = sortState?.key === key ? { key, dir: sortState.dir * -1 } : { key, dir: 1 };
