@@ -173,6 +173,7 @@
         .vcr-table tbody tr[data-vcr-code]{cursor:pointer}.vcr-table tbody tr[data-vcr-code]:hover{background:var(--panel-hover)}.vcr-movements{width:min(1400px,97vw)}.vcr-movement-table{min-width:1180px}
         .vcr-movement-table th[data-vcr-msort]{cursor:pointer;user-select:none}.vcr-movement-table th[data-vcr-msort]:hover{color:var(--text-soft)}.vcr-movement-table th[data-vcr-msort].active{color:#7aa2ff}
         .vcr-ranking-stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}.vcr-ranking-board{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}.vcr-ranking-board .vcr-table-wrap{border:0;border-radius:0}.vcr-ranking-board .vcr-table th,.vcr-ranking-board .vcr-table td{padding:8px 9px;font-size:10.5px}.vcr-ranking-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line);flex-wrap:wrap}.vcr-ranking-title{display:flex;align-items:center;gap:9px}.vcr-ranking-title h3{margin:0;font-size:13px}.vcr-ranking-title span{font-size:10px;color:var(--text-faint)}.vcr-ranking-dot{width:8px;height:8px;border-radius:50%;background:var(--blue)}.vcr-ranking-board.pecuaria .vcr-ranking-dot{background:#f59e0b}.vcr-ranking-board th[data-vcr-sort]{cursor:pointer;user-select:none}.vcr-ranking-board th[data-vcr-sort]:hover{color:var(--text-soft)}.vcr-ranking-board th[data-vcr-sort].active{color:#7aa2ff}
+        .vcr-rank-centered .vcr-table th,.vcr-rank-centered .vcr-table td,.vcr-rank-centered .vcr-table th.num,.vcr-rank-centered .vcr-table td.num{text-align:center}.vcr-rank-centered .vcr-table th:nth-child(-n+2),.vcr-rank-centered .vcr-table td:nth-child(-n+2){text-align:left}
         .vcr-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}.vcr-chart{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel)}.vcr-chart h3{font-size:12px;margin:0 0 12px}.vcr-bar-row{display:grid;grid-template-columns:minmax(90px,1fr) 3fr 70px;gap:8px;align-items:center;font-size:10px;margin:7px 0}.vcr-bar-track{height:7px;background:var(--panel-hover);border-radius:99px;overflow:hidden}.vcr-bar-fill{height:100%;background:var(--blue);border-radius:99px}
         .vcr-pair{display:grid;gap:3px}.vcr-bar-fill.target{background:var(--text-faint)}.vcr-line-chart{width:100%;height:190px}.vcr-line-chart polyline{fill:none;stroke-width:2}.vcr-line-labels{display:flex;justify-content:space-between;color:var(--text-faint);font-size:9px}.vcr-legend{display:flex;gap:14px;font-size:10px;color:var(--text-soft);margin-bottom:8px}.vcr-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px}
         .vcr-compliance{border:1px solid var(--line);border-radius:14px;padding:0 14px;background:var(--panel)}.vcr-compliance summary{cursor:pointer;padding:13px 0;font-size:11px;font-weight:600}.vcr-compliance ul{margin:0 0 14px;padding-left:18px;color:var(--text-soft);font-size:11px;display:grid;gap:5px}
@@ -1044,8 +1045,14 @@
     // elegibilidade e motivo são dado de cadastro e saíram da tabela.
     const FINAL_ANO_HIDDEN_COLUMNS = new Set(["status", "eligible", "reason"]);
 
+    // Rótulos próprios da campanha: no Bateu-Levou a leitura é "quanto variou
+    // sobre a meta" e "bateu ou não", não "atingimento/premiado".
+    const BATEU_COLUMN_LABELS = { attainment_pct: "Var %", awarded: "Bateu" };
+
     function renderBateuRankings(columns, rows, reportId) {
-      const rankColumns = columns.filter((column) => !BATEU_HIDDEN_COLUMNS.has(column.key));
+      const rankColumns = columns
+        .filter((column) => !BATEU_HIDDEN_COLUMNS.has(column.key))
+        .map((column) => (BATEU_COLUMN_LABELS[column.key] ? { ...column, label: BATEU_COLUMN_LABELS[column.key] } : column));
       const definitionsBySegment = [
         { key: "graos", title: "Grãos", className: "graos", matches: (value) => String(value || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().startsWith("gra") },
         { key: "pecuaria", title: "Pecuária", className: "pecuaria", matches: (value) => String(value || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().startsWith("pec") },
@@ -1054,7 +1061,7 @@
         const sortKey = `${reportId}:${segment.key}`;
         const sortState = rankingSorts.get(sortKey) || null;
         const segmentRows = sortRankingRows(rows.filter((row) => segment.matches(row.segment)), rankColumns, sortState);
-        return `<section class="vcr-ranking-board ${segment.className}" data-vcr-ranking-board data-sort-key="${escapeHtml(sortKey)}">
+        return `<section class="vcr-ranking-board vcr-rank-centered ${segment.className}" data-vcr-ranking-board data-sort-key="${escapeHtml(sortKey)}">
           <header class="vcr-ranking-head"><div class="vcr-ranking-title"><i class="vcr-ranking-dot"></i><h3>Ranking ${escapeHtml(segment.title)}</h3><span>${segmentRows.length} integrante(s)</span></div></header>
           ${tableMarkup(rankColumns, segmentRows, { embedded: true, sortable: true, sortState, empty: `Sem integrantes no ranking de ${segment.title}.` })}
         </section>`;
