@@ -707,7 +707,9 @@
         ) {
           panel.innerHTML = renderCompositionReport(payload);
         } else {
-          const columns = (payload.columns || []).filter((c) => c.visible !== false).sort((a, b) => a.order - b.order);
+          const columns = (payload.columns || [])
+            .filter((c) => c.visible !== false && !(payload.report?.kind === "final_ano" && FINAL_ANO_HIDDEN_COLUMNS.has(c.key)))
+            .sort((a, b) => a.order - b.order);
           panel.innerHTML = `
             <div class="vcr-summary">${(payload.summary || []).map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && config.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
             ${tableMarkup(columns, payload.rows || [], { empty: "Sem resultados para o período." })}
@@ -1038,6 +1040,10 @@
 
     const BATEU_HIDDEN_COLUMNS = new Set(["segment", "cargo", "status", "eligible", "situation", "reason"]);
 
+    // "Meta de Final de Ano" mostra ranking/atingimento — status do vendedor,
+    // elegibilidade e motivo são dado de cadastro e saíram da tabela.
+    const FINAL_ANO_HIDDEN_COLUMNS = new Set(["status", "eligible", "reason"]);
+
     function renderBateuRankings(columns, rows, reportId) {
       const rankColumns = columns.filter((column) => !BATEU_HIDDEN_COLUMNS.has(column.key));
       const definitionsBySegment = [
@@ -1345,10 +1351,13 @@
     }
 
     function renderPayload(container, payload, scenarios, scenarioId) {
-      const columns = (payload.columns || []).filter((column) => column.visible !== false).sort((a, b) => a.order - b.order);
+      const isBateuLevou = payload.report?.kind === "bateu_levou";
+      const isFinalAno = payload.report?.kind === "final_ano";
+      const columns = (payload.columns || [])
+        .filter((column) => column.visible !== false && !(isFinalAno && FINAL_ANO_HIDDEN_COLUMNS.has(column.key)))
+        .sort((a, b) => a.order - b.order);
       const summary = payload.summary || [];
       const rows = payload.rows || [];
-      const isBateuLevou = payload.report?.kind === "bateu_levou";
       const isMonthAxis = payload.config?.row_axis === "month";
       const isSellerCultureComposition = payload.config?.row_axis === "seller"
         && !payload.config?.ranking?.enabled && !payload.config?.award?.enabled
