@@ -161,7 +161,7 @@
         .cvp-print-menu button:hover { background:rgba(255,255,255,.06); color:var(--cvp-text); }
         .cvp-print-menu svg { width:14px; height:14px; flex:none; }
         .cvp-email-backdrop { position:fixed; inset:0; z-index:9900; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:20px; }
-        .cvp-email { background:#121317; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:60vw; height:60vh; min-width:420px; min-height:380px; display:flex; flex-direction:column; overflow:hidden; }
+        .cvp-email { background:#121317; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:85vw; height:85vh; min-width:420px; min-height:380px; display:flex; flex-direction:column; overflow:hidden; }
         .cvp-email-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 20px; border-bottom:1px solid #2a2d34; flex:none; }
         .cvp-email-head h3 { font-size:14px; font-weight:600; margin:0; }
         .cvp-email-head p { font-size:11.5px; color:var(--cvp-faint); margin:2px 0 0; }
