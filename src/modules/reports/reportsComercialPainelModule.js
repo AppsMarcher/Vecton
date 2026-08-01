@@ -658,6 +658,9 @@
         + (scope.terr ? ` data-terr="${escapeHtml(scope.terr)}"` : "")
         + (scope.terrs && scope.terrs.length ? ` data-terrs="${escapeHtml(scope.terrs.join(","))}"` : "")
         + (scope.label ? ` data-label="${escapeHtml(scope.label)}"` : "")
+        + (scope.vendModo ? ` data-vend-modo="${escapeHtml(scope.vendModo)}"` : "")
+        + (scope.vend ? ` data-vend="${escapeHtml(scope.vend)}"` : "")
+        + (scope.pecas ? ` data-pecas="1"` : "")
         + (scope.tipos ? ` data-tipos="1"` : "");
     }
     function bindDrill(root) {
@@ -666,7 +669,13 @@
         const origens = (th.dataset.origens || "").split(",").filter(Boolean);
         const linhas = (th.dataset.linhas || "").split(",").filter(Boolean);
         const terrs = (th.dataset.terrs || "").split(",").filter(Boolean);
-        openDetailPopover(th, { coord: th.dataset.coord || null, terr: th.dataset.terr || null, terrs, label: th.dataset.label || null, tipos: th.dataset.tipos === "1", linhas }, origens);
+        openDetailPopover(th, {
+          coord: th.dataset.coord || null, terr: th.dataset.terr || null, terrs,
+          label: th.dataset.label || null, tipos: th.dataset.tipos === "1",
+          pecas: th.dataset.pecas === "1",
+          vend: th.dataset.vend || null, vendModo: th.dataset.vendModo || null,
+          linhas
+        }, origens);
       }));
     }
 
@@ -746,9 +755,13 @@
       };
       const nome = titular.vendedor || "Titular de Peças";
       const cod = titular.cod_vendedor ? `cód. ${titular.cod_vendedor}` : "sem código na atribuição";
+      // `vendModo` alimenta o drill (090): 'igual' = so o titular, 'diferente' =
+      // todo o resto (inclusive linha sem cod_vendedor), mesma regra da 087.
+      // Sem codigo na atribuicao nao ha como filtrar -> as duas tabelas ficam
+      // sem drill, em vez de abrir um popover que nao corresponde ao numero.
       return [
-        { label: nome.toUpperCase(), sub: cod, line: tLine },
-        { label: "DEMAIS", sub: "Demais vendedores", line: dLine }
+        { label: nome.toUpperCase(), sub: cod, line: tLine, vend: titular.cod_vendedor || null, vendModo: "igual" },
+        { label: "DEMAIS", sub: "Demais vendedores", line: dLine, vend: titular.cod_vendedor || null, vendModo: "diferente" }
       ];
     }
 
@@ -784,14 +797,18 @@
         // 1) Consolidado: repete o total do card (100% das pecas, com a meta
         //    nacional). 2) Titular da atribuicao nacional. 3) Demais.
         const consPecas = sumLine("pecas");
-        cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", null, null, consPecas, true));
+        // Drill de Peças (090): coordenacao 'Peças' + linha 'Peças'. As tabelas
+        // por vendedor filtram por cod_vendedor (igual/diferente do titular).
+        const pecasScope = { coord: c.nome, linhas: ["Peças"], pecas: true };
+        cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", null, null, consPecas, true, pecasScope));
         const vendCards = pecasVendLines(consPecas);
         if (vendCards.length) {
-          vendCards.forEach((vc) => cards.push(miniHtml(vc.label, vc.sub, null, null, vc.line)));
+          vendCards.forEach((vc) => cards.push(miniHtml(vc.label, vc.sub, null, null, vc.line, false,
+            vc.vend ? { ...pecasScope, vend: vc.vend, vendModo: vc.vendModo, label: vc.label } : null)));
         } else {
           // Migration 087 ainda nao aplicada: mantem o detalhe antigo por
           // territorio em vez de deixar a aba vazia.
-          Object.entries(src.terrs).forEach(([terr, t]) => { if (t.pecas) cards.push(miniHtml(terr, t.pecas.resp || "", null, null, t.pecas)); });
+          Object.entries(src.terrs).forEach(([terr, t]) => { if (t.pecas) cards.push(miniHtml(terr, t.pecas.resp || "", null, null, t.pecas, false, { ...pecasScope, terr })); });
         }
       } else {
         // Consolidado: drill pela coordenacao de roteamento (popover ganha col Territorio).
@@ -831,7 +848,7 @@
     // ---------------------------------------------------------------- drill popover
 
     let popEl = null;
-    let popRows = [], popShowTerr = false, popSort = { key: null, dir: 1 };
+    let popRows = [], popShowTerr = false, popShowVend = false, popSort = { key: null, dir: 1 };
     function fmtFullR$(v) { return "R$ " + nf(v || 0); }
 
     function closeDetailPopover() {
@@ -841,7 +858,7 @@
     }
     function onPopKey(e) { if (e.key === "Escape") closeDetailPopover(); }
 
-    function renderPopTable(rows, showTerr) {
+    function renderPopTable(rows, showTerr, showVend) {
       if (!rows.length) return `<div class="cvp-empty" style="padding:22px">Sem transações no período.</div>`;
       const NUM = ["quantidade", "valor"];
       const items = rows.filter((r) => !r.resumo);
@@ -853,7 +870,9 @@
           : d * String(a[k] || "").localeCompare(String(b[k] || ""), "pt-BR"));
       }
       const ordered = items.concat(resumos);
-      const span = showTerr ? 8 : 7;
+      // colunas antes de Qtd/Valor: Tipo + [Território] + [Vendedor] + Cód.Cli +
+      // Cliente + Cidade/UF + Cult + Cód.Prod + Produto
+      const span = 7 + (showTerr ? 1 : 0) + (showVend ? 1 : 0);
       const sortTh = (key, label, cls) => {
         const active = popSort.key === key;
         const arrow = active ? (popSort.dir === 1 ? " ↑" : " ↓") : "";
@@ -870,6 +889,7 @@
         return `<tr>
           <td>${escapeHtml(r.tipo || "")}</td>
           ${showTerr ? `<td>${escapeHtml(r.territorio || "")}</td>` : ""}
+          ${showVend ? `<td class="l">${escapeHtml(r.vendedor || "—")}</td>` : ""}
           <td class="mut">${escapeHtml(r.cod_cliente || "")}</td>
           <td class="l">${escapeHtml(r.cliente || "")}</td>
           <td class="mut">${escapeHtml(cidadeUf)}</td>
@@ -881,7 +901,7 @@
         </tr>`;
       }).join("");
       return `<table class="cvp-pop-tbl">
-        <thead><tr>${sortTh("tipo", "Tipo")}${showTerr ? sortTh("territorio", "Território") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}</tr></thead>
+        <thead><tr>${sortTh("tipo", "Tipo")}${showTerr ? sortTh("territorio", "Território") : ""}${showVend ? sortTh("vendedor", "Vendedor") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}</tr></thead>
         <tbody>${body}</tbody>
         <tfoot><tr><td colspan="${span}">Total · ${items.length} ${items.length === 1 ? "linha" : "linhas"}</td><td class="num${totQ < 0 ? " neg" : ""}">${nf(totQ)}</td><td class="num${totV < 0 ? " neg" : ""}">${fmtFullR$(totV)}</td></tr></tfoot>
       </table>`;
@@ -901,6 +921,7 @@
       const columns = [
         { label: "Tipo", value: (r) => r.tipo || "" },
         ...(popShowTerr ? [{ label: "Território", value: (r) => r.territorio || "" }] : []),
+        ...(popShowVend ? [{ label: "Vendedor", value: (r) => r.vendedor || "" }] : []),
         { label: "Cód. Cli.", value: (r) => r.cod_cliente || "" },
         { label: "Cliente", value: (r) => r.cliente || "" },
         { label: "Cidade/UF", value: (r) => [r.cidade, r.uf].filter(Boolean).join("/") },
@@ -918,7 +939,7 @@
       if (!popEl) return;
       const body = popEl.querySelector(".cvp-pop-body");
       if (!body) return;
-      body.innerHTML = renderPopTable(popRows, popShowTerr);
+      body.innerHTML = renderPopTable(popRows, popShowTerr, popShowVend);
       body.querySelectorAll(".cvp-pop-tbl th[data-sort]").forEach((th) => th.addEventListener("click", () => {
         const key = th.dataset.sort;
         if (popSort.key === key) popSort.dir *= -1; else { popSort.key = key; popSort.dir = 1; }
@@ -929,7 +950,9 @@
     // Busca as transacoes (NF/Ped) que formam o numero clicado e abre o modal centralizado.
     async function openDetailPopover(anchor, scope, origens) {
       closeDetailPopover();
-      const titulo = (origens.length > 1 ? "Faturado + Carteira" : "Faturado") + " · " + (scope.coord || scope.terr || scope.label || "");
+      // label vem primeiro: nas tabelas de Peças por vendedor o escopo tem coord
+      // ('Peças') E label (o nome do vendedor) -- quem identifica o card e o label.
+      const titulo = (origens.length > 1 ? "Faturado + Carteira" : "Faturado") + " · " + (scope.label || scope.coord || scope.terr || "");
       const backdrop = document.createElement("div");
       backdrop.className = "cvp-pop-backdrop";
       backdrop.innerHTML = `<div class="cvp-pop">
@@ -957,7 +980,8 @@
           const results = await Promise.all(terrList.map((terr) => callSupabaseRpc("comercial_painel_detalhe", {
             p_org: org, p_year: year, p_month: month, p_period: period,
             p_origens: origens, p_linhas: scope.linhas || [],
-            p_coordenacao: scope.coord || null, p_territorio: terr
+            p_coordenacao: scope.coord || null, p_territorio: terr,
+            p_cod_vendedor: scope.vend || null, p_vendedor_modo: scope.vendModo || null
           })));
           rows = results.flat().filter(Boolean);
         }
@@ -977,6 +1001,10 @@
       // (consolidado/hero) OU quando o card fundido cobre 2+ territórios (MA_PI).
       const singleTerr = scope.terr && !(scope.terrs && scope.terrs.length > 1);
       popShowTerr = !singleTerr;
+      // Coluna Vendedor só nas tabelas de Peças (nas de máquinas o responsável
+      // já é o próprio card). Vale inclusive no consolidado e em "Demais", que
+      // é onde ela informa de fato — cada linha mostra quem vendeu.
+      popShowVend = !!scope.pecas;
       popSort = { key: null, dir: 1 };                 // cada abertura comeca na ordem padrao (valor desc)
       const exportWrap = backdrop.querySelector(".cvp-pop-export");
       if (exportWrap) exportWrap.style.display = popRows.some((r) => !r.resumo) ? "flex" : "none";
