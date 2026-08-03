@@ -188,6 +188,11 @@ $$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 4. thread_messages agora devolve status dos tiques + anexos
 -- ─────────────────────────────────────────────────────────────────────────────
+-- DROP antes do CREATE: `create or replace` não muda o formato de retorno de
+-- uma função existente (42P13 — "cannot change return type"). A versão da 094
+-- devolvia menos colunas; aqui entram `status` e `anexos`.
+drop function if exists public.thread_messages(uuid);
+
 create or replace function public.thread_messages(p_thread uuid)
 returns table (
   id          uuid,
