@@ -6749,8 +6749,21 @@ table th,
   cursor: pointer;
 }
 .notif-rcpt-opt:hover { background: rgba(255, 255, 255, 0.05); }
-.notif-rcpt-opt input { accent-color: var(--blue); cursor: pointer; flex: none; }
-.notif-rcpt-opt-copy { display: grid; min-width: 0; }
+/* width/height explícitos são obrigatórios: a regra global `input, select,
+   textarea { width: 100% }` (styles.css:3749) vale também pra checkbox, e
+   `flex: none` não protege — com flex-basis:auto o item é dimensionado pela
+   width herdada, então o checkbox esticava pra ~290px e espremia o texto do
+   nome a zero (min-width:0 no bloco ao lado). */
+.notif-rcpt-opt input {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  padding: 0;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+.notif-rcpt-opt-copy { flex: 1; display: grid; min-width: 0; }
 .notif-rcpt-opt-copy strong {
   font-size: 0.74rem;
   font-weight: 500;
