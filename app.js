@@ -651,6 +651,46 @@ const { loadAndRenderManagements, bindManagementsAddButton } = createManagements
 // Clique numa notificação abre o relatório do evento já no período dele. O
 // RBAC continua mandando: quem não pode ver aquele relatório cai no catálogo,
 // sem atalho que fure a regra de acesso.
+// Deep link do e-mail de notificação: ?report=<id>&ano=<a>&mes=<m>.
+// Lido UMA vez no boot e removido da URL na hora — assim um F5 não reabre o
+// relatório sozinho e o endereço não fica sujo. A aplicação é adiada pro fim do
+// carregamento dos dados (abrir relatório antes disso pinta tabela vazia).
+//
+// Não conflita com o fluxo de convite/recuperação: aquele só limpa a URL quando
+// encontra access_token ou erro (authSession.js handleInviteRecoveryFlow), e um
+// link de notificação não tem nenhum dos dois.
+let pendingDeepLink = readDeepLinkFromUrl();
+
+function readDeepLinkFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const reportId = params.get("report");
+    if (!reportId) return null;
+    const link = {
+      reportId,
+      year: Number(params.get("ano")) || 0,
+      month: Number(params.get("mes")) || 0
+    };
+    history.replaceState(null, "", window.location.pathname);
+    return link;
+  } catch (_) {
+    return null;   // URL malformada não pode derrubar o boot
+  }
+}
+
+function applyPendingDeepLink() {
+  if (!pendingDeepLink) return;
+  const { reportId, year, month } = pendingDeepLink;
+  pendingDeepLink = null;
+  // Só abre id de relatório conhecido (fixo do catálogo ou personalizado).
+  const conhecido = Object.prototype.hasOwnProperty.call(REPORT_TITLES, reportId)
+    || String(reportId).startsWith("custom_");
+  if (!conhecido) return;
+  // openReportFromNotification já checa canSeeReport: quem não tem acesso cai
+  // no catálogo de relatórios em vez de numa tela quebrada.
+  openReportFromNotification(reportId, year, month);
+}
+
 function openReportFromNotification(reportId, year, month) {
   if (Number(year) > 0 && Number(month) > 0) {
     state.currentPeriod = { year: Number(year), month: Number(month) };
@@ -1705,6 +1745,7 @@ async function hydrateFromSupabase() {
     setSyncStatus("Banco de Dados Online", "ok");
     if (canManageUsers()) void loadAndRenderUsers();
     startNotifications();
+    applyPendingDeepLink();
   } catch (error) {
     console.error(error);
     if (String(error?.message || "").includes("Sessao")) {

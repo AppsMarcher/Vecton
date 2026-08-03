@@ -60,10 +60,16 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function buildHtml(subject: string, bodyText: string): string {
+function buildHtml(subject: string, bodyText: string, linkPath?: string | null): string {
   const lines = bodyText.split("\n").filter(Boolean).map(escapeHtml);
   const title = lines.shift() ?? escapeHtml(subject);
   const rest = lines.map((l) => `<p style="margin:0 0 6px;font-size:14px;color:#4b5563;">${l}</p>`).join("");
+  // link_path vem da trigger (migration 093) como "?report=...&ano=&mes=", e
+  // abre o relatorio do evento no mes certo. Sem ele o botao cai na home.
+  // Aceita so o formato esperado -- o conteudo vai pra dentro de um href.
+  const safePath = linkPath && /^\?[A-Za-z0-9_=&]+$/.test(linkPath) ? linkPath : "";
+  const href = APP_URL + safePath;
+  const rotulo = safePath ? "Abrir o relatório" : "Abrir o Vecton";
   return `<!doctype html>
 <html lang="pt-BR"><body style="margin:0;padding:24px;background:#f3f4f6;font-family:Segoe UI,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;">
@@ -72,7 +78,7 @@ function buildHtml(subject: string, bodyText: string): string {
       <h1 style="margin:0 0 12px;font-size:18px;color:#111827;">${escapeHtml(title)}</h1>
       ${rest}
       <p style="margin:20px 0 0;">
-        <a href="${APP_URL}" style="display:inline-block;background:#4f7cff;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:14px;">Abrir o Vecton</a>
+        <a href="${href}" style="display:inline-block;background:#4f7cff;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:14px;">${rotulo}</a>
       </p>
     </td></tr>
   </table>
@@ -131,7 +137,7 @@ Deno.serve(async (req) => {
       .update({ status: "pending" })
       .in("id", ids)
       .eq("status", "pending")
-      .select("id, recipients, subject, body_text, attempts");
+      .select("id, recipients, subject, body_text, attempts, link_path");
     if (claimErr) return json({ error: `Falha ao reservar itens: ${claimErr.message}` }, 500);
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
@@ -167,7 +173,7 @@ Deno.serve(async (req) => {
             to: recipients,
             subject: item.subject,
             text: item.body_text,
-            html: buildHtml(item.subject, item.body_text),
+            html: buildHtml(item.subject, item.body_text, item.link_path),
           }),
         });
         const data = await res.json().catch(() => ({}));
