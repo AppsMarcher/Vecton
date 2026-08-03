@@ -144,7 +144,7 @@
       else {
         _container.innerHTML = `
           <div class="msg-toolbar">
-            <button type="button" class="reports-toolbar-btn" data-action="nova">+ Nova mensagem</button>
+            <button type="button" class="msg-new-btn" data-action="nova">+ Nova mensagem</button>
           </div>
           <div class="msg-list">${listMarkup()}</div>
         `;
