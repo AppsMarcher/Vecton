@@ -266,7 +266,14 @@
       });
 
       if (!response.ok) {
-        clearStoredSession();
+        // Só derruba a sessão quando o servidor REJEITA o token de fato
+        // (400/401/403). Em 5xx ou instabilidade do lado do Supabase o token
+        // continua válido — apagar a sessão aí é jogar o usuário pra fora à toa,
+        // e com o polling do sininho rodando o dia todo essa chance deixou de
+        // ser desprezível.
+        if ([400, 401, 403].includes(response.status)) {
+          clearStoredSession();
+        }
         throw new Error(await response.text());
       }
 

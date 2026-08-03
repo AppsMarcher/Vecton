@@ -93,6 +93,10 @@
 
     async function refreshCount() {
       if (_disabled || !isSupabaseConfigured()) return;
+      // Aba em segundo plano não consulta: sem isso o timer gera tráfego (e
+      // renovação de token) o dia inteiro numa aba que ninguém está olhando.
+      // Ao voltar pra aba o visibilitychange já dispara uma atualização.
+      if (document.visibilityState === "hidden") return;
       try {
         const result = await callSupabaseRpc("notifications_unread_count");
         _unread = Number(result) || 0;

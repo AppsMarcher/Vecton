@@ -5701,6 +5701,26 @@ async function ensureSeedBranchesInSupabase(organizationId) {
   })), ["organization_id", "branch_code"]);
 }
 
+// Renovação de token em SINGLE-FLIGHT: o Supabase rotaciona o refresh token
+// (ele é de uso único). Sem esta trava, duas requisições que caem juntas na
+// janela dos 90s finais disparam dois refresh com o MESMO token — o primeiro
+// consome, o segundo leva 400, e o refreshSession derruba a sessão inteira,
+// chutando o usuário de volta pro login. Todo mundo que precisar renovar
+// compartilha a mesma promise.
+let refreshInFlight = null;
+
+function runSingleFlightRefresh() {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshSession(currentSession.refresh_token)
+      .then((refreshed) => {
+        applySession(refreshed);
+        return currentSession.access_token;
+      })
+      .finally(() => { refreshInFlight = null; });
+  }
+  return refreshInFlight;
+}
+
 async function ensureValidAccessToken() {
   if (!currentSession) {
     throw new Error("Sessao ausente.");
@@ -5716,9 +5736,7 @@ async function ensureValidAccessToken() {
     throw new Error("Sessao expirada.");
   }
 
-  const refreshed = await refreshSession(currentSession.refresh_token);
-  applySession(refreshed);
-  return currentSession.access_token;
+  return runSingleFlightRefresh();
 }
 
 async function authenticatedFetch(url, options = {}, retry = true) {
@@ -5729,8 +5747,9 @@ async function authenticatedFetch(url, options = {}, retry = true) {
   });
 
   if (response.status === 401 && retry && currentSession?.refresh_token) {
-    const refreshed = await refreshSession(currentSession.refresh_token);
-    applySession(refreshed);
+    // Passa pela mesma trava do ensureValidAccessToken: se várias requisições
+    // tomarem 401 ao mesmo tempo, só um refresh sai de fato.
+    await runSingleFlightRefresh();
     return authenticatedFetch(url, options, false);
   }
 
