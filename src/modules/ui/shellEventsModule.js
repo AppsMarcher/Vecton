@@ -42,6 +42,8 @@
       loadAndRenderUsers,
       loadAndRenderManagements,
       bindManagementsAddButton,
+      loadAndRenderNotificationSettings,
+      bindNotificationSettings,
       renderPlanningView,
       resetPlanningState,
       getPlanningContainer,
@@ -143,6 +145,11 @@
           if (getActiveView() === "managements") {
             loadAndRenderManagements();
             bindManagementsAddButton();
+            return;
+          }
+          if (getActiveView() === "notifications") {
+            bindNotificationSettings();
+            loadAndRenderNotificationSettings();
             return;
           }
           if (comercialModules && comercialModules[getActiveView()]) {

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260724a">
+  <link rel="stylesheet" href="styles.css?v=20260803a">
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -231,6 +231,7 @@
             <div id="params-submenu" class="menu-submenu">
               <button class="submenu-button" type="button" data-view="users"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-users"></use></svg><span>Usuários</span></button>
               <button class="submenu-button" type="button" data-view="accessProfiles"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-shield"></use></svg><span>Perfis de Acesso</span></button>
+              <button class="submenu-button" type="button" data-view="notifications"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-bell"></use></svg><span>Notificações</span></button>
               <!-- Demais parâmetros -->
               <button class="submenu-button" type="button" data-view="branchPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-branch"></use></svg><span>Empresas</span></button>
               <button class="submenu-button" type="button" data-view="drePlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-accounts"></use></svg><span>Plano de Contas</span></button>
@@ -284,7 +285,7 @@
           </div>
         </div>
         <div class="header-actions">
-          <button class="header-icon-button" type="button" aria-label="Notificacoes"><svg class="header-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-bell"></use></svg></button>
+          <button id="notifications-trigger" class="header-icon-button notif-trigger" type="button" aria-label="Notificacoes" aria-haspopup="dialog"><svg class="header-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-bell"></use></svg><span id="notifications-badge" class="notif-badge"></span></button>
           <button class="header-icon-button" type="button" aria-label="Mensagens"><svg class="header-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-mail"></use></svg></button>
           <button class="header-icon-button" type="button" aria-label="Ajuda"><svg class="header-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-help"></use></svg></button>
           <select class="header-select">
@@ -735,6 +736,30 @@
             <div id="mgmt-list" class="mgmt-list">
               <span class="mgmt-empty">Carregando...</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="notifications-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Notificações</h2>
+              <p class="cadastro-subtitle">Escolha o que avisa no sininho e o que também sai por e-mail. Vale para toda a organização.</p>
+            </div>
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table notif-config-table" id="notif-config-table">
+              <thead>
+                <tr>
+                  <th>Evento</th>
+                  <th class="notif-cfg-flag">Sininho</th>
+                  <th class="notif-cfg-flag">E-mail</th>
+                  <th>Destinatários do e-mail</th>
+                </tr>
+              </thead>
+              <tbody id="notif-config-body"><tr><td colspan="4" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -1255,13 +1280,13 @@
   <script src="cc-structure.js?v=20260719r"></script>
   <script src="supabase-config.js?v=20260719r"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="src/core/constants.js?v=20260722b"></script>
+  <script src="src/core/constants.js?v=20260803a"></script>
   <script src="src/core/utils.js?v=20260724a"></script>
   <script src="src/core/storage.js?v=20260719r"></script>
   <script src="src/modules/auth/authSession.js?v=20260719r"></script>
   <script src="src/modules/actuals/actualsModule.js?v=20260719r"></script>
   <script src="src/modules/budget/budgetModule.js?v=20260719r"></script>
-  <script src="src/modules/navigation/navigationModule.js?v=20260722b"></script>
+  <script src="src/modules/navigation/navigationModule.js?v=20260803a"></script>
   <script src="src/modules/ui/headerModule.js?v=20260719r"></script>
   <script src="src/modules/ui/branchTreeModule.js?v=20260719r"></script>
   <script src="src/modules/ui/dreTreeModule.js?v=20260719r"></script>
@@ -1273,7 +1298,7 @@
   <script src="src/modules/forecast/forecastModule.js?v=20260713a"></script>
   <script src="src/modules/reports/reportsHeadcountModule.js?v=20260719r"></script>
   <script src="src/modules/headcount/headcountRenderModule.js?v=20260719r"></script>
-  <script src="src/modules/ui/shellEventsModule.js?v=20260713a"></script>
+  <script src="src/modules/ui/shellEventsModule.js?v=20260803a"></script>
   <script src="src/modules/ui/editorEventsModule.js?v=20260731a"></script>
   <script src="src/modules/ui/dialogs.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260719r"></script>
@@ -1281,6 +1306,7 @@
   <script src="src/modules/reports/reportsSectionsModule.js?v=20260721b"></script>
   <script src="src/modules/users/usersModule.js?v=20260713h"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
+  <script src="src/modules/notifications/notificationsModule.js?v=20260803a"></script>
   <script src="src/modules/comercial/comercialCadastroModule.js?v=20260722b"></script>
   <script src="src/modules/comercial/comercialVendasCargaModule.js?v=20260729e"></script>
   <script src="src/modules/comercial/comercialPlanejadoCargaModule.js?v=20260719r"></script>
@@ -1292,7 +1318,7 @@
   <script src="src/modules/dashboard/dashboardModule.js?v=20260720e"></script>
   <script src="src/modules/dashboard/dashboardVisuals.js?v=20260720e"></script>
   <script src="src/modules/dashboard/marketTicker.js?v=20260713a"></script>
-  <script src="app.js?v=20260731a"></script>
+  <script src="app.js?v=20260803a"></script>
 </body>
 </html>
 

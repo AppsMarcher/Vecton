@@ -42,7 +42,7 @@
         button.classList.toggle("active", button.dataset.view === activeView);
       });
       const paramsViews = [
-        "branchPlan", "drePlan", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles",
+        "branchPlan", "drePlan", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles", "notifications",
         "comProdutos", "comClientes", "comTerritorios", "comCoordenacoes", "comTipos", "comCulturas", "comLinhasNegocio", "comVendedores", "comAtribuicao",
         "comercialVendas", "comercialPlanejado"
       ];

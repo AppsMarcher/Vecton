@@ -59,6 +59,7 @@ const { createShellEventsModule } = window.VECTON_SHELL_EVENTS;
 const { createEditorEventsModule } = window.VECTON_EDITOR_EVENTS;
 const { createUsersModule } = window.VECTON_USERS_MODULE;
 const { createManagementsModule } = window.VECTON_MANAGEMENTS_MODULE;
+const { createNotificationsModule } = window.VECTON_NOTIFICATIONS;
 const { createCadastroModule } = window.VECTON_COMERCIAL_CADASTRO_MODULE;
 const { createComercialVendasCargaModule } = window.VECTON_COMERCIAL_VENDAS_CARGA;
 const { createComercialPlanejadoCargaModule } = window.VECTON_COMERCIAL_PLANEJADO_CARGA;
@@ -175,6 +176,7 @@ const views = {
   managements: document.querySelector("#managements-view"),
   users: document.querySelector("#users-view"),
   accessProfiles: document.querySelector("#accessProfiles-view"),
+  notifications: document.querySelector("#notifications-view"),
   comProdutos: document.querySelector("#comProdutos-view"),
   comClientes: document.querySelector("#comClientes-view"),
   comTerritorios: document.querySelector("#comTerritorios-view"),
@@ -646,6 +648,41 @@ const { loadAndRenderManagements, bindManagementsAddButton } = createManagements
   appConfirm
 });
 
+// Clique numa notificação abre o relatório do evento já no período dele. O
+// RBAC continua mandando: quem não pode ver aquele relatório cai no catálogo,
+// sem atalho que fure a regra de acesso.
+function openReportFromNotification(reportId, year, month) {
+  if (Number(year) > 0 && Number(month) > 0) {
+    state.currentPeriod = { year: Number(year), month: Number(month) };
+    renderPeriodSummary();
+    renderPeriodPicker();
+  }
+  activeView = "reports";
+  selectedReportId = canSeeReport(reportId) ? reportId : null;
+  renderNavigation();
+  renderReportsView();
+}
+
+const {
+  startNotifications,
+  stopNotifications,
+  loadAndRenderNotificationSettings,
+  bindNotificationSettings
+} = createNotificationsModule({
+  escapeHtml,
+  state,
+  resolveOrganizationId,
+  callSupabaseRpc,
+  fetchSupabaseRowsSafe,
+  upsertSupabaseRows,
+  isSupabaseConfigured,
+  isAdmin,
+  showToast,
+  getCurrentUserId: () => currentUser?.id || null,
+  openReportFromNotification,
+  vpFriendlyError
+});
+
 // ── Módulo Comercial: cadastros (Produtos, Clientes, Território, Coordenação,
 // Tipo, Cultura, Linha de Negócio, Atribuição Território→Responsável) ──────
 const UF_OPTIONS = [
@@ -982,6 +1019,8 @@ const shellEventsModule = createShellEventsModule({
   loadAndRenderUsers,
   loadAndRenderManagements,
   bindManagementsAddButton,
+  loadAndRenderNotificationSettings,
+  bindNotificationSettings,
   renderPlanningView,
   resetPlanningState,
   getPlanningContainer: () => document.querySelector("#planning-view"),
@@ -1302,7 +1341,12 @@ function setupHeaderSearch() {
 
 function bindEvents() {
   loginForm.addEventListener("submit", handleLoginSubmit);
-  logoutButton.addEventListener("click", handleLogout);
+  // Para o polling do sininho antes de sair: senão o timer sobrevive ao
+  // logout e fica batendo no BD com uma sessão que não existe mais.
+  logoutButton.addEventListener("click", () => {
+    stopNotifications();
+    return handleLogout();
+  });
 
   // Olhinho: mostrar/ocultar senha no login
   const pwInput = document.querySelector("#login-password");
@@ -1660,6 +1704,7 @@ async function hydrateFromSupabase() {
     applyReportAccess();
     setSyncStatus("Banco de Dados Online", "ok");
     if (canManageUsers()) void loadAndRenderUsers();
+    startNotifications();
   } catch (error) {
     console.error(error);
     if (String(error?.message || "").includes("Sessao")) {
