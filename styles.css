@@ -6596,8 +6596,10 @@ table th,
   padding: 20px;
 }
 .notif-popover {
-  width: min(440px, 100%);
-  max-height: min(560px, 85vh);
+  width: 60vw;
+  /* Altura livre: o card cresce com o conteúdo. O teto de 85vh existe só pra
+     nunca ultrapassar a tela — a partir dele a lista rola por dentro. */
+  max-height: 85vh;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -6626,7 +6628,10 @@ table th,
   padding: 0;
 }
 .notif-mark-all:disabled { color: var(--text-faint); cursor: default; }
-.notif-list { overflow-y: auto; padding: 6px; }
+/* flex:1 + min-height:0 são obrigatórios agora que o popover tem altura fixa
+   (60vh): sem eles a lista dimensiona pelo conteúdo e vaza pra fora do card em
+   vez de rolar por dentro. */
+.notif-list { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
 .notif-item {
   width: 100%;
   display: grid;
@@ -6673,6 +6678,9 @@ table th,
   border: 2px solid var(--panel);
 }
 .notif-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 28px 16px;
   text-align: center;
   font-size: 0.74rem;
