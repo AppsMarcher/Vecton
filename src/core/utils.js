@@ -303,8 +303,17 @@ function exportButtonHtml(extraAttrs = "") {
   </button>`;
 }
 
+// vpFriendlyError precisa existir como GLOBAL, não só dentro de
+// VECTON_CORE_UTILS: os ~50 pontos de uso (app.js e 7 módulos) chamam o nome
+// direto, sem destructure nem deps — mesmo padrão do `window.vpSkeletonTable`.
+// Sem esta linha toda mensagem de erro amigável estourava ReferenceError, e
+// qualquer chamada em tempo de carga derruba o arquivo inteiro antes de
+// registrar os listeners (foi o que quebrou o login em 2026-08-03).
+global.vpFriendlyError = vpFriendlyError;
+
 global.VECTON_CORE_UTILS = {
   buildEmptyRow,
+  vpFriendlyError,
   buildFunAvatars,
   buildPeriodDate,
   chunkArray,
