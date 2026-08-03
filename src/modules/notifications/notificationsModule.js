@@ -123,7 +123,12 @@
         const c = Array.isArray(linhas) ? linhas[0] : linhas;
         _unread = Number(c?.notificacoes) || 0;
         _unreadMsgs = Number(c?.mensagens) || 0;
-        if (messagesTab) messagesTab.setMessagesUnread(_unreadMsgs);
+        if (messagesTab) {
+          messagesTab.setMessagesUnread(_unreadMsgs);
+          // Segundo tique = "chegou no aparelho da pessoa", então marcar
+          // entrega faz parte do polling, não da abertura da aba.
+          if (_unreadMsgs > 0) void messagesTab.markMessagesDelivered();
+        }
         renderBadge();
         autoAbrirSeTiverMensagem();
       } catch (error) {

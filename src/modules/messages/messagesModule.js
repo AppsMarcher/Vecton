@@ -18,14 +18,20 @@
       showToast,
       vpFriendlyError,
       getCurrentUserId,
-      isSupabaseConfigured
+      isSupabaseConfigured,
+      uploadToStorage,
+      createStorageSignedUrl
     } = deps;
+
+    const BUCKET = "message-attachments";
+    const MAX_FILE_MB = 15;
 
     let _view = "list";        // list | thread | compose
     let _threads = [];
     let _thread = null;        // { thread_id, subject } em foco
     let _messages = [];
     let _users = [];
+    let _pendingFiles = [];     // arquivos escolhidos, ainda não enviados
     let _unread = 0;
     let _loading = false;
     let _disabled = false;     // migration 094 ainda não rodada
@@ -81,26 +87,88 @@
       `).join("");
     }
 
+    // Hora do envio (o usuário pediu hora, não "há X min").
+    function formatHora(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    }
+
+    // Tiques no padrão WhatsApp: 1 = enviada, 2 = entregue, 2 verdes = lida.
+    // Em conversa com várias pessoas vale a regra de grupo — só sobe de estado
+    // quando TODOS os destinatários receberam/leram (quem calcula é o banco).
+    function tiquesMarkup(status) {
+      if (!status) return "";
+      const um = `<path d="M2 8.5l3.2 3.2L11.5 5"></path>`;
+      const dois = `${um}<path d="M7.5 11.7L13.8 5"></path>`;
+      const classe = status === "read" ? "msg-tick lido" : "msg-tick";
+      const titulo = status === "read" ? "Lida" : (status === "delivered" ? "Entregue" : "Enviada");
+      return `<svg class="${classe}" viewBox="0 0 16 16" aria-label="${titulo}"><title>${titulo}</title>${status === "sent" ? um : dois}</svg>`;
+    }
+
+    function anexosMarkup(m, minha) {
+      const lista = Array.isArray(m.anexos) ? m.anexos : [];
+      if (!lista.length) return "";
+      return `<div class="msg-anexos">` + lista.map((a) => {
+        const ehImagem = String(a.mime || "").startsWith("image/");
+        if (ehImagem) {
+          // A imagem carrega sob demanda (URL assinada) — ver hidrataImagens.
+          return `<button type="button" class="msg-anexo-img" data-path="${escapeHtml(a.path)}" data-nome="${escapeHtml(a.name)}" title="${escapeHtml(a.name)}">
+                    <span class="msg-anexo-loading">carregando imagem...</span>
+                  </button>`;
+        }
+        return `<button type="button" class="msg-anexo-file" data-path="${escapeHtml(a.path)}" data-nome="${escapeHtml(a.name)}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+                  <span class="msg-anexo-nome">${escapeHtml(a.name)}</span>
+                  <span class="msg-anexo-size">${formatTamanho(a.size)}</span>
+                </button>`;
+      }).join("") + `</div>`;
+    }
+
+    function formatTamanho(bytes) {
+      const n = Number(bytes) || 0;
+      if (n < 1024) return `${n} B`;
+      if (n < 1048576) return `${Math.round(n / 1024)} KB`;
+      return `${(n / 1048576).toFixed(1)} MB`;
+    }
+
     function threadMarkup() {
       const eu = getCurrentUserId();
       const corpo = _loading
         ? `<div class="notif-empty">Carregando...</div>`
-        : _messages.map((m) => `
-            <div class="msg-bubble${m.autor_id === eu ? " mine" : ""}">
+        : _messages.map((m) => {
+            const minha = m.autor_id === eu;
+            return `
+            <div class="msg-bubble${minha ? " mine" : ""}" data-id="${escapeHtml(m.id)}">
               <div class="msg-bubble-head">
                 <strong>${escapeHtml(m.autor || "")}</strong>
-                <span>${escapeHtml(formatRelative(m.created_at))}</span>
+                ${minha ? `<button type="button" class="msg-del" data-action="excluir" data-id="${escapeHtml(m.id)}" title="Excluir mensagem" aria-label="Excluir mensagem">✕</button>` : ""}
               </div>
-              <p>${escapeHtml(m.body || "")}</p>
-            </div>
-          `).join("");
+              ${m.body ? `<p>${escapeHtml(m.body)}</p>` : ""}
+              ${anexosMarkup(m, minha)}
+              <div class="msg-bubble-foot">
+                <span>${escapeHtml(formatHora(m.created_at))}</span>
+                ${minha ? tiquesMarkup(m.status) : ""}
+              </div>
+            </div>`;
+          }).join("");
+
+      const pendentes = _pendingFiles.length
+        ? `<div class="msg-pendentes">` + _pendingFiles.map((f, i) => `
+             <span class="msg-pendente">${escapeHtml(f.name)}<button type="button" data-action="tirar-anexo" data-i="${i}" aria-label="Remover">✕</button></span>
+           `).join("") + `</div>`
+        : "";
+
       return `
         <div class="msg-thread-head">
           <button type="button" class="msg-back" data-action="voltar">← Voltar</button>
           <strong>${escapeHtml(_thread?.subject || "")}</strong>
         </div>
         <div class="msg-thread-body">${corpo}</div>
+        ${pendentes}
         <div class="msg-reply">
+          <button type="button" class="msg-attach" data-action="anexar" title="Anexar arquivo ou foto" aria-label="Anexar">+</button>
+          <input type="file" id="msg-file" multiple hidden>
           <textarea id="msg-reply-text" rows="2" placeholder="Escreva sua resposta..."></textarea>
           <button type="button" class="primary-button" data-action="responder">Responder</button>
         </div>
@@ -137,10 +205,54 @@
       `;
     }
 
+    // Bucket privado: cada imagem precisa de URL assinada, então a bolha nasce
+    // com um placeholder e a imagem entra quando a assinatura volta. Feito por
+    // anexo (e não numa chamada só) porque são poucos por conversa.
+    async function hidrataImagens() {
+      if (!_container) return;
+      const alvos = [..._container.querySelectorAll(".msg-anexo-img:not([data-pronta])")];
+      for (const alvo of alvos) {
+        alvo.dataset.pronta = "1";
+        try {
+          const url = await createStorageSignedUrl(BUCKET, alvo.dataset.path);
+          const img = document.createElement("img");
+          img.src = url;
+          img.alt = alvo.dataset.nome || "";
+          alvo.innerHTML = "";
+          alvo.appendChild(img);
+        } catch (error) {
+          console.error(error);
+          alvo.innerHTML = `<span class="msg-anexo-loading">falha ao carregar</span>`;
+        }
+      }
+    }
+
+    // Clique no anexo baixa o arquivo — o `download` no fim da URL assinada faz
+    // o Storage devolver como anexo, com o nome original.
+    async function baixarAnexo(path, nome) {
+      try {
+        const url = await createStorageSignedUrl(BUCKET, path);
+        const a = document.createElement("a");
+        a.href = `${url}${url.includes("?") ? "&" : "?"}download=${encodeURIComponent(nome || "arquivo")}`;
+        a.rel = "noopener";
+        a.target = "_blank";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (error) {
+        console.error(error);
+        showToast(vpFriendlyError(error, "Falha ao abrir o anexo."), "error");
+      }
+    }
+
     function paint() {
       if (!_container) return;
-      if (_view === "thread") _container.innerHTML = threadMarkup();
-      else if (_view === "compose") _container.innerHTML = composeMarkup();
+      if (_view === "thread") {
+        _container.innerHTML = threadMarkup();
+        void hidrataImagens();
+        return;
+      }
+      if (_view === "compose") _container.innerHTML = composeMarkup();
       else {
         _container.innerHTML = `
           <div class="msg-toolbar">
@@ -245,13 +357,39 @@
       }
     }
 
+    // Sobe cada arquivo e registra o anexo. O caminho começa pelo id da thread
+    // porque é isso que a policy do Storage usa pra decidir o acesso.
+    async function subirAnexos(messageId) {
+      for (const file of _pendingFiles) {
+        const seguro = file.name.replace(/[^\w.\- ]+/g, "_").slice(-80);
+        const caminho = `${_thread.thread_id}/${crypto.randomUUID()}_${seguro}`;
+        await uploadToStorage(BUCKET, caminho, file);
+        await callSupabaseRpc("add_message_attachment", {
+          p_message_id: messageId,
+          p_path: caminho,
+          p_file_name: file.name,
+          p_mime: file.type || "",
+          p_size: file.size || 0
+        });
+      }
+      _pendingFiles = [];
+    }
+
     async function responder() {
       const texto = _container.querySelector("#msg-reply-text")?.value || "";
-      if (!texto.trim()) { showToast("Escreva a resposta.", "error"); return; }
+      // Com anexo, o texto pode ficar vazio — mandar só a foto é legítimo.
+      if (!texto.trim() && !_pendingFiles.length) {
+        showToast("Escreva a resposta ou anexe um arquivo.", "error");
+        return;
+      }
       const btn = _container.querySelector('[data-action="responder"]');
       if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
       try {
-        await callSupabaseRpc("reply_to_thread", { p_thread: _thread.thread_id, p_body: texto });
+        const id = await callSupabaseRpc("reply_to_thread", {
+          p_thread: _thread.thread_id,
+          p_body: texto.trim() || "(anexo)"
+        });
+        if (_pendingFiles.length) await subirAnexos(id);
         _messages = await callSupabaseRpc("thread_messages", { p_thread: _thread.thread_id }) || [];
         paint();
       } catch (error) {
@@ -259,6 +397,36 @@
         showToast(vpFriendlyError(error, "Falha ao enviar a resposta."), "error");
         if (btn) { btn.disabled = false; btn.textContent = "Responder"; }
       }
+    }
+
+    async function excluirMensagem(id) {
+      try {
+        await callSupabaseRpc("delete_message", { p_message_id: id });
+        _messages = _messages.filter((m) => m.id !== id);
+        if (!_messages.length) {
+          // Assunto ficou sem mensagem: o banco apaga a thread, então volta.
+          _view = "list";
+          paint();
+          await loadThreads();
+          return;
+        }
+        paint();
+        showToast("Mensagem excluída.");
+      } catch (error) {
+        console.error(error);
+        showToast(vpFriendlyError(error, "Falha ao excluir a mensagem."), "error");
+      }
+    }
+
+    function escolherArquivos(input) {
+      const escolhidos = [...(input.files || [])];
+      const grandes = escolhidos.filter((f) => f.size > MAX_FILE_MB * 1048576);
+      if (grandes.length) {
+        showToast(`"${grandes[0].name}" passa de ${MAX_FILE_MB} MB.`, "error");
+      }
+      _pendingFiles = _pendingFiles.concat(escolhidos.filter((f) => f.size <= MAX_FILE_MB * 1048576));
+      input.value = "";
+      paint();
     }
 
     // ── Entrada usada pelo notificationsModule ───────────────────────────────
@@ -280,11 +448,27 @@
           void loadUsers().then(() => { if (_view === "compose") paint(); });
           return;
         }
-        if (acao === "voltar") { _view = "list"; paint(); void loadThreads(); return; }
+        if (acao === "voltar") { _view = "list"; _pendingFiles = []; paint(); void loadThreads(); return; }
         if (acao === "enviar") { void enviar(); return; }
         if (acao === "responder") { void responder(); return; }
+        if (acao === "excluir") {
+          const alvo = event.target.closest("[data-id]");
+          if (alvo) void excluirMensagem(alvo.dataset.id);
+          return;
+        }
+        if (acao === "anexar") { container.querySelector("#msg-file")?.click(); return; }
+        if (acao === "tirar-anexo") {
+          const i = Number(event.target.closest("[data-i]")?.dataset.i);
+          if (Number.isInteger(i)) { _pendingFiles.splice(i, 1); paint(); }
+          return;
+        }
+        const anexo = event.target.closest(".msg-anexo-file, .msg-anexo-img");
+        if (anexo) { void baixarAnexo(anexo.dataset.path, anexo.dataset.nome); return; }
         const item = event.target.closest(".msg-item");
         if (item) void openThread(item.dataset.thread);
+      });
+      container.addEventListener("change", (event) => {
+        if (event.target.id === "msg-file") escolherArquivos(event.target);
       });
       // "Toda a organização" e escolha individual são mutuamente exclusivas.
       container.addEventListener("change", (event) => {
@@ -295,11 +479,25 @@
       });
     }
 
+    // Marcar "entregue" tem que acontecer no POLLING, não só quando a aba é
+    // aberta: o segundo tique significa "chegou no aparelho da pessoa", e isso
+    // é verdade assim que o cliente dela busca as mensagens.
+    async function markDelivered() {
+      if (_disabled || !isSupabaseConfigured()) return;
+      try {
+        await callSupabaseRpc("mark_messages_delivered");
+      } catch (error) {
+        if (isMissingSchemaError(error)) _disabled = true;
+        // Falha transitória não merece ruído: o próximo tick tenta de novo.
+      }
+    }
+
     return {
       renderMessagesInto: renderInto,
       setMessagesUnread: setUnread,
       getMessagesUnread: () => _unread,
-      reloadMessages: loadThreads
+      reloadMessages: loadThreads,
+      markMessagesDelivered: markDelivered
     };
   }
 

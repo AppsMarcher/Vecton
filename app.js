@@ -715,7 +715,9 @@ const messagesTab = createMessagesModule({
   showToast,
   vpFriendlyError,
   getCurrentUserId: () => currentUser?.id || null,
-  isSupabaseConfigured
+  isSupabaseConfigured,
+  uploadToStorage,
+  createStorageSignedUrl
 });
 
 const {
@@ -5947,6 +5949,41 @@ async function callSupabaseRpc(functionName, payload = {}) {
 
   const text = await response.text();
   return text ? JSON.parse(text) : null;
+}
+
+// ── Supabase Storage ────────────────────────────────────────────────────────
+// Usados pelos anexos do correio interno. O bucket é PRIVADO: quem controla o
+// acesso é a policy de storage.objects (migration 095), que reaproveita o
+// is_thread_participant — permissão do arquivo = permissão da conversa.
+async function uploadToStorage(bucket, path, file) {
+  const response = await authenticatedFetch(
+    `${supabaseConfig.projectUrl}/storage/v1/object/${bucket}/${encodeURI(path)}`,
+    {
+      method: "POST",
+      // Content-Type do arquivo sobrescreve o application/json padrão do
+      // buildAuthHeaders (o `extra` é espalhado por último).
+      headers: { "Content-Type": file.type || "application/octet-stream", "x-upsert": "false" },
+      body: file
+    }
+  );
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return path;
+}
+
+// Bucket privado não tem URL pública: cada exibição/download precisa de uma URL
+// assinada, de validade curta.
+async function createStorageSignedUrl(bucket, path, expiresIn = 3600) {
+  const response = await authenticatedFetch(
+    `${supabaseConfig.projectUrl}/storage/v1/object/sign/${bucket}/${encodeURI(path)}`,
+    { method: "POST", body: JSON.stringify({ expiresIn }) }
+  );
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  const data = await response.json();
+  return `${supabaseConfig.projectUrl}/storage/v1${data.signedURL}`;
 }
 
 // Chama uma Supabase Edge Function (/functions/v1/<nome>) com o token do usuário.
