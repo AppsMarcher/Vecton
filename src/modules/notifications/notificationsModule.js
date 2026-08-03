@@ -23,14 +23,21 @@
       showToast,
       getCurrentUserId,
       openReportFromNotification,
-      vpFriendlyError
+      vpFriendlyError,
+      messagesTab            // aba "Mensagens" (messagesModule); opcional
     } = deps;
 
     const POLL_MS = 60000;
     const FEED_LIMIT = 30;
+    // Abre sozinho uma vez por sessão quando há mensagem não lida — decisão do
+    // usuário. sessionStorage (e não localStorage) porque "sessão" aqui é a
+    // aba/navegação atual: fechou e voltou depois, avisa de novo.
+    const AUTO_OPEN_KEY = "vp_inbox_auto_opened_v1";
 
     let _items = [];
-    let _unread = 0;
+    let _unread = 0;          // notificações
+    let _unreadMsgs = 0;      // mensagens
+    let _tab = "notificacoes";
     let _timer = null;
     let _popover = null;
     let _loadingFeed = false;
@@ -75,15 +82,15 @@
       return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
     }
 
-    // ── Badge ────────────────────────────────────────────────────────────────
-    function renderBadge() {
-      const badge = document.querySelector("#notifications-badge");
+    // ── Badges ───────────────────────────────────────────────────────────────
+    function pintarBadge(seletor, valor) {
+      const badge = document.querySelector(seletor);
       if (!badge) return;
       // display explícito: o CSS base do badge é display:none, então string
       // vazia deixaria ele invisível pra sempre (mesma armadilha já documentada
       // nos botões de Relatórios).
-      if (_unread > 0) {
-        badge.textContent = _unread > 99 ? "99+" : String(_unread);
+      if (valor > 0) {
+        badge.textContent = valor > 99 ? "99+" : String(valor);
         badge.style.display = "flex";
       } else {
         badge.textContent = "";
@@ -91,6 +98,20 @@
       }
     }
 
+    function renderBadge() {
+      pintarBadge("#notifications-badge", _unread);
+      pintarBadge("#messages-badge", _unreadMsgs);
+      if (!_popover) return;
+      const chipN = _popover.querySelector('[data-tab="notificacoes"] .inbox-tab-count');
+      const chipM = _popover.querySelector('[data-tab="mensagens"] .inbox-tab-count');
+      if (chipN) chipN.textContent = _unread > 0 ? String(_unread) : "";
+      if (chipM) chipM.textContent = _unreadMsgs > 0 ? String(_unreadMsgs) : "";
+    }
+
+    // UMA consulta periódica pras duas caixas (RPC inbox_counts, migration 094).
+    // Uma chamada por caixa dobraria o tráfego de fundo — e foi requisição
+    // periódica extra que expôs a corrida de renovação de token em 2026-08-03.
+    // Se a 094 ainda não rodou, cai na contagem só de notificações da 092.
     async function refreshCount() {
       if (_disabled || !isSupabaseConfigured()) return;
       // Aba em segundo plano não consulta: sem isso o timer gera tráfego (e
@@ -98,19 +119,45 @@
       // Ao voltar pra aba o visibilitychange já dispara uma atualização.
       if (document.visibilityState === "hidden") return;
       try {
-        const result = await callSupabaseRpc("notifications_unread_count");
-        _unread = Number(result) || 0;
+        const linhas = await callSupabaseRpc("inbox_counts");
+        const c = Array.isArray(linhas) ? linhas[0] : linhas;
+        _unread = Number(c?.notificacoes) || 0;
+        _unreadMsgs = Number(c?.mensagens) || 0;
+        if (messagesTab) messagesTab.setMessagesUnread(_unreadMsgs);
         renderBadge();
+        autoAbrirSeTiverMensagem();
       } catch (error) {
         if (isMissingSchemaError(error)) {
-          _disabled = true;
-          _unread = 0;
-          renderBadge();
-          return;
+          try {
+            const result = await callSupabaseRpc("notifications_unread_count");
+            _unread = Number(result) || 0;
+            _unreadMsgs = 0;
+            renderBadge();
+            return;
+          } catch (e2) {
+            if (isMissingSchemaError(e2)) {
+              _disabled = true;
+              _unread = 0;
+              _unreadMsgs = 0;
+              renderBadge();
+              return;
+            }
+          }
         }
         // Rede instável / sessão renovando: silencioso, tenta no próximo tick.
-        console.debug("notificações: falha ao contar não lidas", error);
+        console.debug("caixa de entrada: falha ao contar não lidas", error);
       }
+    }
+
+    function autoAbrirSeTiverMensagem() {
+      if (_unreadMsgs <= 0 || _popover) return;
+      try {
+        if (sessionStorage.getItem(AUTO_OPEN_KEY) === "1") return;
+        sessionStorage.setItem(AUTO_OPEN_KEY, "1");
+      } catch (_) {
+        return;   // sem sessionStorage, não insiste
+      }
+      openPopover("mensagens");
     }
 
     // ── Popover ──────────────────────────────────────────────────────────────
@@ -204,19 +251,53 @@
       }
     }
 
-    function openPopover() {
+    function trocarAba(tab) {
+      _tab = tab === "mensagens" && messagesTab ? "mensagens" : "notificacoes";
+      if (!_popover) return;
+      _popover.querySelectorAll(".inbox-tab").forEach((b) => {
+        b.classList.toggle("active", b.dataset.tab === _tab);
+      });
+      const painelN = _popover.querySelector("#inbox-pane-notificacoes");
+      const painelM = _popover.querySelector("#inbox-pane-mensagens");
+      // display explícito nos dois sentidos (o CSS base do painel tem display
+      // próprio, então string vazia não serviria pra esconder).
+      if (painelN) painelN.style.display = _tab === "notificacoes" ? "flex" : "none";
+      if (painelM) painelM.style.display = _tab === "mensagens" ? "flex" : "none";
+      if (_tab === "notificacoes") {
+        void loadFeed();
+      } else if (messagesTab && painelM) {
+        messagesTab.renderMessagesInto(painelM, (n) => {
+          _unreadMsgs = n;
+          renderBadge();
+        });
+      }
+    }
+
+    function openPopover(tab) {
       closePopover();
       const backdrop = document.createElement("div");
       backdrop.className = "notif-backdrop";
-      // Popover centralizado na tela, não ancorado ao sino — é o padrão de
-      // todos os popovers do app.
+      // Popover centralizado na tela, não ancorado ao ícone — é o padrão de
+      // todos os popovers do app. Sino e cartinha abrem o MESMO painel, cada um
+      // na sua aba.
       backdrop.innerHTML = `
-        <div class="notif-popover" role="dialog" aria-label="Notificações">
-          <div class="notif-head">
-            <strong>Notificações</strong>
-            <button type="button" id="notif-mark-all" class="notif-mark-all">Marcar todas como lidas</button>
+        <div class="notif-popover" role="dialog" aria-label="Caixa de entrada">
+          <div class="inbox-tabs">
+            <button type="button" class="inbox-tab" data-tab="notificacoes">
+              Notificações <span class="inbox-tab-count"></span>
+            </button>
+            ${messagesTab ? `<button type="button" class="inbox-tab" data-tab="mensagens">
+              Mensagens <span class="inbox-tab-count"></span>
+            </button>` : ""}
           </div>
-          <div class="notif-list" id="notif-list"></div>
+          <div class="inbox-pane" id="inbox-pane-notificacoes">
+            <div class="notif-head">
+              <strong>Notificações</strong>
+              <button type="button" id="notif-mark-all" class="notif-mark-all">Marcar todas como lidas</button>
+            </div>
+            <div class="notif-list" id="notif-list"></div>
+          </div>
+          <div class="inbox-pane" id="inbox-pane-mensagens" style="display:none"></div>
         </div>
       `;
       document.body.appendChild(backdrop);
@@ -224,6 +305,9 @@
 
       backdrop.addEventListener("click", (event) => {
         if (event.target === backdrop) closePopover();
+      });
+      backdrop.querySelectorAll(".inbox-tab").forEach((b) => {
+        b.addEventListener("click", () => trocarAba(b.dataset.tab));
       });
       backdrop.querySelector("#notif-mark-all").addEventListener("click", () => void markAllRead());
       backdrop.querySelector("#notif-list").addEventListener("click", (event) => {
@@ -240,17 +324,27 @@
       setTimeout(() => document.addEventListener("keydown", onPopoverKey), 0);
 
       paintPopoverBody();
-      void loadFeed();
+      renderBadge();
+      trocarAba(tab);   // já carrega a aba escolhida (sino → notificações, carta → mensagens)
     }
 
     // ── Ciclo de vida ────────────────────────────────────────────────────────
+    // Sino e cartinha abrem o mesmo painel, cada um na sua aba. Clicar no ícone
+    // com o painel já aberto naquela aba fecha; em outra aba, só troca.
     function bindBell() {
-      const trigger = document.querySelector("#notifications-trigger");
-      if (!trigger || trigger.dataset.bound === "1") return;
-      trigger.dataset.bound = "1";
-      trigger.addEventListener("click", () => {
-        if (_popover) closePopover();
-        else openPopover();
+      const alvos = [
+        { seletor: "#notifications-trigger", aba: "notificacoes" },
+        { seletor: "#messages-trigger", aba: "mensagens" }
+      ];
+      alvos.forEach(({ seletor, aba }) => {
+        const trigger = document.querySelector(seletor);
+        if (!trigger || trigger.dataset.bound === "1") return;
+        trigger.dataset.bound = "1";
+        trigger.addEventListener("click", () => {
+          if (_popover && _tab === aba) closePopover();
+          else if (_popover) trocarAba(aba);
+          else openPopover(aba);
+        });
       });
     }
 
@@ -273,8 +367,12 @@
       closePopover();
       _items = [];
       _unread = 0;
+      _unreadMsgs = 0;
       _disabled = false;
       renderBadge();
+      // Logout limpa a marca de "já abri nesta sessão": o próximo usuário a
+      // entrar neste navegador merece ver as mensagens dele.
+      try { sessionStorage.removeItem(AUTO_OPEN_KEY); } catch (_) { /* indisponível */ }
     }
 
     // ── Tela Parâmetros → Notificações ───────────────────────────────────────

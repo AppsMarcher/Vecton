@@ -60,6 +60,7 @@ const { createEditorEventsModule } = window.VECTON_EDITOR_EVENTS;
 const { createUsersModule } = window.VECTON_USERS_MODULE;
 const { createManagementsModule } = window.VECTON_MANAGEMENTS_MODULE;
 const { createNotificationsModule } = window.VECTON_NOTIFICATIONS;
+const { createMessagesModule } = window.VECTON_MESSAGES;
 const { createCadastroModule } = window.VECTON_COMERCIAL_CADASTRO_MODULE;
 const { createComercialVendasCargaModule } = window.VECTON_COMERCIAL_VENDAS_CARGA;
 const { createComercialPlanejadoCargaModule } = window.VECTON_COMERCIAL_PLANEJADO_CARGA;
@@ -703,6 +704,20 @@ function openReportFromNotification(reportId, year, month) {
   renderReportsView();
 }
 
+// Correio interno: cuida só do conteúdo da aba "Mensagens"; quem monta o
+// popover, as abas e o polling é o notificationsModule, que recebe este módulo
+// como dependência (uma consulta periódica só, via RPC inbox_counts).
+const messagesTab = createMessagesModule({
+  escapeHtml,
+  callSupabaseRpc,
+  fetchSupabaseRowsSafe,
+  resolveOrganizationId,
+  showToast,
+  vpFriendlyError,
+  getCurrentUserId: () => currentUser?.id || null,
+  isSupabaseConfigured
+});
+
 const {
   startNotifications,
   stopNotifications,
@@ -720,7 +735,8 @@ const {
   showToast,
   getCurrentUserId: () => currentUser?.id || null,
   openReportFromNotification,
-  vpFriendlyError
+  vpFriendlyError,
+  messagesTab
 });
 
 // ── Módulo Comercial: cadastros (Produtos, Clientes, Território, Coordenação,
