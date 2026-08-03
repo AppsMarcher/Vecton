@@ -40,7 +40,14 @@ function json(body: unknown, status = 200) {
   });
 }
 
-const BATCH_SIZE = 50;      // itens drenados por execução
+// Lote pequeno de propósito: o painel do Supabase limita o timeout do pg_net a
+// 5 s, e cada envio pelo Resend leva algumas centenas de ms. Com 10 itens a
+// execução fecha dentro do teto e o job registra o resultado de verdade em
+// net._http_response; com lote grande ele apareceria como falho toda vez que
+// tivesse trabalho (o envio até completa, mas o Postgres já parou de ouvir).
+// A cada 5 min isso dá 120 e-mails/hora de vazão -- ordens de grandeza acima do
+// volume esperado (algumas cargas por mês).
+const BATCH_SIZE = 10;      // itens drenados por execução
 const MAX_ATTEMPTS = 5;     // depois disso o item vira 'failed' e para de tentar
 const APP_URL = "https://vecton.marcher.com.br";
 const RETENTION_DAYS = 90;  // notificações mais antigas que isso são apagadas
@@ -80,10 +87,24 @@ Deno.serve(async (req) => {
     const url = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Só o agendamento chama isto. Sem sessão de usuário: exige a service_role
-    // key no Authorization, senão qualquer um com a anon key drenaria a fila.
+    // Só o agendamento chama isto. Sem sessão de usuário: exige uma chave
+    // privilegiada no Authorization, senão qualquer um com a anon key drenaria
+    // a fila.
+    //
+    // Aceita mais de um formato de propósito: o painel de Cron insere a chave
+    // NOVA (`sb_secret_...`) no header, enquanto SUPABASE_SERVICE_ROLE_KEY é
+    // injetada no formato LEGADO (JWT `eyJ...`). Comparar só com uma das duas
+    // dá 401 mesmo com o job configurado certo. CRON_SECRET é a saída de
+    // emergência: se nenhuma das duas bater, basta criar esse secret e usar o
+    // mesmo valor no header do job. Todas são segredos — aceitar as três não
+    // afrouxa nada.
+    const accepted = [
+      serviceKey,
+      Deno.env.get("SB_SECRET_KEY"),
+      Deno.env.get("CRON_SECRET"),
+    ].filter(Boolean);
     const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
-    if (!token || token !== serviceKey) return json({ error: "Não autorizado" }, 401);
+    if (!token || !accepted.includes(token)) return json({ error: "Não autorizado" }, 401);
 
     const db = createClient(url, serviceKey);
 
