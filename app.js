@@ -717,7 +717,8 @@ const messagesTab = createMessagesModule({
   getCurrentUserId: () => currentUser?.id || null,
   isSupabaseConfigured,
   uploadToStorage,
-  createStorageSignedUrl
+  createStorageSignedUrl,
+  appConfirm
 });
 
 const {

@@ -20,7 +20,8 @@
       getCurrentUserId,
       isSupabaseConfigured,
       uploadToStorage,
-      createStorageSignedUrl
+      createStorageSignedUrl,
+      appConfirm
     } = deps;
 
     const BUCKET = "message-attachments";
@@ -72,8 +73,11 @@
       if (!_threads.length) {
         return `<div class="notif-empty">Nenhuma mensagem. Use "Nova mensagem" para falar com alguém.</div>`;
       }
+      // <div role="button"> e não <button>: a linha carrega um botão de excluir
+      // dentro, e botão dentro de botão é HTML inválido (o navegador desmonta a
+      // árvore e o clique fica imprevisível).
       return _threads.map((t) => `
-        <button class="notif-item msg-item${t.nao_lidas > 0 ? " unread" : ""}" type="button" data-thread="${escapeHtml(t.thread_id)}">
+        <div class="notif-item msg-item${t.nao_lidas > 0 ? " unread" : ""}" role="button" tabindex="0" data-thread="${escapeHtml(t.thread_id)}">
           <span class="notif-item-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-mail"></use></svg></span>
           <span class="notif-item-copy">
             <strong>${escapeHtml(t.subject || "(sem assunto)")}</strong>
@@ -84,7 +88,8 @@
             ${escapeHtml(formatRelative(t.last_at))}
             ${t.nao_lidas > 0 ? `<span class="msg-count">${t.nao_lidas}</span>` : ""}
           </span>
-        </button>
+          <button type="button" class="msg-thread-del" data-action="excluir-thread" data-thread="${escapeHtml(t.thread_id)}" title="Excluir conversa" aria-label="Excluir conversa">✕</button>
+        </div>
       `).join("");
     }
 
@@ -143,7 +148,7 @@
             <div class="msg-bubble${minha ? " mine" : ""}" data-id="${escapeHtml(m.id)}">
               <div class="msg-bubble-head">
                 <strong>${escapeHtml(m.autor || "")}</strong>
-                ${minha ? `<button type="button" class="msg-del" data-action="excluir" data-id="${escapeHtml(m.id)}" title="Excluir mensagem" aria-label="Excluir mensagem">✕</button>` : ""}
+                <button type="button" class="msg-del" data-action="excluir" data-id="${escapeHtml(m.id)}" data-minha="${minha ? "1" : "0"}" title="Excluir mensagem" aria-label="Excluir mensagem">✕</button>
               </div>
               ${m.body ? `<p>${escapeHtml(m.body)}</p>` : ""}
               ${anexosMarkup(m, minha)}
@@ -483,7 +488,13 @@
       }
     }
 
-    async function excluirMensagem(id) {
+    async function excluirMensagem(id, minha) {
+      // Apagar o que outra pessoa escreveu some pra todos e não tem volta —
+      // esse merece confirmação. A própria mensagem sai direto.
+      if (!minha && appConfirm) {
+        const ok = await appConfirm("Excluir esta mensagem? Ela some para todos os participantes.");
+        if (!ok) return;
+      }
       try {
         await callSupabaseRpc("delete_message", { p_message_id: id });
         _messages = _messages.filter((m) => m.id !== id);
@@ -499,6 +510,27 @@
       } catch (error) {
         console.error(error);
         showToast(vpFriendlyError(error, "Falha ao excluir a mensagem."), "error");
+      }
+    }
+
+    async function excluirConversa(threadId) {
+      const t = _threads.find((x) => x.thread_id === threadId);
+      if (appConfirm) {
+        const ok = await appConfirm(
+          `Excluir a conversa "${t?.subject || "sem assunto"}"? Todas as mensagens somem para todos os participantes.`
+        );
+        if (!ok) return;
+      }
+      try {
+        await callSupabaseRpc("delete_thread", { p_thread: threadId });
+        _threads = _threads.filter((x) => x.thread_id !== threadId);
+        if (_thread?.thread_id === threadId) { _view = "list"; _thread = null; }
+        paint();
+        showToast("Conversa excluída.");
+        await loadThreads();
+      } catch (error) {
+        console.error(error);
+        showToast(vpFriendlyError(error, "Falha ao excluir a conversa."), "error");
       }
     }
 
@@ -540,7 +572,15 @@
         if (acao === "responder") { void responder(); return; }
         if (acao === "excluir") {
           const alvo = event.target.closest("[data-id]");
-          if (alvo) void excluirMensagem(alvo.dataset.id);
+          if (alvo) void excluirMensagem(alvo.dataset.id, alvo.dataset.minha === "1");
+          return;
+        }
+        // Antes do clique da linha: o botão vive DENTRO dela e não pode abrir a
+        // conversa no mesmo gesto.
+        if (acao === "excluir-thread") {
+          event.stopPropagation();
+          const alvo = event.target.closest("[data-thread]");
+          if (alvo) void excluirConversa(alvo.dataset.thread);
           return;
         }
         if (acao === "anexar") { container.querySelector("#msg-file")?.click(); return; }
