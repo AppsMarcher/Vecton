@@ -6936,14 +6936,90 @@ table th,
 /* width/height explícitos: a regra global `input { width: 100% }` esticaria o
    checkbox e espremeria o texto (mesma armadilha do seletor de destinatários). */
 .msg-todos input { flex: none; width: 15px; height: 15px; min-width: 15px; padding: 0; accent-color: var(--blue); }
-.msg-people {
+/* Campo "Para" — chips + autocomplete, no lugar da lista de checkboxes */
+.msg-para.disabled { opacity: 0.4; pointer-events: none; }
+.msg-para-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-alt);
+}
+.msg-para-field:focus-within { border-color: var(--blue); }
+.msg-para-label { flex: none; font-size: 0.7rem; color: var(--text-faint); }
+/* O input divide a linha com os chips, então não pode herdar o width:100%
+   global — daí o flex:1 com base mínima. */
+.msg-para-field input {
+  flex: 1 1 120px;
+  width: auto;
+  min-width: 100px;
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  font-size: 0.76rem;
+  outline: none;
+}
+.msg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(79, 124, 255, 0.18);
+  border: 1px solid rgba(79, 124, 255, 0.45);
+  color: var(--text);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.msg-chip button {
+  width: 14px; height: 14px; min-width: 14px; padding: 0;
+  border: none; background: transparent; color: var(--text-faint);
+  font-size: 0.6rem; line-height: 1; cursor: pointer;
+}
+.msg-chip button:hover { color: var(--neg); }
+
+/* Sugestões em fluxo (não absolutas): a área de composição rola, e um painel
+   absoluto seria cortado por ela. */
+.msg-para-sug {
+  margin-top: 4px;
   max-height: 190px;
   overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: 10px;
+  background: var(--panel);
   padding: 4px;
 }
-.msg-people.disabled { opacity: 0.4; pointer-events: none; }
+.msg-sug {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.msg-sug:hover, .msg-sug.ativa { background: rgba(255, 255, 255, 0.06); }
+.msg-sug-copy { display: grid; min-width: 0; }
+.msg-sug-copy strong { font-size: 0.74rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-sug-copy span { font-size: 0.66rem; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-sug-tag {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text-faint);
+  font-size: 0.6rem;
+}
+.msg-sug-vazio { padding: 14px 8px; text-align: center; font-size: 0.7rem; color: var(--text-faint); }
 
 /* Seletor de destinatários (botão na célula + painel montado no body) */
 .notif-rcpt-trigger {

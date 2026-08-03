@@ -31,6 +31,7 @@
     let _thread = null;        // { thread_id, subject } em foco
     let _messages = [];
     let _users = [];
+    let _composeTo = [];        // destinatários escolhidos no campo "Para"
     let _pendingFiles = [];     // arquivos escolhidos, ainda não enviados
     let _unread = 0;
     let _loading = false;
@@ -175,28 +176,106 @@
       `;
     }
 
-    function composeMarkup() {
-      const opcoes = _users
-        .filter((u) => u.user_id !== getCurrentUserId())   // não faz sentido mandar pra si
-        .map((u) => `
-          <label class="notif-rcpt-opt">
-            <input type="checkbox" value="${escapeHtml(u.user_id)}">
-            <span class="notif-rcpt-opt-copy">
+    // ── Campo "Para" (chips + autocomplete) ──────────────────────────────────
+    // Substituiu a lista de checkboxes: com dezenas de usuários, marcar um a um
+    // não escala. Comporta-se como o "Para:" de um cliente de e-mail.
+    const RECENTES_KEY = "vp_msg_recent_recipients_v1";
+    const MAX_RECENTES = 15;
+
+    function getRecentes() {
+      try { return JSON.parse(localStorage.getItem(RECENTES_KEY) || "[]"); } catch (_) { return []; }
+    }
+    function salvarRecentes(ids) {
+      if (!ids.length) return;
+      try {
+        const merged = Array.from(new Set([...ids, ...getRecentes()])).slice(0, MAX_RECENTES);
+        localStorage.setItem(RECENTES_KEY, JSON.stringify(merged));
+      } catch (_) { /* localStorage indisponível não trava o envio */ }
+    }
+
+    function candidatos(query) {
+      const eu = getCurrentUserId();
+      const escolhidos = new Set(_composeTo.map((u) => u.user_id));
+      const q = String(query || "").trim().toLowerCase();
+      const livres = _users.filter((u) => u.user_id !== eu && !escolhidos.has(u.user_id));
+      if (q) {
+        return livres
+          .filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
+          .slice(0, 8);
+      }
+      // Sem busca: quem você mais usa primeiro, depois o resto em ordem.
+      const recentes = getRecentes();
+      const ordenado = [...livres].sort((a, b) => {
+        const ia = recentes.indexOf(a.user_id);
+        const ib = recentes.indexOf(b.user_id);
+        if (ia !== -1 || ib !== -1) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        return a.name.localeCompare(b.name);
+      });
+      return ordenado.slice(0, 8).map((u) => ({ ...u, recente: recentes.includes(u.user_id) }));
+    }
+
+    function renderChips() {
+      const alvo = _container?.querySelector("#msg-para-chips");
+      if (!alvo) return;
+      alvo.innerHTML = _composeTo.map((u) => `
+        <span class="msg-chip">${escapeHtml(u.name || u.email)}<button type="button" data-action="tirar-para" data-id="${escapeHtml(u.user_id)}" aria-label="Remover">✕</button></span>
+      `).join("");
+    }
+
+    function renderSugestoes(query, mostrar) {
+      const alvo = _container?.querySelector("#msg-para-sug");
+      if (!alvo) return;
+      if (!mostrar) { alvo.style.display = "none"; return; }
+      const lista = candidatos(query);
+      if (!lista.length) {
+        alvo.innerHTML = `<div class="msg-sug-vazio">${query ? "Ninguém encontrado." : "Nenhum outro usuário cadastrado."}</div>`;
+      } else {
+        alvo.innerHTML = lista.map((u, i) => `
+          <button type="button" class="msg-sug${i === 0 ? " ativa" : ""}" data-action="add-para" data-id="${escapeHtml(u.user_id)}">
+            <span class="msg-sug-copy">
               <strong>${escapeHtml(u.name || u.email)}</strong>
-              ${u.name && u.email ? `<span>${escapeHtml(u.email)}</span>` : ""}
+              <span>${escapeHtml(u.email)}</span>
             </span>
-          </label>`).join("");
+            ${u.recente ? `<span class="msg-sug-tag">recente</span>` : ""}
+          </button>`).join("");
+      }
+      alvo.style.display = "block";
+    }
+
+    function addPara(userId) {
+      const u = _users.find((x) => x.user_id === userId);
+      if (!u || _composeTo.some((x) => x.user_id === userId)) return;
+      _composeTo.push(u);
+      renderChips();
+      const input = _container?.querySelector("#msg-para-input");
+      if (input) { input.value = ""; input.focus(); }
+      renderSugestoes("", false);
+    }
+
+    function tirarPara(userId) {
+      _composeTo = _composeTo.filter((u) => u.user_id !== userId);
+      renderChips();
+    }
+
+    function composeMarkup() {
       return `
         <div class="msg-thread-head">
           <button type="button" class="msg-back" data-action="voltar">← Voltar</button>
           <strong>Nova mensagem</strong>
         </div>
         <div class="msg-compose">
-          <input type="text" id="msg-subject" placeholder="Assunto">
+          <div class="msg-para" id="msg-para">
+            <div class="msg-para-field" id="msg-para-field">
+              <span class="msg-para-label">Para</span>
+              <span id="msg-para-chips"></span>
+              <input type="text" id="msg-para-input" placeholder="Digite um nome..." autocomplete="off">
+            </div>
+            <div class="msg-para-sug" id="msg-para-sug" style="display:none"></div>
+          </div>
           <label class="msg-todos">
             <input type="checkbox" id="msg-org"> Enviar para toda a organização
           </label>
-          <div class="msg-people" id="msg-people">${opcoes || `<div class="notif-rcpt-vazio">Nenhum outro usuário cadastrado.</div>`}</div>
+          <input type="text" id="msg-subject" placeholder="Assunto">
           <textarea id="msg-body" rows="4" placeholder="Escreva sua mensagem..."></textarea>
         </div>
         <div class="msg-reply">
@@ -252,8 +331,10 @@
         void hidrataImagens();
         return;
       }
-      if (_view === "compose") _container.innerHTML = composeMarkup();
-      else {
+      if (_view === "compose") {
+        _container.innerHTML = composeMarkup();
+        renderChips();
+      } else {
         _container.innerHTML = `
           <div class="msg-toolbar">
             <button type="button" class="msg-new-btn" data-action="nova">+ Nova mensagem</button>
@@ -332,11 +413,11 @@
       const subject = _container.querySelector("#msg-subject")?.value || "";
       const body = _container.querySelector("#msg-body")?.value || "";
       const paraOrg = Boolean(_container.querySelector("#msg-org")?.checked);
-      const ids = [..._container.querySelectorAll("#msg-people input:checked")].map((i) => i.value);
+      const ids = _composeTo.map((u) => u.user_id);
 
       if (!subject.trim()) { showToast("Informe um assunto.", "error"); return; }
       if (!body.trim()) { showToast("Escreva a mensagem.", "error"); return; }
-      if (!paraOrg && !ids.length) { showToast("Selecione ao menos um destinatário.", "error"); return; }
+      if (!paraOrg && !ids.length) { showToast("Escolha ao menos um destinatário em Para.", "error"); return; }
 
       const btn = _container.querySelector('[data-action="enviar"]');
       if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
@@ -347,8 +428,11 @@
           p_user_ids: paraOrg ? [] : ids,
           p_audience: paraOrg ? "organization" : "people"
         });
+        // Lembra quem você usa — alimenta a ordenação do autocomplete.
+        if (!paraOrg) salvarRecentes(ids);
         showToast("Mensagem enviada.");
         _view = "list";
+        _composeTo = [];
         await loadThreads();
       } catch (error) {
         console.error(error);
@@ -444,10 +528,13 @@
         const acao = event.target.closest("[data-action]")?.dataset.action;
         if (acao === "nova") {
           _view = "compose";
+          _composeTo = [];
           paint();
-          void loadUsers().then(() => { if (_view === "compose") paint(); });
+          void loadUsers().then(() => { if (_view === "compose") renderChips(); });
           return;
         }
+        if (acao === "add-para") { addPara(event.target.closest("[data-id]").dataset.id); return; }
+        if (acao === "tirar-para") { tirarPara(event.target.closest("[data-id]").dataset.id); return; }
         if (acao === "voltar") { _view = "list"; _pendingFiles = []; paint(); void loadThreads(); return; }
         if (acao === "enviar") { void enviar(); return; }
         if (acao === "responder") { void responder(); return; }
@@ -470,12 +557,39 @@
       container.addEventListener("change", (event) => {
         if (event.target.id === "msg-file") escolherArquivos(event.target);
       });
-      // "Toda a organização" e escolha individual são mutuamente exclusivas.
+
+      // Campo "Para": as sugestões são repintadas sozinhas (sem paint() geral),
+      // senão o input perderia o foco a cada tecla.
+      container.addEventListener("input", (event) => {
+        if (event.target.id !== "msg-para-input") return;
+        renderSugestoes(event.target.value, true);
+      });
+      container.addEventListener("focusin", (event) => {
+        if (event.target.id === "msg-para-input") renderSugestoes(event.target.value, true);
+      });
+      container.addEventListener("keydown", (event) => {
+        if (event.target.id !== "msg-para-input") return;
+        if (event.key === "Enter") {
+          event.preventDefault();
+          const primeira = container.querySelector(".msg-sug");
+          if (primeira) addPara(primeira.dataset.id);
+          return;
+        }
+        if (event.key === "Escape") { renderSugestoes("", false); return; }
+        // Backspace no campo vazio tira o último chip — comportamento esperado
+        // em campo de destinatários.
+        if (event.key === "Backspace" && !event.target.value && _composeTo.length) {
+          tirarPara(_composeTo[_composeTo.length - 1].user_id);
+        }
+      });
+      // "Toda a organização" e o campo "Para" são mutuamente exclusivos.
       container.addEventListener("change", (event) => {
         if (event.target.id !== "msg-org") return;
-        const lista = container.querySelector("#msg-people");
-        if (lista) lista.classList.toggle("disabled", event.target.checked);
-        lista?.querySelectorAll("input").forEach((i) => { i.disabled = event.target.checked; });
+        const para = container.querySelector("#msg-para");
+        if (para) para.classList.toggle("disabled", event.target.checked);
+        const input = container.querySelector("#msg-para-input");
+        if (input) input.disabled = event.target.checked;
+        if (event.target.checked) renderSugestoes("", false);
       });
     }
 
