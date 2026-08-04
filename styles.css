@@ -7131,7 +7131,7 @@ table th,
 .rps-table thead th:first-child {
   left: 0;
   z-index: 6;
-  width: 300px;
+  width: 260px;
   text-align: left;
 }
 
