@@ -148,8 +148,9 @@
         .cvp-side-meter-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; }
         .cvp-side-meter-top .lbl { color:var(--cvp-faint); text-transform:uppercase; letter-spacing:.04em; font-size:10px; }
         .cvp-side-meter-top .pct { font-weight:600; font-variant-numeric:tabular-nums; font-size:14px; }
-        .cvp-side-bar { height:6px; border-radius:99px; background:var(--cvp-bg-soft); overflow:hidden; }
-        .cvp-side-bar-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,#4f7cff,#22c55e); transition:width .3s ease; }
+        .cvp-side-blocks { display:flex; gap:3px; }
+        .cvp-side-blocks .blk { flex:1; height:10px; border-radius:2px; background:var(--cvp-bg-soft); }
+        .cvp-side-blocks .blk.on { background:#8fb6ff; }
         .cvp-print-wrap { position:relative; }
         .cvp-print { display:flex; align-items:center; gap:6px; background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:12px; color:var(--cvp-soft); font-size:12.5px; font-family:inherit; font-weight:500; padding:9px 14px; cursor:pointer; }
         .cvp-print:hover { color:var(--cvp-text); border-color:#4f7cff; }
@@ -582,6 +583,11 @@
       // valor: quanto do Fat.+Cart. (cart_val JA e o total combinado) ja
       // atingiu a Meta do periodo.
       const pct = tot.meta_val > 0 ? (tot.cart_val / tot.meta_val) * 100 : 0;
+      // Barra em blocos (estilo "segmentado"), em vez do gradiente contínuo:
+      // 12 blocos, os primeiros N acesos conforme o % (capado em 100).
+      const TOTAL_BLOCKS = 12;
+      const onBlocks = Math.round((Math.min(pct, 100) / 100) * TOTAL_BLOCKS);
+      const blocks = Array.from({ length: TOTAL_BLOCKS }, (_, i) => `<span class="blk${i < onBlocks ? " on" : ""}"></span>`).join("");
       return `
         <div class="cvp-hero-side">
           <div class="cvp-side-title">Peças · Transgrain · Acessórios</div>
@@ -594,7 +600,7 @@
           </table>
           <div class="cvp-side-meter">
             <div class="cvp-side-meter-top"><span class="lbl">Fat.+Cart. vs. Meta</span><span class="pct">${pct.toFixed(0)}%</span></div>
-            <div class="cvp-side-bar"><div class="cvp-side-bar-fill" style="width:${Math.min(pct, 100).toFixed(1)}%"></div></div>
+            <div class="cvp-side-blocks">${blocks}</div>
           </div>
         </div>`;
     }
