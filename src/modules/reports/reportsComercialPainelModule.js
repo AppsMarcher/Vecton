@@ -144,13 +144,15 @@
         .cvp-side-tbl { width:100%; }
         .cvp-side-tbl th, .cvp-side-tbl td { padding:5px 6px; font-size:11px; }
         .cvp-side-tbl th:first-child, .cvp-side-tbl td:first-child { padding-left:0; }
-        .cvp-side-meter { margin-top:auto; padding-top:16px; }
-        .cvp-side-meter-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; }
+        .cvp-side-meter { margin-top:auto; padding-top:16px; flex:1; display:flex; flex-direction:column; min-height:0; }
+        .cvp-side-meter-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
         .cvp-side-meter-top .lbl { color:var(--cvp-faint); text-transform:uppercase; letter-spacing:.04em; font-size:10px; }
-        .cvp-side-meter-top .pct { font-weight:600; font-variant-numeric:tabular-nums; font-size:14px; }
-        .cvp-side-blocks { display:flex; gap:3px; }
-        .cvp-side-blocks .blk { flex:1; height:10px; border-radius:2px; background:var(--cvp-bg-soft); }
-        .cvp-side-blocks .blk.on { background:#8fb6ff; }
+        .cvp-vbars { flex:1; display:flex; align-items:flex-end; justify-content:space-around; gap:12px; min-height:70px; }
+        .cvp-vbar-col { display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; flex:1; }
+        .cvp-vbar-pct { font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--cvp-text); }
+        .cvp-vbar-track { flex:1; width:18px; border-radius:6px; background:var(--cvp-bg-soft); display:flex; align-items:flex-end; overflow:hidden; }
+        .cvp-vbar-fill { width:100%; border-radius:6px; transition:height .3s ease; }
+        .cvp-vbar-lbl { font-size:9.5px; color:var(--cvp-faint); text-transform:uppercase; letter-spacing:.03em; text-align:center; }
         .cvp-print-wrap { position:relative; }
         .cvp-print { display:flex; align-items:center; gap:6px; background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:12px; color:var(--cvp-soft); font-size:12.5px; font-family:inherit; font-weight:500; padding:9px 14px; cursor:pointer; }
         .cvp-print:hover { color:var(--cvp-text); border-color:#4f7cff; }
@@ -579,15 +581,22 @@
         tot.fat_val += Number(r.fat_val) || 0; tot.cart_val += Number(r.cart_val) || 0; tot.meta_val += Number(r.meta_val) || 0;
         return `<tr><td>${nome}</td><td>${fmtR$(r.fat_val)}</td><td>${fmtR$(r.cart_val)}</td><td>${fmtR$(r.meta_val)}</td></tr>`;
       }).join("");
-      // Os tres (Pecas/Transgrain/Acessorios) tem meta -> comparacao valor x
-      // valor: quanto do Fat.+Cart. (cart_val JA e o total combinado) ja
-      // atingiu a Meta do periodo.
-      const pct = tot.meta_val > 0 ? (tot.cart_val / tot.meta_val) * 100 : 0;
-      // Barra em blocos (estilo "segmentado"), em vez do gradiente contínuo:
-      // 12 blocos, os primeiros N acesos conforme o % (capado em 100).
-      const TOTAL_BLOCKS = 12;
-      const onBlocks = Math.round((Math.min(pct, 100) / 100) * TOTAL_BLOCKS);
-      const blocks = Array.from({ length: TOTAL_BLOCKS }, (_, i) => `<span class="blk${i < onBlocks ? " on" : ""}"></span>`).join("");
+      // 4 barrinhas verticais (Peças/Transgrain/Acessórios/Total), cada uma
+      // comparando FATUR. (fat_val) vs META (meta_val) — cor diferente por
+      // categoria, reaproveitando a paleta das coordenações.
+      const VBAR_COLOR = { "Peças": COORD_STYLE["Peças"].accent, "Transgrain": "#f59e0b", "Acessórios": "#8b5cf6", "Total": COORD_STYLE["Sul"].accent };
+      const vbarPct = (fat, meta) => meta > 0 ? (fat / meta) * 100 : 0;
+      const vbars = order.map((nome) => {
+        const r = byName[nome] || {};
+        return { nome, pct: vbarPct(Number(r.fat_val) || 0, Number(r.meta_val) || 0) };
+      });
+      vbars.push({ nome: "Total", pct: vbarPct(tot.fat_val, tot.meta_val) });
+      const vbarsHtml = vbars.map(({ nome, pct }) => `
+        <div class="cvp-vbar-col">
+          <span class="cvp-vbar-pct">${pct.toFixed(0)}%</span>
+          <div class="cvp-vbar-track"><div class="cvp-vbar-fill" style="height:${Math.min(pct, 100).toFixed(1)}%;background:${VBAR_COLOR[nome]}"></div></div>
+          <span class="cvp-vbar-lbl">${escapeHtml(nome)}</span>
+        </div>`).join("");
       return `
         <div class="cvp-hero-side">
           <div class="cvp-side-title">Peças · Transgrain · Acessórios</div>
@@ -599,8 +608,8 @@
             </tbody>
           </table>
           <div class="cvp-side-meter">
-            <div class="cvp-side-meter-top"><span class="lbl">Fat.+Cart. vs. Meta</span><span class="pct">${pct.toFixed(0)}%</span></div>
-            <div class="cvp-side-blocks">${blocks}</div>
+            <div class="cvp-side-meter-top"><span class="lbl">Fatur. vs. Meta</span></div>
+            <div class="cvp-vbars">${vbarsHtml}</div>
           </div>
         </div>`;
     }
