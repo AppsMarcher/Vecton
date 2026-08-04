@@ -214,3 +214,8 @@ Depois rode novamente `003_seed_cost_centers.sql` para preencher `cost_center_ma
 - `105_rps_weekly_backup_schedule.sql` agenda a Edge Function de backup para segunda-feira, 18:45 (America/Sao_Paulo), usando secrets do Vault.
 - As Edge Functions `rps-backup-worker` e `rps-backup-manager` ficam em `supabase/functions`.
 - O procedimento completo de instalacao e validacao esta em `docs/rps-backup-recuperacao.md`.
+
+## Preferencias do Vecton Messenger
+
+- `106_messenger_nickname.sql` adiciona o nickname exclusivo do Messenger, a RPC de atualização e prioriza o apelido na lista de contatos.
+- Som e cores são preferências locais por usuário e navegador; o nickname é persistido no Supabase e aparece para os demais usuários da organização.

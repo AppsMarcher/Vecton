@@ -8369,7 +8369,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
   z-index: 9400;
   display: flex;
   flex-direction: column;
-  background: #000;
+  background: var(--panel, #000);
   border: 1px solid var(--blue);
   border-radius: 14px;
   box-shadow: var(--shadow), 0 0 0 1px rgba(79, 124, 255, 0.16);
@@ -8386,6 +8386,13 @@ body.rps-laser-mode .rps-attachment-carousel * {
   flex: none;
 }
 .msn-painel .msn-head { cursor: move; }
+.msn-head-menu {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.msn-head-menu .msn-icon-btn { font-size: 1rem; }
 .msn-head-logo {
   display: block;
   width: 145px;
@@ -8549,7 +8556,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
   z-index: 9600;
   min-width: 190px;
   padding: 5px;
-  background: #000;
+  background: var(--panel, #000);
   border: 1px solid var(--blue);
   border-radius: 10px;
   box-shadow: var(--shadow);
@@ -8590,7 +8597,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
   min-height: 260px;
   display: flex;
   flex-direction: column;
-  background: #000;
+  background: var(--panel, #000);
   border: 1px solid var(--blue);
   border-radius: 12px;
   box-shadow: var(--shadow), 0 0 0 1px rgba(79, 124, 255, 0.16);
@@ -8616,13 +8623,94 @@ body.rps-laser-mode .rps-attachment-carousel * {
   gap: 8px;
   padding: 9px 12px;
   border-bottom: 1px solid var(--line);
-  background: #000;
+  background: var(--panel, #000);
   cursor: move;
   flex: none;
 }
 .msn-jan-identidade { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; }
 .msn-jan-titulo { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msn-jan-acoes { display: flex; gap: 2px; flex: none; }
+.msn-config-form {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  padding: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--blue) 55%, transparent) transparent;
+}
+.msn-config-intro { display: grid; gap: 3px; }
+.msn-config-intro strong { color: var(--text); font-size: .86rem; }
+.msn-config-intro span { color: var(--text-faint); font-size: .67rem; }
+.msn-config-field { display: grid; gap: 6px; }
+.msn-config-field > span,
+.msn-config-fieldset legend { color: var(--text); font-size: .7rem; font-weight: 700; }
+.msn-config-field input[type="text"] {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+  background: color-mix(in srgb, var(--panel) 90%, white 10%);
+  color: var(--text);
+  font: inherit;
+}
+.msn-config-field input[type="text"]:focus { border-color: var(--blue); }
+.msn-config-field small { color: var(--text-faint); font-size: .61rem; }
+.msn-config-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+}
+.msn-config-fieldset legend { padding: 0 5px; }
+.msn-config-sound {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 92%, white 8%);
+  cursor: pointer;
+}
+.msn-config-sound input { accent-color: var(--blue); }
+.msn-config-sound > span { display: grid; gap: 2px; }
+.msn-config-sound b { color: var(--text); font-size: .7rem; }
+.msn-config-sound small { color: var(--text-faint); font-size: .59rem; }
+.msn-config-sound button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.msn-config-colors { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.msn-config-colors legend { grid-column: 1 / -1; }
+.msn-config-colors label { display: grid; justify-items: center; gap: 6px; color: var(--text-soft); font-size: .64rem; }
+.msn-config-colors input[type="color"] { width: 100%; height: 34px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: transparent; cursor: pointer; }
+.msn-config-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 2px; }
+.msn-config-actions button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.msn-config-actions .primary-button { background: var(--blue); color: #fff; }
+.msn-config-actions button:disabled { opacity: .5; cursor: wait; }
 .msn-jan-corpo { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: grid; gap: 10px; align-content: start; }
 .msn-digitando { padding: 0 12px; min-height: 15px; font-size: 0.65rem; color: var(--text-faint); flex: none; }
 .msn-jan-compositor {

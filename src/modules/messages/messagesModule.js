@@ -44,8 +44,20 @@
     const MIN_ALTURA = 260;
     const MIN_PAINEL_LARGURA = 240;
     const MIN_PAINEL_ALTURA = 360;
+    const AJUSTES_PREFIX = "vecton-messenger-settings-v1";
+    const AJUSTES_PADRAO = Object.freeze({
+      som: "msn",
+      corLinha: "#4f7cff",
+      corTexto: "#e8edf8",
+      corFundo: "#000000"
+    });
+    const SONS_MENSAGEM = Object.freeze({
+      msn: "assets/msn.mp3?v=20260804a",
+      icq: "assets/icq.mp3?v=20260804a"
+    });
 
     let _painel = null;
+    let _configJanela = null;
     let _contatos = [];
     let _grupos = [];
     let _busca = "";
@@ -60,12 +72,12 @@
     let _realtimeOnline = false;
     let _iniciandoRealtime = null;
     let _audioContext = null;
+    let _ajustes = { ...AJUSTES_PADRAO };
     const _secoesRecolhidas = { online: false, offline: false };
     const _audioBuffers = new Map();
     const _audiosCarregando = new Map();
 
     const EVENTOS_LIBERAR_AUDIO = ["pointerdown", "keydown", "touchstart"];
-    const SOM_MENSAGEM_URL = "assets/msn-message.mp3?v=20260804b";
     const SOM_ATENCAO_URL = "assets/msn-wizz.mp3?v=20260804a";
     const EMOJIS = [
       "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "🙂",
@@ -108,6 +120,53 @@
       return LADOS.map((lado) => `<div class="msn-resize ${lado}" data-lado="${lado}"></div>`).join("");
     }
 
+    function chaveAjustes() {
+      return `${AJUSTES_PREFIX}:${getCurrentUserId?.() || "anonimo"}`;
+    }
+
+    function corValida(value, fallback) {
+      return /^#[0-9a-f]{6}$/i.test(String(value || "")) ? String(value).toLowerCase() : fallback;
+    }
+
+    function carregarAjustesLocais() {
+      try {
+        const salvo = JSON.parse(localStorage.getItem(chaveAjustes()) || "null") || {};
+        _ajustes = {
+          som: Object.hasOwn(SONS_MENSAGEM, salvo.som) ? salvo.som : AJUSTES_PADRAO.som,
+          corLinha: corValida(salvo.corLinha, AJUSTES_PADRAO.corLinha),
+          corTexto: corValida(salvo.corTexto, AJUSTES_PADRAO.corTexto),
+          corFundo: corValida(salvo.corFundo, AJUSTES_PADRAO.corFundo)
+        };
+      } catch (_) {
+        _ajustes = { ...AJUSTES_PADRAO };
+      }
+    }
+
+    function salvarAjustesLocais() {
+      try { localStorage.setItem(chaveAjustes(), JSON.stringify(_ajustes)); } catch (_) { /* best effort */ }
+    }
+
+    function aplicarTemaEm(elemento, ajustes = _ajustes) {
+      if (!elemento) return;
+      elemento.style.setProperty("--blue", ajustes.corLinha);
+      elemento.style.setProperty("--line", ajustes.corLinha);
+      elemento.style.setProperty("--text", ajustes.corTexto);
+      elemento.style.setProperty("--text-soft", ajustes.corTexto);
+      elemento.style.setProperty("--text-faint", ajustes.corTexto);
+      elemento.style.setProperty("--bg-soft", ajustes.corFundo);
+      elemento.style.setProperty("--panel", ajustes.corFundo);
+      elemento.style.setProperty("--panel-strong", ajustes.corFundo);
+      elemento.style.backgroundColor = ajustes.corFundo;
+      elemento.style.color = ajustes.corTexto;
+    }
+
+    function aplicarTemaMessenger(ajustes = _ajustes) {
+      aplicarTemaEm(_painel, ajustes);
+      aplicarTemaEm(_configJanela, ajustes);
+      aplicarTemaEm(_menu, ajustes);
+      _janelas.forEach((ctx) => aplicarTemaEm(ctx.el, ajustes));
+    }
+
     function obterAudioContext() {
       if (_audioContext && _audioContext.state !== "closed") return _audioContext;
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -140,7 +199,7 @@
       return carregamento;
     }
 
-    const carregarSomMensagem = () => carregarSom(SOM_MENSAGEM_URL, "mensagem");
+    const carregarSomMensagem = () => carregarSom(SONS_MENSAGEM[_ajustes.som], `mensagem ${_ajustes.som}`);
     const carregarSomAtencao = () => carregarSom(SOM_ATENCAO_URL, "chamar atenção");
 
     function removerDesbloqueioAudio() {
@@ -258,6 +317,9 @@
 
       return `
         <div class="msn-head">
+          <div class="msn-head-menu">
+            <button type="button" class="msn-icon-btn" data-action="abrir-ajustes" title="Opções do Vecton Messenger" aria-label="Abrir opções do Vecton Messenger">☰</button>
+          </div>
           <img class="msn-head-logo" src="assets/vecton-messenger.png?v=20260804b" alt="Vecton Messenger">
           <div class="msn-head-acoes">
             <button type="button" class="msn-icon-btn" data-action="fechar-painel" title="Fechar">✕</button>
@@ -313,7 +375,7 @@
       }
     }
 
-    const _meuPerfil = { presenca: "disponivel", recado: "" };
+    const _meuPerfil = { presenca: "disponivel", recado: "", nickname: "" };
 
     async function carregarMeuPerfil() {
       if (_disabled || !isSupabaseConfigured()) return;
@@ -323,6 +385,7 @@
         if (!perfil) return;
         _meuPerfil.presenca = perfil.presenca || "disponivel";
         _meuPerfil.recado = perfil.recado || "";
+        _meuPerfil.nickname = perfil.nickname || "";
         pintarPainel();
       } catch (error) {
         if (!isMissingSchemaError(error)) console.debug("messenger: falha ao carregar presença", error);
@@ -354,11 +417,13 @@
       _painel.innerHTML = markupInicial;
       _painel.__markupAtual = markupInicial;
       document.body.appendChild(_painel);
+      aplicarTemaEm(_painel);
       ligarPainelMovel(_painel);
 
       _painel.addEventListener("click", (event) => {
         const acao = event.target.closest("[data-action]")?.dataset.action;
         if (acao === "fechar-painel") { fecharPainel(); return; }
+        if (acao === "abrir-ajustes") { abrirConfiguracoes(); return; }
         if (acao === "novo-grupo") { void criarGrupo(); return; }
         if (acao === "alternar-secao") {
           const status = event.target.closest("[data-status]")?.dataset.status;
@@ -404,8 +469,152 @@
     function fecharPainel() {
       _painel?.remove();
       _painel = null;
+      fecharConfiguracoes(true);
       if (_timerContatos) clearInterval(_timerContatos);
       _timerContatos = null;
+    }
+
+    function ajustesDoFormulario(form) {
+      return {
+        som: form.querySelector('[name="msn-config-som"]:checked')?.value || AJUSTES_PADRAO.som,
+        corLinha: corValida(form.querySelector('[name="msn-config-linha"]')?.value, AJUSTES_PADRAO.corLinha),
+        corTexto: corValida(form.querySelector('[name="msn-config-texto"]')?.value, AJUSTES_PADRAO.corTexto),
+        corFundo: corValida(form.querySelector('[name="msn-config-fundo"]')?.value, AJUSTES_PADRAO.corFundo)
+      };
+    }
+
+    function preencherFormularioAjustes(form, ajustes, nickname) {
+      const som = form.querySelector(`[name="msn-config-som"][value="${ajustes.som}"]`);
+      if (som) som.checked = true;
+      const linha = form.querySelector('[name="msn-config-linha"]');
+      const texto = form.querySelector('[name="msn-config-texto"]');
+      const fundo = form.querySelector('[name="msn-config-fundo"]');
+      const apelido = form.querySelector('[name="msn-config-nickname"]');
+      if (linha) linha.value = ajustes.corLinha;
+      if (texto) texto.value = ajustes.corTexto;
+      if (fundo) fundo.value = ajustes.corFundo;
+      if (apelido) apelido.value = nickname || "";
+    }
+
+    function fecharConfiguracoes(reverter = true) {
+      if (!_configJanela) return;
+      const originais = _configJanela.__ajustesOriginais;
+      _configJanela.remove();
+      _configJanela = null;
+      if (reverter && originais) aplicarTemaMessenger(originais);
+    }
+
+    function abrirConfiguracoes() {
+      if (_configJanela) {
+        _zIndex += 1;
+        _configJanela.style.zIndex = String(_zIndex);
+        _configJanela.querySelector('[name="msn-config-nickname"]')?.focus();
+        return;
+      }
+
+      const el = document.createElement("div");
+      el.className = "msn-janela msn-config-janela";
+      el.__ajustesOriginais = { ..._ajustes };
+      el.innerHTML = `
+        <div class="msn-jan-head">
+          <strong class="msn-jan-titulo">Opções do Vecton Messenger</strong>
+          <div class="msn-jan-acoes"><button type="button" class="msn-icon-btn" data-config-action="fechar" title="Fechar">✕</button></div>
+        </div>
+        <form class="msn-config-form">
+          <div class="msn-config-intro"><strong>Personalize seu Messenger</strong><span>Som, identidade e aparência ficam sob seu controle.</span></div>
+          <label class="msn-config-field"><span>Nickname</span><input type="text" name="msn-config-nickname" maxlength="40" placeholder="Como você aparecerá na lista"><small>Substitui seu nome somente dentro do Messenger.</small></label>
+          <fieldset class="msn-config-fieldset">
+            <legend>Toque de nova mensagem</legend>
+            <label class="msn-config-sound"><input type="radio" name="msn-config-som" value="msn"><span><b>MSN</b><small>Toque clássico do Messenger</small></span><button type="button" data-config-preview="msn" title="Ouvir MSN">▶</button></label>
+            <label class="msn-config-sound"><input type="radio" name="msn-config-som" value="icq"><span><b>ICQ</b><small>Toque clássico do ICQ</small></span><button type="button" data-config-preview="icq" title="Ouvir ICQ">▶</button></label>
+          </fieldset>
+          <fieldset class="msn-config-fieldset msn-config-colors">
+            <legend>Cores do aplicativo</legend>
+            <label><span>Linha</span><input type="color" name="msn-config-linha"></label>
+            <label><span>Letras</span><input type="color" name="msn-config-texto"></label>
+            <label><span>Fundo</span><input type="color" name="msn-config-fundo"></label>
+          </fieldset>
+          <div class="msn-config-actions"><button type="button" data-config-action="padrao">Restaurar padrão</button><button type="submit" class="primary-button">Salvar ajustes</button></div>
+        </form>
+        ${alcasRedimensionamentoMarkup()}`;
+      _configJanela = el;
+      preencherFormularioAjustes(el.querySelector("form"), _ajustes, _meuPerfil.nickname);
+      document.body.appendChild(el);
+      aplicarTemaEm(el);
+      ligarRedimensionamento(el);
+
+      const largura = el.getBoundingClientRect().width || 560;
+      const painelRect = _painel?.getBoundingClientRect();
+      const limiteDireito = painelRect ? painelRect.left - 12 : window.innerWidth - 20;
+      el.style.left = `${Math.max(12, limiteDireito - largura)}px`;
+      el.style.top = `${Math.max(12, painelRect?.top ?? 60)}px`;
+      _zIndex += 1;
+      el.style.zIndex = String(_zIndex);
+
+      const head = el.querySelector(".msn-jan-head");
+      head.addEventListener("mousedown", (event) => {
+        if (event.target.closest("button")) return;
+        const rect = el.getBoundingClientRect();
+        const dx = event.clientX - rect.left;
+        const dy = event.clientY - rect.top;
+        const mover = (moveEvent) => {
+          el.style.left = `${Math.max(0, Math.min(window.innerWidth - 80, moveEvent.clientX - dx))}px`;
+          el.style.top = `${Math.max(0, Math.min(window.innerHeight - 40, moveEvent.clientY - dy))}px`;
+        };
+        const soltar = () => {
+          document.removeEventListener("mousemove", mover);
+          document.removeEventListener("mouseup", soltar);
+        };
+        document.addEventListener("mousemove", mover);
+        document.addEventListener("mouseup", soltar);
+        event.preventDefault();
+      });
+
+      const form = el.querySelector("form");
+      const atualizarPreview = () => aplicarTemaMessenger(ajustesDoFormulario(form));
+      form.addEventListener("input", (event) => {
+        if (event.target.matches('input[type="color"]')) atualizarPreview();
+      });
+      form.addEventListener("change", (event) => {
+        if (event.target.name === "msn-config-som") {
+          const som = event.target.value;
+          void tocarSom(() => carregarSom(SONS_MENSAGEM[som], `prévia ${som}`));
+        }
+      });
+      el.addEventListener("click", (event) => {
+        const action = event.target.closest("[data-config-action]")?.dataset.configAction;
+        if (action === "fechar") { fecharConfiguracoes(true); return; }
+        if (action === "padrao") {
+          preencherFormularioAjustes(form, AJUSTES_PADRAO, "");
+          aplicarTemaMessenger(AJUSTES_PADRAO);
+          return;
+        }
+        const preview = event.target.closest("[data-config-preview]")?.dataset.configPreview;
+        if (preview) void tocarSom(() => carregarSom(SONS_MENSAGEM[preview], `prévia ${preview}`));
+      });
+      el.addEventListener("keydown", (event) => { if (event.key === "Escape") fecharConfiguracoes(true); });
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const submit = form.querySelector('[type="submit"]');
+        const nickname = form.querySelector('[name="msn-config-nickname"]').value.trim();
+        submit.disabled = true;
+        try {
+          await callSupabaseRpc("set_messenger_nickname", { p_nickname: nickname || null });
+          _meuPerfil.nickname = nickname;
+          _ajustes = ajustesDoFormulario(form);
+          salvarAjustesLocais();
+          aplicarTemaMessenger();
+          await carregarContatos();
+          showToast("Ajustes do Messenger salvos.", "success");
+          fecharConfiguracoes(false);
+        } catch (error) {
+          showToast(vpFriendlyError(error, "Não foi possível salvar os ajustes."), "error");
+        } finally {
+          submit.disabled = false;
+        }
+      });
+
+      el.querySelector('[name="msn-config-nickname"]')?.focus();
     }
 
     function normalizarPosicaoPainel(el) {
@@ -483,6 +692,7 @@
           : `<button type="button" data-item="marcar">${marcado ? "Desmarcar da seleção" : "Marcar para grupo"}</button>`}
       `;
       document.body.appendChild(_menu);
+      aplicarTemaEm(_menu);
 
       // Posiciona no cursor, sem deixar vazar pra fora da tela.
       const r = _menu.getBoundingClientRect();
@@ -598,6 +808,7 @@
       ) || null;
       el.innerHTML = janelaMarkup(titulo, contato) + alcasRedimensionamentoMarkup();
       document.body.appendChild(el);
+      aplicarTemaEm(el);
 
       // Nasce encostada à ESQUERDA do painel de contatos, como no MSN — não no
       // meio da tela. Cascata só pra segunda janela em diante não cobrir a
@@ -1176,6 +1387,7 @@
     }
 
     async function iniciar() {
+      carregarAjustesLocais();
       prepararAudio();
       await carregarMeuPerfil();
       await iniciarRealtime();
