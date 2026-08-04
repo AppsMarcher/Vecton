@@ -1070,7 +1070,7 @@
             const comment = state.payload.comentarios[commentKey(area.id, indicator.id, week)];
             return `<td class="rps-value-cell ${week === focusWeek ? "is-focused" : ""}">
               <div class="rps-week-entry">
-                <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(formatValueForUnit(state.payload.dados[key], weekUnit))}" inputmode="decimal" ${fillable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
+                <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(formatValueForUnit(state.payload.dados[key], weekUnit))}" inputmode="decimal" autocomplete="off" ${fillable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
                 ${structural
                   ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<span class="rps-unit-readonly">${escapeHtml(weekUnit)}</span>`}
@@ -1092,7 +1092,7 @@
               ${structural ? `<button type="button" class="rps-month-mode-cycle" data-rps-month-mode-cycle="${escapeHtml(monthModeKey)}" data-current-mode="${escapeHtml(monthMode)}" title="${escapeHtml(monthModeInfo.label)}" aria-label="${escapeHtml(`${monthModeInfo.label} de ${indicator.label}`)}"><span>${escapeHtml(monthModeInfo.icon)}</span></button>` : ""}
             </td>
             <td class="rps-value-cell rps-target-cell">
-              <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="decimal" ${fillable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
+              <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="decimal" autocomplete="off" ${fillable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
               ${state.presentation ? "" : `<button class="rps-comment-button ${state.payload.comentarios[commentKey(area.id, indicator.id, "meta")] ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, "meta"))}" title="Comentário">●</button>`}
             </td>
             <td class="rps-variation ${trendClass}">${variation === null ? "—" : `${variation > 0 ? "+" : ""}${escapeHtml(formatValueForUnit(variation, monthUnit))}`}</td>

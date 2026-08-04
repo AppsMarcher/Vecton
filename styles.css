@@ -7371,11 +7371,6 @@ table th,
   transition: border-color .15s, background .15s, box-shadow .15s;
 }
 
-.rps-cell-input:hover:not(:disabled) {
-  border-color: rgba(255,255,255,.09);
-  background: rgba(255,255,255,.025);
-}
-
 .rps-cell-input:focus {
   border-color: rgba(79,124,255,.75);
   background: rgba(79,124,255,.07);
@@ -7385,6 +7380,18 @@ table th,
 .rps-cell-input:disabled {
   color: var(--text-soft);
   cursor: default;
+}
+
+/* Chrome pinta um fundo/borda arredondados nos campos que ele "lembra" de
+   preenchimentos anteriores (mesmo sem autocomplete real) — dava a
+   impressão de um retângulo em toda célula já preenchida, poluindo a
+   grade. Anula a cor sem mudar a aparência do campo. */
+.rps-cell-input:-webkit-autofill,
+.rps-cell-input:-webkit-autofill:hover,
+.rps-cell-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #dbe5ff;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .rps-comment-button {
