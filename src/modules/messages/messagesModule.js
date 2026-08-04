@@ -52,7 +52,7 @@
       corFundo: "#000000"
     });
     const SONS_MENSAGEM = Object.freeze({
-      msn: "assets/msn.mp3?v=20260804a",
+      msn: "assets/msn-message.mp3?v=20260804b",
       icq: "assets/icq.mp3?v=20260804a"
     });
 
@@ -517,7 +517,6 @@
       el.__ajustesOriginais = { ..._ajustes };
       el.innerHTML = `
         <div class="msn-jan-head">
-          <strong class="msn-jan-titulo">Opções do Vecton Messenger</strong>
           <div class="msn-jan-acoes"><button type="button" class="msn-icon-btn" data-config-action="fechar" title="Fechar">✕</button></div>
         </div>
         <form class="msn-config-form">

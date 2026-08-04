@@ -1,13 +1,12 @@
 const CACHE_PREFIX = "vecton-static-";
-const CACHE_NAME = `${CACHE_PREFIX}20260804z`;
+const CACHE_NAME = `${CACHE_PREFIX}20260804aa`;
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./styles.css?v=20260804x",
+  "./styles.css?v=20260804y",
   "./fav-icon.png",
   "./assets/msn-message.mp3?v=20260804b",
-  "./assets/msn.mp3?v=20260804a",
   "./assets/icq.mp3?v=20260804a",
   "./assets/msn-wizz.mp3?v=20260804a",
   "./assets/pwa-icon-192.png",

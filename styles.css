@@ -8631,15 +8631,24 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .msn-jan-titulo { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msn-jan-acoes { display: flex; gap: 2px; flex: none; }
 .msn-config-form {
-  flex: 1;
+  flex: none;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   display: grid;
   align-content: start;
   gap: 13px;
   padding: 16px;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--blue) 55%, transparent) transparent;
+}
+.msn-config-janela {
+  height: auto;
+  min-height: 0;
+  max-height: calc(100vh - 24px);
+}
+.msn-config-janela .msn-jan-head {
+  min-height: 42px;
+  justify-content: flex-end;
 }
 .msn-config-intro { display: grid; gap: 3px; }
 .msn-config-intro strong { color: var(--text); font-size: .86rem; }
