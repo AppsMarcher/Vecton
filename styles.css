@@ -8116,6 +8116,29 @@ body.rps-presentation-mode .rps-table-card {
 
 body.rps-presentation-mode .rps-table-scroll {
   max-height: calc(100vh - 125px);
+  overflow-x: auto;
+}
+
+/* Coluna de indicador mais estreita e Var.% reduzida em 40% (108px → ~65px)
+   só na apresentação — libera espaço pras colunas de valor. Sem isso a
+   tabela ficava exatamente do tamanho do viewport (table-layout:fixed +
+   width:100% "estica" as colunas pra preencher a tela toda quando ela é
+   mais larga que os 1380px mínimos), então nunca precisava rolar — mas o
+   conteúdo das células (ainda maior com o zoom da apresentação) ficava
+   cortado sem ter pra onde rolar. width:auto trava a tabela no tamanho
+   "natural" das colunas (não estica mais), garantindo overflow-x sempre
+   que a tela for menor que isso — o scroll fica sempre alcançável no
+   rodapé do card, já travado em altura fixa (max-height acima). */
+body.rps-presentation-mode .rps-table {
+  width: auto;
+}
+
+body.rps-presentation-mode .rps-table thead th:first-child {
+  width: 190px;
+}
+
+body.rps-presentation-mode .rps-table thead th:last-child {
+  width: 65px; /* 108px base − 40% */
 }
 
 body.rps-presentation-mode .rps-table th,
