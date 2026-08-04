@@ -7003,7 +7003,16 @@ table th,
   flex: none;
 }
 .msn-input-wrap { position: relative; flex: 1; min-width: 0; }
-.msn-input { width: 100%; min-width: 0; min-height: 0; height: 46px; resize: none; font-size: 0.76rem; padding: 8px 42px 8px 10px; }
+.msn-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 46px;
+  resize: none;
+  font-size: 0.76rem;
+  line-height: 18px;
+  padding: 13px 42px 13px 10px;
+}
 .msn-emoji-trigger {
   position: absolute;
   right: 7px;

@@ -544,8 +544,8 @@
           <strong class="msn-jan-titulo">${escapeHtml(titulo || "Conversa")}</strong>
           <div class="msn-jan-acoes">
             <button type="button" class="msn-icon-btn" data-action="aba-conversa" title="Conversa">💬</button>
-            <button type="button" class="msn-icon-btn" data-action="aba-midias" title="Mídias">🖼</button>
-            <button type="button" class="msn-icon-btn" data-action="zumbido" title="Enviar zumbido">🔔</button>
+            <button type="button" class="msn-icon-btn" data-action="aba-midias" title="Mídias">📎</button>
+            <button type="button" class="msn-icon-btn" data-action="zumbido" title="Chamar atenção">⚡</button>
             <button type="button" class="msn-icon-btn" data-action="sair" title="Sair da conversa">⎋</button>
             <button type="button" class="msn-icon-btn" data-action="fechar" title="Fechar">✕</button>
           </div>
@@ -814,7 +814,8 @@
       const eu = getCurrentUserId();
       pane.innerHTML = ctx.mensagens.map((m) => {
         if (m.kind === "nudge") {
-          return `<div class="msn-nudge-aviso">${escapeHtml(m.autor)} ${escapeHtml(m.body || "enviou um zumbido")}</div>`;
+          const aviso = !m.body || m.body === "enviou um zumbido" ? "chamou sua atenção!" : m.body;
+          return `<div class="msn-nudge-aviso">${escapeHtml(m.autor)} ${escapeHtml(aviso)}</div>`;
         }
         const minha = m.autor_id === eu;
         return `
@@ -978,7 +979,7 @@
         chacoalhar(ctx);
         await carregarMensagens(ctx);
       } catch (error) {
-        showToast(vpFriendlyError(error, "Falha ao enviar o zumbido."), "error");
+        showToast(vpFriendlyError(error, "Falha ao chamar atenção."), "error");
       }
     }
 
