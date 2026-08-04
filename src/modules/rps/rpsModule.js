@@ -89,7 +89,7 @@
 
   function defaultPayload() {
     return {
-      version: 3,
+      version: 4,
       areas: clone(DEFAULT_AREAS),
       indicadores: Object.fromEntries(Object.entries(DEFAULT_INDICATORS).map(([areaId, definitions]) => [
         areaId,
@@ -112,7 +112,8 @@
       dadosMeta: {},
       anexos: {},
       modoMes: {},
-      modoMeta: {}
+      modoMeta: {},
+      configuracoes: { semanaFoco: "S5" }
     };
   }
 
@@ -149,7 +150,7 @@
       indicadores[area.id] = list.map(normalizeIndicator);
     });
     return {
-      version: Math.max(Number(source.version) || 3, 3),
+      version: Math.max(Number(source.version) || 4, 4),
       areas,
       indicadores,
       unidades: clone(source.unidades || {}),
@@ -160,7 +161,8 @@
       dadosMeta: clone(source.dadosMeta || {}),
       anexos: clone(source.anexos || {}),
       modoMes: clone(source.modoMes || {}),
-      modoMeta: clone(source.modoMeta || {})
+      modoMeta: clone(source.modoMeta || {}),
+      configuracoes: { ...clone(fallback.configuracoes), ...clone(source.configuracoes || {}) }
     };
   }
 
@@ -223,8 +225,8 @@
     areaIds.forEach((areaId) => {
       indicadores[areaId] = mergeEntities(base.indicadores[areaId], remote.indicadores[areaId], local.indicadores[areaId], metadata);
     });
-    const result = { version: 3, areas, indicadores };
-    ["unidades", "dados", "cellStyles", "comentarios", "dadosMes", "dadosMeta", "anexos", "modoMes", "modoMeta"].forEach((section) => {
+    const result = { version: 4, areas, indicadores };
+    ["unidades", "dados", "cellStyles", "comentarios", "dadosMes", "dadosMeta", "anexos", "modoMes", "modoMeta", "configuracoes"].forEach((section) => {
       result[section] = mergeMap(base[section], remote[section], local[section], metadata);
     });
     return { payload: result, conflicts: metadata.conflicts };
@@ -416,6 +418,11 @@
       return Array.isArray(state.payload.indicadores?.[areaId]) ? state.payload.indicadores[areaId] : [];
     }
 
+    function focusedWeek() {
+      const week = String(state.payload.configuracoes?.semanaFoco || "S5");
+      return WEEKS.includes(week) ? week : "S5";
+    }
+
     function getUnit(areaId, indicatorId, indicator, column = "S1") {
       return normalizeUnit(state.payload.unidades[valueKey(areaId, indicatorId, column)]
         || state.payload.unidades[`${areaId}|${indicatorId}`]
@@ -429,6 +436,10 @@
     }
 
     function monthModeConfig(mode) {
+      if (mode === "ultima") {
+        const week = focusedWeek();
+        return { value: "ultima", icon: week, label: `Semana em foco · ${week}` };
+      }
       return MONTH_MODE_OPTIONS.find((item) => item.value === mode) || MONTH_MODE_OPTIONS[0];
     }
 
@@ -461,7 +472,7 @@
       const manual = parseNumber(state.payload.dadosMes[monthValueKey(areaId, indicator.id)]);
       if (state.payload.modoMes[`mes:${areaId}|${indicator.id}`] === "manual" && manual !== null) return manual;
       const mode = state.payload.modoMes[`mes:${areaId}|${indicator.id}`] || "soma";
-      if (mode === "ultima") return getWeekValue(areaId, indicator, WEEKS[WEEKS.length - 1]) ?? manual;
+      if (mode === "ultima") return getWeekValue(areaId, indicator, focusedWeek()) ?? manual;
       const values = WEEKS.map((week) => getWeekValue(areaId, indicator, week)).filter((value) => value !== null);
       if (!values.length) return manual;
       if (mode === "media") return values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -474,6 +485,7 @@
 
     function renderRows() {
       const editable = canEdit();
+      const focusWeek = focusedWeek();
       return state.payload.areas.map((area) => {
         const indicators = getIndicators(area.id);
         const indicatorCount = indicators.filter((indicator) => indicator.type !== "spacer").length;
@@ -509,7 +521,7 @@
             const weekUnit = getUnit(area.id, indicator.id, indicator, week);
             if (calculatedRow) {
               const calculatedValue = getWeekValue(area.id, indicator, week);
-              return `<td class="rps-calculated-cell rps-formula-cell" title="${escapeHtml(indicator.formula || "Linha calculada")}">
+              return `<td class="rps-calculated-cell rps-formula-cell ${week === focusWeek ? "is-focused" : ""}" title="${escapeHtml(indicator.formula || "Linha calculada")}">
                 <strong>${escapeHtml(formatValueForUnit(calculatedValue, weekUnit, "—"))}</strong>
                 ${editable
                   ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
@@ -517,7 +529,7 @@
               </td>`;
             }
             const comment = state.payload.comentarios[commentKey(area.id, indicator.id, week)];
-            return `<td class="rps-value-cell">
+            return `<td class="rps-value-cell ${week === focusWeek ? "is-focused" : ""}">
               <div class="rps-week-entry">
                 <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(formatValueForUnit(state.payload.dados[key], weekUnit))}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
                 ${editable
@@ -555,6 +567,7 @@
       if (!root) return;
       const { year, month } = currentPeriod();
       const editable = canEdit();
+      const focusWeek = focusedWeek();
       root.innerHTML = `
         <div class="rps-page ${state.presentation ? "is-presenting" : ""}">
           <div class="rps-hero">
@@ -575,7 +588,7 @@
           <section class="content-card rps-table-card">
             <div class="rps-table-scroll ${state.loading ? "is-loading" : ""}">
               <table class="rps-table">
-                <thead><tr><th>Área / indicador</th>${WEEKS.map((week) => `<th>${week}</th>`).join("")}<th>Mês</th><th>Meta</th><th>Var.</th><th>Var. %</th></tr></thead>
+                <thead><tr><th>Área / indicador</th>${WEEKS.map((week) => `<th class="${week === focusWeek ? "is-focused" : ""}"><button type="button" class="rps-week-focus" data-rps-focus-week="${week}" aria-pressed="${week === focusWeek}" title="Destacar ${week}">${week}</button></th>`).join("")}<th>Mês</th><th>Meta</th><th>Var.</th><th>Var. %</th></tr></thead>
                 <tbody>${renderRows()}</tbody>
               </table>
               ${state.loading ? `<div class="rps-loading"><span></span><p>Carregando o período...</p></div>` : ""}
@@ -907,6 +920,16 @@
       });
 
       root.addEventListener("click", async (event) => {
+        const weekFocus = event.target.closest("[data-rps-focus-week]");
+        if (weekFocus) {
+          const week = weekFocus.dataset.rpsFocusWeek;
+          if (!WEEKS.includes(week) || week === focusedWeek()) return;
+          state.payload.configuracoes = state.payload.configuracoes || {};
+          state.payload.configuracoes.semanaFoco = week;
+          if (canEdit()) markDirty();
+          renderShell();
+          return;
+        }
         const unitCycle = event.target.closest("[data-rps-unit-cycle]");
         if (unitCycle) {
           const key = unitCycle.dataset.rpsUnitCycle;
