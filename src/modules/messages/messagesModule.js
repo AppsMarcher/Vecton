@@ -160,7 +160,7 @@
 
       return `
         <div class="msn-head">
-          <strong>Marcher Messenger</strong>
+          <img class="msn-head-logo" src="assets/vecton-messenger.png" alt="Vecton Messenger">
           <div class="msn-head-acoes">
             <button type="button" class="msn-icon-btn" data-action="fechar-painel" title="Fechar">✕</button>
           </div>
