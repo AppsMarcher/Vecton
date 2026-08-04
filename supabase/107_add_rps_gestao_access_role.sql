@@ -1,0 +1,12 @@
+-- Novo perfil "RPS Gestão": acesso direto à tela RPS Gestão (Reunião de
+-- Performance Semanal). Preenche semanas e metas de TODAS as áreas, sem
+-- recorte por gestão. Não edita estrutura (renomear indicador, trocar
+-- unidade, mudar modo de cálculo do Mês, adicionar indicador) — isso
+-- continua exclusivo de admin/super_admin/manager (ver canEditStructure()
+-- em rpsModule.js). Sem Dashboard, Planejamento, Relatórios, Parâmetros
+-- ou cargas (ver canAccessDashboard/canAccessPlanning/navigationModule.js).
+--
+-- ALTER TYPE ... ADD VALUE não pode ser usado na mesma transação em que o
+-- valor novo é referenciado, então roda sozinho, sem BEGIN/COMMIT (mesmo
+-- padrão da migration 054, que criou o perfil "comercial").
+alter type public.access_profile_role add value if not exists 'rps_gestao';

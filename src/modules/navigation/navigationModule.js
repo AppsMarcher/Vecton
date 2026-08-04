@@ -27,6 +27,7 @@
       isAdmin,
       canAccessDashboard,
       canAccessPlanning,
+      canAccessReportsMenu,
       canManageUsers
     } = deps;
 
@@ -60,6 +61,9 @@
 
       const planBtn = document.querySelector(".menu-button[data-view='planning']");
       if (planBtn) planBtn.style.display = canAccessPlanning() ? "" : "none";
+
+      const reportsBtn = document.querySelector(".menu-button[data-view='reports']");
+      if (reportsBtn) reportsBtn.style.display = canAccessReportsMenu() ? "" : "none";
 
       const menuStack = document.querySelector(".menu-stack");
       if (menuStack) menuStack.style.display = isAdmin() ? "" : "none";

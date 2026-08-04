@@ -21,7 +21,8 @@
       admin:       "Admin",
       manager:     "Gestor",
       analyst:     "Analista",
-      comercial:   "Comercial"
+      comercial:   "Comercial",
+      rps_gestao:  "RPS Gestão"
     };
 
     const ROLE_COLORS = {
@@ -29,7 +30,8 @@
       admin:       "#4f7cff",
       manager:     "#22c55e",
       analyst:     "#8b5cf6",
-      comercial:   "#14b8a6"
+      comercial:   "#14b8a6",
+      rps_gestao:  "#f472b6"
     };
 
     let allUsers = [];
@@ -627,6 +629,7 @@
         ["analyst", "Analista"],
         ["manager", "Gestor"],
         ["comercial", "Comercial"],
+        ["rps_gestao", "RPS Gestão"],
         ...(isSuperAdmin() ? [["admin", "Administrador"], ["super_admin", "Super Admin"]] : isAdmin() ? [["admin", "Administrador"]] : [])
       ];
 

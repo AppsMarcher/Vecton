@@ -16,7 +16,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALLOWED_ROLES = ["super_admin", "admin", "manager", "analyst", "comercial"];
+const ALLOWED_ROLES = ["super_admin", "admin", "manager", "analyst", "comercial", "rps_gestao"];
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -115,5 +115,5 @@ Deno.serve(async (req) => {
 });
 
 function ROLE_LABEL(role: string): string {
-  return { super_admin: "Super Admin", admin: "Administrador", manager: "Gestor", analyst: "Analista", comercial: "Comercial" }[role] ?? "Analista";
+  return { super_admin: "Super Admin", admin: "Administrador", manager: "Gestor", analyst: "Analista", comercial: "Comercial", rps_gestao: "RPS Gestão" }[role] ?? "Analista";
 }

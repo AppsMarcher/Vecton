@@ -389,7 +389,12 @@
     let saveRequested = false;
     let eventsBound = false;
 
-    const canEdit = () => ["super_admin", "admin", "manager"].includes(String(getAccessRole?.() || ""));
+    // canFillValues: quem pode digitar semanas/meta, comentar e anexar arquivo.
+    // canEditStructure: quem além disso pode renomear indicador, trocar
+    // unidade, mudar o modo de cálculo do Mês e adicionar indicador — o
+    // perfil "RPS Gestão" preenche dados mas não mexe na estrutura.
+    const canFillValues = () => ["super_admin", "admin", "manager", "rps_gestao"].includes(String(getAccessRole?.() || ""));
+    const canEditStructure = () => ["super_admin", "admin", "manager"].includes(String(getAccessRole?.() || ""));
     const canManageBackups = () => ["super_admin", "admin"].includes(String(getAccessRole?.() || ""));
     const currentPeriod = () => {
       const period = getPeriod();
@@ -867,7 +872,7 @@
 
     function openAttachmentModal(area, indicator, column) {
       closeAttachmentModal();
-      const editable = canEdit();
+      const editable = canFillValues();
       const backdrop = document.createElement("div");
       backdrop.className = "rps-attachment-backdrop";
       backdrop.innerHTML = `
@@ -1008,7 +1013,8 @@
     }
 
     function renderRows() {
-      const editable = canEdit() && !state.presentation;
+      const fillable = canFillValues() && !state.presentation;
+      const structural = canEditStructure() && !state.presentation;
       const focusWeek = focusedWeek();
       return state.payload.areas.map((area) => {
         const indicators = getIndicators(area.id);
@@ -1049,7 +1055,7 @@
               const calculatedValue = getWeekValue(area.id, indicator, week);
               return `<td class="rps-calculated-cell rps-formula-cell ${week === focusWeek ? "is-focused" : ""}" title="${escapeHtml(indicator.formula || "Linha calculada")}">
                 <strong>${escapeHtml(formatValueForUnit(calculatedValue, weekUnit, "—"))}</strong>
-                ${editable
+                ${structural
                   ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<small>${escapeHtml(weekUnit)}</small>`}
                 ${attachmentButton}
@@ -1058,8 +1064,8 @@
             const comment = state.payload.comentarios[commentKey(area.id, indicator.id, week)];
             return `<td class="rps-value-cell ${week === focusWeek ? "is-focused" : ""}">
               <div class="rps-week-entry">
-                <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(formatValueForUnit(state.payload.dados[key], weekUnit))}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
-                ${editable
+                <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(formatValueForUnit(state.payload.dados[key], weekUnit))}" inputmode="decimal" ${fillable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
+                ${structural
                   ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<span class="rps-unit-readonly">${escapeHtml(weekUnit)}</span>`}
               </div>
@@ -1070,17 +1076,17 @@
           const targetKey = targetValueKey(area.id, indicator.id);
           return `<tr class="rps-indicator-row ${calculatedRow ? "is-calculated" : ""}" data-area-id="${escapeHtml(area.id)}" data-indicator-id="${escapeHtml(indicator.id)}">
             <th scope="row">
-              <div class="rps-indicator-name">${calculatedRow ? `<b class="rps-formula-badge" title="Linha calculada">=</b>` : ""}${editable
+              <div class="rps-indicator-name">${calculatedRow ? `<b class="rps-formula-badge" title="Linha calculada">=</b>` : ""}${structural
                 ? `<input class="rps-label-input" data-rps-label-area="${escapeHtml(area.id)}" data-rps-label-id="${escapeHtml(indicator.id)}" value="${escapeHtml(indicator.label)}" aria-label="Nome do indicador">`
                 : `<span>${escapeHtml(indicator.label)}</span>`}</div>
             </th>
             ${weekCells}
             <td class="rps-calculated-cell rps-month-cell">
               <strong>${escapeHtml(formatValueForUnit(month, monthUnit, "—"))}</strong>
-              ${editable ? `<button type="button" class="rps-month-mode-cycle" data-rps-month-mode-cycle="${escapeHtml(monthModeKey)}" data-current-mode="${escapeHtml(monthMode)}" title="${escapeHtml(monthModeInfo.label)}" aria-label="${escapeHtml(`${monthModeInfo.label} de ${indicator.label}`)}"><span>${escapeHtml(monthModeInfo.icon)}</span></button>` : ""}
+              ${structural ? `<button type="button" class="rps-month-mode-cycle" data-rps-month-mode-cycle="${escapeHtml(monthModeKey)}" data-current-mode="${escapeHtml(monthMode)}" title="${escapeHtml(monthModeInfo.label)}" aria-label="${escapeHtml(`${monthModeInfo.label} de ${indicator.label}`)}"><span>${escapeHtml(monthModeInfo.icon)}</span></button>` : ""}
             </td>
             <td class="rps-value-cell rps-target-cell">
-              <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
+              <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="decimal" ${fillable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
               ${state.presentation ? "" : `<button class="rps-comment-button ${state.payload.comentarios[commentKey(area.id, indicator.id, "meta")] ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, "meta"))}" title="Comentário">●</button>`}
             </td>
             <td class="rps-variation ${trendClass}">${variation === null ? "—" : `${variation > 0 ? "+" : ""}${escapeHtml(formatValueForUnit(variation, monthUnit))}`}</td>
@@ -1094,9 +1100,10 @@
     function renderShell() {
       if (!root) return;
       const { year, month } = currentPeriod();
-      const editable = canEdit() && !state.presentation;
+      const fillable = canFillValues() && !state.presentation;
+      const structural = canEditStructure() && !state.presentation;
       const focusWeek = focusedWeek();
-      const columnResizer = editable ? '<span class="col-resizer" aria-hidden="true"></span>' : "";
+      const columnResizer = fillable ? '<span class="col-resizer" aria-hidden="true"></span>' : "";
       root.innerHTML = `
         <div class="rps-page ${state.presentation ? "is-presenting" : ""}">
           <div class="rps-hero">
@@ -1110,7 +1117,7 @@
             <div class="rps-toolbar">
               ${canManageBackups() && !state.presentation ? `<button type="button" class="rps-action rps-action-backup" data-rps-action="backups" title="Backups verificados e recuperação deste mês">⟲ <span>Backup</span></button>` : ""}
               <button type="button" class="rps-action" data-rps-action="refresh" title="Recarregar dados">↻ <span>Atualizar</span></button>
-              ${editable ? `<button type="button" class="rps-action" data-rps-action="add">＋ <span>Indicador</span></button>` : ""}
+              ${structural ? `<button type="button" class="rps-action" data-rps-action="add">＋ <span>Indicador</span></button>` : ""}
               ${state.presentation ? `<button type="button" class="rps-action" data-rps-action="zoom-in" title="Aumentar os textos em 2 pixels">＋ <span>Zoom</span></button>
               <button type="button" class="rps-action" data-rps-action="zoom-out" title="Diminuir os textos em 2 pixels" ${state.presentationZoom <= 0 ? "disabled" : ""}>− <span>Zoom</span></button>` : ""}
               <button type="button" class="rps-action rps-action-primary" data-rps-action="present">▣ <span>${state.presentation ? "Sair" : "Apresentar"}</span></button>
@@ -1119,7 +1126,7 @@
 
           <section class="content-card rps-table-card">
             <div class="rps-table-scroll ${state.loading ? "is-loading" : ""}">
-              <table class="rps-table" ${editable ? "data-resizable-cols" : ""}>
+              <table class="rps-table" ${fillable ? "data-resizable-cols" : ""}>
                 <thead><tr><th>Área / indicador${columnResizer}</th>${WEEKS.map((week) => `<th class="${week === focusWeek ? "is-focused" : ""}"><button type="button" class="rps-week-focus" data-rps-focus-week="${week}" aria-pressed="${week === focusWeek}" title="Destacar ${week}">${week}</button>${columnResizer}</th>`).join("")}<th>Mês${columnResizer}</th><th>Meta${columnResizer}</th><th>Var.${columnResizer}</th><th>Var. %${columnResizer}</th></tr></thead>
                 <tbody>${renderRows()}</tbody>
               </table>
@@ -1131,7 +1138,7 @@
       document.body.classList.toggle("rps-presentation-mode", state.presentation);
       document.body.classList.toggle("rps-laser-mode", state.presentation);
       document.body.style.setProperty("--rps-presentation-zoom", `${state.presentationZoom}px`);
-      if (editable) initAllReportTableResizers?.();
+      if (fillable) initAllReportTableResizers?.();
       if (state.presentation) ensureLaserPointer();
       else removeLaserPointer();
       updateStatusElements();
@@ -1200,7 +1207,7 @@
     }
 
     function markDirty() {
-      if (!canEdit()) return;
+      if (!canFillValues()) return;
       state.dirty = true;
       persistDraft();
       setStatus(state.backendAvailable ? "dirty" : "local", state.backendAvailable ? "Alterações pendentes" : "Salvo somente neste navegador");
@@ -1268,7 +1275,7 @@
     }
 
     async function doSave() {
-      if (!state.dirty || !state.backendAvailable || !canEdit()) return true;
+      if (!state.dirty || !state.backendAvailable || !canFillValues()) return true;
       clearTimeout(saveTimer);
       const captured = normalizePayload(state.payload);
       persistDraft();
@@ -1352,7 +1359,7 @@
     }
 
     async function addIndicator() {
-      if (!canEdit()) return;
+      if (!canEditStructure()) return;
       const values = await appPrompt({
         icon: "＋",
         eyebrow: "RPS · VISÃO ADM",
@@ -1494,7 +1501,7 @@
           if (!WEEKS.includes(week) || week === focusedWeek()) return;
           state.payload.configuracoes = state.payload.configuracoes || {};
           state.payload.configuracoes.semanaFoco = week;
-          if (canEdit()) markDirty();
+          if (canFillValues()) markDirty();
           renderShell();
           return;
         }

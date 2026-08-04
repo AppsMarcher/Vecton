@@ -5570,6 +5570,7 @@ body.auth-only .content-view {
 .ap-card--manager    { border-top: 3px solid #22c55e; }
 .ap-card--analyst    { border-top: 3px solid #8b5cf6; }
 .ap-card--comercial  { border-top: 3px solid #14b8a6; }
+.ap-card--rps-gestao { border-top: 3px solid #f472b6; }
 
 .ap-card-top {
   display: flex;
@@ -5594,6 +5595,7 @@ body.auth-only .content-view {
 .ap-badge--manager    { background: rgba(34,197,94,0.15);  color: #22c55e; }
 .ap-badge--analyst    { background: rgba(139,92,246,0.15); color: #8b5cf6; }
 .ap-badge--comercial  { background: rgba(20,184,166,0.15); color: #14b8a6; }
+.ap-badge--rps-gestao { background: rgba(244,114,182,0.15); color: #f472b6; }
 
 .ap-user-count {
   font-size: 0.68rem;

@@ -578,6 +578,7 @@ const navigationModule = createNavigationModule({
   isAdmin,
   canAccessDashboard,
   canAccessPlanning,
+  canAccessReportsMenu,
   canManageUsers
 });
 const headerModule = createHeaderModule({
@@ -1691,9 +1692,13 @@ async function hydrateFromSupabase() {
       profileDraft = { ...state.profile };
     }
 
-    // Perfis sem acesso ao Dashboard (Analista) não podem cair nele ao logar;
-    // manda direto para Relatórios, a tela que ele efetivamente enxerga.
-    if (!canAccessDashboard()) {
+    // Perfis sem acesso ao Dashboard não podem cair nele ao logar; manda
+    // direto para a tela que o perfil efetivamente enxerga. RPS Gestão só
+    // tem a tela RPS Gestão; os demais restritos (Analista/Comercial) caem
+    // em Relatórios.
+    if (isRpsGestao()) {
+      activeView = "rps";
+    } else if (!canAccessDashboard()) {
       activeView = "reports";
     }
 
@@ -1917,8 +1922,10 @@ function isAdmin()       { return ["super_admin", "admin"].includes(getAccessRol
 function isManager()     { return getAccessRole() === "manager"; }
 function isAnalyst()     { return getAccessRole() === "analyst"; }
 function isComercial()   { return getAccessRole() === "comercial"; }
-function canAccessDashboard() { return !isAnalyst() && !isComercial(); }
-function canAccessPlanning()  { return !isComercial(); }
+function isRpsGestao()   { return getAccessRole() === "rps_gestao"; }
+function canAccessDashboard() { return !isAnalyst() && !isComercial() && !isRpsGestao(); }
+function canAccessPlanning()  { return !isComercial() && !isRpsGestao(); }
+function canAccessReportsMenu() { return !isRpsGestao(); }
 function canAccessParams()    { return isAdmin(); }
 function canManageUsers()     { return isAdmin(); }
 function getUserManagement()  { return state.profile?.management || null; }
