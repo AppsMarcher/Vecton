@@ -496,28 +496,36 @@
     function companyTotals(coordsArr, tiposArr) {
       const blank = () => ({ fat: 0, cart: 0, meta: 0, y1: 0, y2: 0, y3: 0 });
       const grao = blank(), pec = blank(), fatv = blank();
+      // graoVal/pecVal = faturamento so de maquinas (Grao/Pecuaria), separado do
+      // fatv combinado (que tambem inclui pecas/transgrain/acessorios) — usado
+      // pelo hero para as linhas "Faturamento Grão"/"Faturamento Pecuária".
+      const graoVal = blank(), pecVal = blank();
       coordsArr.forEach((c) => Object.values(c.terrs).forEach((t) => {
         ["grao", "pecuaria", "pecas"].forEach((lk) => {
           const line = t[lk]; if (!line) return;
           METRICS.forEach((m) => { fatv[m] += line[m].v; });
-          if (lk === "grao") METRICS.forEach((m) => { grao[m] += line[m].q; });
-          if (lk === "pecuaria") METRICS.forEach((m) => { pec[m] += line[m].q; });
+          if (lk === "grao") METRICS.forEach((m) => { grao[m] += line[m].q; graoVal[m] += line[m].v; });
+          if (lk === "pecuaria") METRICS.forEach((m) => { pec[m] += line[m].q; pecVal[m] += line[m].v; });
         });
       }));
       tiposArr.forEach((r) => {
         if (r.tipo !== "Transgrain" && r.tipo !== "Acessórios") return;
         METRICS.forEach((m) => { fatv[m] += Number(r[`${m}_val`]) || 0; });
       });
-      return { grao, pec, fatv };
+      return { grao, pec, fatv, graoVal, pecVal };
     }
 
     // Hero = mini-tabela consolidada da empresa (Grão/Pecuária qtd + Faturado R$,
     // colunas Fatur/Fat+Cart/Meta/2025/2024/2023), ao lado do nome.
     function renderHero(container) {
-      const { grao, pec, fatv } = companyTotals(coords, tipos);
+      const { grao, pec, fatv, graoVal, pecVal } = companyTotals(coords, tipos);
       const qtyRow = (o) => METRICS.map((m) => `<td>${nf(o[m])}</td>`).join("");
       const ttlRow = () => METRICS.map((m) => `<td>${nf(grao[m] + pec[m])}</td>`).join("");
       const valRow = (o) => METRICS.map((m) => `<td>${fmtR$(o[m])}</td>`).join("");
+      // Faturado Total = so maquinas (Fatur. Grão + Fatur. Pecuária); peças/
+      // transgrain/acessorios ficam de fora (já aparecem à parte na caixa
+      // lateral de Peças/Transgrain/Acessórios).
+      const fatTotal = {}; METRICS.forEach((m) => { fatTotal[m] = graoVal[m] + pecVal[m]; });
       // Ticket do hero: Faturado INTEIRO (fatv, inclui pecas/transgrain/acessorios) / TTL qtd maquinas.
       const tktRow = () => METRICS.map((m) => { const q = grao[m] + pec[m]; return `<td>${q > 0 ? fmtR$(fatv[m] / q) : "—"}</td>`; }).join("");
       // Drill do consolidado da empresa inteira (todas as coordenacoes/linhas).
@@ -546,7 +554,9 @@
                 <tr><td>Grão</td>${qtyRow(grao)}</tr>
                 <tr><td>Pecuária</td>${qtyRow(pec)}</tr>
                 <tr><td>TTL qtd</td>${ttlRow()}</tr>
-                <tr class="fat"><td>Faturado</td>${valRow(fatv)}</tr>
+                <tr><td>Fatur. Grão</td>${valRow(graoVal)}</tr>
+                <tr><td>Fatur. Pecuária</td>${valRow(pecVal)}</tr>
+                <tr class="fat"><td>Faturado Total</td>${valRow(fatTotal)}</tr>
                 <tr class="tkt"><td>Ticket</td>${tktRow()}</tr>
               </tbody>
             </table>
