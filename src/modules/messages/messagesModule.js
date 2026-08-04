@@ -287,18 +287,29 @@
 
     function pintarPainel() {
       if (!_painel) return;
-      const foco = document.activeElement?.id;
-      const posBusca = document.querySelector("#msn-busca")?.selectionStart;
-      _painel.innerHTML = painelMarkup() + alcasRedimensionamentoMarkup();
+      const markup = painelMarkup() + alcasRedimensionamentoMarkup();
+      const foco = _painel.contains(document.activeElement) ? document.activeElement?.id : "";
+      const campoFocado = foco ? _painel.querySelector(`#${foco}`) : null;
+      const selecaoInicio = campoFocado?.selectionStart;
+      const selecaoFim = campoFocado?.selectionEnd;
+      const scrollTop = _painel.querySelector(".msn-lista")?.scrollTop || 0;
+
+      if (_painel.__markupAtual !== markup) {
+        _painel.innerHTML = markup;
+        _painel.__markupAtual = markup;
+        const lista = _painel.querySelector(".msn-lista");
+        if (lista) lista.scrollTop = scrollTop;
+      }
+
       const sel = _painel.querySelector("#msn-presenca");
-      if (sel && _meuPerfil.presenca) sel.value = _meuPerfil.presenca;
+      if (sel && document.activeElement !== sel && _meuPerfil.presenca) sel.value = _meuPerfil.presenca;
       const rec = _painel.querySelector("#msn-recado");
-      if (rec) rec.value = _meuPerfil.recado || "";
-      // Repintar não pode roubar o foco de quem está digitando na busca.
-      if (foco === "msn-busca") {
-        const el = _painel.querySelector("#msn-busca");
+      if (rec && document.activeElement !== rec) rec.value = _meuPerfil.recado || "";
+      // Uma atualização real também não pode roubar o foco nem a seleção.
+      if (foco) {
+        const el = _painel.querySelector(`#${foco}`);
         el?.focus();
-        if (posBusca != null) el?.setSelectionRange(posBusca, posBusca);
+        if (selecaoInicio != null && selecaoFim != null) el?.setSelectionRange(selecaoInicio, selecaoFim);
       }
     }
 
@@ -339,7 +350,9 @@
       if (_painel) { fecharPainel(); return; }
       _painel = document.createElement("div");
       _painel.className = "msn-painel";
-      _painel.innerHTML = painelMarkup() + alcasRedimensionamentoMarkup();
+      const markupInicial = painelMarkup() + alcasRedimensionamentoMarkup();
+      _painel.innerHTML = markupInicial;
+      _painel.__markupAtual = markupInicial;
       document.body.appendChild(_painel);
       ligarPainelMovel(_painel);
 
@@ -508,7 +521,7 @@
     async function abrirConversaCom(userId, titulo) {
       try {
         const threadId = await callSupabaseRpc("open_direct_thread", { p_user: userId });
-        abrirJanela(threadId, titulo);
+        abrirJanela(threadId, titulo, { userId });
       } catch (error) {
         console.error(error);
         showToast(vpFriendlyError(error, "Falha ao abrir a conversa."), "error");
@@ -538,15 +551,18 @@
     }
 
     // ── Janela de conversa ───────────────────────────────────────────────────
-    function janelaMarkup(titulo) {
+    function janelaMarkup(titulo, contato = null) {
       return `
         <div class="msn-jan-head">
-          <strong class="msn-jan-titulo">${escapeHtml(titulo || "Conversa")}</strong>
+          <div class="msn-jan-identidade">
+            ${contato ? avatarMarkup(contato) : ""}
+            <strong class="msn-jan-titulo">${escapeHtml(titulo || "Conversa")}</strong>
+          </div>
           <div class="msn-jan-acoes">
             <button type="button" class="msn-icon-btn" data-action="aba-conversa" title="Conversa">💬</button>
             <button type="button" class="msn-icon-btn" data-action="aba-midias" title="Mídias">📎</button>
             <button type="button" class="msn-icon-btn" data-action="zumbido" title="Chamar atenção">⚡</button>
-            <button type="button" class="msn-icon-btn" data-action="sair" title="Sair da conversa">⎋</button>
+            <button type="button" class="msn-icon-btn" data-action="limpar-conversa" title="Limpar conversa">⎋</button>
             <button type="button" class="msn-icon-btn" data-action="fechar" title="Fechar">✕</button>
           </div>
         </div>
@@ -576,7 +592,11 @@
       const el = document.createElement("div");
       el.className = "msn-janela";
       el.dataset.thread = threadId;
-      el.innerHTML = janelaMarkup(titulo) + alcasRedimensionamentoMarkup();
+      const contato = _contatos.find((item) =>
+        (opcoes.userId && String(item.user_id) === String(opcoes.userId))
+        || (item.thread_id && String(item.thread_id) === String(threadId))
+      ) || null;
+      el.innerHTML = janelaMarkup(titulo, contato) + alcasRedimensionamentoMarkup();
       document.body.appendChild(el);
 
       // Nasce encostada à ESQUERDA do painel de contatos, como no MSN — não no
@@ -589,7 +609,7 @@
       el.style.left = `${Math.max(12, direitaDoEspaco - larguraJanela - n * 26)}px`;
       el.style.top = `${Math.max(12, (painelRect?.top ?? 60) + n * 26)}px`;
 
-      const ctx = { el, threadId, titulo, mensagens: [], aba: "conversa", pendentes: [], ultimoId: null, focada: true };
+      const ctx = { el, threadId, titulo, mensagens: [], mensagensOcultas: new Set(), aba: "conversa", pendentes: [], ultimoId: null, focada: true };
       _janelas.set(threadId, ctx);
       frente(ctx);
       ligarJanela(ctx);
@@ -715,7 +735,7 @@
         if (acao === "enviar") { void enviar(ctx); return; }
         if (acao === "anexar") { el.querySelector(".msn-file").click(); return; }
         if (acao === "zumbido") { void enviarZumbido(ctx); return; }
-        if (acao === "sair") { void sairDaConversa(ctx); return; }
+        if (acao === "limpar-conversa") { limparConversa(ctx); return; }
         if (acao === "aba-conversa" || acao === "aba-midias") {
           ctx.aba = acao === "aba-midias" ? "midias" : "conversa";
           el.querySelector('[data-pane="conversa"]').style.display = ctx.aba === "conversa" ? "block" : "none";
@@ -865,7 +885,7 @@
         const chegouNova = !primeira && ultimo && ultimo.id !== ctx.ultimoId;
         const nudgeNovo = chegouNova && ultimo.kind === "nudge" && ultimo.autor_id !== getCurrentUserId();
 
-        ctx.mensagens = rows;
+        ctx.mensagens = rows.filter((mensagem) => !ctx.mensagensOcultas.has(String(mensagem.id)));
         ctx.ultimoId = ultimo?.id || null;
         pintarConversa(ctx);
 
@@ -994,6 +1014,12 @@
       } catch (error) {
         showToast(vpFriendlyError(error, "Falha ao excluir."), "error");
       }
+    }
+
+    function limparConversa(ctx) {
+      ctx.mensagens.forEach((mensagem) => ctx.mensagensOcultas.add(String(mensagem.id)));
+      ctx.mensagens = [];
+      pintarConversa(ctx);
     }
 
     async function sairDaConversa(ctx) {

@@ -7062,6 +7062,24 @@ table th,
   scrollbar-color: rgba(120,130,150,.4) transparent;
 }
 
+.rps-table-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.rps-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rps-table-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(120,130,150,.4);
+}
+
+.rps-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(120,130,150,.65);
+}
+
 .rps-table {
   width: 100%;
   min-width: 1380px;
@@ -7242,6 +7260,15 @@ table th,
   background: rgba(79,124,255,.1);
   color: #8fb0ff;
   font-size: .61rem;
+}
+
+.rps-indicator-row.is-calculated .rps-indicator-name {
+  justify-content: flex-start;
+}
+
+.rps-indicator-row.is-calculated .rps-label-input {
+  flex: 1 1 auto;
+  width: auto;
 }
 
 .rps-indicator-name em {
@@ -8438,12 +8465,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .msn-secao-toggle:hover,
 .msn-secao-toggle:focus-visible { color: var(--text); outline: none; }
 .msn-secao-toggle:focus-visible { box-shadow: inset 0 0 0 1px var(--blue); border-radius: 6px; }
-.msn-secao-conteudo:not([hidden]) { animation: msn-secao-abre 150ms ease-out; }
 .msn-secao-conteudo[hidden] { display: none; }
-@keyframes msn-secao-abre {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 .msn-contato {
   display: flex;
   align-items: center;
@@ -8598,6 +8620,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
   cursor: move;
   flex: none;
 }
+.msn-jan-identidade { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; }
 .msn-jan-titulo { font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msn-jan-acoes { display: flex; gap: 2px; flex: none; }
 .msn-jan-corpo { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: grid; gap: 10px; align-content: start; }
