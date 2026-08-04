@@ -57,6 +57,9 @@
     let _realtimeChannel = null;
     let _realtimeOnline = false;
     let _iniciandoRealtime = null;
+    let _audioNotificacao = null;
+
+    const EVENTOS_LIBERAR_AUDIO = ["pointerdown", "keydown", "touchstart"];
 
     // thread_id -> { el, titulo, mensagens, aba, ultimoId, digitando }
     const _janelas = new Map();
@@ -80,20 +83,43 @@
       return `${(n / 1048576).toFixed(1)} MB`;
     }
 
-    // Som curto sintetizado — evita carregar arquivo de áudio só pra isso.
-    function bip(freq = 880) {
+    function obterAudioNotificacao() {
+      if (_audioNotificacao) return _audioNotificacao;
+      _audioNotificacao = new Audio("assets/msn-message.mp3?v=20260804a");
+      _audioNotificacao.preload = "auto";
+      return _audioNotificacao;
+    }
+
+    function removerDesbloqueioAudio() {
+      EVENTOS_LIBERAR_AUDIO.forEach((evento) => document.removeEventListener(evento, liberarAudio));
+    }
+
+    function liberarAudio() {
       try {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) return;
-        const ctx = new Ctx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.07, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-        osc.start();
-        setTimeout(() => { try { osc.stop(); ctx.close(); } catch (_) {} }, 260);
+        const audio = obterAudioNotificacao();
+        const volume = audio.volume;
+        audio.volume = 0;
+        const pronto = audio.play();
+        if (!pronto) return;
+        void pronto.then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = volume;
+          removerDesbloqueioAudio();
+        }).catch(() => { audio.volume = volume; });
+      } catch (_) { /* o navegador pode bloquear áudio antes de uma interação */ }
+    }
+
+    function prepararAudio() {
+      EVENTOS_LIBERAR_AUDIO.forEach((evento) => document.addEventListener(evento, liberarAudio, { passive: true }));
+    }
+
+    // Som clássico escolhido para as mensagens do Vecton Messenger.
+    function tocarSomMensagem() {
+      try {
+        const audio = obterAudioNotificacao();
+        audio.currentTime = 0;
+        void audio.play().catch(() => {});
       } catch (_) { /* som é enfeite: nunca pode quebrar o envio */ }
     }
 
@@ -690,8 +716,8 @@
         pintarConversa(ctx);
 
         if (efeitos && chegouNova && ultimo.autor_id !== getCurrentUserId()) {
-          bip();
-          if (nudgeNovo) chacoalhar(ctx);
+          tocarSomMensagem();
+          if (nudgeNovo) chacoalhar(ctx, false);
         }
         await callSupabaseRpc("messages_mark_thread_read", { p_thread: ctx.threadId });
       } catch (error) {
@@ -700,11 +726,11 @@
       }
     }
 
-    function chacoalhar(ctx) {
+    function chacoalhar(ctx, comSom = true) {
       ctx.el.classList.remove("chacoalha");
       void ctx.el.offsetWidth;      // reinicia a animação
       ctx.el.classList.add("chacoalha");
-      bip(440);
+      if (comSom) tocarSomMensagem();
     }
 
     async function carregarMidias(ctx) {
@@ -873,6 +899,7 @@
       const mensagem = payload?.new;
       if (!mensagem?.thread_id || mensagem.author_user_id === getCurrentUserId()) return;
 
+      tocarSomMensagem();
       setUnread(_unread + 1);
       if (_painel) void carregarContatos();
 
@@ -887,7 +914,8 @@
         if (disponivel) {
           pararAlertaCartinha();
           const ctx = abrirJanela(mensagem.thread_id, contexto.titulo, { carregar: false });
-          await carregarMensagens(ctx, false, true);
+          await carregarMensagens(ctx, false, false);
+          if (mensagem.kind === "nudge") chacoalhar(ctx, false);
           frente(ctx);
           // A mensagem recém-chegada acabou de ser aberta e marcada como lida.
           setUnread(Math.max(0, _unread - 1));
@@ -967,6 +995,7 @@
     }
 
     async function iniciar() {
+      prepararAudio();
       await carregarMeuPerfil();
       await iniciarRealtime();
     }
@@ -990,6 +1019,12 @@
       _unread = 0;
       _disabled = false;
       pararAlertaCartinha();
+      removerDesbloqueioAudio();
+      if (_audioNotificacao) {
+        _audioNotificacao.pause();
+        _audioNotificacao.currentTime = 0;
+      }
+      _audioNotificacao = null;
       pararRealtime();
     }
 
@@ -998,6 +1033,9 @@
       try { await callSupabaseRpc("mark_messages_delivered"); }
       catch (error) { if (isMissingSchemaError(error)) _disabled = true; }
     }
+
+    // Captura inclusive a interação de login, antes de o Messenger conectar.
+    prepararAudio();
 
     return {
       startMessages: iniciar,
