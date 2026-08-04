@@ -76,6 +76,7 @@
     const _secoesRecolhidas = { online: false, offline: false };
     const _audioBuffers = new Map();
     const _audiosCarregando = new Map();
+    const _eventosMensagemVistos = new Set();
 
     const EVENTOS_LIBERAR_AUDIO = ["pointerdown", "keydown", "touchstart"];
     const SOM_ATENCAO_URL = "assets/msn-wizz.mp3?v=20260804a";
@@ -247,6 +248,18 @@
       _unread = Number(n) || 0;
       if (_unread <= 0) pararAlertaCartinha();
       if (_onCountChange) _onCountChange(_unread);
+    }
+
+    async function reconciliarNaoLidas() {
+      if (_disabled || !isSupabaseConfigured()) return;
+      try {
+        const total = await callSupabaseRpc("messages_unread_count");
+        setUnread(total);
+      } catch (error) {
+        // A migration nova pode chegar alguns instantes depois do front-end.
+        // Nesse intervalo, a contagem periódica antiga continua funcionando.
+        if (!isMissingSchemaError(error)) console.debug("messenger: falha ao reconciliar não lidas", error);
+      }
     }
 
     function piscarCartinha() {
@@ -462,7 +475,7 @@
         }).catch(() => {});
       });
 
-      void Promise.all([carregarMeuPerfil(), carregarContatos()]);
+      void Promise.all([carregarMeuPerfil(), carregarContatos(), reconciliarNaoLidas()]);
       if (!_timerContatos) _timerContatos = setInterval(() => void carregarContatos(), POLL_CONTATOS_MS);
     }
 
@@ -1108,6 +1121,8 @@
           else tocarSomMensagem();
         }
         await callSupabaseRpc("messages_mark_thread_read", { p_thread: ctx.threadId });
+        await reconciliarNaoLidas();
+        if (_painel) void carregarContatos();
       } catch (error) {
         if (isMissingSchemaError(error)) _disabled = true;
         else console.debug("conversa: falha ao atualizar", error);
@@ -1292,6 +1307,14 @@
     async function aoReceberMensagem(payload) {
       const mensagem = payload?.new;
       if (!mensagem?.thread_id || mensagem.author_user_id === getCurrentUserId()) return;
+      const eventoId = String(mensagem.id || "");
+      if (eventoId && _eventosMensagemVistos.has(eventoId)) return;
+      if (eventoId) {
+        _eventosMensagemVistos.add(eventoId);
+        if (_eventosMensagemVistos.size > 500) {
+          _eventosMensagemVistos.delete(_eventosMensagemVistos.values().next().value);
+        }
+      }
 
       if (mensagem.kind === "nudge") tocarSomAtencao();
       else tocarSomMensagem();
@@ -1312,16 +1335,16 @@
           await carregarMensagens(ctx, false, false);
           if (mensagem.kind === "nudge") chacoalhar(ctx, false);
           frente(ctx);
-          // A mensagem recém-chegada acabou de ser aberta e marcada como lida.
-          setUnread(Math.max(0, _unread - 1));
         } else {
           // Ocupado, ausente e invisível não roubam o foco da pessoa.
           piscarCartinha();
           if (existente) await carregarMensagens(existente, false, false);
+          else await reconciliarNaoLidas();
         }
       } catch (error) {
         console.debug("messenger realtime: falha ao tratar mensagem", error);
         piscarCartinha();
+        void reconciliarNaoLidas();
       }
     }
 
@@ -1420,6 +1443,7 @@
       _audioContext = null;
       _audioBuffers.clear();
       _audiosCarregando.clear();
+      _eventosMensagemVistos.clear();
       pararRealtime();
     }
 

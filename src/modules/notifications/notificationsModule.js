@@ -32,6 +32,7 @@
     let _items = [];
     let _unread = 0;          // notificações
     let _unreadMsgs = 0;      // mensagens
+    let _messagesRevision = 0; // impede polling antigo de sobrescrever leitura recente
 
     let _timer = null;
     let _popover = null;
@@ -104,18 +105,24 @@
     // Se a 094 ainda não rodou, cai na contagem só de notificações da 092.
     async function refreshCount() {
       if (_disabled || !isSupabaseConfigured()) return;
+      const messagesRevisionNoInicio = _messagesRevision;
       try {
         const linhas = await callSupabaseRpc("inbox_counts");
         const c = Array.isArray(linhas) ? linhas[0] : linhas;
         _unread = Number(c?.notificacoes) || 0;
-        _unreadMsgs = Number(c?.mensagens) || 0;
-        if (messagesTab) {
-          void messagesTab.refreshRealtimeAuth();
-          messagesTab.setMessagesUnread(_unreadMsgs);
-          if (_unreadMsgs > 0) messagesTab.showUnreadAlert();
-          // Segundo tique = "chegou no aparelho da pessoa", então marcar
-          // entrega faz parte do polling, não da abertura da aba.
-          if (_unreadMsgs > 0) void messagesTab.markMessagesDelivered();
+        // Se o Messenger marcou uma conversa como lida enquanto esta RPC
+        // estava em voo, o resultado pertence a um snapshot antigo. Nesse
+        // caso, preservamos a reconciliação mais nova feita pelo Messenger.
+        if (_messagesRevision === messagesRevisionNoInicio) {
+          _unreadMsgs = Number(c?.mensagens) || 0;
+          if (messagesTab) {
+            void messagesTab.refreshRealtimeAuth();
+            messagesTab.setMessagesUnread(_unreadMsgs);
+            if (_unreadMsgs > 0) messagesTab.showUnreadAlert();
+            // Segundo tique = "chegou no aparelho da pessoa", então marcar
+            // entrega faz parte do polling, não da abertura da aba.
+            if (_unreadMsgs > 0) void messagesTab.markMessagesDelivered();
+          }
         }
         renderBadge();
       } catch (error) {
@@ -352,6 +359,7 @@
       if (_timer) return;
       if (messagesTab) {
         messagesTab.onMessagesCountChange((n) => {
+          _messagesRevision += 1;
           _unreadMsgs = Number(n) || 0;
           renderBadge();
         });
@@ -370,6 +378,7 @@
       _items = [];
       _unread = 0;
       _unreadMsgs = 0;
+      _messagesRevision = 0;
       _disabled = false;
       renderBadge();
     }
