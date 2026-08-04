@@ -351,6 +351,7 @@
       createStorageSignedUrl,
       deleteFromStorage,
       callEdgeFunction,
+      initAllReportTableResizers,
       escapeHtml
     } = deps;
 
@@ -1095,6 +1096,7 @@
       const { year, month } = currentPeriod();
       const editable = canEdit() && !state.presentation;
       const focusWeek = focusedWeek();
+      const columnResizer = editable ? '<span class="col-resizer" aria-hidden="true"></span>' : "";
       root.innerHTML = `
         <div class="rps-page ${state.presentation ? "is-presenting" : ""}">
           <div class="rps-hero">
@@ -1117,8 +1119,8 @@
 
           <section class="content-card rps-table-card">
             <div class="rps-table-scroll ${state.loading ? "is-loading" : ""}">
-              <table class="rps-table">
-                <thead><tr><th>Área / indicador</th>${WEEKS.map((week) => `<th class="${week === focusWeek ? "is-focused" : ""}"><button type="button" class="rps-week-focus" data-rps-focus-week="${week}" aria-pressed="${week === focusWeek}" title="Destacar ${week}">${week}</button></th>`).join("")}<th>Mês</th><th>Meta</th><th>Var.</th><th>Var. %</th></tr></thead>
+              <table class="rps-table" ${editable ? "data-resizable-cols" : ""}>
+                <thead><tr><th>Área / indicador${columnResizer}</th>${WEEKS.map((week) => `<th class="${week === focusWeek ? "is-focused" : ""}"><button type="button" class="rps-week-focus" data-rps-focus-week="${week}" aria-pressed="${week === focusWeek}" title="Destacar ${week}">${week}</button>${columnResizer}</th>`).join("")}<th>Mês${columnResizer}</th><th>Meta${columnResizer}</th><th>Var.${columnResizer}</th><th>Var. %${columnResizer}</th></tr></thead>
                 <tbody>${renderRows()}</tbody>
               </table>
               ${state.loading ? `<div class="rps-loading"><span></span><p>Carregando o período...</p></div>` : ""}
@@ -1129,6 +1131,7 @@
       document.body.classList.toggle("rps-presentation-mode", state.presentation);
       document.body.classList.toggle("rps-laser-mode", state.presentation);
       document.body.style.setProperty("--rps-presentation-zoom", `${state.presentationZoom}px`);
+      if (editable) initAllReportTableResizers?.();
       if (state.presentation) ensureLaserPointer();
       else removeLaserPointer();
       updateStatusElements();

@@ -1068,6 +1068,7 @@ const rpsModule = createRpsModule
       createStorageSignedUrl,
       deleteFromStorage,
       callEdgeFunction,
+      initAllReportTableResizers,
       escapeHtml
     })
   : { render: () => {}, destroy: () => {} };
@@ -4861,7 +4862,7 @@ function initTableColumnResize(table) {
         }
         table.querySelectorAll("tbody tr").forEach((tr) => {
           const td = tr.children[colIdx];
-          if (td) {
+          if (td && Number(td.colSpan || 1) === 1) {
             td.style.minWidth = px + "px";
             td.style.width    = px + "px";
             td.style.maxWidth = px + "px";
