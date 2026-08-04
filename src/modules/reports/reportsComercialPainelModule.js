@@ -145,8 +145,6 @@
         .cvp-side-tbl th, .cvp-side-tbl td { padding:5px 6px; font-size:11px; }
         .cvp-side-tbl th:first-child, .cvp-side-tbl td:first-child { padding-left:0; }
         .cvp-side-meter { margin-top:auto; padding-top:16px; flex:1; display:flex; flex-direction:column; min-height:0; justify-content:center; }
-        .cvp-side-meter-top { margin-bottom:10px; }
-        .cvp-side-meter-top .lbl { color:var(--cvp-faint); text-transform:uppercase; letter-spacing:.04em; font-size:10px; }
         .cvp-blockbars { display:flex; flex-direction:column; gap:9px; }
         .cvp-blockbar-row { display:grid; grid-template-columns:72px 1fr 32px; align-items:center; gap:9px; }
         .cvp-blockbar-lbl { font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--accent); }
@@ -586,7 +584,7 @@
       // Acessórios/Total), cada uma comparando FATUR. (fat_val) vs META
       // (meta_val) — cor diferente por categoria, reaproveitando a paleta
       // das coordenações.
-      const BLOCKBAR_COLOR = { "Peças": COORD_STYLE["Peças"].accent, "Transgrain": "#f59e0b", "Acessórios": "#8b5cf6", "Total": COORD_STYLE["Sul"].accent };
+      const BLOCKBAR_COLOR = { "Peças": "#8b5cf6", "Transgrain": "#f59e0b", "Acessórios": "#22c55e", "Total": "#ef4444" };
       const blockbarPct = (fat, meta) => meta > 0 ? (fat / meta) * 100 : 0;
       const TOTAL_BLOCKS = 10;
       const blockbars = order.map((nome) => {
@@ -615,7 +613,6 @@
             </tbody>
           </table>
           <div class="cvp-side-meter">
-            <div class="cvp-side-meter-top"><span class="lbl">Fatur. vs. Meta</span></div>
             <div class="cvp-blockbars">${blockbarsHtml}</div>
           </div>
         </div>`;
