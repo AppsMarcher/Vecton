@@ -196,16 +196,12 @@
         const acao = event.target.closest("[data-action]")?.dataset.action;
         if (acao === "fechar-painel") { fecharPainel(); return; }
         if (acao === "novo-grupo") { void criarGrupo(); return; }
-        // Clique simples marca o contato (pra formar grupo); o duplo abre a
-        // conversa. Como o duplo dispara clique antes, marcar e desmarcar em
-        // sequência não atrapalha — o estado volta ao que era.
-        const pessoa = event.target.closest("[data-user]");
-        if (pessoa) {
-          const c = _contatos.find((x) => x.user_id === pessoa.dataset.user);
-          if (c) { c.__sel = !c.__sel; pintarPainel(); }
-        }
+        const linha = event.target.closest("[data-user], [data-thread]");
+        if (linha) abrirMenuContato(linha, event.clientX, event.clientY);
       });
       _painel.addEventListener("dblclick", (event) => {
+        // O duplo clique dispara um clique antes, que abriu o menu — fecha.
+        fecharMenu();
         const alvo = event.target.closest("[data-user], [data-thread]");
         if (!alvo) return;
         if (alvo.dataset.thread) abrirJanela(alvo.dataset.thread, alvo.dataset.titulo);
@@ -237,6 +233,80 @@
       _painel = null;
       if (_timerContatos) clearInterval(_timerContatos);
       _timerContatos = null;
+    }
+
+    // ── Menu do contato ──────────────────────────────────────────────────────
+    // O clique simples abre este menu em vez de marcar direto: marcar repintava
+    // o painel e destruía o elemento ENTRE os dois cliques, fazendo o navegador
+    // disparar o dblclick no painel (ancestral comum, sem data-user) — o duplo
+    // clique nunca abria a conversa. Aqui nada é repintado no clique.
+    let _menu = null;
+
+    function fecharMenu() {
+      _menu?.remove();
+      _menu = null;
+      document.removeEventListener("mousedown", aoClicarFora, true);
+      document.removeEventListener("keydown", aoTeclarNoMenu);
+    }
+
+    function aoClicarFora(event) {
+      if (_menu && !_menu.contains(event.target)) fecharMenu();
+    }
+
+    function aoTeclarNoMenu(event) {
+      if (event.key === "Escape") fecharMenu();
+    }
+
+    function abrirMenuContato(linha, x, y) {
+      fecharMenu();
+      const ehGrupo = Boolean(linha.dataset.thread);
+      const titulo = linha.dataset.titulo || "";
+      const contato = ehGrupo ? null : _contatos.find((c) => c.user_id === linha.dataset.user);
+      const marcado = Boolean(contato?.__sel);
+
+      _menu = document.createElement("div");
+      _menu.className = "msn-menu";
+      _menu.innerHTML = `
+        <div class="msn-menu-titulo">${escapeHtml(titulo)}</div>
+        <button type="button" data-item="abrir">Iniciar bate-papo</button>
+        ${ehGrupo
+          ? `<button type="button" data-item="sair-grupo">Sair do grupo</button>`
+          : `<button type="button" data-item="marcar">${marcado ? "Desmarcar da seleção" : "Marcar para grupo"}</button>`}
+      `;
+      document.body.appendChild(_menu);
+
+      // Posiciona no cursor, sem deixar vazar pra fora da tela.
+      const r = _menu.getBoundingClientRect();
+      _menu.style.left = `${Math.min(x, window.innerWidth - r.width - 8)}px`;
+      _menu.style.top = `${Math.min(y, window.innerHeight - r.height - 8)}px`;
+
+      _menu.addEventListener("click", (event) => {
+        const item = event.target.closest("[data-item]")?.dataset.item;
+        if (!item) return;
+        fecharMenu();
+        if (item === "abrir") {
+          if (ehGrupo) abrirJanela(linha.dataset.thread, titulo);
+          else void abrirConversaCom(linha.dataset.user, titulo);
+          return;
+        }
+        if (item === "marcar" && contato) {
+          contato.__sel = !contato.__sel;
+          // Alterna a classe no próprio elemento: repintar aqui traria de volta
+          // o bug que quebrava o duplo clique.
+          linha.classList.toggle("selecionado", contato.__sel);
+          return;
+        }
+        if (item === "sair-grupo") {
+          const ctx = _janelas.get(linha.dataset.thread)
+            || { threadId: linha.dataset.thread, el: document.createElement("div") };
+          void sairDaConversa(ctx);
+        }
+      });
+
+      setTimeout(() => {
+        document.addEventListener("mousedown", aoClicarFora, true);
+        document.addEventListener("keydown", aoTeclarNoMenu);
+      }, 0);
     }
 
     async function abrirConversaCom(userId, titulo) {

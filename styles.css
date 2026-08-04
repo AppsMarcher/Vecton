@@ -6826,6 +6826,43 @@ table th,
 }
 .msn-vazio { padding: 22px 12px; text-align: center; font-size: 0.72rem; color: var(--text-faint); }
 
+/* Menu do contato (clique simples) — ancorado no cursor, acima do painel. */
+.msn-menu {
+  position: fixed;
+  z-index: 9600;
+  min-width: 190px;
+  padding: 5px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 2px;
+}
+.msn-menu-titulo {
+  padding: 6px 9px 5px;
+  font-size: 0.66rem;
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msn-menu button {
+  width: 100%;
+  padding: 7px 9px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.74rem;
+  text-align: left;
+  cursor: pointer;
+}
+.msn-menu button:hover { background: rgba(79, 124, 255, 0.16); }
+
 /* Janela de conversa: flutuante, arrastável e redimensionável. */
 .msn-janela {
   position: fixed;
