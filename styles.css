@@ -6573,9 +6573,16 @@ table th,
 }
 
 /* ── RPS · Reunião de Performance Semanal ─────────────────────────────── */
+/* #rps-view precisa preencher exatamente a altura disponível do .main-panel
+   (flex column) pra que SÓ o .rps-table-scroll role verticalmente — antes o
+   .rps-page tinha altura "natural" (conteúdo), o .main-panel também acabava
+   rolando (scroll duplo) e a barra horizontal do card ficava lá embaixo,
+   fora da área visível. */
 #rps-view.content-view.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 
 .rps-root,
@@ -6585,9 +6592,11 @@ table th,
 }
 
 .rps-page {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  padding-bottom: 26px;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .rps-hero {
@@ -7000,6 +7009,10 @@ table th,
 .rps-table-card {
   overflow: hidden;
   background: rgba(12,14,18,.94);
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .rps-table-card:hover {
@@ -7059,7 +7072,8 @@ table th,
 .rps-table-scroll {
   position: relative;
   overflow: auto;
-  max-height: calc(100vh - 200px);
+  flex: 1 1 auto;
+  min-height: 0;
   scrollbar-width: thin;
   scrollbar-color: rgba(120,130,150,.4) transparent;
 }
@@ -8193,7 +8207,6 @@ body.rps-laser-mode .rps-attachment-carousel * {
 @media (max-width: 1180px) {
   .rps-hero { align-items: flex-start; flex-direction: column; }
   .rps-toolbar { justify-content: flex-start; }
-  .rps-table-scroll { max-height: calc(100vh - 265px); }
 }
 
 @media (max-width: 720px) {
@@ -8202,6 +8215,11 @@ body.rps-laser-mode .rps-attachment-carousel * {
   .rps-action { width: 36px; padding: 0; }
   .rps-table-heading { align-items: flex-start; flex-direction: column; }
   .rps-legend { white-space: normal; }
+  /* Tela pequena: card com altura travada fica apertado demais — volta a
+     deixar a página inteira rolar, como era antes do fill de altura. */
+  #rps-view.content-view.active { display: block; }
+  .rps-page { display: block; }
+  .rps-table-card { display: block; }
   .rps-table-scroll { max-height: none; }
 }
 #messages-trigger.msn-alerta {

@@ -264,7 +264,7 @@
     if (value === null) return emptyValue;
     const normalizedUnit = normalizeUnit(unit);
     if (normalizedUnit === "R$") {
-      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
     }
     if (normalizedUnit === "un") {
       return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(value);
