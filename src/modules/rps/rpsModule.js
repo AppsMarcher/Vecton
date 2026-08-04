@@ -10,11 +10,58 @@
     { id: "supply", nome: "SUPPLY", cor: "#f59e0b" },
     { id: "rh", nome: "RECURSOS HUMANOS", cor: "#ec4899" },
     { id: "financeiro", nome: "FINANCEIRO", cor: "#8b5cf6" },
-    { id: "sac", nome: "SAC · GARANTIAS", cor: "#38bdf8" },
+    { id: "sac", nome: "SAC . GARANTIAS", cor: "#38bdf8" },
     { id: "engenharia", nome: "ENGENHARIA", cor: "#14b8a6" }
   ];
 
+  const item = (label, unit) => ({ label, unit, type: "item" });
+  const calculated = (label, unit, formula) => ({ label, unit, formula, type: "calculated" });
+  const spacer = () => ({ label: "", unit: "", type: "spacer" });
+
+  // Estrutura original do RPS, capturada da aplicação de origem em 04/08/2026.
   const DEFAULT_INDICATORS = {
+    comercial: [
+      item("Nacional (qtd)", "un"), item("Exportação (qtd)", "un"), item("Graneleiro (qtd)", "un"),
+      calculated("Total Volume Máquinas", "un", "={Nacional (qtd)}+{Exportação (qtd)}+{Graneleiro (qtd)}"), spacer(),
+      item("Nacional", "R$"), item("Exportação", "R$"), item("Graneleiro", "R$"), item("Peças", "R$"), item("Transgrain", "R$"),
+      calculated("Total Faturamento Bruto", "R$", "=(Nacional+Exportação+Graneleiro+Peças+Transgrain)"), spacer(),
+      calculated("Ticket Médio Máquinas", "R$", "=(Nacional+Exportação+Graneleiro)/{Total Volume Máquinas}"), spacer()
+    ],
+    industrial: [
+      calculated("Estoque PA", "un", "={Estoque Embolsadoras}+{Estoque Extratoras}+{Estoque Acessórios}"),
+      item("Estoque Embolsadoras", "un"), item("Estoque Extratoras", "un"), item("Estoque Acessórios", "un"), spacer(),
+      calculated("Produção Máquinas", "un", "={Produção Embolsadoras}+{Produção Extratoras}+{Produção Acessórios}"),
+      item("Produção Embolsadoras", "un"), item("Produção Extratoras", "un"), item("Produção Acessórios", "un"), spacer(),
+      item("Entrega da Produção", "%"), item("OEE (performance x disp x 100)", "%"),
+      item("Performance (hr realizado / hr planj)", "%"), item("Disponibilidade (hr disp - interrupções)", "%"),
+      item("Operação Robô", "%"), spacer()
+    ],
+    supply: [
+      item("Compras MP (entrada) (SD1)", "R$"), item("Compras a Receber (MP)", "R$"), item("Compras a Receber (outros)", "R$"), spacer(),
+      calculated("Estoque Marcher", "R$", "={Produto Acabado - Matriz}+{Produto Acabado - Filial}+{Produto Intermediário}+{Matéria-prima}+{Material de Consumo + MANUTENÇÃO}+{Peças}+{Sucatas}+{Engenharia}+{Mão-de-obra estocada}+{Qualidade}+{Estoque - DE TERCEIROS}+{Estoque - EM TERCEIROS}"),
+      item("Produto Acabado - Matriz", "R$"), item("Produto Acabado - Filial", "R$"), item("Produto Intermediário", "R$"), item("Matéria-prima", "R$"),
+      item("Material de Consumo + MANUTENÇÃO", "R$"), item("Peças", "R$"), item("Sucatas", "R$"), item("Engenharia", "R$"),
+      item("Mão-de-obra estocada", "R$"), item("Qualidade", "R$"), item("Estoque - DE TERCEIROS", "R$"), item("Estoque - EM TERCEIROS", "R$"), spacer(),
+      item("Total SKUs", "un"), spacer(), item("PMP (prazo médio de pgto) - MP", "dias"), item("Dias de estoque", "dias"), spacer(),
+      item("Máquinas expedidas faturadas", "un"), item("Acessórios expedidos", "un"), item("Transferências para filial", "un"), spacer(),
+      item("Máquinas apontadas", "un"), item("OPs de Solda", "un"), spacer(), item("Inventário Cíclico - itens contados", "un"),
+      item("Ajustes identificados", "R$"), item("Ajustes acumulados", "R$"), spacer()
+    ],
+    rh: [
+      item("Horas-extras (quantidade)", "h"), item("Horas-extras (valor)", "R$"), item("Absenteísmo", "%"),
+      item("Turnover", "%"), item("Acidentes com afastamento", "un"), item("Horas de treinamento", "h")
+    ],
+    financeiro: [item("Clientes em atraso", "R$"), item("Saldo de caixa", "R$"), spacer()],
+    sac: [
+      item("Garantias procedentes", "un"), item("Garantias improcedentes", "un"), item("Bonificações", "un"),
+      item("Atendimentos em aberto", "un"), item("Realização de entregas técnicas", "un"),
+      item("Realização de assistências técnicas", "un"), item("Feiras e Dias de campo", "un"),
+      item("Prazo médio retorno", "dias"), item("Prazo médio resolução", "dias"), spacer()
+    ],
+    engenharia: [item("CAEs em processo", "un"), item("Tempo médio CAE's em processo", "dias"), spacer()]
+  };
+
+  const LEGACY_DEFAULT_LABELS = {
     comercial: ["Faturamento", "Nacional", "Exportação", "Graneleiro", "Pedidos em carteira", "Novos clientes", "Meta atingida"],
     industrial: ["Produção total", "Eficiência OEE", "Retrabalho", "Paradas planejadas"],
     supply: ["Nível de estoque", "OTIF", "Lead time médio", "Custo de frete"],
@@ -36,17 +83,19 @@
 
   function defaultPayload() {
     return {
-      version: 2,
+      version: 3,
       areas: clone(DEFAULT_AREAS),
-      indicadores: Object.fromEntries(Object.entries(DEFAULT_INDICATORS).map(([areaId, labels]) => [
+      indicadores: Object.fromEntries(Object.entries(DEFAULT_INDICATORS).map(([areaId, definitions]) => [
         areaId,
-        labels.map((label, index) => ({
-          id: `${slugify(label)}_${index}`,
-          label,
-          type: "item",
+        definitions.map((definition, index) => ({
+          id: `${slugify(definition.label || "espaco")}_${index}`,
+          label: definition.label,
+          unit: definition.unit || "",
+          formula: definition.formula || null,
+          type: definition.type,
           parentId: null,
           aggregate: null,
-          editableFields: { label: true, semanas: true, mes: false, meta: true }
+          editableFields: { label: definition.type !== "spacer", semanas: definition.type === "item", mes: false, meta: definition.type !== "spacer" }
         }))
       ])),
       unidades: {},
@@ -65,10 +114,13 @@
     if (typeof item === "string") {
       return { id: `${slugify(item)}_${index}`, label: item, type: "item", editableFields: { semanas: true, meta: true } };
     }
+    const type = item?.type || "item";
     return {
       id: item?.id || `${slugify(item?.label)}_${index}`,
-      label: item?.label || "Indicador",
-      type: item?.type || "item",
+      label: type === "spacer" ? "" : item?.label || "Indicador",
+      type,
+      unit: item?.unit || "",
+      formula: item?.formula || null,
       parentId: item?.parentId || null,
       aggregate: item?.aggregate || null,
       editableFields: { semanas: true, meta: true, ...(item?.editableFields || {}) }
@@ -81,13 +133,17 @@
     const areas = Array.isArray(source.areas) && source.areas.length ? clone(source.areas) : fallback.areas;
     const indicadores = {};
     areas.forEach((area) => {
-      const list = Array.isArray(source.indicadores?.[area.id])
-        ? source.indicadores[area.id]
-        : fallback.indicadores[area.id] || [];
+      const sourceList = Array.isArray(source.indicadores?.[area.id]) ? source.indicadores[area.id] : null;
+      const legacyLabels = LEGACY_DEFAULT_LABELS[area.id] || [];
+      const sourceLabels = (sourceList || []).map((item) => typeof item === "string" ? item : item?.label);
+      const isLegacySeed = Number(source.version || 0) < 3
+        && legacyLabels.length === sourceLabels.length
+        && legacyLabels.every((label, index) => label === sourceLabels[index]);
+      const list = !sourceList || isLegacySeed ? fallback.indicadores[area.id] || [] : sourceList;
       indicadores[area.id] = list.map(normalizeIndicator);
     });
     return {
-      version: Math.max(Number(source.version) || 2, 2),
+      version: Math.max(Number(source.version) || 3, 3),
       areas,
       indicadores,
       unidades: clone(source.unidades || {}),
@@ -161,7 +217,7 @@
     areaIds.forEach((areaId) => {
       indicadores[areaId] = mergeEntities(base.indicadores[areaId], remote.indicadores[areaId], local.indicadores[areaId], metadata);
     });
-    const result = { version: 2, areas, indicadores };
+    const result = { version: 3, areas, indicadores };
     ["unidades", "dados", "cellStyles", "comentarios", "dadosMes", "dadosMeta", "anexos", "modoMes", "modoMeta"].forEach((section) => {
       result[section] = mergeMap(base[section], remote[section], local[section], metadata);
     });
@@ -182,6 +238,53 @@
   function formatNumber(value) {
     if (value === null || !Number.isFinite(value)) return "—";
     return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value);
+  }
+
+  function calculateArithmetic(expression) {
+    const compact = String(expression || "").replace(/\s+/g, "");
+    const tokens = compact.match(/\d+(?:\.\d+)?|[()+\-*/]/g) || [];
+    if (!compact || tokens.join("") !== compact) return null;
+    let cursor = 0;
+    const parsePrimary = () => {
+      const token = tokens[cursor];
+      if (token === "+" || token === "-") {
+        cursor += 1;
+        const value = parsePrimary();
+        return value === null ? null : token === "-" ? -value : value;
+      }
+      if (token === "(") {
+        cursor += 1;
+        const value = parseExpression();
+        if (tokens[cursor] !== ")") return null;
+        cursor += 1;
+        return value;
+      }
+      if (!/^\d+(?:\.\d+)?$/.test(token || "")) return null;
+      cursor += 1;
+      return Number(token);
+    };
+    const parseTerm = () => {
+      let value = parsePrimary();
+      while (value !== null && (tokens[cursor] === "*" || tokens[cursor] === "/")) {
+        const operator = tokens[cursor++];
+        const right = parsePrimary();
+        if (right === null || (operator === "/" && right === 0)) return null;
+        value = operator === "*" ? value * right : value / right;
+      }
+      return value;
+    };
+    const parseExpression = () => {
+      let value = parseTerm();
+      while (value !== null && (tokens[cursor] === "+" || tokens[cursor] === "-")) {
+        const operator = tokens[cursor++];
+        const right = parseTerm();
+        if (right === null) return null;
+        value = operator === "+" ? value + right : value - right;
+      }
+      return value;
+    };
+    const value = parseExpression();
+    return value !== null && cursor === tokens.length && Number.isFinite(value) ? value : null;
   }
 
   function createRpsModule(deps) {
@@ -276,18 +379,44 @@
       return Array.isArray(state.payload.indicadores?.[areaId]) ? state.payload.indicadores[areaId] : [];
     }
 
-    function getUnit(areaId, indicatorId) {
+    function getUnit(areaId, indicatorId, indicator) {
       return state.payload.unidades[valueKey(areaId, indicatorId, "S1")]
         || state.payload.unidades[`${areaId}|${indicatorId}`]
+        || indicator?.unit
         || "";
     }
 
-    function getMonthValue(areaId, indicatorId) {
-      const manual = parseNumber(state.payload.dadosMes[monthValueKey(areaId, indicatorId)]);
-      if (state.payload.modoMes[`mes:${areaId}|${indicatorId}`] === "manual" && manual !== null) return manual;
-      const values = WEEKS.map((week) => parseNumber(state.payload.dados[valueKey(areaId, indicatorId, week)])).filter((value) => value !== null);
+    function getWeekValue(areaId, indicator, week, stack = new Set()) {
+      if (indicator.type !== "calculated" || !indicator.formula) {
+        return parseNumber(state.payload.dados[valueKey(areaId, indicator.id, week)]);
+      }
+      const stackKey = `${areaId}|${indicator.id}|${week}`;
+      if (stack.has(stackKey)) return null;
+      const nextStack = new Set(stack).add(stackKey);
+      const indicators = getIndicators(areaId).filter((item) => item.type !== "spacer");
+      const findIndicator = (label) => indicators.find((item) => slugify(item.label) === slugify(label));
+      let hasReferencedValue = false;
+      const resolveLabel = (label) => {
+        const referenced = findIndicator(label);
+        const value = referenced ? getWeekValue(areaId, referenced, week, nextStack) : null;
+        if (value !== null) hasReferencedValue = true;
+        return value === null ? "0" : String(value);
+      };
+      let expression = String(indicator.formula).replace(/^=/, "");
+      expression = expression.replace(/\{([^}]+)\}/g, (_, label) => resolveLabel(label));
+      indicators
+        .filter((item) => item.id !== indicator.id && item.label)
+        .sort((left, right) => right.label.length - left.label.length)
+        .forEach((item) => { expression = expression.split(item.label).join(resolveLabel(item.label)); });
+      return hasReferencedValue ? calculateArithmetic(expression) : null;
+    }
+
+    function getMonthValue(areaId, indicator) {
+      const manual = parseNumber(state.payload.dadosMes[monthValueKey(areaId, indicator.id)]);
+      if (state.payload.modoMes[`mes:${areaId}|${indicator.id}`] === "manual" && manual !== null) return manual;
+      const values = WEEKS.map((week) => getWeekValue(areaId, indicator, week)).filter((value) => value !== null);
       if (!values.length) return manual;
-      const mode = state.payload.modoMes[`mes:${areaId}|${indicatorId}`] || "soma";
+      const mode = state.payload.modoMes[`mes:${areaId}|${indicator.id}`] || "soma";
       if (mode === "media") return values.reduce((sum, value) => sum + value, 0) / values.length;
       if (mode === "ultima") return values[values.length - 1];
       return values.reduce((sum, value) => sum + value, 0);
@@ -297,22 +426,11 @@
       return parseNumber(state.payload.dadosMeta[targetValueKey(areaId, indicatorId)]);
     }
 
-    function completionSummary() {
-      let total = 0;
-      let filled = 0;
-      state.payload.areas.forEach((area) => getIndicators(area.id).forEach((indicator) => {
-        WEEKS.forEach((week) => {
-          total += 1;
-          if (String(state.payload.dados[valueKey(area.id, indicator.id, week)] || "").trim()) filled += 1;
-        });
-      }));
-      return { total, filled, percent: total ? Math.round((filled / total) * 100) : 0 };
-    }
-
     function renderRows() {
       const editable = canEdit();
       return state.payload.areas.map((area) => {
         const indicators = getIndicators(area.id);
+        const indicatorCount = indicators.filter((indicator) => indicator.type !== "spacer").length;
         const collapsed = state.collapsed.has(area.id);
         const areaHeader = `
           <tr class="rps-area-row" style="--rps-area-color:${escapeHtml(area.cor || "#4f7cff")}">
@@ -320,21 +438,29 @@
               <button type="button" class="rps-area-toggle" data-rps-toggle-area="${escapeHtml(area.id)}" aria-expanded="${!collapsed}">
                 <span class="rps-area-dot"></span>
                 <span>${escapeHtml(area.nome || area.id)}</span>
-                <small>${indicators.length} indicadores</small>
+                <small>${indicatorCount} indicadores</small>
                 <span class="rps-area-chevron">${collapsed ? "›" : "⌄"}</span>
               </button>
             </th>
           </tr>`;
         if (collapsed) return areaHeader;
         const rows = indicators.map((indicator) => {
-          const month = getMonthValue(area.id, indicator.id);
+          if (indicator.type === "spacer") {
+            return `<tr class="rps-spacer-row" aria-hidden="true"><td colspan="10"></td></tr>`;
+          }
+          const calculatedRow = indicator.type === "calculated";
+          const month = getMonthValue(area.id, indicator);
           const target = getTargetValue(area.id, indicator.id);
           const variation = month !== null && target !== null ? month - target : null;
           const percent = variation !== null && target ? (variation / Math.abs(target)) * 100 : null;
           const trendClass = variation === null ? "neutral" : variation >= 0 ? "positive" : "negative";
-          const unit = getUnit(area.id, indicator.id);
+          const unit = getUnit(area.id, indicator.id, indicator);
           const weekCells = WEEKS.map((week) => {
             const key = valueKey(area.id, indicator.id, week);
+            if (calculatedRow) {
+              const calculatedValue = getWeekValue(area.id, indicator, week);
+              return `<td class="rps-calculated-cell rps-formula-cell" title="${escapeHtml(indicator.formula || "Linha calculada")}"><strong>${formatNumber(calculatedValue)}</strong></td>`;
+            }
             const comment = state.payload.comentarios[commentKey(area.id, indicator.id, week)];
             return `<td class="rps-value-cell">
               <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(state.payload.dados[key] || "")}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
@@ -342,9 +468,9 @@
             </td>`;
           }).join("");
           const targetKey = targetValueKey(area.id, indicator.id);
-          return `<tr class="rps-indicator-row" data-area-id="${escapeHtml(area.id)}" data-indicator-id="${escapeHtml(indicator.id)}">
+          return `<tr class="rps-indicator-row ${calculatedRow ? "is-calculated" : ""}" data-area-id="${escapeHtml(area.id)}" data-indicator-id="${escapeHtml(indicator.id)}">
             <th scope="row">
-              <div class="rps-indicator-name"><span>${escapeHtml(indicator.label)}</span>${unit ? `<em>${escapeHtml(unit)}</em>` : ""}</div>
+              <div class="rps-indicator-name">${calculatedRow ? `<b class="rps-formula-badge" title="Linha calculada">=</b>` : ""}<span>${escapeHtml(indicator.label)}</span>${unit ? `<em>${escapeHtml(unit)}</em>` : ""}</div>
             </th>
             ${weekCells}
             <td class="rps-calculated-cell"><strong>${formatNumber(month)}</strong></td>
@@ -363,8 +489,6 @@
     function renderShell() {
       if (!root) return;
       const { year, month } = currentPeriod();
-      const completion = completionSummary();
-      const indicatorCount = state.payload.areas.reduce((sum, area) => sum + getIndicators(area.id).length, 0);
       const editable = canEdit();
       root.innerHTML = `
         <div class="rps-page ${state.presentation ? "is-presenting" : ""}">
@@ -385,18 +509,7 @@
             </div>
           </div>
 
-          <div class="rps-summary-grid">
-            <article class="rps-summary-card"><span>Preenchimento</span><strong>${completion.percent}%</strong><div class="rps-progress"><i style="width:${completion.percent}%"></i></div><small>${completion.filled} de ${completion.total} células</small></article>
-            <article class="rps-summary-card"><span>Áreas acompanhadas</span><strong>${state.payload.areas.length}</strong><small>Visão consolidada do período</small></article>
-            <article class="rps-summary-card"><span>Indicadores ativos</span><strong>${indicatorCount}</strong><small>Semanais e metas mensais</small></article>
-            <article class="rps-summary-card rps-sync-card"><span>Status da base</span><strong class="rps-status-pill" data-rps-status data-state="${state.status}"><i></i><span>${state.backendAvailable ? "Nuvem" : "Local"}</span></strong><small data-rps-status-text>${escapeHtml(statusLabel())}</small></article>
-          </div>
-
           <section class="content-card rps-table-card">
-            <div class="rps-table-heading">
-              <div><h3>Painel de indicadores</h3><p>Valores semanais, consolidado do mês e comparação com a meta.</p></div>
-              <div class="rps-legend"><span><i class="positive"></i> Acima da meta</span><span><i class="negative"></i> Abaixo da meta</span></div>
-            </div>
             <div class="rps-table-scroll ${state.loading ? "is-loading" : ""}">
               <table class="rps-table">
                 <thead><tr><th>Área / indicador</th>${WEEKS.map((week) => `<th>${week}</th>`).join("")}<th>Mês</th><th>Meta</th><th>Var.</th><th>Var. %</th></tr></thead>
@@ -597,15 +710,15 @@
     function exportTable() {
       const { year, month } = currentPeriod();
       const lines = [["Área", "Indicador", ...WEEKS, "Mês", "Meta", "Variação", "Variação %"]];
-      state.payload.areas.forEach((area) => getIndicators(area.id).forEach((indicator) => {
-        const monthValue = getMonthValue(area.id, indicator.id);
+      state.payload.areas.forEach((area) => getIndicators(area.id).filter((indicator) => indicator.type !== "spacer").forEach((indicator) => {
+        const monthValue = getMonthValue(area.id, indicator);
         const target = getTargetValue(area.id, indicator.id);
         const variation = monthValue !== null && target !== null ? monthValue - target : null;
         const percent = variation !== null && target ? (variation / Math.abs(target)) * 100 : null;
         lines.push([
           area.nome,
           indicator.label,
-          ...WEEKS.map((week) => state.payload.dados[valueKey(area.id, indicator.id, week)] || ""),
+          ...WEEKS.map((week) => getWeekValue(area.id, indicator, week) ?? ""),
           monthValue ?? "",
           target ?? "",
           variation ?? "",

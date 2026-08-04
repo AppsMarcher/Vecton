@@ -6835,7 +6835,7 @@ table th,
 .rps-table-scroll {
   position: relative;
   overflow: auto;
-  max-height: calc(100vh - 390px);
+  max-height: calc(100vh - 200px);
   scrollbar-width: thin;
   scrollbar-color: rgba(120,130,150,.4) transparent;
 }
@@ -6880,6 +6880,7 @@ table th,
 
 .rps-table thead th:not(:first-child) {
   width: 88px;
+  text-align: center;
 }
 
 .rps-indicator-row > th {
@@ -6955,6 +6956,19 @@ table th,
   white-space: nowrap;
 }
 
+.rps-formula-badge {
+  flex: 0 0 auto;
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border: 1px solid rgba(79,124,255,.34);
+  border-radius: 5px;
+  background: rgba(79,124,255,.1);
+  color: #8fb0ff;
+  font-size: .61rem;
+}
+
 .rps-indicator-name em {
   flex: 0 0 auto;
   padding: 2px 5px;
@@ -7024,6 +7038,27 @@ table th,
   color: #dbe5ff;
 }
 
+.rps-formula-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rps-formula-cell strong {
+  font-size: .66rem;
+  font-weight: 690;
+}
+
+.rps-indicator-row.is-calculated > th {
+  background: linear-gradient(90deg, rgba(79,124,255,.075), #0d0f13 58%);
+}
+
+.rps-spacer-row td {
+  height: 13px;
+  padding: 0;
+  border-right: 0;
+  background: #090a0d;
+}
+
 .rps-target-cell {
   background: rgba(139,92,246,.025);
 }
@@ -7089,30 +7124,24 @@ body.rps-presentation-mode .rps-page {
   display: block !important;
 }
 
-body.rps-presentation-mode .rps-summary-grid {
-  margin-top: 14px;
-}
-
 body.rps-presentation-mode .rps-table-card {
   margin-top: 14px !important;
 }
 
 body.rps-presentation-mode .rps-table-scroll {
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 125px);
 }
 
 @keyframes rpsSpin { to { transform: rotate(360deg); } }
 @keyframes rpsPulse { to { opacity: .35; } }
 
 @media (max-width: 1180px) {
-  .rps-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rps-hero { align-items: flex-start; flex-direction: column; }
   .rps-toolbar { justify-content: flex-start; }
-  .rps-table-scroll { max-height: calc(100vh - 475px); }
+  .rps-table-scroll { max-height: calc(100vh - 265px); }
 }
 
 @media (max-width: 720px) {
-  .rps-summary-grid { grid-template-columns: 1fr; }
   .rps-hero { padding: 16px; }
   .rps-action span { display: none; }
   .rps-action { width: 36px; padding: 0; }
