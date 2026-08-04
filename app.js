@@ -1071,6 +1071,7 @@ const rpsModule = createRpsModule
       deleteFromStorage,
       callEdgeFunction,
       initAllReportTableResizers,
+      initFloatingScrollbar,
       escapeHtml
     })
   : { render: () => {}, destroy: () => {} };
@@ -4973,6 +4974,10 @@ function initFloatingScrollbar(wrap) {
 
   const track = document.createElement("div");
   track.className = "floating-hscroll";
+  if (wrap.classList.contains("rps-table-scroll")) {
+    track.classList.add("rps-floating-hscroll");
+    track.setAttribute("aria-label", "Rolagem horizontal da tabela RPS");
+  }
   const inner = document.createElement("div");
   inner.className = "floating-hscroll-inner";
   track.appendChild(inner);
@@ -5000,6 +5005,7 @@ function initFloatingScrollbar(wrap) {
 
   const ro = new ResizeObserver(updateGeometry);
   ro.observe(wrap);
+  if (wrap.firstElementChild) ro.observe(wrap.firstElementChild);
 
   // Mostra/oculta automaticamente quando a view muda (section entra/sai do viewport)
   const io = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; updateGeometry(); });

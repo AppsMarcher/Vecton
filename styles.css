@@ -4267,6 +4267,31 @@ textarea[disabled] {
 .floating-hscroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 .floating-hscroll::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
+.floating-hscroll.rps-floating-hscroll {
+  bottom: 10px;
+  z-index: 10100;
+  height: 16px;
+  border: 1px solid rgba(115, 137, 191, .32);
+  border-radius: 999px;
+  background: rgba(9, 12, 18, .94);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .025);
+  scrollbar-color: rgba(120, 130, 150, .4) rgba(255, 255, 255, .06);
+}
+
+.floating-hscroll.rps-floating-hscroll::-webkit-scrollbar { height: 14px; }
+.floating-hscroll.rps-floating-hscroll::-webkit-scrollbar-track {
+  margin-inline: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+}
+.floating-hscroll.rps-floating-hscroll::-webkit-scrollbar-thumb {
+  min-width: 80px;
+  border: 3px solid rgba(9, 12, 18, .94);
+  border-radius: 999px;
+  background: rgba(120, 130, 150, .4);
+}
+.floating-hscroll.rps-floating-hscroll::-webkit-scrollbar-thumb:hover { background: rgba(120, 130, 150, .65); }
+
 /* ─── TRILHA DE AUDITORIA — DRE GERENCIAL ────────────────────────────────── */
 .ger-drillable {
   cursor: pointer;
@@ -7106,8 +7131,8 @@ table th,
    rolar — o scroll horizontal simplesmente não existia, nem na digitação
    nem na apresentação. */
 .rps-table {
-  width: max-content;
-  min-width: 100%;
+  width: max(1540px, calc(100% + 280px));
+  min-width: 1540px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -8132,6 +8157,11 @@ body.rps-presentation-mode .rps-table-card {
 body.rps-presentation-mode .rps-table-scroll {
   max-height: calc(100vh - 125px);
   overflow-x: auto;
+}
+
+body.rps-presentation-mode .rps-table {
+  width: max(1460px, calc(100% + 220px));
+  min-width: 1460px;
 }
 
 /* Coluna de indicador mais estreita e Var.% reduzida em 40% (108px → ~65px)

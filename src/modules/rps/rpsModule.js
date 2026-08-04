@@ -353,6 +353,7 @@
       deleteFromStorage,
       callEdgeFunction,
       initAllReportTableResizers,
+      initFloatingScrollbar,
       escapeHtml
     } = deps;
 
@@ -372,6 +373,7 @@
       loadGeneration: 0,
       presentation: false,
       presentationZoom: 0,
+      tableScrollLeft: 0,
       backupManager: {
         open: false,
         loading: false,
@@ -1105,6 +1107,8 @@
 
     function renderShell() {
       if (!root) return;
+      const currentTableScroll = root.querySelector(".rps-table-scroll");
+      if (currentTableScroll) state.tableScrollLeft = currentTableScroll.scrollLeft;
       const { year, month } = currentPeriod();
       const fillable = canFillValues() && !state.presentation;
       const structural = canEditStructure() && !state.presentation;
@@ -1145,6 +1149,11 @@
       document.body.classList.toggle("rps-laser-mode", state.presentation);
       document.body.style.setProperty("--rps-presentation-zoom", `${state.presentationZoom}px`);
       if (fillable) initAllReportTableResizers?.();
+      const tableScroll = root.querySelector(".rps-table-scroll");
+      if (tableScroll) {
+        tableScroll.scrollLeft = Math.min(state.tableScrollLeft, Math.max(0, tableScroll.scrollWidth - tableScroll.clientWidth));
+        initFloatingScrollbar?.(tableScroll);
+      }
       if (state.presentation) ensureLaserPointer();
       else removeLaserPointer();
       updateStatusElements();
