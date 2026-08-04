@@ -6672,6 +6672,11 @@ table th,
   transform: translateY(-1px);
 }
 
+.rps-action:disabled {
+  pointer-events: none;
+  opacity: .38;
+}
+
 .rps-action-primary {
   color: #fff;
   border-color: rgba(79,124,255,.7);
@@ -7851,6 +7856,90 @@ body.rps-presentation-mode .rps-table-card {
 body.rps-presentation-mode .rps-table-scroll {
   max-height: calc(100vh - 125px);
 }
+
+body.rps-presentation-mode .rps-table th,
+body.rps-presentation-mode .rps-table td {
+  height: calc(43px + var(--rps-presentation-zoom, 0px));
+  font-size: calc(.68rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-table thead th {
+  height: calc(38px + var(--rps-presentation-zoom, 0px));
+  font-size: calc(.59rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-week-focus {
+  height: calc(38px + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-area-row th,
+body.rps-presentation-mode .rps-area-toggle {
+  height: calc(37px + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-area-toggle {
+  font-size: calc(.63rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-area-toggle small {
+  font-size: calc(.58rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-area-chevron {
+  font-size: calc(.9rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-formula-badge {
+  font-size: calc(.61rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-indicator-name em {
+  font-size: calc(.54rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-cell-input {
+  height: calc(29px + var(--rps-presentation-zoom, 0px));
+  font-size: calc(.66rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-unit-readonly {
+  font-size: calc(.56rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-formula-cell strong {
+  font-size: calc(.66rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-formula-cell small {
+  font-size: calc(.5rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-laser-mode,
+body.rps-laser-mode #rps-view,
+body.rps-laser-mode #rps-view *,
+body.rps-laser-mode .rps-attachment-carousel,
+body.rps-laser-mode .rps-attachment-carousel * {
+  cursor: none !important;
+}
+
+.rps-laser-pointer {
+  position: fixed;
+  z-index: 10200;
+  left: -30px;
+  top: -30px;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  border: 2px solid rgba(255,255,255,.88);
+  border-radius: 50%;
+  background: #ff1515;
+  opacity: 0;
+  box-shadow: 0 0 5px #fff, 0 0 10px #ff1919, 0 0 22px #ff0000, 0 0 38px rgba(255,0,0,.9);
+  transform: translate(-50%, -50%);
+  transition: opacity .08s;
+}
+
+.rps-laser-pointer.is-visible { opacity: 1; }
 
 @keyframes rpsSpin { to { transform: rotate(360deg); } }
 @keyframes rpsPulse { to { opacity: .35; } }

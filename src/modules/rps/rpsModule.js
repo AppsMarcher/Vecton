@@ -366,7 +366,8 @@
       collapsed: new Set(),
       backendAvailable: true,
       loadGeneration: 0,
-      presentation: false
+      presentation: false,
+      presentationZoom: 0
     };
 
     let saveTimer = null;
@@ -534,6 +535,37 @@
       document.body.classList.remove("rps-carousel-open");
     }
 
+    function ensureLaserPointer() {
+      let laser = document.querySelector(".rps-laser-pointer");
+      if (!laser) {
+        laser = document.createElement("div");
+        laser.className = "rps-laser-pointer";
+        laser.setAttribute("aria-hidden", "true");
+        document.body.appendChild(laser);
+      }
+      return laser;
+    }
+
+    function moveLaserPointer(event) {
+      const laser = document.querySelector(".rps-laser-pointer");
+      if (!state.presentation || event.pointerType === "touch") {
+        laser?.classList.remove("is-visible");
+        return;
+      }
+      const pointer = laser || ensureLaserPointer();
+      pointer.style.left = `${event.clientX}px`;
+      pointer.style.top = `${event.clientY}px`;
+      pointer.classList.add("is-visible");
+    }
+
+    function hideLaserPointer() {
+      document.querySelector(".rps-laser-pointer")?.classList.remove("is-visible");
+    }
+
+    function removeLaserPointer() {
+      document.querySelector(".rps-laser-pointer")?.remove();
+    }
+
     function attachmentMediaKind(attachment) {
       const type = String(attachment?.type || "").toLowerCase();
       const name = String(attachment?.name || "").toLowerCase();
@@ -651,6 +683,8 @@
         else if (event.key === "Home") show(0);
         else if (event.key === "End") show(attachments.length - 1);
       });
+      carousel.addEventListener("pointermove", moveLaserPointer);
+      carousel.addEventListener("pointerleave", hideLaserPointer);
       carousel.focus();
       void renderActive();
     }
@@ -798,7 +832,7 @@
     }
 
     function renderRows() {
-      const editable = canEdit();
+      const editable = canEdit() && !state.presentation;
       const focusWeek = focusedWeek();
       return state.payload.areas.map((area) => {
         const indicators = getIndicators(area.id);
@@ -853,7 +887,7 @@
                   ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<span class="rps-unit-readonly">${escapeHtml(weekUnit)}</span>`}
               </div>
-              <button class="rps-comment-button ${comment ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, week))}" title="Comentário">●</button>
+              ${state.presentation ? "" : `<button class="rps-comment-button ${comment ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, week))}" title="Comentário">●</button>`}
               ${attachmentButton}
             </td>`;
           }).join("");
@@ -871,7 +905,7 @@
             </td>
             <td class="rps-value-cell rps-target-cell">
               <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
-              <button class="rps-comment-button ${state.payload.comentarios[commentKey(area.id, indicator.id, "meta")] ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, "meta"))}" title="Comentário">●</button>
+              ${state.presentation ? "" : `<button class="rps-comment-button ${state.payload.comentarios[commentKey(area.id, indicator.id, "meta")] ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, "meta"))}" title="Comentário">●</button>`}
             </td>
             <td class="rps-variation ${trendClass}">${variation === null ? "—" : `${variation > 0 ? "+" : ""}${escapeHtml(formatValueForUnit(variation, monthUnit))}`}</td>
             <td class="rps-variation ${trendClass}">${percent === null ? "—" : `${percent > 0 ? "+" : ""}${formatNumber(percent)}%`}</td>
@@ -884,7 +918,7 @@
     function renderShell() {
       if (!root) return;
       const { year, month } = currentPeriod();
-      const editable = canEdit();
+      const editable = canEdit() && !state.presentation;
       const focusWeek = focusedWeek();
       root.innerHTML = `
         <div class="rps-page ${state.presentation ? "is-presenting" : ""}">
@@ -899,6 +933,8 @@
             <div class="rps-toolbar">
               <button type="button" class="rps-action" data-rps-action="refresh" title="Recarregar dados">↻ <span>Atualizar</span></button>
               ${editable ? `<button type="button" class="rps-action" data-rps-action="add">＋ <span>Indicador</span></button>` : ""}
+              ${state.presentation ? `<button type="button" class="rps-action" data-rps-action="zoom-in" title="Aumentar os textos em 2 pixels">＋ <span>Zoom</span></button>
+              <button type="button" class="rps-action" data-rps-action="zoom-out" title="Diminuir os textos em 2 pixels" ${state.presentationZoom <= 0 ? "disabled" : ""}>− <span>Zoom</span></button>` : ""}
               <button type="button" class="rps-action rps-action-primary" data-rps-action="present">▣ <span>${state.presentation ? "Sair" : "Apresentar"}</span></button>
             </div>
           </div>
@@ -914,6 +950,10 @@
           </section>
         </div>`;
       document.body.classList.toggle("rps-presentation-mode", state.presentation);
+      document.body.classList.toggle("rps-laser-mode", state.presentation);
+      document.body.style.setProperty("--rps-presentation-zoom", `${state.presentationZoom}px`);
+      if (state.presentation) ensureLaserPointer();
+      else removeLaserPointer();
       updateStatusElements();
     }
 
@@ -1194,6 +1234,7 @@
       if (!root || eventsBound) return;
       eventsBound = true;
       root.addEventListener("input", (event) => {
+        if (state.presentation) return;
         const valueInput = event.target.closest("[data-rps-value-key]");
         if (valueInput) {
           const key = valueInput.dataset.rpsValueKey;
@@ -1214,6 +1255,7 @@
       });
 
       root.addEventListener("change", (event) => {
+        if (state.presentation) return;
         const labelInput = event.target.closest("[data-rps-label-id]");
         if (labelInput) {
           renameIndicator(labelInput.dataset.rpsLabelArea, labelInput.dataset.rpsLabelId, labelInput.value);
@@ -1236,6 +1278,11 @@
           renderShell();
         }
       });
+
+      root.addEventListener("pointermove", moveLaserPointer);
+      root.addEventListener("pointerleave", hideLaserPointer);
+      document.addEventListener("pointermove", moveLaserPointer);
+      document.addEventListener("pointerout", (event) => { if (!event.relatedTarget) hideLaserPointer(); });
 
       root.addEventListener("click", async (event) => {
         const weekFocus = event.target.closest("[data-rps-focus-week]");
@@ -1315,9 +1362,19 @@
           exportTable();
         } else if (action === "add") {
           await addIndicator();
+        } else if (action === "zoom-in") {
+          state.presentationZoom += 2;
+          renderShell();
+        } else if (action === "zoom-out") {
+          state.presentationZoom = Math.max(0, state.presentationZoom - 2);
+          renderShell();
         } else if (action === "present") {
           state.presentation = !state.presentation;
-          if (!state.presentation) closeAttachmentCarousel();
+          state.presentationZoom = 0;
+          if (!state.presentation) {
+            closeAttachmentCarousel();
+            hideLaserPointer();
+          }
           renderShell();
         }
       });
@@ -1348,8 +1405,13 @@
       clearTimeout(maxSaveTimer);
       closeAttachmentModal();
       closeAttachmentCarousel();
+      removeLaserPointer();
+      state.presentation = false;
+      state.presentationZoom = 0;
       state.loadGeneration += 1;
       document.body.classList.remove("rps-presentation-mode");
+      document.body.classList.remove("rps-laser-mode");
+      document.body.style.removeProperty("--rps-presentation-zoom");
     }
 
     window.addEventListener("pagehide", () => {
