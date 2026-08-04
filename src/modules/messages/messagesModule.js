@@ -333,7 +333,7 @@
           <div class="msn-head-menu">
             <button type="button" class="msn-icon-btn" data-action="abrir-ajustes" title="Opções do Vecton Messenger" aria-label="Abrir opções do Vecton Messenger">☰</button>
           </div>
-          <img class="msn-head-logo" src="assets/vecton-messenger.png?v=20260804b" alt="Vecton Messenger">
+          <img class="msn-head-logo" src="assets/vecton-messenger.png?v=20260804c" alt="Vecton Messenger">
           <div class="msn-head-acoes">
             <button type="button" class="msn-icon-btn" data-action="fechar-painel" title="Fechar">✕</button>
           </div>
