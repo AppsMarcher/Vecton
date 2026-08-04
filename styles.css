@@ -7097,9 +7097,17 @@ table th,
   background: rgba(120,130,150,.65);
 }
 
+/* width:max-content + min-width:100% = mesmo padrão do .reports-dre-table
+   (styles.css ~2487): a tabela cresce até a soma real das larguras das
+   colunas (nunca menos que isso, table-layout:fixed respeita as larguras
+   explícitas de th:first-child/th:not(:first-child) abaixo) e só encolhe
+   até 100% do container quando tudo cabe. Com width:100% (valor antigo) a
+   tabela NUNCA passava do container, então nunca sobrava overflow-x pra
+   rolar — o scroll horizontal simplesmente não existia, nem na digitação
+   nem na apresentação. */
 .rps-table {
-  width: 100%;
-  min-width: 1380px;
+  width: max-content;
+  min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -8120,19 +8128,10 @@ body.rps-presentation-mode .rps-table-scroll {
 }
 
 /* Coluna de indicador mais estreita e Var.% reduzida em 40% (108px → ~65px)
-   só na apresentação — libera espaço pras colunas de valor. Sem isso a
-   tabela ficava exatamente do tamanho do viewport (table-layout:fixed +
-   width:100% "estica" as colunas pra preencher a tela toda quando ela é
-   mais larga que os 1380px mínimos), então nunca precisava rolar — mas o
-   conteúdo das células (ainda maior com o zoom da apresentação) ficava
-   cortado sem ter pra onde rolar. width:auto trava a tabela no tamanho
-   "natural" das colunas (não estica mais), garantindo overflow-x sempre
-   que a tela for menor que isso — o scroll fica sempre alcançável no
-   rodapé do card, já travado em altura fixa (max-height acima). */
-body.rps-presentation-mode .rps-table {
-  width: auto;
-}
-
+   só na apresentação — libera espaço pras colunas de valor. O scroll
+   horizontal em si (aparecer sempre que a tabela não couber) vem da regra
+   base .rps-table (width:max-content/min-width:100%, ~linha 7100) — não
+   precisa de override aqui, só as larguras de coluna. */
 body.rps-presentation-mode .rps-table thead th:first-child {
   width: 190px;
 }
