@@ -57,9 +57,12 @@
     let _realtimeChannel = null;
     let _realtimeOnline = false;
     let _iniciandoRealtime = null;
-    let _audioNotificacao = null;
+    let _audioContext = null;
+    let _audioBuffer = null;
+    let _carregandoAudio = null;
 
     const EVENTOS_LIBERAR_AUDIO = ["pointerdown", "keydown", "touchstart"];
+    const SOM_MENSAGEM_URL = "assets/msn-message.mp3?v=20260804b";
 
     // thread_id -> { el, titulo, mensagens, aba, ultimoId, digitando }
     const _janelas = new Map();
@@ -83,11 +86,35 @@
       return `${(n / 1048576).toFixed(1)} MB`;
     }
 
-    function obterAudioNotificacao() {
-      if (_audioNotificacao) return _audioNotificacao;
-      _audioNotificacao = new Audio("assets/msn-message.mp3?v=20260804a");
-      _audioNotificacao.preload = "auto";
-      return _audioNotificacao;
+    function obterAudioContext() {
+      if (_audioContext && _audioContext.state !== "closed") return _audioContext;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      _audioContext = new Ctx();
+      return _audioContext;
+    }
+
+    function carregarSomMensagem() {
+      if (_audioBuffer) return Promise.resolve(_audioBuffer);
+      if (_carregandoAudio) return _carregandoAudio;
+      const ctx = obterAudioContext();
+      if (!ctx) return Promise.resolve(null);
+      _carregandoAudio = fetch(SOM_MENSAGEM_URL, { cache: "force-cache" })
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.arrayBuffer();
+        })
+        .then((dados) => ctx.decodeAudioData(dados))
+        .then((buffer) => {
+          _audioBuffer = buffer;
+          return buffer;
+        })
+        .catch((error) => {
+          console.debug("Messenger: falha ao carregar o som de mensagem", error);
+          return null;
+        })
+        .finally(() => { _carregandoAudio = null; });
+      return _carregandoAudio;
     }
 
     function removerDesbloqueioAudio() {
@@ -96,30 +123,34 @@
 
     function liberarAudio() {
       try {
-        const audio = obterAudioNotificacao();
-        const volume = audio.volume;
-        audio.volume = 0;
-        const pronto = audio.play();
-        if (!pronto) return;
+        const ctx = obterAudioContext();
+        if (!ctx) return;
+        const pronto = ctx.state === "suspended" ? ctx.resume() : Promise.resolve();
         void pronto.then(() => {
-          audio.pause();
-          audio.currentTime = 0;
-          audio.volume = volume;
-          removerDesbloqueioAudio();
-        }).catch(() => { audio.volume = volume; });
+          void carregarSomMensagem();
+          if (ctx.state === "running") removerDesbloqueioAudio();
+        }).catch(() => {});
       } catch (_) { /* o navegador pode bloquear áudio antes de uma interação */ }
     }
 
     function prepararAudio() {
       EVENTOS_LIBERAR_AUDIO.forEach((evento) => document.addEventListener(evento, liberarAudio, { passive: true }));
+      void carregarSomMensagem();
     }
 
     // Som clássico escolhido para as mensagens do Vecton Messenger.
-    function tocarSomMensagem() {
+    async function tocarSomMensagem() {
       try {
-        const audio = obterAudioNotificacao();
-        audio.currentTime = 0;
-        void audio.play().catch(() => {});
+        const ctx = obterAudioContext();
+        if (!ctx) return;
+        if (ctx.state === "suspended") await ctx.resume();
+        const buffer = await carregarSomMensagem();
+        if (!buffer || ctx.state !== "running") return;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.onended = () => source.disconnect();
+        source.start();
       } catch (_) { /* som é enfeite: nunca pode quebrar o envio */ }
     }
 
@@ -1020,11 +1051,10 @@
       _disabled = false;
       pararAlertaCartinha();
       removerDesbloqueioAudio();
-      if (_audioNotificacao) {
-        _audioNotificacao.pause();
-        _audioNotificacao.currentTime = 0;
-      }
-      _audioNotificacao = null;
+      if (_audioContext && _audioContext.state !== "closed") void _audioContext.close().catch(() => {});
+      _audioContext = null;
+      _audioBuffer = null;
+      _carregandoAudio = null;
       pararRealtime();
     }
 
