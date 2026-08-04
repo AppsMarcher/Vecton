@@ -5,10 +5,9 @@
 // flags. Ver o cabeçalho de supabase/092_create_notifications.sql pro desenho
 // completo.
 //
-// Entrega por POLLING (60s + refetch ao voltar pra aba), não Realtime: o app
-// não carrega o supabase-js (tudo é REST cru via authenticatedFetch), e
-// "carga aplicada" acontece algumas vezes por mês — latência de 1 min é
-// irrelevante perto do custo de somar WebSocket + client novo ao bundle.
+// As notificações administrativas continuam no polling de 60s. O Marcher
+// Messenger usa uma conexão Realtime própria, iniciada por este módulo junto
+// com o ciclo autenticado da aplicação.
 (function attachVectonNotificationsModule(window) {
   function createNotificationsModule(deps) {
     const {
@@ -30,11 +29,6 @@
 
     const POLL_MS = 60000;
     const FEED_LIMIT = 30;
-    // Abre sozinho uma vez por sessão quando há mensagem não lida — decisão do
-    // usuário. sessionStorage (e não localStorage) porque "sessão" aqui é a
-    // aba/navegação atual: fechou e voltou depois, avisa de novo.
-    const AUTO_OPEN_KEY = "vp_inbox_auto_opened_v1";
-
     let _items = [];
     let _unread = 0;          // notificações
     let _unreadMsgs = 0;      // mensagens
@@ -110,23 +104,20 @@
     // Se a 094 ainda não rodou, cai na contagem só de notificações da 092.
     async function refreshCount() {
       if (_disabled || !isSupabaseConfigured()) return;
-      // Aba em segundo plano não consulta: sem isso o timer gera tráfego (e
-      // renovação de token) o dia inteiro numa aba que ninguém está olhando.
-      // Ao voltar pra aba o visibilitychange já dispara uma atualização.
-      if (document.visibilityState === "hidden") return;
       try {
         const linhas = await callSupabaseRpc("inbox_counts");
         const c = Array.isArray(linhas) ? linhas[0] : linhas;
         _unread = Number(c?.notificacoes) || 0;
         _unreadMsgs = Number(c?.mensagens) || 0;
         if (messagesTab) {
+          void messagesTab.refreshRealtimeAuth();
           messagesTab.setMessagesUnread(_unreadMsgs);
+          if (_unreadMsgs > 0) messagesTab.showUnreadAlert();
           // Segundo tique = "chegou no aparelho da pessoa", então marcar
           // entrega faz parte do polling, não da abertura da aba.
           if (_unreadMsgs > 0) void messagesTab.markMessagesDelivered();
         }
         renderBadge();
-        autoAbrirSeTiverMensagem();
       } catch (error) {
         if (isMissingSchemaError(error)) {
           try {
@@ -148,19 +139,6 @@
         // Rede instável / sessão renovando: silencioso, tenta no próximo tick.
         console.debug("caixa de entrada: falha ao contar não lidas", error);
       }
-    }
-
-    // Abre a lista de contatos sozinha uma vez por sessão quando há mensagem
-    // não lida — agora o correio é tela separada, então quem abre é ele.
-    function autoAbrirSeTiverMensagem() {
-      if (_unreadMsgs <= 0 || !messagesTab) return;
-      try {
-        if (sessionStorage.getItem(AUTO_OPEN_KEY) === "1") return;
-        sessionStorage.setItem(AUTO_OPEN_KEY, "1");
-      } catch (_) {
-        return;   // sem sessionStorage, não insiste
-      }
-      messagesTab.toggleContatos();
     }
 
     // ── Popover ──────────────────────────────────────────────────────────────
@@ -372,6 +350,13 @@
     function start() {
       bindBell();
       if (_timer) return;
+      if (messagesTab) {
+        messagesTab.onMessagesCountChange((n) => {
+          _unreadMsgs = Number(n) || 0;
+          renderBadge();
+        });
+        void messagesTab.startMessages();
+      }
       void refreshCount();
       _timer = setInterval(() => void refreshCount(), POLL_MS);
       document.addEventListener("visibilitychange", onVisibility);
@@ -387,9 +372,6 @@
       _unreadMsgs = 0;
       _disabled = false;
       renderBadge();
-      // Logout limpa a marca de "já abri nesta sessão": o próximo usuário a
-      // entrar neste navegador merece ver as mensagens dele.
-      try { sessionStorage.removeItem(AUTO_OPEN_KEY); } catch (_) { /* indisponível */ }
     }
 
     // ── Tela Parâmetros → Notificações ───────────────────────────────────────

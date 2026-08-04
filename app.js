@@ -719,6 +719,9 @@ const messagesTab = createMessagesModule({
   uploadToStorage,
   createStorageSignedUrl,
   appConfirm,
+  createRealtimeClient: window.supabase?.createClient || null,
+  getSupabaseConfig: () => supabaseConfig,
+  getAccessToken: () => ensureValidAccessToken(),
   // Resolve a foto do perfil pro avatar da lista de contatos — mesma regra do
   // applyPhotoPreview (upload = data URL; avatar = chave em FUN_AVATARS).
   resolverFoto: (kind, value) => {

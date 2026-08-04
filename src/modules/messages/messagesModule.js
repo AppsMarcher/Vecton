@@ -12,9 +12,8 @@
 // notificationsModule (RPC inbox_counts), que traz as duas contagens e serve de
 // batimento de presença — nunca criar um segundo timer global pra isso.
 //
-// Enquanto há janela aberta roda um polling curto (4s) só das conversas
-// abertas: é o que faz "está digitando" e a chegada de mensagem parecerem
-// instantâneos sem WebSocket.
+// Mensagens, anexos e digitação chegam por Supabase Realtime. Um polling lento
+// permanece apenas como contingência quando o WebSocket estiver desconectado.
 (function attachVectonMessagesModule(window) {
   function createMessagesModule(deps) {
     const {
@@ -28,13 +27,16 @@
       uploadToStorage,
       createStorageSignedUrl,
       appConfirm,
-      resolverFoto
+      resolverFoto,
+      createRealtimeClient,
+      getSupabaseConfig,
+      getAccessToken
 
     } = deps;
 
     const BUCKET = "message-attachments";
     const MAX_FILE_MB = 15;
-    const POLL_ABERTAS_MS = 4000;
+    const POLL_FALLBACK_MS = 30000;
     const POLL_CONTATOS_MS = 30000;
     const THUMB_MAX = 320;
     const LADOS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
@@ -51,6 +53,10 @@
     let _timerAbertas = null;
     let _timerContatos = null;
     let _zIndex = 9500;
+    let _realtimeClient = null;
+    let _realtimeChannel = null;
+    let _realtimeOnline = false;
+    let _iniciandoRealtime = null;
 
     // thread_id -> { el, titulo, mensagens, aba, ultimoId, digitando }
     const _janelas = new Map();
@@ -93,7 +99,16 @@
 
     function setUnread(n) {
       _unread = Number(n) || 0;
+      if (_unread <= 0) pararAlertaCartinha();
       if (_onCountChange) _onCountChange(_unread);
+    }
+
+    function piscarCartinha() {
+      document.querySelector("#messages-trigger")?.classList.add("msn-alerta");
+    }
+
+    function pararAlertaCartinha() {
+      document.querySelector("#messages-trigger")?.classList.remove("msn-alerta");
     }
 
     // ── Painel de contatos ───────────────────────────────────────────────────
@@ -145,7 +160,7 @@
 
       return `
         <div class="msn-head">
-          <strong>Contatos</strong>
+          <strong>Marcher Messenger</strong>
           <div class="msn-head-acoes">
             <button type="button" class="msn-icon-btn" data-action="fechar-painel" title="Fechar">✕</button>
           </div>
@@ -193,6 +208,20 @@
 
     const _meuPerfil = { presenca: "disponivel", recado: "" };
 
+    async function carregarMeuPerfil() {
+      if (_disabled || !isSupabaseConfigured()) return;
+      try {
+        const rows = await callSupabaseRpc("messenger_my_state");
+        const perfil = Array.isArray(rows) ? rows[0] : rows;
+        if (!perfil) return;
+        _meuPerfil.presenca = perfil.presenca || "disponivel";
+        _meuPerfil.recado = perfil.recado || "";
+        pintarPainel();
+      } catch (error) {
+        if (!isMissingSchemaError(error)) console.debug("messenger: falha ao carregar presença", error);
+      }
+    }
+
     async function carregarContatos() {
       if (_disabled || !isSupabaseConfigured()) return;
       try {
@@ -210,6 +239,7 @@
     }
 
     function abrirPainel() {
+      pararAlertaCartinha();
       if (_painel) { fecharPainel(); return; }
       _painel = document.createElement("div");
       _painel.className = "msn-painel";
@@ -248,7 +278,7 @@
         }).catch(() => {});
       });
 
-      void carregarContatos();
+      void Promise.all([carregarMeuPerfil(), carregarContatos()]);
       if (!_timerContatos) _timerContatos = setInterval(() => void carregarContatos(), POLL_CONTATOS_MS);
     }
 
@@ -391,9 +421,9 @@
       `;
     }
 
-    function abrirJanela(threadId, titulo) {
+    function abrirJanela(threadId, titulo, opcoes = {}) {
       const existente = _janelas.get(threadId);
-      if (existente) { frente(existente); return; }
+      if (existente) { frente(existente); return existente; }
 
       const el = document.createElement("div");
       el.className = "msn-janela";
@@ -415,11 +445,14 @@
       _janelas.set(threadId, ctx);
       frente(ctx);
       ligarJanela(ctx);
-      void carregarMensagens(ctx, true);
+      if (opcoes.carregar !== false) void carregarMensagens(ctx, true);
 
       if (!_timerAbertas) {
-        _timerAbertas = setInterval(() => void tickAbertas(), POLL_ABERTAS_MS);
+        _timerAbertas = setInterval(() => {
+          if (!_realtimeOnline) void tickAbertas();
+        }, POLL_FALLBACK_MS);
       }
+      return ctx;
     }
 
     function frente(ctx) {
@@ -645,7 +678,7 @@
       `).join("");
     }
 
-    async function carregarMensagens(ctx, primeira) {
+    async function carregarMensagens(ctx, primeira, efeitos = true) {
       try {
         const rows = await callSupabaseRpc("thread_messages", { p_thread: ctx.threadId }) || [];
         const ultimo = rows.length ? rows[rows.length - 1] : null;
@@ -656,7 +689,7 @@
         ctx.ultimoId = ultimo?.id || null;
         pintarConversa(ctx);
 
-        if (chegouNova && ultimo.autor_id !== getCurrentUserId()) {
+        if (efeitos && chegouNova && ultimo.autor_id !== getCurrentUserId()) {
           bip();
           if (nudgeNovo) chacoalhar(ctx);
         }
@@ -813,19 +846,137 @@
     }
 
     // ── Polling curto das janelas abertas ────────────────────────────────────
+    async function atualizarDigitando(ctx) {
+      if (!ctx?.focada) return;
+      try {
+        const quem = await callSupabaseRpc("thread_typing", { p_thread: ctx.threadId }) || [];
+        const nomes = quem.map((q) => q.nome).filter(Boolean);
+        ctx.el.querySelector(".msn-digitando").textContent =
+          nomes.length ? `${nomes.join(", ")} está digitando...` : "";
+      } catch (_) { /* silencioso */ }
+    }
+
     async function tickAbertas() {
-      if (document.visibilityState === "hidden") return;
       for (const ctx of _janelas.values()) {
         await carregarMensagens(ctx);
-        if (ctx.focada) {
-          try {
-            const quem = await callSupabaseRpc("thread_typing", { p_thread: ctx.threadId }) || [];
-            const nomes = quem.map((q) => q.nome).filter(Boolean);
-            ctx.el.querySelector(".msn-digitando").textContent =
-              nomes.length ? `${nomes.join(", ")} está digitando...` : "";
-          } catch (_) { /* silencioso */ }
-        }
+        await atualizarDigitando(ctx);
       }
+    }
+
+    // ── Supabase Realtime ────────────────────────────────────────────────
+    async function contextoDoEvento(threadId) {
+      const rows = await callSupabaseRpc("messenger_event_context", { p_thread: threadId });
+      return Array.isArray(rows) ? rows[0] : rows;
+    }
+
+    async function aoReceberMensagem(payload) {
+      const mensagem = payload?.new;
+      if (!mensagem?.thread_id || mensagem.author_user_id === getCurrentUserId()) return;
+
+      setUnread(_unread + 1);
+      if (_painel) void carregarContatos();
+
+      try {
+        const contexto = await contextoDoEvento(mensagem.thread_id);
+        if (!contexto) return;
+        _meuPerfil.presenca = contexto.presenca || _meuPerfil.presenca;
+        _meuPerfil.recado = contexto.recado || _meuPerfil.recado;
+
+        const disponivel = _meuPerfil.presenca === "disponivel";
+        const existente = _janelas.get(mensagem.thread_id);
+        if (disponivel) {
+          pararAlertaCartinha();
+          const ctx = abrirJanela(mensagem.thread_id, contexto.titulo, { carregar: false });
+          await carregarMensagens(ctx, false, true);
+          frente(ctx);
+          // A mensagem recém-chegada acabou de ser aberta e marcada como lida.
+          setUnread(Math.max(0, _unread - 1));
+        } else {
+          // Ocupado, ausente e invisível não roubam o foco da pessoa.
+          piscarCartinha();
+          if (existente) await carregarMensagens(existente, false, false);
+        }
+      } catch (error) {
+        console.debug("messenger realtime: falha ao tratar mensagem", error);
+        piscarCartinha();
+      }
+    }
+
+    function aoReceberAnexo(payload) {
+      const anexo = payload?.new;
+      const ctx = anexo?.thread_id ? _janelas.get(anexo.thread_id) : null;
+      if (!ctx) return;
+      void carregarMensagens(ctx, true, false);
+      if (ctx.aba === "midias") void carregarMidias(ctx);
+    }
+
+    function aoReceberDigitacao(payload) {
+      const digitacao = payload?.new;
+      if (!digitacao?.thread_id || digitacao.user_id === getCurrentUserId()) return;
+      const ctx = _janelas.get(digitacao.thread_id);
+      if (ctx) void atualizarDigitando(ctx);
+    }
+
+    async function iniciarRealtime() {
+      if (_realtimeChannel || _iniciandoRealtime || !isSupabaseConfigured()) return _iniciandoRealtime;
+      if (!createRealtimeClient || !getSupabaseConfig || !getAccessToken) {
+        console.debug("Marcher Messenger: cliente Realtime indisponível; usando contingência.");
+        return null;
+      }
+
+      _iniciandoRealtime = (async () => {
+        const config = getSupabaseConfig();
+        const token = await getAccessToken();
+        _realtimeClient = createRealtimeClient(config.projectUrl, config.anonKey, {
+          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+          realtime: { worker: true, heartbeatIntervalMs: 15000 }
+        });
+        _realtimeClient.realtime.setAuth(token);
+        _realtimeChannel = _realtimeClient
+          .channel(`marcher-messenger-${getCurrentUserId()}`)
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
+            (payload) => void aoReceberMensagem(payload))
+          .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_attachments" },
+            aoReceberAnexo)
+          .on("postgres_changes", { event: "*", schema: "public", table: "message_typing" },
+            aoReceberDigitacao)
+          .subscribe((status) => {
+            _realtimeOnline = status === "SUBSCRIBED";
+            if (_realtimeOnline) void markDelivered();
+            if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+              console.debug(`Marcher Messenger Realtime: ${status}; contingência ativa.`);
+            }
+          });
+      })().catch((error) => {
+        _realtimeOnline = false;
+        _realtimeChannel = null;
+        _realtimeClient = null;
+        console.debug("Marcher Messenger: falha ao conectar Realtime", error);
+      }).finally(() => { _iniciandoRealtime = null; });
+
+      return _iniciandoRealtime;
+    }
+
+    async function atualizarAuthRealtime() {
+      if (!_realtimeClient || !getAccessToken) return;
+      try {
+        _realtimeClient.realtime.setAuth(await getAccessToken());
+      } catch (error) {
+        console.debug("Marcher Messenger: falha ao renovar autenticação Realtime", error);
+      }
+    }
+
+    async function iniciar() {
+      await carregarMeuPerfil();
+      await iniciarRealtime();
+    }
+
+    function pararRealtime() {
+      _realtimeOnline = false;
+      if (_realtimeClient && _realtimeChannel) void _realtimeClient.removeChannel(_realtimeChannel);
+      _realtimeChannel = null;
+      _realtimeClient = null;
+      _iniciandoRealtime = null;
     }
 
     function parar() {
@@ -838,6 +989,8 @@
       _grupos = [];
       _unread = 0;
       _disabled = false;
+      pararAlertaCartinha();
+      pararRealtime();
     }
 
     async function markDelivered() {
@@ -847,9 +1000,12 @@
     }
 
     return {
+      startMessages: iniciar,
       toggleContatos: abrirPainel,
       setMessagesUnread: (n) => { setUnread(n); if (_painel) void carregarContatos(); },
       onMessagesCountChange: (fn) => { _onCountChange = fn; },
+      showUnreadAlert: piscarCartinha,
+      refreshRealtimeAuth: atualizarAuthRealtime,
       markMessagesDelivered: markDelivered,
       stopMessages: parar
     };

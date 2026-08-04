@@ -6565,6 +6565,13 @@ table th,
    Badge: o CSS base é display:none e o JS liga com "flex" explícito. Nunca
    trocar por string vazia — já quebrou os botões de Relatórios uma vez. */
 .notif-trigger { position: relative; }
+@keyframes msn-cartinha-pisca {
+  0%, 100% { color: var(--text-soft); border-color: transparent; box-shadow: none; }
+  50% { color: #fff; border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 0 14px rgba(79, 124, 255, 0.9); }
+}
+#messages-trigger.msn-alerta {
+  animation: msn-cartinha-pisca 0.8s ease-in-out infinite;
+}
 .notif-badge {
   display: none;
   position: absolute;
@@ -6727,9 +6734,9 @@ table th,
   display: flex;
   flex-direction: column;
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 1px solid var(--blue);
   border-radius: 14px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), 0 0 0 1px rgba(79, 124, 255, 0.16);
   overflow: hidden;
 }
 .msn-head {
@@ -6854,7 +6861,7 @@ table th,
   min-width: 190px;
   padding: 5px;
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 1px solid var(--blue);
   border-radius: 10px;
   box-shadow: var(--shadow);
   display: grid;
@@ -6895,9 +6902,9 @@ table th,
   display: flex;
   flex-direction: column;
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 1px solid var(--blue);
   border-radius: 12px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), 0 0 0 1px rgba(79, 124, 255, 0.16);
   overflow: hidden;
 }
 
