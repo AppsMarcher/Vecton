@@ -6773,6 +6773,16 @@ table th,
 }
 .msg-item:hover .msg-thread-del { opacity: 1; }
 .msg-thread-del:hover { color: var(--neg); background: rgba(255, 255, 255, 0.08); }
+/* Data/hora centralizada verticalmente: o X é absoluto no topo direito e o
+   `.notif-item` alinha as colunas no topo (align-items: start), então os dois
+   caíam no mesmo ponto e o X ficava por cima da data. */
+.msg-item .notif-item-time {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
 .msg-count {
   display: inline-block;
   min-width: 17px;
@@ -6966,6 +6976,8 @@ table th,
   height: 42px;
 }
 .msg-reply .primary-button { flex: none; height: auto; }
+/* Rodapé da composição: só o botão Enviar, encostado à direita. */
+.msg-compose-foot { justify-content: flex-end; }
 
 .msg-compose { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; display: grid; gap: 10px; align-content: start; }
 .msg-compose input[type="text"],

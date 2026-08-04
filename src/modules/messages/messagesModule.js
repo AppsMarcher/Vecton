@@ -46,19 +46,16 @@
         || msg.includes("does not exist") || msg.includes("schema cache");
     }
 
-    function formatRelative(iso) {
-      const then = new Date(iso).getTime();
-      if (!Number.isFinite(then)) return "";
-      const min = Math.floor((Date.now() - then) / 60000);
-      if (min < 1) return "agora";
-      if (min < 60) return `há ${min} min`;
-      const h = Math.floor(min / 60);
-      if (h < 24) return `há ${h} h`;
-      const d = Math.floor(h / 24);
-      if (d === 1) return "ontem";
-      if (d < 7) return `há ${d} dias`;
-      const dt = new Date(then);
-      return `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}`;
+    // Dia e hora na lista de conversas (o usuário pediu data concreta no lugar
+    // do "há X min"): "03/08 14:32", com o ano quando não é o corrente.
+    function formatDataHora(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      const dia = String(d.getDate()).padStart(2, "0");
+      const mes = String(d.getMonth() + 1).padStart(2, "0");
+      const hora = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      const ano = d.getFullYear() !== new Date().getFullYear() ? `/${d.getFullYear()}` : "";
+      return `${dia}/${mes}${ano} ${hora}`;
     }
 
     function setUnread(n) {
@@ -67,6 +64,13 @@
     }
 
     // ── Markup ───────────────────────────────────────────────────────────────
+    // Sem assunto, o título da conversa é quem participa dela — o banco já
+    // devolve pronto em `titulo` (migration 097). O fallback cobre a janela
+    // entre publicar o frontend e rodar a migration.
+    function tituloDa(t) {
+      return t.titulo || t.subject || (t.audience === "organization" ? "Toda a organização" : "Conversa");
+    }
+
     function listMarkup() {
       if (_disabled) return `<div class="notif-empty">Correio interno ainda não configurado no banco.</div>`;
       if (_loading) return `<div class="notif-empty">Carregando...</div>`;
@@ -80,12 +84,12 @@
         <div class="notif-item msg-item${t.nao_lidas > 0 ? " unread" : ""}" role="button" tabindex="0" data-thread="${escapeHtml(t.thread_id)}">
           <span class="notif-item-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-mail"></use></svg></span>
           <span class="notif-item-copy">
-            <strong>${escapeHtml(t.subject || "(sem assunto)")}</strong>
+            <strong>${escapeHtml(tituloDa(t))}</strong>
             <span class="notif-item-body">${escapeHtml(t.last_author || "")}: ${escapeHtml((t.last_body || "").slice(0, 90))}</span>
             <span class="msg-item-meta">${t.audience === "organization" ? "Toda a organização" : `${t.participantes} participantes`}</span>
           </span>
           <span class="notif-item-time">
-            ${escapeHtml(formatRelative(t.last_at))}
+            ${escapeHtml(formatDataHora(t.last_at))}
             ${t.nao_lidas > 0 ? `<span class="msg-count">${t.nao_lidas}</span>` : ""}
           </span>
           <button type="button" class="msg-thread-del" data-action="excluir-thread" data-thread="${escapeHtml(t.thread_id)}" title="Excluir conversa" aria-label="Excluir conversa">✕</button>
@@ -168,7 +172,7 @@
       return `
         <div class="msg-thread-head">
           <button type="button" class="msg-back" data-action="voltar">← Voltar</button>
-          <strong>${escapeHtml(_thread?.subject || "")}</strong>
+          <strong>${escapeHtml(_thread?.titulo || "")}</strong>
         </div>
         <div class="msg-thread-body">${corpo}</div>
         ${pendentes}
@@ -280,10 +284,9 @@
           <label class="msg-todos">
             <input type="checkbox" id="msg-org"> Enviar para toda a organização
           </label>
-          <input type="text" id="msg-subject" placeholder="Assunto">
           <textarea id="msg-body" rows="4" placeholder="Escreva sua mensagem..."></textarea>
         </div>
-        <div class="msg-reply">
+        <div class="msg-reply msg-compose-foot">
           <button type="button" class="primary-button" data-action="enviar">Enviar</button>
         </div>
       `;
@@ -371,7 +374,7 @@
 
     async function openThread(threadId) {
       const t = _threads.find((x) => x.thread_id === threadId);
-      _thread = t ? { thread_id: t.thread_id, subject: t.subject } : { thread_id: threadId, subject: "" };
+      _thread = t ? { thread_id: t.thread_id, titulo: tituloDa(t) } : { thread_id: threadId, titulo: "Conversa" };
       _view = "thread";
       _messages = [];
       _loading = true;
@@ -415,12 +418,10 @@
     }
 
     async function enviar() {
-      const subject = _container.querySelector("#msg-subject")?.value || "";
       const body = _container.querySelector("#msg-body")?.value || "";
       const paraOrg = Boolean(_container.querySelector("#msg-org")?.checked);
       const ids = _composeTo.map((u) => u.user_id);
 
-      if (!subject.trim()) { showToast("Informe um assunto.", "error"); return; }
       if (!body.trim()) { showToast("Escreva a mensagem.", "error"); return; }
       if (!paraOrg && !ids.length) { showToast("Escolha ao menos um destinatário em Para.", "error"); return; }
 
@@ -428,7 +429,9 @@
       if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
       try {
         await callSupabaseRpc("send_message", {
-          p_subject: subject,
+          // Sem assunto: é bate-papo. O banco aceita nulo (097) e a conversa é
+          // identificada pelos participantes.
+          p_subject: null,
           p_body: body,
           p_user_ids: paraOrg ? [] : ids,
           p_audience: paraOrg ? "organization" : "people"
@@ -517,7 +520,7 @@
       const t = _threads.find((x) => x.thread_id === threadId);
       if (appConfirm) {
         const ok = await appConfirm(
-          `Excluir a conversa "${t?.subject || "sem assunto"}"? Todas as mensagens somem para todos os participantes.`
+          `Excluir a conversa com ${t ? tituloDa(t) : "esta pessoa"}? Todas as mensagens somem para todos os participantes.`
         );
         if (!ok) return;
       }
