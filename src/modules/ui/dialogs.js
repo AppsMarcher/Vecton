@@ -107,10 +107,101 @@
     });
   }
 
+  // Regra de interface do Vecton: entradas e confirmações usam este sistema,
+  // nunca os popovers nativos alert/confirm/prompt do navegador.
+  function appPrompt(options) {
+    const config = options && typeof options === "object" ? options : { title: "Editar", fields: [] };
+    const fields = Array.isArray(config.fields) ? config.fields : [];
+    return new Promise((resolve) => {
+      const overlay = createDialogOverlay();
+      const box = createDialogBox(
+        config.icon || "✦",
+        config.eyebrow || "VECTON",
+        config.title || "Editar",
+        config.message || "Preencha os campos abaixo."
+      );
+      const form = document.createElement("form");
+      form.style.cssText = "display:grid;gap:14px";
+      const controls = new Map();
+
+      fields.forEach((field) => {
+        const wrapper = document.createElement("label");
+        wrapper.style.cssText = "display:grid;gap:6px;color:var(--text-soft);font-size:0.68rem;font-weight:600";
+        const caption = document.createElement("span");
+        caption.textContent = field.label || field.name || "Campo";
+        wrapper.appendChild(caption);
+
+        let control;
+        if (field.type === "select") {
+          control = document.createElement("select");
+          (field.options || []).forEach((option) => {
+            const item = document.createElement("option");
+            item.value = String(option.value ?? option.label ?? "");
+            item.textContent = String(option.label ?? option.value ?? "");
+            if (String(field.value ?? "") === item.value) item.selected = true;
+            control.appendChild(item);
+          });
+        } else if (field.type === "textarea") {
+          control = document.createElement("textarea");
+          control.rows = Number(field.rows || 4);
+          control.value = String(field.value ?? "");
+        } else {
+          control = document.createElement("input");
+          control.type = field.type || "text";
+          control.value = String(field.value ?? "");
+        }
+        control.name = String(field.name || "field");
+        control.required = Boolean(field.required);
+        control.placeholder = String(field.placeholder || "");
+        control.style.cssText = "width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--line);border-radius:8px;outline:none;background:var(--panel-alt);color:var(--text);font:inherit;resize:vertical";
+        control.addEventListener("focus", () => { control.style.borderColor = "var(--blue)"; });
+        control.addEventListener("blur", () => { control.style.borderColor = "var(--line)"; });
+        controls.set(control.name, control);
+        wrapper.appendChild(control);
+        form.appendChild(wrapper);
+      });
+
+      const footer = document.createElement("div");
+      footer.style.cssText = "display:flex;justify-content:flex-end;gap:10px;margin-top:4px";
+      const cancelButton = document.createElement("button");
+      cancelButton.type = "button";
+      cancelButton.textContent = config.cancelLabel || "Cancelar";
+      cancelButton.style.cssText = "padding:8px 18px;border-radius:8px;border:1px solid var(--line);background:var(--panel-alt);color:var(--text-soft);font-size:0.82rem;cursor:pointer";
+      const confirmButton = document.createElement("button");
+      confirmButton.type = "submit";
+      confirmButton.textContent = config.confirmLabel || "Confirmar";
+      confirmButton.style.cssText = "padding:8px 22px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-size:0.82rem;font-weight:600;cursor:pointer";
+      footer.appendChild(cancelButton);
+      footer.appendChild(confirmButton);
+      form.appendChild(footer);
+      box.appendChild(form);
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      const close = (value) => {
+        overlay.remove();
+        resolve(value);
+      };
+      cancelButton.addEventListener("click", () => close(null));
+      overlay.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") close(null);
+      });
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        close(Object.fromEntries(Array.from(controls, ([name, control]) => [name, control.value])));
+      });
+      const firstControl = controls.values().next().value;
+      (firstControl || confirmButton).focus();
+      if (firstControl?.select && firstControl.tagName === "INPUT") firstControl.select();
+    });
+  }
+
   ensureDialogStyles();
 
   window.VECTON_DIALOGS = {
     appAlert,
-    appConfirm
+    appConfirm,
+    appPrompt
   };
 })(window);

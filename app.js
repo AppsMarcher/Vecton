@@ -71,7 +71,7 @@ const { createReportsHelpersModule } = window.VECTON_REPORTS_HELPERS;
 const { createDashboardCardsModule } = window.VECTON_DASHBOARD_CARDS;
 const { createDashboardModule } = window.VECTON_DASHBOARD_MODULE;
 const { createDashboardVisualsModule } = window.VECTON_DASHBOARD_VISUALS;
-const { appAlert, appConfirm } = window.VECTON_DIALOGS;
+const { appAlert, appConfirm, appPrompt } = window.VECTON_DIALOGS;
 const { startMarketTicker } = window.VECTON_MARKET_TICKER;
 const { createReportsBuilderModule } = window.VECTON_REPORTS_BUILDER || {};
 const { createReportSectionsModule } = window.VECTON_REPORT_SECTIONS || {};
@@ -1062,6 +1062,8 @@ const rpsModule = createRpsModule
       getCurrentUser: () => currentUser,
       getAccessRole,
       appAlert,
+      appConfirm,
+      appPrompt,
       escapeHtml
     })
   : { render: () => {}, destroy: () => {} };

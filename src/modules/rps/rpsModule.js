@@ -1,6 +1,11 @@
 (function attachVectonRpsModule(window) {
   const WEEKS = ["S1", "S2", "S3", "S4", "S5"];
   const UNIT_OPTIONS = ["R$", "un", "%", "hrs", "dias"];
+  const MONTH_MODE_OPTIONS = [
+    { value: "soma", icon: "Σ", label: "Soma das semanas" },
+    { value: "media", icon: "x̄", label: "Média das semanas" },
+    { value: "ultima", icon: "S5", label: "Última semana" }
+  ];
   const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   const TABLE = "rps_snapshots";
   const DRAFT_PREFIX = "vecton-rps-draft-v1";
@@ -327,6 +332,8 @@
       getCurrentUser,
       getAccessRole,
       appAlert,
+      appConfirm,
+      appPrompt,
       escapeHtml
     } = deps;
 
@@ -416,11 +423,13 @@
         || "");
     }
 
-    function renderUnitOptions(selectedUnit) {
-      const normalizedSelected = normalizeUnit(selectedUnit);
-      return [`<option value="">—</option>`, ...UNIT_OPTIONS.map((unit) => (
-        `<option value="${escapeHtml(unit)}" ${unit === normalizedSelected ? "selected" : ""}>${escapeHtml(unit)}</option>`
-      ))].join("");
+    function renderUnitCycle(key, selectedUnit, accessibleLabel) {
+      const unit = normalizeUnit(selectedUnit);
+      return `<button type="button" class="rps-unit-cycle" data-rps-unit-cycle="${escapeHtml(key)}" data-current-unit="${escapeHtml(unit)}" title="Alterar unidade · ${escapeHtml(unit || "sem unidade")}" aria-label="${escapeHtml(accessibleLabel)}">${escapeHtml(unit || "—")}</button>`;
+    }
+
+    function monthModeConfig(mode) {
+      return MONTH_MODE_OPTIONS.find((item) => item.value === mode) || MONTH_MODE_OPTIONS[0];
     }
 
     function getWeekValue(areaId, indicator, week, stack = new Set()) {
@@ -494,6 +503,7 @@
           const monthUnit = getUnit(area.id, indicator.id, indicator, "S1");
           const monthModeKey = `mes:${area.id}|${indicator.id}`;
           const monthMode = state.payload.modoMes[monthModeKey] || "soma";
+          const monthModeInfo = monthModeConfig(monthMode);
           const weekCells = WEEKS.map((week) => {
             const key = valueKey(area.id, indicator.id, week);
             const weekUnit = getUnit(area.id, indicator.id, indicator, week);
@@ -502,7 +512,7 @@
               return `<td class="rps-calculated-cell rps-formula-cell" title="${escapeHtml(indicator.formula || "Linha calculada")}">
                 <strong>${escapeHtml(formatValueForUnit(calculatedValue, weekUnit, "—"))}</strong>
                 ${editable
-                  ? `<select class="rps-unit-select" data-rps-unit-key="${escapeHtml(key)}" aria-label="Unidade de ${escapeHtml(`${indicator.label} ${week}`)}">${renderUnitOptions(weekUnit)}</select>`
+                  ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<small>${escapeHtml(weekUnit)}</small>`}
               </td>`;
             }
@@ -511,7 +521,7 @@
               <div class="rps-week-entry">
                 <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(formatValueForUnit(state.payload.dados[key], weekUnit))}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
                 ${editable
-                  ? `<select class="rps-unit-select" data-rps-unit-key="${escapeHtml(key)}" aria-label="Unidade de ${escapeHtml(`${indicator.label} ${week}`)}">${renderUnitOptions(weekUnit)}</select>`
+                  ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<span class="rps-unit-readonly">${escapeHtml(weekUnit)}</span>`}
               </div>
               <button class="rps-comment-button ${comment ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, week))}" title="Comentário">●</button>
@@ -527,11 +537,7 @@
             ${weekCells}
             <td class="rps-calculated-cell rps-month-cell">
               <strong>${escapeHtml(formatValueForUnit(month, monthUnit, "—"))}</strong>
-              ${editable ? `<select class="rps-month-mode" data-rps-month-mode="${escapeHtml(monthModeKey)}" aria-label="Consolidação mensal de ${escapeHtml(indicator.label)}">
-                <option value="soma" ${monthMode === "soma" ? "selected" : ""}>Soma</option>
-                <option value="media" ${monthMode === "media" ? "selected" : ""}>Média</option>
-                <option value="ultima" ${monthMode === "ultima" ? "selected" : ""}>Última</option>
-              </select>` : ""}
+              ${editable ? `<button type="button" class="rps-month-mode-cycle" data-rps-month-mode-cycle="${escapeHtml(monthModeKey)}" data-current-mode="${escapeHtml(monthMode)}" title="${escapeHtml(monthModeInfo.label)}" aria-label="${escapeHtml(`${monthModeInfo.label} de ${indicator.label}`)}"><span>${escapeHtml(monthModeInfo.icon)}</span></button>` : ""}
             </td>
             <td class="rps-value-cell rps-target-cell">
               <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
@@ -558,11 +564,9 @@
                 <h2>Reunião de Performance Semanal</h2>
                 <span class="rps-period-chip">${MONTHS[month - 1]} · ${year}</span>
               </div>
-              <p>Acompanhe indicadores, metas e desvios de todas as áreas em uma única visão executiva.</p>
             </div>
             <div class="rps-toolbar">
               <button type="button" class="rps-action" data-rps-action="refresh" title="Recarregar dados">↻ <span>Atualizar</span></button>
-              <button type="button" class="rps-action" data-rps-action="export" title="Exportar planilha">⇩ <span>Exportar</span></button>
               ${editable ? `<button type="button" class="rps-action" data-rps-action="add">＋ <span>Indicador</span></button>` : ""}
               <button type="button" class="rps-action rps-action-primary" data-rps-action="present">▣ <span>${state.presentation ? "Sair" : "Apresentar"}</span></button>
             </div>
@@ -612,7 +616,7 @@
         state.lastSavedAt = remote?.updated_at ? new Date(remote.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
         const draft = readDraft();
         if (draft?.payload && !equal(normalizePayload(draft.payload), state.payload)) {
-          const recover = window.confirm("Há alterações locais da RPS que ainda não chegaram à nuvem. Deseja recuperá-las?");
+          const recover = await appConfirm("Há alterações locais da RPS que ainda não chegaram à nuvem. Deseja recuperá-las?", "warn");
           if (recover) {
             state.payload = normalizePayload(draft.payload);
             state.dirty = true;
@@ -793,13 +797,36 @@
       URL.revokeObjectURL(url);
     }
 
-    function addIndicator() {
+    async function addIndicator() {
       if (!canEdit()) return;
-      const areaOptions = state.payload.areas.map((area, index) => `${index + 1}. ${area.nome}`).join("\n");
-      const areaChoice = Number(window.prompt(`Em qual área?\n\n${areaOptions}`, "1"));
-      const area = state.payload.areas[areaChoice - 1];
+      const values = await appPrompt({
+        icon: "＋",
+        eyebrow: "RPS · VISÃO ADM",
+        title: "Adicionar indicador",
+        message: "Escolha a área e informe o nome da nova linha.",
+        confirmLabel: "Adicionar",
+        fields: [
+          {
+            name: "areaId",
+            label: "Área",
+            type: "select",
+            value: state.payload.areas[0]?.id || "",
+            options: state.payload.areas.map((area) => ({ value: area.id, label: area.nome }))
+          },
+          {
+            name: "label",
+            label: "Nome do indicador",
+            type: "text",
+            value: "",
+            placeholder: "Digite o nome da linha",
+            required: true
+          }
+        ]
+      });
+      if (!values) return;
+      const area = state.payload.areas.find((item) => item.id === values.areaId);
       if (!area) return;
-      const label = String(window.prompt("Nome do novo indicador:", "Novo indicador") || "").trim();
+      const label = String(values.label || "").trim();
       if (!label) return;
       const list = getIndicators(area.id);
       list.push({ id: `${slugify(label)}_${Date.now()}`, label, type: "item", editableFields: { semanas: true, meta: true } });
@@ -856,23 +883,6 @@
       });
 
       root.addEventListener("change", (event) => {
-        const unitSelect = event.target.closest("[data-rps-unit-key]");
-        if (unitSelect) {
-          const key = unitSelect.dataset.rpsUnitKey;
-          const unit = normalizeUnit(unitSelect.value);
-          if (unit) state.payload.unidades[key] = unit;
-          else delete state.payload.unidades[key];
-          markDirty();
-          renderShell();
-          return;
-        }
-        const monthModeSelect = event.target.closest("[data-rps-month-mode]");
-        if (monthModeSelect) {
-          state.payload.modoMes[monthModeSelect.dataset.rpsMonthMode] = monthModeSelect.value;
-          markDirty();
-          renderShell();
-          return;
-        }
         const labelInput = event.target.closest("[data-rps-label-id]");
         if (labelInput) {
           renameIndicator(labelInput.dataset.rpsLabelArea, labelInput.dataset.rpsLabelId, labelInput.value);
@@ -897,6 +907,25 @@
       });
 
       root.addEventListener("click", async (event) => {
+        const unitCycle = event.target.closest("[data-rps-unit-cycle]");
+        if (unitCycle) {
+          const key = unitCycle.dataset.rpsUnitCycle;
+          const currentUnit = normalizeUnit(unitCycle.dataset.currentUnit);
+          const currentIndex = UNIT_OPTIONS.indexOf(currentUnit);
+          state.payload.unidades[key] = UNIT_OPTIONS[(currentIndex + 1) % UNIT_OPTIONS.length];
+          markDirty();
+          renderShell();
+          return;
+        }
+        const monthModeCycle = event.target.closest("[data-rps-month-mode-cycle]");
+        if (monthModeCycle) {
+          const key = monthModeCycle.dataset.rpsMonthModeCycle;
+          const currentIndex = MONTH_MODE_OPTIONS.findIndex((item) => item.value === monthModeCycle.dataset.currentMode);
+          state.payload.modoMes[key] = MONTH_MODE_OPTIONS[(currentIndex + 1) % MONTH_MODE_OPTIONS.length].value;
+          markDirty();
+          renderShell();
+          return;
+        }
         const areaToggle = event.target.closest("[data-rps-toggle-area]");
         if (areaToggle) {
           const areaId = areaToggle.dataset.rpsToggleArea;
@@ -909,8 +938,16 @@
         if (commentButton) {
           const key = commentButton.dataset.rpsComment;
           const previous = state.payload.comentarios[key] || "";
-          const next = window.prompt("Comentário da célula:", previous);
-          if (next === null) return;
+          const values = await appPrompt({
+            icon: "●",
+            eyebrow: "RPS · COMENTÁRIO",
+            title: "Comentário da célula",
+            message: "Registre uma observação para contextualizar este valor.",
+            confirmLabel: "Salvar",
+            fields: [{ name: "comment", label: "Comentário", type: "textarea", value: previous, rows: 5, placeholder: "Escreva o comentário" }]
+          });
+          if (!values) return;
+          const next = String(values.comment || "");
           if (next.trim()) state.payload.comentarios[key] = next.trim();
           else delete state.payload.comentarios[key];
           markDirty();
@@ -920,13 +957,13 @@
         const action = event.target.closest("[data-rps-action]")?.dataset.rpsAction;
         if (!action) return;
         if (action === "refresh") {
-          if (state.dirty && !window.confirm("Descartar alterações locais e recarregar a RPS?")) return;
+          if (state.dirty && !await appConfirm("Descartar alterações locais e recarregar a RPS?", "warn")) return;
           state.dirty = false;
           await loadPeriod(true);
         } else if (action === "export") {
           exportTable();
         } else if (action === "add") {
-          addIndicator();
+          await addIndicator();
         } else if (action === "present") {
           state.presentation = !state.presentation;
           renderShell();
