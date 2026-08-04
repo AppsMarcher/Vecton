@@ -6728,7 +6728,8 @@ table th,
   top: 50%;
   transform: translateY(-50%);
   width: 20vw;
-  min-width: 230px;
+  min-width: 240px;
+  min-height: 360px;
   height: 85vh;
   z-index: 9400;
   display: flex;
@@ -6749,6 +6750,7 @@ table th,
   border-bottom: 1px solid var(--line);
   flex: none;
 }
+.msn-painel .msn-head { cursor: move; }
 .msn-head-logo {
   display: block;
   width: 145px;
@@ -6786,13 +6788,53 @@ table th,
 .msn-busca { padding: 10px 14px; flex: none; }
 .msn-busca input { font-size: 0.74rem; padding: 7px 10px; }
 
-.msn-lista { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 8px 10px; }
+.msn-lista {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 8px 10px;
+  scrollbar-width: none;
+  scrollbar-color: rgba(148, 163, 184, 0.7) transparent;
+}
+.msn-lista:hover { scrollbar-width: thin; }
+.msn-lista::-webkit-scrollbar { width: 0; }
+.msn-lista:hover::-webkit-scrollbar { width: 8px; }
+.msn-lista::-webkit-scrollbar-track { background: transparent; }
+.msn-lista::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.65); border-radius: 999px; }
+.msn-lista::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.9); }
 .msn-secao {
   padding: 10px 6px 4px;
   font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-faint);
+}
+.msn-secao-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.msn-secao-toggle::after {
+  content: "⌄";
+  font-size: 0.8rem;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 140ms ease, color 140ms ease;
+}
+.msn-secao-toggle[aria-expanded="false"]::after { transform: rotate(-90deg); }
+.msn-secao-toggle:hover,
+.msn-secao-toggle:focus-visible { color: var(--text); outline: none; }
+.msn-secao-toggle:focus-visible { box-shadow: inset 0 0 0 1px var(--blue); border-radius: 6px; }
+.msn-secao-conteudo:not([hidden]) { animation: msn-secao-abre 150ms ease-out; }
+.msn-secao-conteudo[hidden] { display: none; }
+@keyframes msn-secao-abre {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .msn-contato {
   display: flex;
@@ -6960,7 +7002,62 @@ table th,
   border-top: 1px solid var(--line);
   flex: none;
 }
-.msn-input { flex: 1; min-width: 0; min-height: 0; height: 46px; resize: none; font-size: 0.76rem; padding: 8px 10px; }
+.msn-input-wrap { position: relative; flex: 1; min-width: 0; }
+.msn-input { width: 100%; min-width: 0; min-height: 0; height: 46px; resize: none; font-size: 0.76rem; padding: 8px 42px 8px 10px; }
+.msn-emoji-trigger {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--text-soft);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.msn-emoji-trigger:hover,
+.msn-emoji-trigger[aria-expanded="true"] { color: #fff; background: var(--blue-soft); }
+.msn-emoji-trigger svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
+.msn-emoji-trigger .msn-emoji-olho { fill: currentColor; stroke: none; }
+.msn-emoji-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 4;
+  width: min(270px, calc(100vw - 48px));
+  max-height: 190px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
+  padding: 8px;
+  background: #050505;
+  border: 1px solid var(--blue);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.msn-emoji-menu[hidden] { display: none; }
+.msn-emoji-opcao {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.msn-emoji-opcao:hover,
+.msn-emoji-opcao:focus-visible { background: var(--blue-soft); outline: 1px solid var(--blue); }
 .msn-jan-compositor .primary-button { flex: none; height: auto; }
 /* O "+" ganha a mesma moldura do "Enviar" — antes era um ícone solto, sem borda. */
 .msn-jan-compositor .msn-icon-btn {

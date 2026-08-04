@@ -42,6 +42,8 @@
     const LADOS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
     const MIN_LARGURA = 320;
     const MIN_ALTURA = 260;
+    const MIN_PAINEL_LARGURA = 240;
+    const MIN_PAINEL_ALTURA = 360;
 
     let _painel = null;
     let _contatos = [];
@@ -58,11 +60,21 @@
     let _realtimeOnline = false;
     let _iniciandoRealtime = null;
     let _audioContext = null;
-    let _audioBuffer = null;
-    let _carregandoAudio = null;
+    const _secoesRecolhidas = { online: false, offline: false };
+    const _audioBuffers = new Map();
+    const _audiosCarregando = new Map();
 
     const EVENTOS_LIBERAR_AUDIO = ["pointerdown", "keydown", "touchstart"];
     const SOM_MENSAGEM_URL = "assets/msn-message.mp3?v=20260804b";
+    const SOM_ATENCAO_URL = "assets/msn-wizz.mp3?v=20260804a";
+    const EMOJIS = [
+      "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "🙂",
+      "😉", "😍", "🥰", "😘", "😎", "🤓", "🤩", "🥳", "😏", "😴",
+      "😢", "😭", "😤", "😡", "🤯", "😱", "🤔", "🤭", "🫡", "🙏",
+      "👍", "👎", "👏", "🙌", "🤝", "💪", "👌", "✌️", "🤞", "👀",
+      "❤️", "💙", "💚", "💛", "💜", "🧡", "💔", "🔥", "✨", "🎉",
+      "✅", "❌", "⚠️", "💡", "📌", "🚀", "🏆", "☕", "🍻", "🌟"
+    ];
 
     // thread_id -> { el, titulo, mensagens, aba, ultimoId, digitando }
     const _janelas = new Map();
@@ -86,6 +98,16 @@
       return `${(n / 1048576).toFixed(1)} MB`;
     }
 
+    function emojisMarkup() {
+      return EMOJIS.map((emoji) => `
+        <button type="button" class="msn-emoji-opcao" data-action="inserir-emoji" data-emoji="${emoji}" aria-label="Inserir ${emoji}">${emoji}</button>
+      `).join("");
+    }
+
+    function alcasRedimensionamentoMarkup() {
+      return LADOS.map((lado) => `<div class="msn-resize ${lado}" data-lado="${lado}"></div>`).join("");
+    }
+
     function obterAudioContext() {
       if (_audioContext && _audioContext.state !== "closed") return _audioContext;
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -94,28 +116,32 @@
       return _audioContext;
     }
 
-    function carregarSomMensagem() {
-      if (_audioBuffer) return Promise.resolve(_audioBuffer);
-      if (_carregandoAudio) return _carregandoAudio;
+    function carregarSom(url, nome) {
+      if (_audioBuffers.has(url)) return Promise.resolve(_audioBuffers.get(url));
+      if (_audiosCarregando.has(url)) return _audiosCarregando.get(url);
       const ctx = obterAudioContext();
       if (!ctx) return Promise.resolve(null);
-      _carregandoAudio = fetch(SOM_MENSAGEM_URL, { cache: "force-cache" })
+      const carregamento = fetch(url, { cache: "force-cache" })
         .then((response) => {
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           return response.arrayBuffer();
         })
         .then((dados) => ctx.decodeAudioData(dados))
         .then((buffer) => {
-          _audioBuffer = buffer;
+          _audioBuffers.set(url, buffer);
           return buffer;
         })
         .catch((error) => {
-          console.debug("Messenger: falha ao carregar o som de mensagem", error);
+          console.debug(`Messenger: falha ao carregar o som de ${nome}`, error);
           return null;
         })
-        .finally(() => { _carregandoAudio = null; });
-      return _carregandoAudio;
+        .finally(() => { _audiosCarregando.delete(url); });
+      _audiosCarregando.set(url, carregamento);
+      return carregamento;
     }
+
+    const carregarSomMensagem = () => carregarSom(SOM_MENSAGEM_URL, "mensagem");
+    const carregarSomAtencao = () => carregarSom(SOM_ATENCAO_URL, "chamar atenção");
 
     function removerDesbloqueioAudio() {
       EVENTOS_LIBERAR_AUDIO.forEach((evento) => document.removeEventListener(evento, liberarAudio));
@@ -128,6 +154,7 @@
         const pronto = ctx.state === "suspended" ? ctx.resume() : Promise.resolve();
         void pronto.then(() => {
           void carregarSomMensagem();
+          void carregarSomAtencao();
           if (ctx.state === "running") removerDesbloqueioAudio();
         }).catch(() => {});
       } catch (_) { /* o navegador pode bloquear áudio antes de uma interação */ }
@@ -136,15 +163,15 @@
     function prepararAudio() {
       EVENTOS_LIBERAR_AUDIO.forEach((evento) => document.addEventListener(evento, liberarAudio, { passive: true }));
       void carregarSomMensagem();
+      void carregarSomAtencao();
     }
 
-    // Som clássico escolhido para as mensagens do Vecton Messenger.
-    async function tocarSomMensagem() {
+    async function tocarSom(carregar) {
       try {
         const ctx = obterAudioContext();
         if (!ctx) return;
         if (ctx.state === "suspended") await ctx.resume();
-        const buffer = await carregarSomMensagem();
+        const buffer = await carregar();
         if (!buffer || ctx.state !== "running") return;
         const source = ctx.createBufferSource();
         source.buffer = buffer;
@@ -153,6 +180,9 @@
         source.start();
       } catch (_) { /* som é enfeite: nunca pode quebrar o envio */ }
     }
+
+    const tocarSomMensagem = () => tocarSom(carregarSomMensagem);
+    const tocarSomAtencao = () => tocarSom(carregarSomAtencao);
 
     function setUnread(n) {
       _unread = Number(n) || 0;
@@ -215,6 +245,17 @@
           ${c.nao_lidas > 0 ? `<span class="msn-badge">${c.nao_lidas}</span>` : ""}
         </div>`).join("");
 
+      const secaoContatos = (status, titulo, pessoas, vazio = "") => {
+        const recolhida = _secoesRecolhidas[status];
+        return `
+          <button type="button" class="msn-secao msn-secao-toggle" data-action="alternar-secao" data-status="${status}" aria-expanded="${recolhida ? "false" : "true"}">
+            ${titulo} (${pessoas.length})
+          </button>
+          <div class="msn-secao-conteudo" data-status-conteudo="${status}"${recolhida ? " hidden" : ""}>
+            ${pessoas.length ? bloco(pessoas) : vazio}
+          </div>`;
+      };
+
       return `
         <div class="msn-head">
           <img class="msn-head-logo" src="assets/vecton-messenger.png?v=20260804b" alt="Vecton Messenger">
@@ -234,10 +275,8 @@
         <div class="msn-busca"><input type="text" id="msn-busca" placeholder="Buscar contato..." value="${escapeHtml(_busca)}"></div>
         <div class="msn-lista">
           ${_grupos.length ? `<div class="msn-secao">Grupos (${_grupos.length})</div>${grupos}` : ""}
-          <div class="msn-secao">Online (${online.length})</div>
-          ${online.length ? bloco(online) : `<div class="msn-vazio">Ninguém online agora.</div>`}
-          <div class="msn-secao">Offline (${offline.length})</div>
-          ${offline.length ? bloco(offline) : ""}
+          ${secaoContatos("online", "Online", online, `<div class="msn-vazio">Ninguém online agora.</div>`)}
+          ${secaoContatos("offline", "Offline", offline)}
           ${!lista.length ? `<div class="msn-vazio">Nenhum contato encontrado.</div>` : ""}
         </div>
         <div class="msn-rodape">
@@ -250,7 +289,7 @@
       if (!_painel) return;
       const foco = document.activeElement?.id;
       const posBusca = document.querySelector("#msn-busca")?.selectionStart;
-      _painel.innerHTML = painelMarkup();
+      _painel.innerHTML = painelMarkup() + alcasRedimensionamentoMarkup();
       const sel = _painel.querySelector("#msn-presenca");
       if (sel && _meuPerfil.presenca) sel.value = _meuPerfil.presenca;
       const rec = _painel.querySelector("#msn-recado");
@@ -300,13 +339,23 @@
       if (_painel) { fecharPainel(); return; }
       _painel = document.createElement("div");
       _painel.className = "msn-painel";
-      _painel.innerHTML = painelMarkup();
+      _painel.innerHTML = painelMarkup() + alcasRedimensionamentoMarkup();
       document.body.appendChild(_painel);
+      ligarPainelMovel(_painel);
 
       _painel.addEventListener("click", (event) => {
         const acao = event.target.closest("[data-action]")?.dataset.action;
         if (acao === "fechar-painel") { fecharPainel(); return; }
         if (acao === "novo-grupo") { void criarGrupo(); return; }
+        if (acao === "alternar-secao") {
+          const status = event.target.closest("[data-status]")?.dataset.status;
+          if (status === "online" || status === "offline") {
+            _secoesRecolhidas[status] = !_secoesRecolhidas[status];
+            pintarPainel();
+            _painel?.querySelector(`[data-action="alternar-secao"][data-status="${status}"]`)?.focus();
+          }
+          return;
+        }
         const linha = event.target.closest("[data-user], [data-thread]");
         if (linha) abrirMenuContato(linha, event.clientX, event.clientY);
       });
@@ -344,6 +393,42 @@
       _painel = null;
       if (_timerContatos) clearInterval(_timerContatos);
       _timerContatos = null;
+    }
+
+    function normalizarPosicaoPainel(el) {
+      if (el.style.transform === "none") return;
+      const r = el.getBoundingClientRect();
+      el.style.left = `${r.left}px`;
+      el.style.top = `${r.top}px`;
+      el.style.right = "auto";
+      el.style.transform = "none";
+      el.style.width = `${r.width}px`;
+      el.style.height = `${r.height}px`;
+    }
+
+    function ligarPainelMovel(el) {
+      ligarRedimensionamento(el, MIN_PAINEL_LARGURA, MIN_PAINEL_ALTURA, () => normalizarPosicaoPainel(el));
+      el.addEventListener("mousedown", (ev) => {
+        const head = ev.target.closest(".msn-head");
+        if (!head || ev.target.closest("button") || ev.target.closest(".msn-resize")) return;
+        normalizarPosicaoPainel(el);
+        const r = el.getBoundingClientRect();
+        const dx = ev.clientX - r.left;
+        const dy = ev.clientY - r.top;
+        const mover = (e) => {
+          const maxLeft = Math.max(0, window.innerWidth - r.width);
+          const maxTop = Math.max(0, window.innerHeight - r.height);
+          el.style.left = `${Math.max(0, Math.min(maxLeft, e.clientX - dx))}px`;
+          el.style.top = `${Math.max(0, Math.min(maxTop, e.clientY - dy))}px`;
+        };
+        const soltar = () => {
+          document.removeEventListener("mousemove", mover);
+          document.removeEventListener("mouseup", soltar);
+        };
+        document.addEventListener("mousemove", mover);
+        document.addEventListener("mouseup", soltar);
+        ev.preventDefault();
+      });
     }
 
     // ── Menu do contato ──────────────────────────────────────────────────────
@@ -471,7 +556,13 @@
         <div class="msn-jan-compositor">
           <button type="button" class="msn-icon-btn" data-action="anexar" title="Anexar">＋</button>
           <input type="file" class="msn-file" multiple hidden>
-          <textarea class="msn-input" rows="2" placeholder="Escreva... (Enter envia, Shift+Enter quebra linha)"></textarea>
+          <div class="msn-input-wrap">
+            <textarea class="msn-input" rows="2" placeholder="Escreva... (Enter envia, Shift+Enter quebra linha)"></textarea>
+            <button type="button" class="msn-emoji-trigger" data-action="emoji-menu" title="Emojis" aria-label="Abrir seletor de emojis" aria-expanded="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="9" cy="10" r="1" class="msn-emoji-olho"></circle><circle cx="15" cy="10" r="1" class="msn-emoji-olho"></circle><path d="M8.5 14c.9 1.4 2 2 3.5 2s2.6-.6 3.5-2"></path></svg>
+            </button>
+            <div class="msn-emoji-menu" role="dialog" aria-label="Emojis" hidden>${emojisMarkup()}</div>
+          </div>
           <button type="button" class="primary-button" data-action="enviar">Enviar</button>
         </div>
         <div class="msn-pendentes"></div>
@@ -485,7 +576,7 @@
       const el = document.createElement("div");
       el.className = "msn-janela";
       el.dataset.thread = threadId;
-      el.innerHTML = janelaMarkup(titulo) + LADOS.map((l) => `<div class="msn-resize ${l}" data-lado="${l}"></div>`).join("");
+      el.innerHTML = janelaMarkup(titulo) + alcasRedimensionamentoMarkup();
       document.body.appendChild(el);
 
       // Nasce encostada à ESQUERDA do painel de contatos, como no MSN — não no
@@ -530,12 +621,13 @@
 
     // Redimensionar por QUALQUER borda ou canto. O `resize: both` do CSS só
     // oferece a alcinha do canto inferior direito, que é o que existia antes.
-    function ligarRedimensionamento(el) {
+    function ligarRedimensionamento(el, minLargura = MIN_LARGURA, minAltura = MIN_ALTURA, preparar = null) {
       el.addEventListener("mousedown", (ev) => {
         const alca = ev.target.closest(".msn-resize");
         if (!alca) return;
         ev.preventDefault();
         ev.stopPropagation();
+        if (preparar) preparar();
         const lado = alca.dataset.lado;
         const r = el.getBoundingClientRect();
         const x0 = ev.clientX;
@@ -551,8 +643,8 @@
           if (lado.includes("n")) { height = r.height - dy; top = r.top + dy; }
           // Trava no mínimo sem deixar a janela "andar" quando puxada pela
           // borda esquerda/superior além do limite.
-          if (width < MIN_LARGURA) { if (lado.includes("w")) left = r.right - MIN_LARGURA; width = MIN_LARGURA; }
-          if (height < MIN_ALTURA) { if (lado.includes("n")) top = r.bottom - MIN_ALTURA; height = MIN_ALTURA; }
+          if (width < minLargura) { if (lado.includes("w")) left = r.right - minLargura; width = minLargura; }
+          if (height < minAltura) { if (lado.includes("n")) top = r.bottom - minAltura; height = minAltura; }
           el.style.left = `${Math.max(0, left)}px`;
           el.style.top = `${Math.max(0, top)}px`;
           el.style.width = `${width}px`;
@@ -594,6 +686,31 @@
 
       el.addEventListener("click", (event) => {
         const acao = event.target.closest("[data-action]")?.dataset.action;
+        const menuEmoji = el.querySelector(".msn-emoji-menu");
+        const botaoEmoji = el.querySelector(".msn-emoji-trigger");
+        if (acao === "emoji-menu") {
+          const abrir = menuEmoji.hidden;
+          menuEmoji.hidden = !abrir;
+          botaoEmoji.setAttribute("aria-expanded", String(abrir));
+          if (!abrir) el.querySelector(".msn-input")?.focus();
+          return;
+        }
+        if (acao === "inserir-emoji") {
+          const input = el.querySelector(".msn-input");
+          const emoji = event.target.closest("[data-emoji]")?.dataset.emoji || "";
+          const inicio = Number.isInteger(input.selectionStart) ? input.selectionStart : input.value.length;
+          const fim = Number.isInteger(input.selectionEnd) ? input.selectionEnd : inicio;
+          input.setRangeText(emoji, inicio, fim, "end");
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          menuEmoji.hidden = true;
+          botaoEmoji.setAttribute("aria-expanded", "false");
+          input.focus();
+          return;
+        }
+        if (menuEmoji && !menuEmoji.hidden) {
+          menuEmoji.hidden = true;
+          botaoEmoji?.setAttribute("aria-expanded", "false");
+        }
         if (acao === "fechar") { fecharJanela(ctx); return; }
         if (acao === "enviar") { void enviar(ctx); return; }
         if (acao === "anexar") { el.querySelector(".msn-file").click(); return; }
@@ -622,6 +739,11 @@
 
       const input = el.querySelector(".msn-input");
       input.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") {
+          el.querySelector(".msn-emoji-menu").hidden = true;
+          el.querySelector(".msn-emoji-trigger").setAttribute("aria-expanded", "false");
+          return;
+        }
         if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); void enviar(ctx); }
       });
       // Avisa que está digitando, no máximo uma vez a cada 3s.
@@ -747,8 +869,8 @@
         pintarConversa(ctx);
 
         if (efeitos && chegouNova && ultimo.autor_id !== getCurrentUserId()) {
-          tocarSomMensagem();
-          if (nudgeNovo) chacoalhar(ctx, false);
+          if (nudgeNovo) chacoalhar(ctx);
+          else tocarSomMensagem();
         }
         await callSupabaseRpc("messages_mark_thread_read", { p_thread: ctx.threadId });
       } catch (error) {
@@ -761,7 +883,7 @@
       ctx.el.classList.remove("chacoalha");
       void ctx.el.offsetWidth;      // reinicia a animação
       ctx.el.classList.add("chacoalha");
-      if (comSom) tocarSomMensagem();
+      if (comSom) tocarSomAtencao();
     }
 
     async function carregarMidias(ctx) {
@@ -930,7 +1052,8 @@
       const mensagem = payload?.new;
       if (!mensagem?.thread_id || mensagem.author_user_id === getCurrentUserId()) return;
 
-      tocarSomMensagem();
+      if (mensagem.kind === "nudge") tocarSomAtencao();
+      else tocarSomMensagem();
       setUnread(_unread + 1);
       if (_painel) void carregarContatos();
 
@@ -1053,8 +1176,8 @@
       removerDesbloqueioAudio();
       if (_audioContext && _audioContext.state !== "closed") void _audioContext.close().catch(() => {});
       _audioContext = null;
-      _audioBuffer = null;
-      _carregandoAudio = null;
+      _audioBuffers.clear();
+      _audiosCarregando.clear();
       pararRealtime();
     }
 
