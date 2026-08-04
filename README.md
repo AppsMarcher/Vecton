@@ -264,6 +264,18 @@ Regra de manutenção: otimizações e correções do Realizado devem ser avalia
 
 Arquivos locais são referenciados em `index.html` com `?v=YYYYMMDD[sufixo]`.
 
+### PWA para desktop
+
+O Vecton é instalável pelo Chrome e Edge como aplicativo de desktop. O botão
+de instalação aparece no cabeçalho quando o navegador libera o evento de
+instalação. A configuração fica em `manifest.webmanifest`, `sw.js` e
+`src/core/pwa.js`.
+
+O service worker armazena somente o shell e os assets estáticos da mesma
+origem. Supabase, autenticação e dados financeiros continuam dependentes da
+rede e não são persistidos pelo cache do PWA. Ao alterar a lista inicial de
+assets, incremente também o sufixo de `CACHE_NAME` em `sw.js`.
+
 Versões relevantes neste checkout:
 
 - `styles.css?v=20260713j`
