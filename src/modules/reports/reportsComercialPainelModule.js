@@ -554,10 +554,10 @@
                 <tr><td>Grão</td>${qtyRow(grao)}</tr>
                 <tr><td>Pecuária</td>${qtyRow(pec)}</tr>
                 <tr><td>TTL qtd</td>${ttlRow()}</tr>
-                <tr><td>Fatur. Grão</td>${valRow(graoVal)}</tr>
-                <tr><td>Fatur. Pecuária</td>${valRow(pecVal)}</tr>
+                <tr class="tkt"><td>Fatur. Grão</td>${valRow(graoVal)}</tr>
+                <tr class="tkt"><td>Fatur. Pecuária</td>${valRow(pecVal)}</tr>
                 <tr class="fat"><td>Faturado Total</td>${valRow(fatTotal)}</tr>
-                <tr class="tkt"><td>Ticket</td>${tktRow()}</tr>
+                <tr class="tkt"><td>Ticket Médio</td>${tktRow()}</tr>
               </tbody>
             </table>
           </div>
