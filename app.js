@@ -1067,6 +1067,7 @@ const rpsModule = createRpsModule
       uploadToStorage,
       createStorageSignedUrl,
       deleteFromStorage,
+      callEdgeFunction,
       escapeHtml
     })
   : { render: () => {}, destroy: () => {} };

@@ -207,3 +207,10 @@ Depois rode novamente `003_seed_cost_centers.sql` para preencher `cost_center_ma
 - `reporting_periods` ja existe para suportar multiplos anos depois, mesmo antes da
   carga do realizado.
 - `MÊS`, `desc conta` e `COD CL VAL` nao entram nesta versao inicial do banco.
+
+## Backup e recuperacao da RPS
+
+- `104_rps_resilient_backups.sql` cria os runs, snapshots historicos, manifesto SHA-256 dos anexos, auditoria, locks e RPCs transacionais de restore/rollback.
+- `105_rps_weekly_backup_schedule.sql` agenda a Edge Function de backup para segunda-feira, 18:45 (America/Sao_Paulo), usando secrets do Vault.
+- As Edge Functions `rps-backup-worker` e `rps-backup-manager` ficam em `supabase/functions`.
+- O procedimento completo de instalacao e validacao esta em `docs/rps-backup-recuperacao.md`.

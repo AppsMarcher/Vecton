@@ -10,6 +10,7 @@
   const TABLE = "rps_snapshots";
   const DRAFT_PREFIX = "vecton-rps-draft-v1";
   const ATTACHMENT_BUCKET = "rps-attachments";
+  const BACKUP_MANAGER_FUNCTION = "rps-backup-manager";
   const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 
   const DEFAULT_AREAS = [
@@ -349,6 +350,7 @@
       uploadToStorage,
       createStorageSignedUrl,
       deleteFromStorage,
+      callEdgeFunction,
       escapeHtml
     } = deps;
 
@@ -367,7 +369,17 @@
       backendAvailable: true,
       loadGeneration: 0,
       presentation: false,
-      presentationZoom: 0
+      presentationZoom: 0,
+      backupManager: {
+        open: false,
+        loading: false,
+        working: false,
+        backups: [],
+        restores: [],
+        selectedId: "",
+        lock: null,
+        error: ""
+      }
     };
 
     let saveTimer = null;
@@ -377,6 +389,7 @@
     let eventsBound = false;
 
     const canEdit = () => ["super_admin", "admin", "manager"].includes(String(getAccessRole?.() || ""));
+    const canManageBackups = () => ["super_admin", "admin"].includes(String(getAccessRole?.() || ""));
     const currentPeriod = () => {
       const period = getPeriod();
       return { year: Number(period.year), month: Number(period.month) };
@@ -426,6 +439,168 @@
       if (state.dirty) return "Alterações pendentes";
       if (state.lastSavedAt) return `Salvo às ${state.lastSavedAt}`;
       return "Sincronizado";
+    }
+
+    function formatBackupBytes(value) {
+      const bytes = Number(value || 0);
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function formatBackupDate(value) {
+      if (!value) return "—";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("pt-BR", {
+        day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+      });
+    }
+
+    function backupKindLabel(kind) {
+      if (kind === "scheduled") return "Semanal";
+      if (kind === "pre_restore") return "Segurança pré-restauração";
+      return "Manual";
+    }
+
+    async function callBackupManager(action, extra = {}) {
+      if (!callEdgeFunction) throw new Error("Função de backup indisponível nesta versão do aplicativo.");
+      const { year, month } = currentPeriod();
+      state.organizationId = state.organizationId || await resolveOrganizationId();
+      return callEdgeFunction(BACKUP_MANAGER_FUNCTION, {
+        action,
+        organization_id: state.organizationId,
+        year,
+        month,
+        ...extra
+      });
+    }
+
+    async function loadBackupManager() {
+      if (!canManageBackups()) return;
+      state.backupManager.loading = true;
+      state.backupManager.error = "";
+      renderShell();
+      try {
+        const data = await callBackupManager("list");
+        state.backupManager.backups = Array.isArray(data?.backups) ? data.backups : [];
+        state.backupManager.restores = Array.isArray(data?.restores) ? data.restores : [];
+        state.backupManager.lock = data?.lock || null;
+        if (!state.backupManager.backups.some((item) => item.id === state.backupManager.selectedId)) {
+          state.backupManager.selectedId = state.backupManager.backups[0]?.id || "";
+        }
+      } catch (error) {
+        state.backupManager.error = error?.message || "Não foi possível carregar os backups.";
+      } finally {
+        state.backupManager.loading = false;
+        renderShell();
+      }
+    }
+
+    function openBackupManager() {
+      if (!canManageBackups()) return;
+      state.backupManager.open = true;
+      state.backupManager.error = "";
+      renderShell();
+      void loadBackupManager();
+    }
+
+    async function createManualBackup() {
+      if (!canManageBackups() || state.backupManager.working) return;
+      if (state.dirty && !await requestSave()) {
+        await appAlert("Salve as alterações pendentes antes de criar o backup.", "warn");
+        return;
+      }
+      state.backupManager.working = true;
+      state.backupManager.error = "";
+      renderShell();
+      try {
+        await callBackupManager("backup_now");
+        await loadBackupManager();
+        await appAlert("Backup verificado do mês criado com sucesso.", "info");
+      } catch (error) {
+        state.backupManager.error = error?.message || "Falha ao criar backup.";
+      } finally {
+        state.backupManager.working = false;
+        renderShell();
+      }
+    }
+
+    async function restoreSelectedBackup() {
+      if (!canManageBackups() || state.backupManager.working) return;
+      const selected = state.backupManager.backups.find((item) => item.id === state.backupManager.selectedId);
+      if (!selected) return;
+      if (state.dirty && !await requestSave()) {
+        await appAlert("Não foi possível salvar as alterações atuais. A restauração foi cancelada.", "error");
+        return;
+      }
+      const { year, month } = currentPeriod();
+      const confirmed = await appConfirm(
+        `Restaurar ${MONTHS[month - 1]} de ${year} para o backup de ${formatBackupDate(selected.captured_at)}?\n\nAntes de substituir o mês, o sistema criará um backup de segurança e bloqueará gravações até concluir ou desfazer a operação.`,
+        "danger"
+      );
+      if (!confirmed) return;
+
+      state.backupManager.working = true;
+      state.backupManager.error = "";
+      renderShell();
+      try {
+        const result = await callBackupManager("restore", { backup_run_id: selected.id });
+        clearDraft();
+        state.dirty = false;
+        state.backupManager.open = false;
+        await loadPeriod(true);
+        await appAlert(`Restauração concluída. ${Number(result?.filesRestored || 0)} anexo(s) verificado(s) e restaurado(s).`, "info");
+      } catch (error) {
+        const restoreMessage = error?.message || "Falha ao restaurar backup.";
+        await loadBackupManager();
+        state.backupManager.error = restoreMessage;
+      } finally {
+        state.backupManager.working = false;
+        renderShell();
+      }
+    }
+
+    function renderBackupManagerDialog() {
+      if (!state.backupManager.open || !canManageBackups()) return "";
+      const manager = state.backupManager;
+      const selected = manager.backups.find((item) => item.id === manager.selectedId) || null;
+      const backups = manager.backups.length
+        ? manager.backups.map((item) => `<button type="button" class="rps-backup-item ${item.id === manager.selectedId ? "is-selected" : ""}" data-rps-backup-select="${escapeHtml(item.id)}">
+            <span class="rps-backup-kind">${escapeHtml(backupKindLabel(item.kind))}</span>
+            <strong>${escapeHtml(formatBackupDate(item.captured_at))}</strong>
+            <small>${Number(item.verified_file_count || 0)} arquivo(s) · ${escapeHtml(formatBackupBytes(item.verified_bytes))}</small>
+          </button>`).join("")
+        : `<div class="rps-backup-empty">Nenhum backup íntegro disponível para este mês.</div>`;
+      const restores = manager.restores.length
+        ? manager.restores.slice(0, 6).map((item) => `<div class="rps-restore-history-row" data-status="${escapeHtml(item.status)}">
+            <span>${escapeHtml(formatBackupDate(item.started_at))}</span><strong>${escapeHtml(item.status)}</strong><small>${escapeHtml(item.phase || "—")}</small>
+          </div>`).join("")
+        : `<div class="rps-backup-empty is-compact">Nenhuma restauração registrada neste mês.</div>`;
+      return `<div class="rps-backup-overlay" role="presentation">
+        <section class="rps-backup-dialog" role="dialog" aria-modal="true" aria-labelledby="rps-backup-title">
+          <header class="rps-backup-dialog-head">
+            <div><p class="section-kicker">PROTEÇÃO E RECUPERAÇÃO</p><h3 id="rps-backup-title">Backup da RPS · ${escapeHtml(state.periodKey)}</h3><span>Backups semanais às segundas, 18:45 · retenção de seis meses</span></div>
+            <button type="button" class="rps-action" data-rps-backup-action="close" ${manager.working ? "disabled" : ""}>× <span>Fechar</span></button>
+          </header>
+          ${manager.lock ? `<div class="rps-backup-lock">Uma restauração está em andamento. O mês permanece bloqueado até a conclusão.</div>` : ""}
+          ${manager.error ? `<div class="rps-backup-error">${escapeHtml(manager.error)}</div>` : ""}
+          <div class="rps-backup-tools">
+            <button type="button" class="rps-action" data-rps-backup-action="refresh" ${manager.working ? "disabled" : ""}>↻ <span>Atualizar lista</span></button>
+            <button type="button" class="rps-action rps-action-primary" data-rps-backup-action="create" ${manager.working || manager.lock ? "disabled" : ""}>＋ <span>Criar backup agora</span></button>
+          </div>
+          <div class="rps-backup-layout">
+            <div class="rps-backup-list"><h4>Backups íntegros</h4>${manager.loading ? `<div class="rps-backup-empty">Carregando backups...</div>` : backups}</div>
+            <div class="rps-backup-detail">
+              <h4>Backup selecionado</h4>
+              ${selected ? `<dl><div><dt>Capturado em</dt><dd>${escapeHtml(formatBackupDate(selected.captured_at))}</dd></div><div><dt>Origem</dt><dd>${escapeHtml(backupKindLabel(selected.kind))}</dd></div><div><dt>Versão</dt><dd>${Number(selected.source_version || 0)}</dd></div><div><dt>Anexos verificados</dt><dd>${Number(selected.verified_file_count || 0)} · ${escapeHtml(formatBackupBytes(selected.verified_bytes))}</dd></div><div><dt>Retido até</dt><dd>${escapeHtml(formatBackupDate(selected.retention_until))}</dd></div><div><dt>Hash do snapshot</dt><dd class="is-hash">${escapeHtml(selected.snapshot_hash || "—")}</dd></div></dl>` : `<div class="rps-backup-empty">Selecione um backup para ver os detalhes.</div>`}
+              <button type="button" class="rps-backup-restore" data-rps-backup-action="restore" ${!selected || manager.working || manager.lock ? "disabled" : ""}>↶ Restaurar somente ${escapeHtml(state.periodKey)}</button>
+              <p>A restauração cria um ponto de segurança, valida os anexos em staging e desfaz a operação automaticamente se alguma etapa falhar.</p>
+            </div>
+          </div>
+          <div class="rps-restore-history"><h4>Auditoria de restaurações</h4>${restores}</div>
+          ${manager.working ? `<div class="rps-backup-working"><span></span><strong>Processando e verificando integridade...</strong><small>Não feche esta tela.</small></div>` : ""}
+        </section>
+      </div>`;
     }
 
     function getIndicators(areaId) {
@@ -931,6 +1106,7 @@
               </div>
             </div>
             <div class="rps-toolbar">
+              ${canManageBackups() && !state.presentation ? `<button type="button" class="rps-action rps-action-backup" data-rps-action="backups" title="Backups verificados e recuperação deste mês">⟲ <span>Backup</span></button>` : ""}
               <button type="button" class="rps-action" data-rps-action="refresh" title="Recarregar dados">↻ <span>Atualizar</span></button>
               ${editable ? `<button type="button" class="rps-action" data-rps-action="add">＋ <span>Indicador</span></button>` : ""}
               ${state.presentation ? `<button type="button" class="rps-action" data-rps-action="zoom-in" title="Aumentar os textos em 2 pixels">＋ <span>Zoom</span></button>
@@ -948,7 +1124,8 @@
               ${state.loading ? `<div class="rps-loading"><span></span><p>Carregando o período...</p></div>` : ""}
             </div>
           </section>
-        </div>`;
+        </div>
+        ${renderBackupManagerDialog()}`;
       document.body.classList.toggle("rps-presentation-mode", state.presentation);
       document.body.classList.toggle("rps-laser-mode", state.presentation);
       document.body.style.setProperty("--rps-presentation-zoom", `${state.presentationZoom}px`);
@@ -1120,7 +1297,10 @@
       } catch (error) {
         state.dirty = true;
         persistDraft();
-        setStatus("error", "Falha ao salvar; rascunho preservado");
+        const locked = String(error?.message || error || "").includes("RPS_LOCKED_FOR_RESTORE");
+        setStatus(locked ? "dirty" : "error", locked
+          ? "Mês temporariamente bloqueado para backup ou restauração; rascunho preservado"
+          : "Falha ao salvar; rascunho preservado");
         console.error("Falha ao salvar RPS", error);
         return false;
       }
@@ -1285,6 +1465,26 @@
       document.addEventListener("pointerout", (event) => { if (!event.relatedTarget) hideLaserPointer(); });
 
       root.addEventListener("click", async (event) => {
+        const backupSelection = event.target.closest("[data-rps-backup-select]");
+        if (backupSelection && canManageBackups()) {
+          state.backupManager.selectedId = backupSelection.dataset.rpsBackupSelect;
+          renderShell();
+          return;
+        }
+        const backupAction = event.target.closest("[data-rps-backup-action]")?.dataset.rpsBackupAction;
+        if (backupAction && canManageBackups()) {
+          if (backupAction === "close" && !state.backupManager.working) {
+            state.backupManager.open = false;
+            renderShell();
+          } else if (backupAction === "refresh") {
+            await loadBackupManager();
+          } else if (backupAction === "create") {
+            await createManualBackup();
+          } else if (backupAction === "restore") {
+            await restoreSelectedBackup();
+          }
+          return;
+        }
         const weekFocus = event.target.closest("[data-rps-focus-week]");
         if (weekFocus) {
           const week = weekFocus.dataset.rpsFocusWeek;
@@ -1354,7 +1554,9 @@
         }
         const action = event.target.closest("[data-rps-action]")?.dataset.rpsAction;
         if (!action) return;
-        if (action === "refresh") {
+        if (action === "backups") {
+          openBackupManager();
+        } else if (action === "refresh") {
           if (state.dirty && !await appConfirm("Descartar alterações locais e recarregar a RPS?", "warn")) return;
           state.dirty = false;
           await loadPeriod(true);
@@ -1387,6 +1589,8 @@
       if (nextPeriodKey !== state.periodKey) {
         closeAttachmentModal();
         closeAttachmentCarousel();
+        state.backupManager.open = false;
+        state.backupManager.selectedId = "";
         state.periodKey = nextPeriodKey;
         state.payload = defaultPayload();
         state.basePayload = null;
@@ -1406,6 +1610,7 @@
       closeAttachmentModal();
       closeAttachmentCarousel();
       removeLaserPointer();
+      state.backupManager.open = false;
       state.presentation = false;
       state.presentationZoom = 0;
       state.loadGeneration += 1;
