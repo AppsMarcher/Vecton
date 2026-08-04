@@ -585,7 +585,9 @@
       // (meta_val) — cor diferente por categoria, reaproveitando a paleta
       // das coordenações.
       const BLOCKBAR_COLOR = { "Peças": "#8b5cf6", "Transgrain": "#f59e0b", "Acessórios": "#22c55e", "Total": "#ef4444" };
-      const blockbarPct = (fat, meta) => meta > 0 ? (fat / meta) * 100 : 0;
+      // Sem meta (meta<=0) -> pinta como se fosse 100% (barra cheia), em vez
+      // de 0%: ausência de meta não é "não bateu meta nenhuma".
+      const blockbarPct = (fat, meta) => meta > 0 ? (fat / meta) * 100 : 100;
       const TOTAL_BLOCKS = 10;
       const blockbars = order.map((nome) => {
         const r = byName[nome] || {};
