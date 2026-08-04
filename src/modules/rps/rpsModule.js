@@ -9,6 +9,8 @@
   const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   const TABLE = "rps_snapshots";
   const DRAFT_PREFIX = "vecton-rps-draft-v1";
+  const ATTACHMENT_BUCKET = "rps-attachments";
+  const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 
   const DEFAULT_AREAS = [
     { id: "comercial", nome: "COMERCIAL", cor: "#4f7cff" },
@@ -86,6 +88,7 @@
   const monthValueKey = (areaId, indicatorId) => `vmes:${areaId}|${indicatorId}`;
   const targetValueKey = (areaId, indicatorId) => `vmeta:${areaId}|${indicatorId}`;
   const commentKey = (areaId, indicatorId, column) => `cmt:${areaId}|${indicatorId}|${column}`;
+  const attachmentPrefix = (areaId, indicatorId, column) => `anx:${areaId}|${indicatorId}|${column}|`;
 
   function defaultPayload() {
     return {
@@ -277,6 +280,13 @@
     return formatNumber(value);
   }
 
+  function formatFileSize(bytes) {
+    const size = Number(bytes || 0);
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1).replace(".0", "")} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1).replace(".0", "")} MB`;
+  }
+
   function calculateArithmetic(expression) {
     const compact = String(expression || "").replace(/\s+/g, "");
     const tokens = compact.match(/\d+(?:\.\d+)?|[()+\-*/]/g) || [];
@@ -336,6 +346,9 @@
       appAlert,
       appConfirm,
       appPrompt,
+      uploadToStorage,
+      createStorageSignedUrl,
+      deleteFromStorage,
       escapeHtml
     } = deps;
 
@@ -490,6 +503,174 @@
       return parseNumber(state.payload.dadosMeta[targetValueKey(areaId, indicatorId)]);
     }
 
+    function getCellAttachments(areaId, indicatorId, column) {
+      const prefix = attachmentPrefix(areaId, indicatorId, column);
+      return Object.entries(state.payload.anexos || {})
+        .filter(([key, attachment]) => key.startsWith(prefix) && attachment?.path)
+        .map(([key, attachment]) => ({ ...attachment, key }))
+        .sort((left, right) => String(right.createdAt || "").localeCompare(String(left.createdAt || "")));
+    }
+
+    function safeFileName(name) {
+      return String(name || "arquivo")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(-100) || "arquivo";
+    }
+
+    function attachmentPath(areaId, indicatorId, column, attachmentId, fileName) {
+      const { year, month } = currentPeriod();
+      const period = `${year}-${String(month).padStart(2, "0")}`;
+      return `${state.organizationId}/${period}/${slugify(areaId)}/${slugify(indicatorId)}/${column}/${attachmentId}_${safeFileName(fileName)}`;
+    }
+
+    function closeAttachmentModal() {
+      document.querySelector(".rps-attachment-backdrop")?.remove();
+    }
+
+    function openAttachmentModal(area, indicator, column) {
+      closeAttachmentModal();
+      const editable = canEdit();
+      const backdrop = document.createElement("div");
+      backdrop.className = "rps-attachment-backdrop";
+      backdrop.innerHTML = `
+        <section class="rps-attachment-modal" role="dialog" aria-modal="true" aria-labelledby="rps-attachment-title">
+          <header class="rps-attachment-header">
+            <div>
+              <h3 id="rps-attachment-title">${indicator.type === "calculated" ? "( = ) " : ""}${escapeHtml(indicator.label)} · ${escapeHtml(column)}</h3>
+              <p>Envie arquivos e remova anexos desta célula.</p>
+            </div>
+            <button type="button" class="rps-attachment-close" data-rps-attachment-close>× <span>Fechar</span></button>
+          </header>
+          ${editable ? `<div class="rps-attachment-upload">
+            <div class="rps-attachment-picker"><input type="file" multiple data-rps-attachment-input><small>Selecione um ou mais arquivos, até 20 MB cada.</small></div>
+            <button type="button" class="rps-attachment-send" data-rps-attachment-send>↥ <span>Enviar arquivos</span></button>
+          </div>` : ""}
+          <div class="rps-attachment-section-title">Arquivos carregados</div>
+          <div class="rps-attachment-list" data-rps-attachment-list></div>
+        </section>`;
+      document.body.appendChild(backdrop);
+
+      const list = backdrop.querySelector("[data-rps-attachment-list]");
+      const renderList = () => {
+        const attachments = getCellAttachments(area.id, indicator.id, column);
+        list.innerHTML = attachments.length ? attachments.map((attachment) => `
+          <article class="rps-attachment-item">
+            <span class="rps-attachment-file-icon" aria-hidden="true">▧</span>
+            <div class="rps-attachment-file-info"><strong>${escapeHtml(attachment.name || "Arquivo")}</strong><small>${escapeHtml(formatFileSize(attachment.size))}${attachment.createdAt ? ` · ${escapeHtml(new Date(attachment.createdAt).toLocaleString("pt-BR"))}` : ""}</small></div>
+            <button type="button" class="rps-attachment-open" data-rps-attachment-open="${escapeHtml(attachment.key)}">Abrir</button>
+            ${editable ? `<button type="button" class="rps-attachment-delete" data-rps-attachment-delete="${escapeHtml(attachment.key)}">Remover</button>` : ""}
+          </article>`).join("") : `<p class="rps-attachment-empty">Nenhum arquivo anexado nesta célula.</p>`;
+      };
+      renderList();
+
+      const close = () => closeAttachmentModal();
+      backdrop.querySelector("[data-rps-attachment-close]")?.addEventListener("click", close);
+      backdrop.addEventListener("click", async (event) => {
+        if (event.target === backdrop) {
+          close();
+          return;
+        }
+        const openButton = event.target.closest("[data-rps-attachment-open]");
+        if (openButton) {
+          const attachment = state.payload.anexos?.[openButton.dataset.rpsAttachmentOpen];
+          if (!attachment?.path) return;
+          const fileWindow = window.open("about:blank", "_blank");
+          if (fileWindow) fileWindow.opener = null;
+          openButton.disabled = true;
+          try {
+            const url = await createStorageSignedUrl(ATTACHMENT_BUCKET, attachment.path, 300);
+            if (fileWindow) fileWindow.location.replace(url);
+            else window.location.href = url;
+          } catch (error) {
+            fileWindow?.close();
+            console.error("Falha ao abrir anexo da RPS", error);
+            await appAlert("Não foi possível abrir este arquivo.", "error");
+          } finally {
+            openButton.disabled = false;
+          }
+          return;
+        }
+        const deleteButton = event.target.closest("[data-rps-attachment-delete]");
+        if (deleteButton) {
+          const key = deleteButton.dataset.rpsAttachmentDelete;
+          const attachment = state.payload.anexos?.[key];
+          if (!attachment?.path || !await appConfirm(`Remover o arquivo “${attachment.name || "Arquivo"}” desta célula?`, "danger")) return;
+          deleteButton.disabled = true;
+          try {
+            await deleteFromStorage(ATTACHMENT_BUCKET, attachment.path);
+            delete state.payload.anexos[key];
+            markDirty();
+            await requestSave();
+            renderList();
+            renderShell();
+          } catch (error) {
+            console.error("Falha ao remover anexo da RPS", error);
+            await appAlert("Não foi possível remover este arquivo.", "error");
+            deleteButton.disabled = false;
+          }
+        }
+      });
+
+      const sendButton = backdrop.querySelector("[data-rps-attachment-send]");
+      sendButton?.addEventListener("click", async () => {
+        const input = backdrop.querySelector("[data-rps-attachment-input]");
+        const files = Array.from(input?.files || []);
+        if (!files.length) {
+          await appAlert("Selecione pelo menos um arquivo para enviar.", "warn");
+          return;
+        }
+        const invalid = files.find((file) => file.size > MAX_ATTACHMENT_BYTES);
+        if (invalid) {
+          await appAlert(`O arquivo “${invalid.name}” ultrapassa o limite de 20 MB.`, "warn");
+          return;
+        }
+        sendButton.disabled = true;
+        sendButton.classList.add("is-loading");
+        let uploaded = 0;
+        try {
+          state.payload.anexos = state.payload.anexos || {};
+          for (const file of files) {
+            const id = crypto.randomUUID();
+            const path = attachmentPath(area.id, indicator.id, column, id, file.name);
+            await uploadToStorage(ATTACHMENT_BUCKET, path, file);
+            state.payload.anexos[`${attachmentPrefix(area.id, indicator.id, column)}${id}`] = {
+              id,
+              path,
+              name: file.name || safeFileName(file.name),
+              type: file.type || "application/octet-stream",
+              size: file.size || 0,
+              createdAt: new Date().toISOString(),
+              createdBy: getCurrentUser?.()?.id || null
+            };
+            uploaded += 1;
+          }
+          markDirty();
+          await requestSave();
+          input.value = "";
+          renderList();
+          renderShell();
+        } catch (error) {
+          if (uploaded) {
+            markDirty();
+            await requestSave();
+            renderList();
+            renderShell();
+          }
+          console.error("Falha ao anexar arquivos na RPS", error);
+          await appAlert("Não foi possível concluir o envio dos arquivos.", "error");
+        } finally {
+          sendButton.disabled = false;
+          sendButton.classList.remove("is-loading");
+        }
+      });
+
+      backdrop.tabIndex = -1;
+      backdrop.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
+      (backdrop.querySelector("[data-rps-attachment-input]") || backdrop.querySelector("[data-rps-attachment-close]"))?.focus();
+    }
+
     function renderRows() {
       const editable = canEdit();
       const focusWeek = focusedWeek();
@@ -526,6 +707,8 @@
           const weekCells = WEEKS.map((week) => {
             const key = valueKey(area.id, indicator.id, week);
             const weekUnit = getUnit(area.id, indicator.id, indicator, week);
+            const attachmentCount = getCellAttachments(area.id, indicator.id, week).length;
+            const attachmentButton = `<button type="button" class="rps-attachment-button ${attachmentCount ? "has-attachments" : ""}" data-rps-attachment-area="${escapeHtml(area.id)}" data-rps-attachment-indicator="${escapeHtml(indicator.id)}" data-rps-attachment-column="${escapeHtml(week)}" title="${attachmentCount ? `${attachmentCount} arquivo(s) anexado(s)` : "Anexar arquivos"}" aria-label="Anexos de ${escapeHtml(`${indicator.label} ${week}`)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.4 11.6 12 21a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 1 1-2.8-2.8l8.5-8.5"></path></svg>${attachmentCount ? `<span>${attachmentCount}</span>` : ""}</button>`;
             if (calculatedRow) {
               const calculatedValue = getWeekValue(area.id, indicator, week);
               return `<td class="rps-calculated-cell rps-formula-cell ${week === focusWeek ? "is-focused" : ""}" title="${escapeHtml(indicator.formula || "Linha calculada")}">
@@ -533,6 +716,7 @@
                 ${editable
                   ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<small>${escapeHtml(weekUnit)}</small>`}
+                ${attachmentButton}
               </td>`;
             }
             const comment = state.payload.comentarios[commentKey(area.id, indicator.id, week)];
@@ -544,6 +728,7 @@
                   : `<span class="rps-unit-readonly">${escapeHtml(weekUnit)}</span>`}
               </div>
               <button class="rps-comment-button ${comment ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, week))}" title="Comentário">●</button>
+              ${attachmentButton}
             </td>`;
           }).join("");
           const targetKey = targetValueKey(area.id, indicator.id);
@@ -964,6 +1149,13 @@
           renderShell();
           return;
         }
+        const attachmentButton = event.target.closest("[data-rps-attachment-column]");
+        if (attachmentButton) {
+          const area = state.payload.areas.find((item) => item.id === attachmentButton.dataset.rpsAttachmentArea);
+          const indicator = area ? getIndicators(area.id).find((item) => item.id === attachmentButton.dataset.rpsAttachmentIndicator) : null;
+          if (area && indicator) openAttachmentModal(area, indicator, attachmentButton.dataset.rpsAttachmentColumn);
+          return;
+        }
         const commentButton = event.target.closest("[data-rps-comment]");
         if (commentButton) {
           const key = commentButton.dataset.rpsComment;
@@ -1022,6 +1214,7 @@
     function destroy() {
       clearTimeout(saveTimer);
       clearTimeout(maxSaveTimer);
+      closeAttachmentModal();
       state.loadGeneration += 1;
       document.body.classList.remove("rps-presentation-mode");
     }

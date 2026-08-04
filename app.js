@@ -1064,6 +1064,9 @@ const rpsModule = createRpsModule
       appAlert,
       appConfirm,
       appPrompt,
+      uploadToStorage,
+      createStorageSignedUrl,
+      deleteFromStorage,
       escapeHtml
     })
   : { render: () => {}, destroy: () => {} };
@@ -6024,6 +6027,16 @@ async function createStorageSignedUrl(bucket, path, expiresIn = 3600) {
   }
   const data = await response.json();
   return `${supabaseConfig.projectUrl}/storage/v1${data.signedURL}`;
+}
+
+async function deleteFromStorage(bucket, paths) {
+  const prefixes = (Array.isArray(paths) ? paths : [paths]).filter(Boolean);
+  if (!prefixes.length) return;
+  const response = await authenticatedFetch(
+    `${supabaseConfig.projectUrl}/storage/v1/object/${bucket}`,
+    { method: "DELETE", body: JSON.stringify({ prefixes }) }
+  );
+  if (!response.ok) throw new Error(await response.text());
 }
 
 // Chama uma Supabase Edge Function (/functions/v1/<nome>) com o token do usuário.
