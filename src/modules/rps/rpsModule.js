@@ -4,7 +4,7 @@
   const MONTH_MODE_OPTIONS = [
     { value: "soma", icon: "Σ", label: "Soma das semanas" },
     { value: "media", icon: "x̄", label: "Média das semanas" },
-    { value: "ultima", icon: "S5", label: "Última semana" }
+    { value: "ultima", icon: "→│", label: "Última semana preenchida" }
   ];
   const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   const TABLE = "rps_snapshots";
@@ -438,7 +438,7 @@
     function monthModeConfig(mode) {
       if (mode === "ultima") {
         const week = focusedWeek();
-        return { value: "ultima", icon: week, label: `Semana em foco · ${week}` };
+        return { value: "ultima", icon: "→│", label: `Última semana preenchida até ${week}` };
       }
       return MONTH_MODE_OPTIONS.find((item) => item.value === mode) || MONTH_MODE_OPTIONS[0];
     }
@@ -472,7 +472,14 @@
       const manual = parseNumber(state.payload.dadosMes[monthValueKey(areaId, indicator.id)]);
       if (state.payload.modoMes[`mes:${areaId}|${indicator.id}`] === "manual" && manual !== null) return manual;
       const mode = state.payload.modoMes[`mes:${areaId}|${indicator.id}`] || "soma";
-      if (mode === "ultima") return getWeekValue(areaId, indicator, focusedWeek()) ?? manual;
+      if (mode === "ultima") {
+        const focusIndex = WEEKS.indexOf(focusedWeek());
+        for (let index = focusIndex; index >= 0; index -= 1) {
+          const value = getWeekValue(areaId, indicator, WEEKS[index]);
+          if (value !== null) return value;
+        }
+        return manual;
+      }
       const values = WEEKS.map((week) => getWeekValue(areaId, indicator, week)).filter((value) => value !== null);
       if (!values.length) return manual;
       if (mode === "media") return values.reduce((sum, value) => sum + value, 0) / values.length;
