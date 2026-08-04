@@ -287,7 +287,7 @@
           <div class="notif-head">
             <strong>Notificações</strong>
             <div class="notif-head-acoes">
-              <button type="button" id="notif-mark-all" class="notif-mark-all">Marcar todas como lidas</button>
+              <button type="button" id="notif-mark-all" class="notif-mark-all">Marcar como lidas</button>
               <button type="button" id="notif-clear" class="notif-mark-all">Limpar</button>
             </div>
           </div>
