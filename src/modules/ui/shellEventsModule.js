@@ -45,6 +45,7 @@
       loadAndRenderNotificationSettings,
       bindNotificationSettings,
       renderPlanningView,
+      renderRps,
       resetPlanningState,
       getPlanningContainer,
     } = deps;
@@ -103,6 +104,9 @@
           }
           if (getActiveView() === "planning") {
             renderPlanningView(getPlanningContainer());
+          }
+          if (getActiveView() === "rps") {
+            renderRps();
           }
         });
       });

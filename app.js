@@ -76,6 +76,7 @@ const { startMarketTicker } = window.VECTON_MARKET_TICKER;
 const { createReportsBuilderModule } = window.VECTON_REPORTS_BUILDER || {};
 const { createReportSectionsModule } = window.VECTON_REPORT_SECTIONS || {};
 const { createForecastModule } = window.VECTON_FORECAST || {};
+const { createRpsModule } = window.VECTON_RPS || {};
 
 const FUN_AVATARS = buildFunAvatars();
 
@@ -167,6 +168,7 @@ const paramsCaret = document.querySelector("#params-caret");
 const views = {
   dashboard: document.querySelector("#dashboard-view"),
   planning:  document.querySelector("#planning-view"),
+  rps: document.querySelector("#rps-view"),
   reports: document.querySelector("#reports-view"),
   branchPlan: document.querySelector("#branchPlan-view"),
   drePlan: document.querySelector("#drePlan-view"),
@@ -1047,6 +1049,25 @@ const { renderPlanningView, resetPlanningState } = createForecastModule
     })
   : { renderPlanningView: () => {}, resetPlanningState: () => {} };
 
+const rpsModule = createRpsModule
+  ? createRpsModule({
+      root: document.querySelector("#rps-root"),
+      getPeriod: () => ({
+        year: Number(state.currentPeriod?.year || 2026),
+        month: Number(state.currentPeriod?.month || 1)
+      }),
+      resolveOrganizationId,
+      authenticatedFetch,
+      supabaseApiUrl: supabaseConfig.projectUrl,
+      getCurrentUser: () => currentUser,
+      getAccessRole,
+      appAlert,
+      escapeHtml
+    })
+  : { render: () => {}, destroy: () => {} };
+
+const renderRps = () => rpsModule.render();
+
 const shellEventsModule = createShellEventsModule({
   appLayout,
   sidebar,
@@ -1092,6 +1113,7 @@ const shellEventsModule = createShellEventsModule({
   loadAndRenderNotificationSettings,
   bindNotificationSettings,
   renderPlanningView,
+  renderRps,
   resetPlanningState,
   getPlanningContainer: () => document.querySelector("#planning-view"),
 });
@@ -1325,6 +1347,7 @@ const renderModule = createRenderModule({
   renderHeadcountView,
   renderComercialVendasView: () => comVendasCargaMod.renderView(),
   renderComercialPlanejadoView: () => comPlanejadoCargaMod.renderView(),
+  renderRps,
   renderDashboard
 });
 

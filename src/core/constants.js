@@ -66,6 +66,7 @@ const ROOT_CC_NODE = {
 };
 
 const VIEW_HEADER_METADATA = {
+  rps:       { kicker: "GESTÃO",         title: "Reunião de Performance Semanal" },
   dashboard: { kicker: "DASHBOARD",     title: "Cockpit Executivo" },
   planning:  { kicker: "PLANEJAMENTO",  title: "Repositório de Cenários" },
   reports:   { kicker: "RELATÓRIOS",    title: "Central de relatórios" },
