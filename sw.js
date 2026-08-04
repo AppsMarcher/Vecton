@@ -1,10 +1,10 @@
 const CACHE_PREFIX = "vecton-static-";
-const CACHE_NAME = `${CACHE_PREFIX}20260804ab`;
+const CACHE_NAME = `${CACHE_PREFIX}20260804ac`;
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./styles.css?v=20260804y",
+  "./styles.css?v=20260804z5",
   "./fav-icon.png",
   "./assets/msn-message.mp3?v=20260804b",
   "./assets/icq.mp3?v=20260804a",
@@ -36,8 +36,14 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
+    // cache:"reload" ignora o cache HTTP do navegador (o GitHub Pages manda
+    // Cache-Control: max-age=600 no index.html — sem isso, o fetch "de rede"
+    // aqui embaixo podia devolver uma resposta de até 10min atrás, com os
+    // ?v=... antigos dos <script>/<link>, e a SW então persistia ESSA versão
+    // velha na própria Cache API como fallback — dois níveis de cache
+    // conspirando pra nunca pegar o deploy novo, mesmo com F5/Ctrl+Shift+R).
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: "reload" })
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));

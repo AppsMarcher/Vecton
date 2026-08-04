@@ -45,7 +45,13 @@
   });
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch((error) => {
+    // updateViaCache:"none" faz o navegador sempre buscar o sw.js na rede
+    // ignorando o cache HTTP (GitHub Pages manda max-age=600) — sem isso o
+    // navegador só percebe que o sw.js mudou depois de até 10min, e até lá
+    // continua rodando a versão antiga da Service Worker (deploy "sem efeito").
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((registration) => {
+      registration.update().catch(() => {});
+    }).catch((error) => {
       console.debug("PWA: service worker indisponível", error);
     });
   });
