@@ -6979,6 +6979,29 @@ table th,
 .msn-galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
 .msn-galeria .msg-anexo-img { max-width: none; }
 
+/* Todas as bordas internas acompanham o azul do contorno do Messenger. */
+.msn-painel .msn-head,
+.msn-painel .msn-eu,
+.msn-painel .msn-rodape,
+.msn-menu .msn-menu-titulo,
+.msn-janela .msn-jan-head,
+.msn-janela .msn-jan-compositor {
+  border-color: var(--blue);
+}
+.msn-painel .msn-presenca,
+.msn-painel .msn-recado,
+.msn-painel .msn-busca input,
+.msn-painel .msn-avatar,
+.msn-painel .msn-rodape-btn,
+.msn-janela .msn-input,
+.msn-janela .msn-jan-compositor .msn-icon-btn,
+.msn-janela .msg-bubble,
+.msn-janela .msg-anexo-img,
+.msn-janela .msg-anexo-file,
+.msn-janela .msg-pendente {
+  border-color: var(--blue);
+}
+
 /* ── Caixa de entrada: abas Notificações | Mensagens ─────────────────────── */
 .inbox-tabs {
   display: flex;
