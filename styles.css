@@ -6784,13 +6784,14 @@ table th,
 .msn-contato-copy { display: grid; min-width: 0; flex: 1; }
 .msn-contato-copy strong { font-size: 0.75rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msn-contato-copy span { font-size: 0.66rem; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Avatar com a bolinha de presença — verde/âmbar/vermelho/cinza no canto. */
+/* Avatar com a bolinha de presença — verde/âmbar/vermelho/cinza no canto.
+   Quadrado de cantos arredondados, igual ao perfil do Vecton. */
 .msn-avatar {
   position: relative;
   flex: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6814,6 +6815,26 @@ table th,
 .msn-avatar.ausente::after    { background: var(--amber); }
 .msn-avatar.ocupado::after    { background: var(--neg); }
 .msn-avatar.grupo::after      { display: none; }
+/* Foto do perfil: preenche o quadrado sem distorcer. */
+.msn-avatar.com-foto { background-size: cover; background-position: center; color: transparent; }
+/* Offline em tom mais apagado, como no MSN. */
+.msn-contato.off .msn-avatar { opacity: 0.55; }
+.msn-contato.off .msn-contato-copy strong { color: var(--text-soft); }
+
+/* Rodapé do painel: "Conversa em grupo" saiu do cabeçalho pra cá. */
+.msn-rodape { padding: 10px 12px; border-top: 1px solid var(--line); flex: none; }
+.msn-rodape-btn {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+.msn-rodape-btn:hover { color: var(--text); border-color: var(--blue); background: rgba(255, 255, 255, 0.05); }
 .msn-badge {
   flex: none;
   min-width: 18px;
@@ -6864,12 +6885,13 @@ table th,
 .msn-menu button:hover { background: rgba(79, 124, 255, 0.16); }
 
 /* Janela de conversa: flutuante, arrastável e redimensionável. */
+/* Mais retangular (larga) que a versão anterior, que era quase quadrada. */
 .msn-janela {
   position: fixed;
-  width: 420px;
-  height: 460px;
-  min-width: 300px;
-  min-height: 280px;
+  width: 560px;
+  height: 400px;
+  min-width: 320px;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
   background: var(--panel);
@@ -6877,8 +6899,19 @@ table th,
   border-radius: 12px;
   box-shadow: var(--shadow);
   overflow: hidden;
-  resize: both;
 }
+
+/* Alças invisíveis nas bordas e cantos: `resize: both` só dá a alcinha do canto
+   inferior direito, e o pedido é arrastar qualquer borda. */
+.msn-resize { position: absolute; z-index: 2; }
+.msn-resize.n { top: -3px; left: 10px; right: 10px; height: 7px; cursor: ns-resize; }
+.msn-resize.s { bottom: -3px; left: 10px; right: 10px; height: 7px; cursor: ns-resize; }
+.msn-resize.e { right: -3px; top: 10px; bottom: 10px; width: 7px; cursor: ew-resize; }
+.msn-resize.w { left: -3px; top: 10px; bottom: 10px; width: 7px; cursor: ew-resize; }
+.msn-resize.ne { top: -3px; right: -3px; width: 13px; height: 13px; cursor: nesw-resize; }
+.msn-resize.nw { top: -3px; left: -3px; width: 13px; height: 13px; cursor: nwse-resize; }
+.msn-resize.se { bottom: -3px; right: -3px; width: 13px; height: 13px; cursor: nwse-resize; }
+.msn-resize.sw { bottom: -3px; left: -3px; width: 13px; height: 13px; cursor: nesw-resize; }
 .msn-janela.arrastando { outline: 2px dashed var(--blue); outline-offset: -6px; }
 .msn-jan-head {
   display: flex;
@@ -6905,7 +6938,17 @@ table th,
 }
 .msn-input { flex: 1; min-width: 0; min-height: 0; height: 46px; resize: none; font-size: 0.76rem; padding: 8px 10px; }
 .msn-jan-compositor .primary-button { flex: none; height: auto; }
-.msn-jan-compositor .msn-icon-btn { align-self: stretch; height: auto; }
+/* O "+" ganha a mesma moldura do "Enviar" — antes era um ícone solto, sem borda. */
+.msn-jan-compositor .msn-icon-btn {
+  align-self: stretch;
+  height: auto;
+  width: 40px;
+  min-width: 40px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 1rem;
+}
+.msn-jan-compositor .msn-icon-btn:hover { border-color: var(--blue); }
 .msn-pendentes { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; flex: none; }
 .msn-nudge-aviso {
   justify-self: center;

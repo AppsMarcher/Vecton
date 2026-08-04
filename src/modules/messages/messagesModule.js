@@ -27,7 +27,8 @@
       isSupabaseConfigured,
       uploadToStorage,
       createStorageSignedUrl,
-      appConfirm
+      appConfirm,
+      resolverFoto
 
     } = deps;
 
@@ -36,6 +37,9 @@
     const POLL_ABERTAS_MS = 4000;
     const POLL_CONTATOS_MS = 30000;
     const THUMB_MAX = 320;
+    const LADOS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
+    const MIN_LARGURA = 320;
+    const MIN_ALTURA = 260;
 
     let _painel = null;
     let _contatos = [];
@@ -99,6 +103,18 @@
       return _contatos.filter((c) => c.nome.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
     }
 
+    // Foto do perfil do Vecton na lista, com a mesma resolução do avatar do
+    // cabeçalho: 'upload' guarda data URL, 'avatar' guarda a chave de um dos
+    // avatares prontos. Sem foto, cai na inicial do nome.
+    function avatarMarkup(c) {
+      const url = resolverFoto ? resolverFoto(c.foto_kind, c.foto_value) : null;
+      const presenca = escapeHtml(c.presenca || "offline");
+      if (url) {
+        return `<span class="msn-avatar ${presenca} com-foto" style="background-image:url(&quot;${escapeHtml(url)}&quot;)"></span>`;
+      }
+      return `<span class="msn-avatar ${presenca}">${escapeHtml((c.nome || "?").slice(0, 1).toUpperCase())}</span>`;
+    }
+
     function painelMarkup() {
       if (_disabled) {
         return `<div class="msn-vazio">Correio interno ainda não configurado no banco.</div>`;
@@ -113,9 +129,13 @@
           ${g.nao_lidas > 0 ? `<span class="msn-badge">${g.nao_lidas}</span>` : ""}
         </div>`).join("");
 
-      const pessoas = contatosFiltrados().map((c) => `
-        <div class="msn-contato${c.__sel ? " selecionado" : ""}" role="button" tabindex="0" data-user="${escapeHtml(c.user_id)}" data-titulo="${escapeHtml(c.nome)}" title="Duplo clique para conversar · clique simples para marcar e formar grupo">
-          <span class="msn-avatar ${escapeHtml(c.presenca)}">${escapeHtml(c.nome.slice(0, 1).toUpperCase())}</span>
+      const lista = contatosFiltrados();
+      const online = lista.filter((c) => c.presenca !== "offline");
+      const offline = lista.filter((c) => c.presenca === "offline");
+
+      const bloco = (pessoas) => pessoas.map((c) => `
+        <div class="msn-contato${c.__sel ? " selecionado" : ""}${c.presenca === "offline" ? " off" : ""}" role="button" tabindex="0" data-user="${escapeHtml(c.user_id)}" data-titulo="${escapeHtml(c.nome)}" title="Duplo clique para conversar">
+          ${avatarMarkup(c)}
           <span class="msn-contato-copy">
             <strong>${escapeHtml(c.nome)}</strong>
             <span>${escapeHtml(c.recado || c.email)}</span>
@@ -123,12 +143,10 @@
           ${c.nao_lidas > 0 ? `<span class="msn-badge">${c.nao_lidas}</span>` : ""}
         </div>`).join("");
 
-      const online = _contatos.filter((c) => c.presenca !== "offline").length;
       return `
         <div class="msn-head">
           <strong>Contatos</strong>
           <div class="msn-head-acoes">
-            <button type="button" class="msn-icon-btn" data-action="novo-grupo" title="Novo grupo">＋</button>
             <button type="button" class="msn-icon-btn" data-action="fechar-painel" title="Fechar">✕</button>
           </div>
         </div>
@@ -143,9 +161,15 @@
         </div>
         <div class="msn-busca"><input type="text" id="msn-busca" placeholder="Buscar contato..." value="${escapeHtml(_busca)}"></div>
         <div class="msn-lista">
-          ${_grupos.length ? `<div class="msn-secao">Grupos</div>${grupos}` : ""}
-          <div class="msn-secao">Contatos · ${online} online</div>
-          ${pessoas || `<div class="msn-vazio">Nenhum contato encontrado.</div>`}
+          ${_grupos.length ? `<div class="msn-secao">Grupos (${_grupos.length})</div>${grupos}` : ""}
+          <div class="msn-secao">Online (${online.length})</div>
+          ${online.length ? bloco(online) : `<div class="msn-vazio">Ninguém online agora.</div>`}
+          <div class="msn-secao">Offline (${offline.length})</div>
+          ${offline.length ? bloco(offline) : ""}
+          ${!lista.length ? `<div class="msn-vazio">Nenhum contato encontrado.</div>` : ""}
+        </div>
+        <div class="msn-rodape">
+          <button type="button" class="msn-rodape-btn" data-action="novo-grupo">Conversa em grupo</button>
         </div>
       `;
     }
@@ -374,12 +398,18 @@
       const el = document.createElement("div");
       el.className = "msn-janela";
       el.dataset.thread = threadId;
-      el.innerHTML = janelaMarkup(titulo);
-      // Cascata pra duas janelas não nascerem exatamente uma sobre a outra.
-      const n = _janelas.size;
-      el.style.left = `${90 + n * 28}px`;
-      el.style.top = `${90 + n * 28}px`;
+      el.innerHTML = janelaMarkup(titulo) + LADOS.map((l) => `<div class="msn-resize ${l}" data-lado="${l}"></div>`).join("");
       document.body.appendChild(el);
+
+      // Nasce encostada à ESQUERDA do painel de contatos, como no MSN — não no
+      // meio da tela. Cascata só pra segunda janela em diante não cobrir a
+      // primeira.
+      const larguraJanela = el.getBoundingClientRect().width || 560;
+      const painelRect = _painel?.getBoundingClientRect();
+      const direitaDoEspaco = painelRect ? painelRect.left - 12 : window.innerWidth - 20;
+      const n = _janelas.size;
+      el.style.left = `${Math.max(12, direitaDoEspaco - larguraJanela - n * 26)}px`;
+      el.style.top = `${Math.max(12, (painelRect?.top ?? 60) + n * 26)}px`;
 
       const ctx = { el, threadId, titulo, mensagens: [], aba: "conversa", pendentes: [], ultimoId: null, focada: true };
       _janelas.set(threadId, ctx);
@@ -408,9 +438,49 @@
       }
     }
 
+    // Redimensionar por QUALQUER borda ou canto. O `resize: both` do CSS só
+    // oferece a alcinha do canto inferior direito, que é o que existia antes.
+    function ligarRedimensionamento(el) {
+      el.addEventListener("mousedown", (ev) => {
+        const alca = ev.target.closest(".msn-resize");
+        if (!alca) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const lado = alca.dataset.lado;
+        const r = el.getBoundingClientRect();
+        const x0 = ev.clientX;
+        const y0 = ev.clientY;
+
+        const mover = (e) => {
+          const dx = e.clientX - x0;
+          const dy = e.clientY - y0;
+          let { left, top, width, height } = { left: r.left, top: r.top, width: r.width, height: r.height };
+          if (lado.includes("e")) width = r.width + dx;
+          if (lado.includes("s")) height = r.height + dy;
+          if (lado.includes("w")) { width = r.width - dx; left = r.left + dx; }
+          if (lado.includes("n")) { height = r.height - dy; top = r.top + dy; }
+          // Trava no mínimo sem deixar a janela "andar" quando puxada pela
+          // borda esquerda/superior além do limite.
+          if (width < MIN_LARGURA) { if (lado.includes("w")) left = r.right - MIN_LARGURA; width = MIN_LARGURA; }
+          if (height < MIN_ALTURA) { if (lado.includes("n")) top = r.bottom - MIN_ALTURA; height = MIN_ALTURA; }
+          el.style.left = `${Math.max(0, left)}px`;
+          el.style.top = `${Math.max(0, top)}px`;
+          el.style.width = `${width}px`;
+          el.style.height = `${height}px`;
+        };
+        const soltar = () => {
+          document.removeEventListener("mousemove", mover);
+          document.removeEventListener("mouseup", soltar);
+        };
+        document.addEventListener("mousemove", mover);
+        document.addEventListener("mouseup", soltar);
+      });
+    }
+
     function ligarJanela(ctx) {
       const { el } = ctx;
       el.addEventListener("mousedown", () => frente(ctx), true);
+      ligarRedimensionamento(el);
 
       // Arrastar pela barra de título.
       const head = el.querySelector(".msn-jan-head");

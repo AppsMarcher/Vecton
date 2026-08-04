@@ -718,7 +718,14 @@ const messagesTab = createMessagesModule({
   isSupabaseConfigured,
   uploadToStorage,
   createStorageSignedUrl,
-  appConfirm
+  appConfirm,
+  // Resolve a foto do perfil pro avatar da lista de contatos — mesma regra do
+  // applyPhotoPreview (upload = data URL; avatar = chave em FUN_AVATARS).
+  resolverFoto: (kind, value) => {
+    if (kind === "upload" && value) return value;
+    if (kind === "avatar" && value) return FUN_AVATARS.find((a) => a.key === value)?.dataUrl || null;
+    return null;
+  }
 });
 
 const {
