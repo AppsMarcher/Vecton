@@ -529,6 +529,132 @@
       document.querySelector(".rps-attachment-backdrop")?.remove();
     }
 
+    function closeAttachmentCarousel() {
+      document.querySelector(".rps-attachment-carousel")?.remove();
+      document.body.classList.remove("rps-carousel-open");
+    }
+
+    function attachmentMediaKind(attachment) {
+      const type = String(attachment?.type || "").toLowerCase();
+      const name = String(attachment?.name || "").toLowerCase();
+      if (type.startsWith("image/") || /\.(avif|bmp|gif|jpe?g|png|svg|webp)$/.test(name)) return "image";
+      if (type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
+      if (type.startsWith("video/") || /\.(m4v|mov|mp4|webm)$/.test(name)) return "video";
+      if (type.startsWith("audio/") || /\.(aac|m4a|mp3|ogg|wav)$/.test(name)) return "audio";
+      return "file";
+    }
+
+    function openAttachmentCarousel(area, indicator, column) {
+      closeAttachmentModal();
+      closeAttachmentCarousel();
+      const attachments = getCellAttachments(area.id, indicator.id, column);
+      if (!attachments.length) {
+        void appAlert("Esta célula ainda não possui arquivos para apresentar.", "info");
+        return;
+      }
+
+      let activeIndex = 0;
+      let renderGeneration = 0;
+      const signedUrls = new Map();
+      const carousel = document.createElement("div");
+      carousel.className = "rps-attachment-carousel";
+      carousel.tabIndex = -1;
+      carousel.innerHTML = `
+        <section class="rps-carousel-stage" role="dialog" aria-modal="true" aria-labelledby="rps-carousel-title">
+          <header class="rps-carousel-header">
+            <div class="rps-carousel-heading">
+              <span>${escapeHtml(area.nome)} · ${escapeHtml(column)}</span>
+              <h3 id="rps-carousel-title">${indicator.type === "calculated" ? "( = ) " : ""}${escapeHtml(indicator.label)}</h3>
+            </div>
+            <div class="rps-carousel-actions">
+              <span class="rps-carousel-counter" data-rps-carousel-counter></span>
+              <a class="rps-carousel-external" data-rps-carousel-external target="_blank" rel="noopener noreferrer">Abrir arquivo ↗</a>
+              <button type="button" class="rps-carousel-close" data-rps-carousel-close aria-label="Fechar apresentação">×</button>
+            </div>
+          </header>
+          <main class="rps-carousel-viewport" data-rps-carousel-viewport aria-live="polite"></main>
+          ${attachments.length > 1 ? `<button type="button" class="rps-carousel-arrow is-previous" data-rps-carousel-previous aria-label="Anexo anterior">‹</button>
+          <button type="button" class="rps-carousel-arrow is-next" data-rps-carousel-next aria-label="Próximo anexo">›</button>` : ""}
+          <footer class="rps-carousel-footer">
+            <div class="rps-carousel-caption"><strong data-rps-carousel-name></strong><span data-rps-carousel-meta></span></div>
+            <nav class="rps-carousel-strip" aria-label="Arquivos anexados">${attachments.map((attachment, index) => `<button type="button" data-rps-carousel-index="${index}" title="${escapeHtml(attachment.name || `Arquivo ${index + 1}`)}"><span>${index + 1}</span><small>${escapeHtml(attachment.name || "Arquivo")}</small></button>`).join("")}</nav>
+          </footer>
+        </section>`;
+      document.body.appendChild(carousel);
+      document.body.classList.add("rps-carousel-open");
+
+      const viewport = carousel.querySelector("[data-rps-carousel-viewport]");
+      const counter = carousel.querySelector("[data-rps-carousel-counter]");
+      const name = carousel.querySelector("[data-rps-carousel-name]");
+      const meta = carousel.querySelector("[data-rps-carousel-meta]");
+      const external = carousel.querySelector("[data-rps-carousel-external]");
+
+      const mediaMarkup = (attachment, url) => {
+        const safeUrl = escapeHtml(url);
+        const safeName = escapeHtml(attachment.name || "Arquivo");
+        const kind = attachmentMediaKind(attachment);
+        if (kind === "image") return `<img class="rps-carousel-image" src="${safeUrl}" alt="${safeName}">`;
+        if (kind === "pdf") return `<iframe class="rps-carousel-pdf" src="${safeUrl}#view=FitH" title="${safeName}"></iframe>`;
+        if (kind === "video") return `<video class="rps-carousel-video" src="${safeUrl}" controls playsinline></video>`;
+        if (kind === "audio") return `<div class="rps-carousel-file-card"><span class="rps-carousel-file-symbol">♫</span><strong>${safeName}</strong><audio src="${safeUrl}" controls></audio></div>`;
+        return `<div class="rps-carousel-file-card"><span class="rps-carousel-file-symbol">▧</span><strong>${safeName}</strong><p>Este tipo de arquivo não possui pré-visualização no navegador.</p><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">Abrir arquivo</a></div>`;
+      };
+
+      const renderActive = async () => {
+        const generation = ++renderGeneration;
+        const attachment = attachments[activeIndex];
+        counter.textContent = `${activeIndex + 1} / ${attachments.length}`;
+        name.textContent = attachment.name || "Arquivo";
+        meta.textContent = `${formatFileSize(attachment.size)}${attachment.createdAt ? ` · ${new Date(attachment.createdAt).toLocaleString("pt-BR")}` : ""}`;
+        external.removeAttribute("href");
+        external.classList.add("is-loading");
+        carousel.querySelectorAll("[data-rps-carousel-index]").forEach((button, index) => button.classList.toggle("is-active", index === activeIndex));
+        viewport.innerHTML = `<div class="rps-carousel-loading"><span></span><p>Preparando visualização...</p></div>`;
+        try {
+          let url = signedUrls.get(attachment.key);
+          if (!url) {
+            url = await createStorageSignedUrl(ATTACHMENT_BUCKET, attachment.path, 3600);
+            signedUrls.set(attachment.key, url);
+          }
+          if (generation !== renderGeneration || !carousel.isConnected) return;
+          external.href = url;
+          external.classList.remove("is-loading");
+          viewport.innerHTML = mediaMarkup(attachment, url);
+        } catch (error) {
+          if (generation !== renderGeneration || !carousel.isConnected) return;
+          console.error("Falha ao apresentar anexo da RPS", error);
+          external.classList.remove("is-loading");
+          viewport.innerHTML = `<div class="rps-carousel-error"><strong>Não foi possível carregar este arquivo.</strong><span>Tente novamente ou feche a apresentação.</span><button type="button" data-rps-carousel-retry>Tentar novamente</button></div>`;
+        }
+      };
+
+      const show = (index) => {
+        activeIndex = (index + attachments.length) % attachments.length;
+        void renderActive();
+      };
+      const close = () => closeAttachmentCarousel();
+      carousel.addEventListener("click", (event) => {
+        if (event.target === carousel || event.target.closest("[data-rps-carousel-close]")) return close();
+        if (event.target.closest("[data-rps-carousel-previous]")) return show(activeIndex - 1);
+        if (event.target.closest("[data-rps-carousel-next]")) return show(activeIndex + 1);
+        if (event.target.closest("[data-rps-carousel-retry]")) {
+          signedUrls.delete(attachments[activeIndex].key);
+          return void renderActive();
+        }
+        const indexed = event.target.closest("[data-rps-carousel-index]");
+        if (indexed) show(Number(indexed.dataset.rpsCarouselIndex));
+      });
+      carousel.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") close();
+        else if (event.key === "ArrowLeft") show(activeIndex - 1);
+        else if (event.key === "ArrowRight") show(activeIndex + 1);
+        else if (event.key === "Home") show(0);
+        else if (event.key === "End") show(attachments.length - 1);
+      });
+      carousel.focus();
+      void renderActive();
+    }
+
     function openAttachmentModal(area, indicator, column) {
       closeAttachmentModal();
       const editable = canEdit();
@@ -1153,7 +1279,10 @@
         if (attachmentButton) {
           const area = state.payload.areas.find((item) => item.id === attachmentButton.dataset.rpsAttachmentArea);
           const indicator = area ? getIndicators(area.id).find((item) => item.id === attachmentButton.dataset.rpsAttachmentIndicator) : null;
-          if (area && indicator) openAttachmentModal(area, indicator, attachmentButton.dataset.rpsAttachmentColumn);
+          if (area && indicator) {
+            if (state.presentation) openAttachmentCarousel(area, indicator, attachmentButton.dataset.rpsAttachmentColumn);
+            else openAttachmentModal(area, indicator, attachmentButton.dataset.rpsAttachmentColumn);
+          }
           return;
         }
         const commentButton = event.target.closest("[data-rps-comment]");
@@ -1188,6 +1317,7 @@
           await addIndicator();
         } else if (action === "present") {
           state.presentation = !state.presentation;
+          if (!state.presentation) closeAttachmentCarousel();
           renderShell();
         }
       });
@@ -1198,6 +1328,8 @@
       bindEvents();
       const nextPeriodKey = currentPeriodKey();
       if (nextPeriodKey !== state.periodKey) {
+        closeAttachmentModal();
+        closeAttachmentCarousel();
         state.periodKey = nextPeriodKey;
         state.payload = defaultPayload();
         state.basePayload = null;
@@ -1215,6 +1347,7 @@
       clearTimeout(saveTimer);
       clearTimeout(maxSaveTimer);
       closeAttachmentModal();
+      closeAttachmentCarousel();
       state.loadGeneration += 1;
       document.body.classList.remove("rps-presentation-mode");
     }
