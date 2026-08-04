@@ -1769,20 +1769,13 @@ async function hydrateFromSupabase() {
     state.actualsBatches = actualsBatches.map(normalizeActualsBatch);
     syncActualsBatchSelection();
 
-    // Dashboard inicia no último mês COM DADOS (batch de realizado aplicado mais
-    // recente). Sem dados aplicados → cai no mês de calendário atual.
-    const appliedBatches = (state.actualsBatches || []).filter((b) => b.appliedAt);
-    if (appliedBatches.length) {
-      const latest = appliedBatches.reduce((a, b) => {
-        const aKey = Number(a.referenceYear) * 100 + Number(a.referenceMonth);
-        const bKey = Number(b.referenceYear) * 100 + Number(b.referenceMonth);
-        return bKey > aKey ? b : a;
-      });
-      state.currentPeriod = { year: Number(latest.referenceYear), month: Number(latest.referenceMonth) };
-    } else {
-      const _now = new Date();
-      state.currentPeriod = { year: _now.getFullYear(), month: _now.getMonth() + 1 };
-    }
+    // Dashboard inicia no mês de calendário ATUAL — mesma lógica do Painel de
+    // Vendas (reportsComercialPainelModule.js, renderSelectedPainel), que
+    // sempre reseta pro "today.getMonth()+1" ao entrar. Antes caía no último
+    // mês com Realizado aplicado; trocado porque isso deixava a tela presa
+    // no mês antigo enquanto a carga do mês corrente não fosse aplicada.
+    const _now = new Date();
+    state.currentPeriod = { year: _now.getFullYear(), month: _now.getMonth() + 1 };
     state.actualsRowsByBatch = isSupabaseConfigured() ? {} : state.actualsRowsByBatch;
     state.budgetBatches = budgetBatches.map(normalizeBudgetBatch);
     syncBudgetBatchSelection();
