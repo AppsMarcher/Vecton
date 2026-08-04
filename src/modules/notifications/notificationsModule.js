@@ -24,6 +24,7 @@
       getCurrentUserId,
       openReportFromNotification,
       vpFriendlyError,
+      appConfirm,
       messagesTab            // aba "Mensagens" (messagesModule); opcional
     } = deps;
 
@@ -37,7 +38,7 @@
     let _items = [];
     let _unread = 0;          // notificações
     let _unreadMsgs = 0;      // mensagens
-    let _tab = "notificacoes";
+
     let _timer = null;
     let _popover = null;
     let _loadingFeed = false;
@@ -101,11 +102,6 @@
     function renderBadge() {
       pintarBadge("#notifications-badge", _unread);
       pintarBadge("#messages-badge", _unreadMsgs);
-      if (!_popover) return;
-      const chipN = _popover.querySelector('[data-tab="notificacoes"] .inbox-tab-count');
-      const chipM = _popover.querySelector('[data-tab="mensagens"] .inbox-tab-count');
-      if (chipN) chipN.textContent = _unread > 0 ? String(_unread) : "";
-      if (chipM) chipM.textContent = _unreadMsgs > 0 ? String(_unreadMsgs) : "";
     }
 
     // UMA consulta periódica pras duas caixas (RPC inbox_counts, migration 094).
@@ -154,15 +150,17 @@
       }
     }
 
+    // Abre a lista de contatos sozinha uma vez por sessão quando há mensagem
+    // não lida — agora o correio é tela separada, então quem abre é ele.
     function autoAbrirSeTiverMensagem() {
-      if (_unreadMsgs <= 0 || _popover) return;
+      if (_unreadMsgs <= 0 || !messagesTab) return;
       try {
         if (sessionStorage.getItem(AUTO_OPEN_KEY) === "1") return;
         sessionStorage.setItem(AUTO_OPEN_KEY, "1");
       } catch (_) {
         return;   // sem sessionStorage, não insiste
       }
-      openPopover("mensagens");
+      messagesTab.toggleContatos();
     }
 
     // ── Popover ──────────────────────────────────────────────────────────────
@@ -187,15 +185,20 @@
       if (!_items.length) {
         return `<div class="notif-empty">Nenhuma notificação por aqui.</div>`;
       }
+      // <div role="button"> porque a linha carrega o botão de lida/não lida
+      // dentro — botão dentro de botão é HTML inválido.
       return _items.map((item) => `
-        <button class="notif-item${item.is_read ? "" : " unread"}" type="button" data-id="${escapeHtml(item.id)}">
+        <div class="notif-item${item.is_read ? "" : " unread"}" role="button" tabindex="0" data-id="${escapeHtml(item.id)}">
           <span class="notif-item-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${iconFor(item.kind)}"></use></svg></span>
           <span class="notif-item-copy">
             <strong>${escapeHtml(item.title || "")}</strong>
             <span class="notif-item-body">${escapeHtml(item.body || "")}</span>
           </span>
           <span class="notif-item-time">${escapeHtml(formatRelative(item.created_at))}</span>
-        </button>
+          <button type="button" class="notif-toggle" data-action="alternar-lida" data-id="${escapeHtml(item.id)}"
+                  title="${item.is_read ? "Marcar como não lida" : "Marcar como lida"}"
+                  aria-label="${item.is_read ? "Marcar como não lida" : "Marcar como lida"}">${item.is_read ? "○" : "●"}</button>
+        </div>
       `).join("");
     }
 
@@ -242,6 +245,45 @@
       }
     }
 
+    // Alterna lida/não lida no item — o clique na linha continua abrindo o
+    // relatório, então o estado precisa de botão próprio.
+    async function alternarLida(id) {
+      const item = _items.find((i) => i.id === id);
+      if (!item || _disabled) return;
+      const virarLida = !item.is_read;
+      try {
+        await callSupabaseRpc(virarLida ? "notifications_mark_read" : "notifications_mark_unread", { p_ids: [id] });
+        item.is_read = virarLida;
+        _unread = _items.filter((i) => !i.is_read).length;
+        renderBadge();
+        paintPopoverBody();
+      } catch (error) {
+        console.error(error);
+        showToast(vpFriendlyError(error, "Falha ao alterar a notificação."), "error");
+      }
+    }
+
+    // "Limpar" é por usuário: a notificação é uma linha da organização que todos
+    // veem, então apagar sumiria da tela de todo mundo. O banco guarda um marco
+    // e esconde o que existe até agora.
+    async function limparTela() {
+      if (_disabled) return;
+      if (appConfirm) {
+        const ok = await appConfirm("Limpar as notificações? Elas somem da sua tela; as próximas continuam chegando.");
+        if (!ok) return;
+      }
+      try {
+        await callSupabaseRpc("notifications_clear");
+        _items = [];
+        _unread = 0;
+        renderBadge();
+        paintPopoverBody();
+      } catch (error) {
+        console.error(error);
+        showToast(vpFriendlyError(error, "Falha ao limpar as notificações."), "error");
+      }
+    }
+
     async function markAllRead() {
       if (_disabled) return;
       try {
@@ -256,53 +298,22 @@
       }
     }
 
-    function trocarAba(tab) {
-      _tab = tab === "mensagens" && messagesTab ? "mensagens" : "notificacoes";
-      if (!_popover) return;
-      _popover.querySelectorAll(".inbox-tab").forEach((b) => {
-        b.classList.toggle("active", b.dataset.tab === _tab);
-      });
-      const painelN = _popover.querySelector("#inbox-pane-notificacoes");
-      const painelM = _popover.querySelector("#inbox-pane-mensagens");
-      // display explícito nos dois sentidos (o CSS base do painel tem display
-      // próprio, então string vazia não serviria pra esconder).
-      if (painelN) painelN.style.display = _tab === "notificacoes" ? "flex" : "none";
-      if (painelM) painelM.style.display = _tab === "mensagens" ? "flex" : "none";
-      if (_tab === "notificacoes") {
-        void loadFeed();
-      } else if (messagesTab && painelM) {
-        messagesTab.renderMessagesInto(painelM, (n) => {
-          _unreadMsgs = n;
-          renderBadge();
-        });
-      }
-    }
-
-    function openPopover(tab) {
+    function openPopover() {
       closePopover();
       const backdrop = document.createElement("div");
       backdrop.className = "notif-backdrop";
-      // Popover centralizado na tela, não ancorado ao ícone — é o padrão de
-      // todos os popovers do app. Sino e cartinha abrem o MESMO painel, cada um
-      // na sua aba.
+      // Tela exclusiva das notificações (60% x 45%). O correio virou tela
+      // separada, com painel de contatos próprio.
       backdrop.innerHTML = `
-        <div class="notif-popover" role="dialog" aria-label="Caixa de entrada">
-          <div class="inbox-tabs">
-            <button type="button" class="inbox-tab" data-tab="notificacoes">
-              Notificações <span class="inbox-tab-count"></span>
-            </button>
-            ${messagesTab ? `<button type="button" class="inbox-tab" data-tab="mensagens">
-              Mensagens <span class="inbox-tab-count"></span>
-            </button>` : ""}
-          </div>
-          <div class="inbox-pane" id="inbox-pane-notificacoes">
-            <div class="notif-head">
-              <strong>Notificações</strong>
+        <div class="notif-popover" role="dialog" aria-label="Notificações">
+          <div class="notif-head">
+            <strong>Notificações</strong>
+            <div class="notif-head-acoes">
               <button type="button" id="notif-mark-all" class="notif-mark-all">Marcar todas como lidas</button>
+              <button type="button" id="notif-clear" class="notif-mark-all">Limpar</button>
             </div>
-            <div class="notif-list" id="notif-list"></div>
           </div>
-          <div class="inbox-pane" id="inbox-pane-mensagens" style="display:none"></div>
+          <div class="notif-list" id="notif-list"></div>
         </div>
       `;
       document.body.appendChild(backdrop);
@@ -311,14 +322,19 @@
       backdrop.addEventListener("click", (event) => {
         if (event.target === backdrop) closePopover();
       });
-      backdrop.querySelectorAll(".inbox-tab").forEach((b) => {
-        b.addEventListener("click", () => trocarAba(b.dataset.tab));
-      });
       backdrop.querySelector("#notif-mark-all").addEventListener("click", () => void markAllRead());
+      backdrop.querySelector("#notif-clear").addEventListener("click", () => void limparTela());
       backdrop.querySelector("#notif-list").addEventListener("click", (event) => {
-        const btn = event.target.closest(".notif-item");
-        if (!btn) return;
-        const item = _items.find((i) => i.id === btn.dataset.id);
+        // O botão de lida/não lida vem antes: ele vive dentro da linha e não
+        // pode disparar a navegação no mesmo gesto.
+        if (event.target.closest('[data-action="alternar-lida"]')) {
+          event.stopPropagation();
+          void alternarLida(event.target.closest("[data-id]").dataset.id);
+          return;
+        }
+        const linha = event.target.closest(".notif-item");
+        if (!linha) return;
+        const item = _items.find((i) => i.id === linha.dataset.id);
         if (!item) return;
         void markRead([item.id]);
         closePopover();
@@ -330,27 +346,23 @@
 
       paintPopoverBody();
       renderBadge();
-      trocarAba(tab);   // já carrega a aba escolhida (sino → notificações, carta → mensagens)
+      void loadFeed();
     }
 
     // ── Ciclo de vida ────────────────────────────────────────────────────────
-    // Sino e cartinha abrem o mesmo painel, cada um na sua aba. Clicar no ícone
-    // com o painel já aberto naquela aba fecha; em outra aba, só troca.
+    // Telas separadas: o sino abre as notificações, a cartinha abre a lista de
+    // contatos do correio (que tem janelas próprias).
     function bindBell() {
-      const alvos = [
-        { seletor: "#notifications-trigger", aba: "notificacoes" },
-        { seletor: "#messages-trigger", aba: "mensagens" }
-      ];
-      alvos.forEach(({ seletor, aba }) => {
-        const trigger = document.querySelector(seletor);
-        if (!trigger || trigger.dataset.bound === "1") return;
-        trigger.dataset.bound = "1";
-        trigger.addEventListener("click", () => {
-          if (_popover && _tab === aba) closePopover();
-          else if (_popover) trocarAba(aba);
-          else openPopover(aba);
-        });
-      });
+      const sino = document.querySelector("#notifications-trigger");
+      if (sino && sino.dataset.bound !== "1") {
+        sino.dataset.bound = "1";
+        sino.addEventListener("click", () => { if (_popover) closePopover(); else openPopover(); });
+      }
+      const carta = document.querySelector("#messages-trigger");
+      if (carta && carta.dataset.bound !== "1" && messagesTab) {
+        carta.dataset.bound = "1";
+        carta.addEventListener("click", () => messagesTab.toggleContatos());
+      }
     }
 
     function onVisibility() {

@@ -739,6 +739,7 @@ const {
   getCurrentUserId: () => currentUser?.id || null,
   openReportFromNotification,
   vpFriendlyError,
+  appConfirm,
   messagesTab
 });
 
@@ -1404,6 +1405,9 @@ function bindEvents() {
   // logout e fica batendo no BD com uma sessão que não existe mais.
   logoutButton.addEventListener("click", () => {
     stopNotifications();
+    // Correio tem timers próprios (janelas abertas e lista de contatos) e
+    // janelas soltas no body — precisa ser derrubado junto.
+    messagesTab.stopMessages();
     return handleLogout();
   });
 
