@@ -17,6 +17,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ROLES = ["super_admin", "admin", "manager", "analyst", "comercial", "rps_gestao"];
+// Perfis se combinam (ex: Comercial + RPS Gestão). ROLE_PRIORITY decide qual
+// vira o "primário" (access_role) quando vários vêm marcados — mesma ordem
+// de PROFILE_ROLE_PRIORITY em usersModule.js. Não confiamos no que o cliente
+// já veio calculando como primário: recomputamos aqui em cima da UNIÃO de
+// access_role + additional_access_roles do payload, e o gate de "só
+// super_admin cria admin/super_admin" também olha essa união inteira — senão
+// dava pra escapar do gate mandando o admin escondido em additional_access_roles.
+const ROLE_PRIORITY = ALLOWED_ROLES;
+
+function pickPrimaryRole(roles: string[]): string {
+  return ROLE_PRIORITY.find((r) => roles.includes(r)) ?? "analyst";
+}
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -67,12 +79,21 @@ Deno.serve(async (req) => {
     const email = String(body.email ?? "").trim().toLowerCase();
     const fullName = String(body.full_name ?? "").trim();
     const department = String(body.department ?? "").trim();
-    let accessRole = String(body.access_role ?? "analyst");
-    if (!ALLOWED_ROLES.includes(accessRole)) accessRole = "analyst";
-    // Só super_admin pode criar admin/super_admin.
-    if (["admin", "super_admin"].includes(accessRole) && profile.access_role !== "super_admin") {
+    const rawRoles = new Set<string>();
+    const bodyPrimary = String(body.access_role ?? "").trim();
+    if (bodyPrimary) rawRoles.add(bodyPrimary);
+    if (Array.isArray(body.additional_access_roles)) {
+      for (const r of body.additional_access_roles) rawRoles.add(String(r).trim());
+    }
+    let selectedRoles = [...rawRoles].filter((r) => ALLOWED_ROLES.includes(r));
+    if (!selectedRoles.length) selectedRoles = ["analyst"];
+    // Só super_admin pode criar admin/super_admin — checa a união inteira dos
+    // perfis marcados, não só o primário.
+    if (selectedRoles.some((r) => ["admin", "super_admin"].includes(r)) && profile.access_role !== "super_admin") {
       return json({ error: "Apenas Super Admin pode criar Admin/Super Admin" }, 403);
     }
+    const accessRole = pickPrimaryRole(selectedRoles);
+    const additionalRoles = selectedRoles.filter((r) => r !== accessRole);
     const management = body.management ? String(body.management).trim() : null;
     const redirectTo = body.redirect_to ? String(body.redirect_to).trim() : null;
     if (!email) return json({ error: "Email é obrigatório" }, 400);
@@ -104,6 +125,7 @@ Deno.serve(async (req) => {
         department: department || null,
         profile_label: ROLE_LABEL(accessRole),
         access_role: accessRole,
+        additional_access_roles: additionalRoles,
         management,
       }, { onConflict: "organization_id,user_id" });
     if (profErr) return json({ error: `Convite enviado, mas falhou o perfil: ${profErr.message}` }, 500);

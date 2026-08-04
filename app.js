@@ -1062,6 +1062,7 @@ const rpsModule = createRpsModule
       supabaseApiUrl: supabaseConfig.projectUrl,
       getCurrentUser: () => currentUser,
       getAccessRole,
+      getAllAccessRoles,
       appAlert,
       appConfirm,
       appPrompt,
@@ -1634,7 +1635,7 @@ async function hydrateFromSupabase() {
     const organizationId = await resolveOrganizationId();
     await ensureSeedBranchesInSupabase(organizationId);
     const [profileRows, branches, accounts, costCenters, dreNodes, ccNodes, actualsBatches, budgetBatches, hcBatches, managementRows] = await Promise.all([
-      fetchSupabaseRowsSafe("user_profiles", `organization_id=eq.${organizationId}&user_id=eq.${currentUser.id}&select=full_name,email,phone,department,profile_label,access_role,management,matrix_accounts,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,extra_managements,photo_kind,photo_value&limit=1`),
+      fetchSupabaseRowsSafe("user_profiles", `organization_id=eq.${organizationId}&user_id=eq.${currentUser.id}&select=full_name,email,phone,department,profile_label,access_role,additional_access_roles,management,matrix_accounts,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,extra_managements,photo_kind,photo_value&limit=1`),
       fetchSupabaseRowsSafe("branches", `organization_id=eq.${organizationId}&select=id,branch_code,branch_name,note,origin&order=branch_code.asc`),
       fetchAllSupabaseRows("accounts", `organization_id=eq.${organizationId}&select=id,registration_control,account_number,account_name`),
       fetchAllSupabaseRows("cost_centers", `organization_id=eq.${organizationId}&select=id,cost_center_number,cost_center_name,cost_center_type,cost_center_management`),
@@ -1657,6 +1658,7 @@ async function hydrateFromSupabase() {
         department: profile.department || "",
         role: profile.profile_label || "Administrador",
         accessRole: profile.access_role || "admin",
+        additionalAccessRoles: profile.additional_access_roles || [],
         management: profile.management || null,
         matrixAccounts: profile.matrix_accounts || [],
         extraBranchIds: profile.extra_branch_ids || [],
@@ -1680,6 +1682,7 @@ async function hydrateFromSupabase() {
         department: "",
         role: "—",
         accessRole: "analyst",
+        additionalAccessRoles: [],
         management: null,
         matrixAccounts: [],
         extraBranchIds: [],
@@ -1693,13 +1696,13 @@ async function hydrateFromSupabase() {
     }
 
     // Perfis sem acesso ao Dashboard não podem cair nele ao logar; manda
-    // direto para a tela que o perfil efetivamente enxerga. RPS Gestão só
-    // tem a tela RPS Gestão; os demais restritos (Analista/Comercial) caem
-    // em Relatórios.
-    if (isRpsGestao()) {
-      activeView = "rps";
-    } else if (!canAccessDashboard()) {
-      activeView = "reports";
+    // direto para a primeira tela que o perfil efetivamente enxerga —
+    // cascata Dashboard > Relatórios > RPS Gestão. Com perfis combináveis
+    // (ex: Comercial + RPS Gestão), quem tem Relatórios por qualquer um dos
+    // perfis marcados cai lá; só cai direto na RPS Gestão quem NÃO tem
+    // nenhum outro perfil que dê Relatórios (rps_gestao "puro").
+    if (!canAccessDashboard()) {
+      activeView = canAccessReportsMenu() ? "reports" : "rps";
     }
 
     if (branches.length) {
@@ -1916,24 +1919,37 @@ function renderStats() {
 }
 
 // ── Helpers de permissão ──────────────────────────────────────────────────────
+// Perfis combinam (ex: Comercial + RPS Gestão numa mesma pessoa). accessRole
+// continua sendo o perfil "primário" (o de maior prioridade dentre os
+// marcados — ver PROFILE_ROLE_PRIORITY em usersModule.js, mesma ordem aqui
+// embaixo) por compat com tudo que ainda lê um valor único (profile_label,
+// RLS de user_profiles); additionalAccessRoles carrega os demais perfis
+// marcados. hasRole()/getAllAccessRoles() é o que dá o efeito de "combinar":
+// cada isXxx() vira "tem esse perfil marcado, seja como primário ou extra" e
+// os gates de menu (canAccessDashboard etc.) viram allow-list — OR entre os
+// perfis da pessoa, não mais exclusão de um perfil só.
 function getAccessRole() { return state.profile?.accessRole || "admin"; }
-function isSuperAdmin()  { return getAccessRole() === "super_admin"; }
-function isAdmin()       { return ["super_admin", "admin"].includes(getAccessRole()); }
-function isManager()     { return getAccessRole() === "manager"; }
-function isAnalyst()     { return getAccessRole() === "analyst"; }
-function isComercial()   { return getAccessRole() === "comercial"; }
-function isRpsGestao()   { return getAccessRole() === "rps_gestao"; }
-function canAccessDashboard() { return !isAnalyst() && !isComercial() && !isRpsGestao(); }
-function canAccessPlanning()  { return !isComercial() && !isRpsGestao(); }
-function canAccessReportsMenu() { return !isRpsGestao(); }
+function getAdditionalAccessRoles() { return state.profile?.additionalAccessRoles || []; }
+function getAllAccessRoles() { return [...new Set([getAccessRole(), ...getAdditionalAccessRoles()])]; }
+function hasRole(role) { return getAllAccessRoles().includes(role); }
+function isSuperAdmin()  { return hasRole("super_admin"); }
+function isAdmin()       { return hasRole("super_admin") || hasRole("admin"); }
+function isManager()     { return hasRole("manager"); }
+function isAnalyst()     { return hasRole("analyst"); }
+function isComercial()   { return hasRole("comercial"); }
+function isRpsGestao()   { return hasRole("rps_gestao"); }
+function canAccessDashboard() { return isSuperAdmin() || isAdmin() || isManager(); }
+function canAccessPlanning()  { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst(); }
+function canAccessReportsMenu() { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst() || isComercial(); }
 function canAccessParams()    { return isAdmin(); }
 function canManageUsers()     { return isAdmin(); }
 function getUserManagement()  { return state.profile?.management || null; }
 function getMatrixAccounts()  { return state.profile?.matrixAccounts || []; }
 
 // ── Controle de acesso por perfil (extra_* dos user_profiles) ───────────────
-// Apenas Gestor/Analista são restritos; admin/super_admin enxergam tudo.
-function isAccessRestricted()   { return ["manager", "analyst"].includes(getAccessRole()); }
+// Restrito (recorte por gestão/allowlist) a menos que algum perfil marcado
+// seja admin/super_admin — combinar um perfil restrito com admin libera tudo.
+function isAccessRestricted()   { return !isAdmin() && (isManager() || isAnalyst()); }
 function getExtraReportIds()    { return state.profile?.extraReportIds    || []; }
 function getExtraCcIds()        { return state.profile?.extraCcIds         || []; }
 function getExtraAccountCodes() { return state.profile?.extraAccountCodes  || []; }
@@ -1975,17 +1991,20 @@ function isConsolidatedReport(reportId) {
 //  • admin/super_admin: tudo
 //  • manager (Gestor): tudo (cockpit + DRE consolidado + drill-down da sua gestão)
 //  • analyst (Analista): só os relatórios por CC (não vê DRE consolidado)
+//  • comercial: allowlist fixa (Painel/Mapa de Vendas)
 //  • extra_report_ids: concessão ADICIONAL (libera um relatório específico como exceção)
-function canSeeReport(reportId) {
-  const role = getAccessRole();
+// Com perfis combináveis, o resultado é a UNIÃO do que cada perfil marcado
+// libera (basta UM dos perfis da pessoa liberar o relatório).
+function roleCanSeeReport(role, reportId) {
   if (role === "super_admin" || role === "admin") return true;
-  // Comercial é allowlist fixa (Painel/Mapa/Bateu-Levou) — não recebe extras nem
-  // as regras de manager/analyst, mesmo que extra_report_ids venha preenchido.
   if (role === "comercial") return String(reportId).startsWith("comercialRelatorio_") || ["comercialPainel", "comercialMapa"].includes(reportId);
-  if (getExtraReportIds().includes(reportId)) return true;
   if (role === "manager") return true;
   if (role === "analyst") return !isConsolidatedReport(reportId);
-  return false;
+  return false; // rps_gestao e outros perfis sem tela de Relatórios própria
+}
+function canSeeReport(reportId) {
+  if (getExtraReportIds().includes(reportId)) return true;
+  return getAllAccessRoles().some((role) => roleCanSeeReport(role, reportId));
 }
 
 // Pode ver a conta contábil? Restrito → só as marcadas em extra_account_codes.

@@ -344,6 +344,7 @@
       supabaseApiUrl,
       getCurrentUser,
       getAccessRole,
+      getAllAccessRoles,
       appAlert,
       appConfirm,
       appPrompt,
@@ -389,13 +390,18 @@
     let saveRequested = false;
     let eventsBound = false;
 
-    // canFillValues: quem pode digitar semanas/meta, comentar e anexar arquivo.
-    // canEditStructure: quem além disso pode renomear indicador, trocar
-    // unidade, mudar o modo de cálculo do Mês e adicionar indicador — o
-    // perfil "RPS Gestão" preenche dados mas não mexe na estrutura.
-    const canFillValues = () => ["super_admin", "admin", "manager", "rps_gestao"].includes(String(getAccessRole?.() || ""));
-    const canEditStructure = () => ["super_admin", "admin", "manager"].includes(String(getAccessRole?.() || ""));
-    const canManageBackups = () => ["super_admin", "admin"].includes(String(getAccessRole?.() || ""));
+    // Perfis combinam (ex: alguém pode ser Comercial + RPS Gestão ao mesmo
+    // tempo) — por isso checamos TODOS os perfis da pessoa (getAllAccessRoles),
+    // não só o primário, e basta UM deles liberar. canFillValues: quem pode
+    // digitar semanas/meta, comentar e anexar arquivo. canEditStructure: quem
+    // além disso pode renomear indicador, trocar unidade, mudar o modo de
+    // cálculo do Mês e adicionar indicador — o perfil "RPS Gestão" preenche
+    // dados mas não mexe na estrutura, mesmo combinado com outro perfil que
+    // não seja admin/super_admin/manager.
+    const myRoles = () => (getAllAccessRoles ? getAllAccessRoles() : [String(getAccessRole?.() || "")]);
+    const canFillValues = () => myRoles().some((role) => ["super_admin", "admin", "manager", "rps_gestao"].includes(role));
+    const canEditStructure = () => myRoles().some((role) => ["super_admin", "admin", "manager"].includes(role));
+    const canManageBackups = () => myRoles().some((role) => ["super_admin", "admin"].includes(role));
     const currentPeriod = () => {
       const period = getPeriod();
       return { year: Number(period.year), month: Number(period.month) };

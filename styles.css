@@ -5851,6 +5851,7 @@ body.auth-only .content-view {
   font-weight: 600;
   background: rgba(79, 124, 255, 0.14);
   color: var(--blue);
+  margin: 1px 0; /* perfis combinados podem quebrar linha na célula */
 }
 
 .users-status-active { color: #22c55e; font-size: 0.75rem; }

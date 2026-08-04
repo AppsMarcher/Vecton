@@ -34,6 +34,82 @@
       rps_gestao:  "#f472b6"
     };
 
+    // Perfis de acesso se combinam (ex: Comercial + RPS Gestão numa mesma
+    // pessoa). O BD ainda guarda um "primário" em access_role (compat com
+    // profile_label, RLS etc.) + o resto em additional_access_roles — a
+    // ordem abaixo (mais privilegiado primeiro) decide qual vira o primário
+    // quando vários estão marcados. Mesma ordem usada no invite-user Edge
+    // Function (ROLE_PRIORITY lá).
+    const PROFILE_ROLE_PRIORITY = Object.keys(ROLE_LABELS);
+
+    function pickPrimaryRole(selectedRoles) {
+      const set = new Set(selectedRoles);
+      return PROFILE_ROLE_PRIORITY.find((role) => set.has(role)) || "analyst";
+    }
+
+    function splitRoles(selectedRoles) {
+      const primary = pickPrimaryRole(selectedRoles);
+      return { primary, additional: selectedRoles.filter((role) => role !== primary) };
+    }
+
+    // Só super_admin pode marcar "Super Admin"; só admin/super_admin podem
+    // marcar "Admin" — mesma regra que já existia no seletor único.
+    function allowedRoleEntries() {
+      return Object.entries(ROLE_LABELS).filter(([val]) => {
+        if (val === "super_admin") return isSuperAdmin();
+        if (val === "admin") return isSuperAdmin() || isAdmin();
+        return true;
+      });
+    }
+
+    function buildRoleRow(id, label, checked, onToggle) {
+      const row = document.createElement("div");
+      row.className = "access-row";
+      const cb = document.createElement("span");
+      cb.className = "access-checkbox" + (checked ? " access-checkbox-on" : "");
+      cb.innerHTML = checked
+        ? `<svg viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>`
+        : "";
+      cb.dataset.checked = checked ? "1" : "0";
+      cb.style.cursor = "pointer";
+      cb.addEventListener("click", () => {
+        const on = cb.dataset.checked !== "1";
+        cb.dataset.checked = on ? "1" : "0";
+        cb.className = "access-checkbox" + (on ? " access-checkbox-on" : "");
+        cb.innerHTML = on
+          ? `<svg viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>`
+          : "";
+        onToggle?.();
+      });
+      const lbl = document.createElement("span");
+      lbl.className = "access-row-label";
+      lbl.textContent = label;
+      row.append(cb, lbl);
+      row.dataset.rowId = id;
+      row.dataset.tree = "profileRole";
+      return row;
+    }
+
+    // Mesmo componente visual das árvores de "Acessos adicionais" (Empresas,
+    // Gestões etc. — ver makeTree/buildAccessRow abaixo), mas aqui toda linha
+    // é clicável (sem conceito de linha "padrão"/travada) e o painel abre já
+    // expandido, por ser o campo mais importante do formulário.
+    function buildProfileRolePicker(selectedRoles, onToggle) {
+      const selected = new Set(selectedRoles);
+      const icon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>`;
+      const section = makeTree("profileRole", icon, "Perfil de acesso", () =>
+        allowedRoleEntries().map(([val, label]) => buildRoleRow(val, label, selected.has(val), onToggle))
+      );
+      section.classList.add("open"); // CSS já cuida do corpo/caret via .access-tree.open
+      return section;
+    }
+
+    function getSelectedRoles(panel) {
+      return [...panel.querySelectorAll('.access-row[data-tree="profileRole"]')]
+        .filter((row) => row.querySelector(".access-checkbox")?.dataset.checked === "1")
+        .map((row) => row.dataset.rowId);
+    }
+
     let allUsers = [];
     let editingUserId = null;
 
@@ -81,11 +157,6 @@
         state.costCenters.map((cc) => (cc.management || "").trim()).filter(Boolean)
       )].sort();
 
-      const roleOptions = Object.entries(ROLE_LABELS).map(([val, label]) => {
-        const disabled = val === "super_admin" && !isSuperAdmin() ? "disabled" : "";
-        return `<option value="${val}" ${user.access_role === val ? "selected" : ""} ${disabled}>${label}</option>`;
-      }).join("");
-
       const mgmtOptions = [`<option value="">— nenhuma —</option>`,
         ...managements.map((m) => `<option value="${escapeHtml(m)}" ${user.management === m ? "selected" : ""}>${escapeHtml(m)}</option>`)
       ].join("");
@@ -99,9 +170,8 @@
           <label class="ue-label">Departamento</label>
           <input class="ue-input" id="ue-dept" type="text" value="${escapeHtml(user.department || "")}" placeholder="Departamento">
         </div>
-        <div class="ue-section">
-          <label class="ue-label">Perfil de acesso</label>
-          <select class="ue-select" id="ue-role">${roleOptions}</select>
+        <div class="ue-section" id="ue-role-section">
+          <label class="ue-label">Perfil de acesso <span class="ue-label-hint">(pode marcar mais de um)</span></label>
         </div>
         <div class="ue-section" id="ue-mgmt-section">
           <label class="ue-label">Gestão <span class="ue-label-hint">(Gestor / Analista)</span></label>
@@ -118,23 +188,21 @@
         </div>
       `;
 
-      // mostra/oculta campo gestão conforme role
-      const roleSelect = panel.querySelector("#ue-role");
+      // perfil de acesso: picker de múltipla marcação (checkboxes), não select único
+      const currentRoles = [user.access_role, ...(user.additional_access_roles || [])].filter(Boolean);
       const mgmtSection = panel.querySelector("#ue-mgmt-section");
-      const updateMgmtVisibility = () => {
-        const role = roleSelect.value;
-        mgmtSection.style.display = ["manager", "analyst"].includes(role) ? "" : "none";
-        rebuildTrees(panel, user, roleSelect.value, panel.querySelector("#ue-mgmt").value);
+      const updateFromRoles = () => {
+        const roles = getSelectedRoles(panel);
+        mgmtSection.style.display = roles.some((r) => ["manager", "analyst"].includes(r)) ? "" : "none";
+        rebuildTrees(panel, user, pickPrimaryRole(roles), panel.querySelector("#ue-mgmt").value);
       };
-      roleSelect.addEventListener("change", updateMgmtVisibility);
-      panel.querySelector("#ue-mgmt").addEventListener("change", () => {
-        rebuildTrees(panel, user, roleSelect.value, panel.querySelector("#ue-mgmt").value);
-      });
+      panel.querySelector("#ue-role-section").append(buildProfileRolePicker(currentRoles, updateFromRoles));
+      panel.querySelector("#ue-mgmt").addEventListener("change", updateFromRoles);
       // append árvores como DOM
       const treeSection = panel.querySelector(".ue-section:last-child");
       treeSection.append(renderAccessTrees(user));
 
-      updateMgmtVisibility();
+      updateFromRoles();
       panel.classList.add("open");
     }
 
@@ -361,8 +429,16 @@
       try {
         const name     = panel.querySelector("#ue-name")?.value.trim() || "";
         const dept     = panel.querySelector("#ue-dept")?.value.trim() || "";
-        const role     = panel.querySelector("#ue-role")?.value || "analyst";
         const mgmt     = panel.querySelector("#ue-mgmt")?.value || null;
+
+        const selectedRoles = getSelectedRoles(panel);
+        if (!selectedRoles.length) {
+          showToast("Marque pelo menos um perfil de acesso.", "error");
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Salvar";
+          return;
+        }
+        const { primary: role, additional: additionalRoles } = splitRoles(selectedRoles);
 
         // coleta extras (linhas clicáveis marcadas, não padrão)
         const getExtras = (tree) => [...panel.querySelectorAll(`.access-row[data-tree="${tree}"]`)]
@@ -387,6 +463,7 @@
           full_name:          name,
           department:         dept,
           access_role:        role,
+          additional_access_roles: additionalRoles,
           management:         mgmt || null,
           extra_managements:  extraManagements,
           extra_branch_ids:   extraBranchIds,
@@ -425,7 +502,7 @@
         const orgId = await resolveOrganizationId();
         const rows = await fetchSupabaseRowsSafe(
           "user_profiles",
-          `organization_id=eq.${orgId}&select=id,user_id,full_name,email,department,access_role,management,extra_managements,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,photo_kind,photo_value&order=full_name.asc`
+          `organization_id=eq.${orgId}&select=id,user_id,full_name,email,department,access_role,additional_access_roles,management,extra_managements,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,photo_kind,photo_value&order=full_name.asc`
         );
 
         allUsers = rows || [];
@@ -448,11 +525,15 @@
     function renderUsersTable(tbody, users) {
         tbody.innerHTML = users.map((user) => {
           const role     = user.access_role || "analyst";
-          const label    = ROLE_LABELS[role] || role;
-          const color    = ROLE_COLORS[role] || "#6b7280";
+          const allRoles = [role, ...(user.additional_access_roles || [])].filter(Boolean);
+          const badges   = allRoles.map((r) => {
+            const label = ROLE_LABELS[r] || r;
+            const color = ROLE_COLORS[r] || "#6b7280";
+            return `<span class="users-badge" style="background:${color}22;color:${color}">${escapeHtml(label)}</span>`;
+          }).join(" ");
           const initials = (user.full_name || user.email || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
           const mgmt     = user.management ? `<br><span style="font-size:0.68rem;color:var(--text-faint)">${escapeHtml(user.management)}</span>` : "";
-          const canEdit  = isSuperAdmin() || (isAdmin() && role !== "super_admin");
+          const canEdit  = isSuperAdmin() || (isAdmin() && !allRoles.includes("super_admin"));
 
           return `<tr data-user-id="${escapeHtml(user.id)}">
             <td>
@@ -463,7 +544,7 @@
             </td>
             <td><span class="users-email-text">${escapeHtml(user.email || "—")}</span></td>
             <td><span class="users-email-text">${escapeHtml(user.department || "—")}</span></td>
-            <td><span class="users-badge" style="background:${color}22;color:${color}">${escapeHtml(label)}</span></td>
+            <td>${badges}</td>
             <td><span class="users-status-active">● Ativo</span></td>
             <td>
               <div class="users-actions">
@@ -625,13 +706,6 @@
       document.querySelector("#users-invite-overlay")?.remove();
 
       const managements = (state.managements || []).map((m) => m.name).filter(Boolean);
-      const roleOpts = [
-        ["analyst", "Analista"],
-        ["manager", "Gestor"],
-        ["comercial", "Comercial"],
-        ["rps_gestao", "RPS Gestão"],
-        ...(isSuperAdmin() ? [["admin", "Administrador"], ["super_admin", "Super Admin"]] : isAdmin() ? [["admin", "Administrador"]] : [])
-      ];
 
       const overlay = document.createElement("div");
       overlay.id = "users-invite-overlay";
@@ -655,9 +729,7 @@
             <label class="ui-field">Departamento
               <input id="inv-dept" type="text" placeholder="Opcional">
             </label>
-            <label class="ui-field">Perfil de acesso
-              <select id="inv-role">${roleOpts.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
-            </label>
+            <div class="ui-field" id="inv-role-field">Perfil de acesso <span class="ui-hint">(pode marcar mais de um)</span></div>
             <label class="ui-field" id="inv-mgmt-field">Gestão <span class="ui-hint">(Gestor / Analista)</span>
               <select id="inv-mgmt">
                 <option value="">— selecione —</option>
@@ -674,16 +746,16 @@
         </div>`;
       document.body.appendChild(overlay);
 
-      const roleSel = overlay.querySelector("#inv-role");
       const mgmtField = overlay.querySelector("#inv-mgmt-field");
       const feedback = overlay.querySelector("#inv-feedback");
       const sendBtn = overlay.querySelector("#inv-send");
       const close = () => overlay.remove();
 
       const syncMgmtVisibility = () => {
-        mgmtField.style.display = ["manager", "analyst"].includes(roleSel.value) ? "" : "none";
+        const roles = getSelectedRoles(overlay);
+        mgmtField.style.display = roles.some((r) => ["manager", "analyst"].includes(r)) ? "" : "none";
       };
-      roleSel.addEventListener("change", syncMgmtVisibility);
+      overlay.querySelector("#inv-role-field").append(buildProfileRolePicker([], syncMgmtVisibility));
       syncMgmtVisibility();
 
       overlay.querySelector(".users-invite-close").addEventListener("click", close);
@@ -692,12 +764,16 @@
 
       sendBtn.addEventListener("click", async () => {
         const email = overlay.querySelector("#inv-email").value.trim();
-        const role  = roleSel.value;
+        const selectedRoles = getSelectedRoles(overlay);
         const mgmt  = overlay.querySelector("#inv-mgmt").value.trim();
         if (!email) { feedback.textContent = "Informe o e-mail."; feedback.className = "users-invite-feedback is-error"; return; }
-        if (["manager", "analyst"].includes(role) && !mgmt) {
+        if (!selectedRoles.length) {
+          feedback.textContent = "Marque pelo menos um perfil de acesso."; feedback.className = "users-invite-feedback is-error"; return;
+        }
+        if (selectedRoles.some((r) => ["manager", "analyst"].includes(r)) && !mgmt) {
           feedback.textContent = "Selecione a gestão para Gestor/Analista."; feedback.className = "users-invite-feedback is-error"; return;
         }
+        const { primary, additional } = splitRoles(selectedRoles);
         sendBtn.disabled = true;
         sendBtn.textContent = "Enviando...";
         feedback.textContent = ""; feedback.className = "users-invite-feedback";
@@ -706,8 +782,9 @@
             email,
             full_name: overlay.querySelector("#inv-name").value.trim(),
             department: overlay.querySelector("#inv-dept").value.trim(),
-            access_role: role,
-            management: ["manager", "analyst"].includes(role) ? mgmt : null,
+            access_role: primary,
+            additional_access_roles: additional,
+            management: selectedRoles.some((r) => ["manager", "analyst"].includes(r)) ? mgmt : null,
             redirect_to: window.location.origin + window.location.pathname
           });
           close();
