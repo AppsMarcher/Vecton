@@ -6751,9 +6751,9 @@ table th,
 }
 .msn-head-logo {
   display: block;
-  width: auto;
+  width: 145px;
   max-width: 100%;
-  height: 31px;
+  height: auto;
   object-fit: contain;
   object-position: center;
   image-rendering: auto;
