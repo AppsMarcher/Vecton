@@ -6842,7 +6842,7 @@ table th,
 
 .rps-table {
   width: 100%;
-  min-width: 1050px;
+  min-width: 1380px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -6874,12 +6874,12 @@ table th,
 .rps-table thead th:first-child {
   left: 0;
   z-index: 6;
-  width: 260px;
+  width: 300px;
   text-align: left;
 }
 
 .rps-table thead th:not(:first-child) {
-  width: 88px;
+  width: 108px;
   text-align: center;
 }
 
@@ -6956,6 +6956,30 @@ table th,
   white-space: nowrap;
 }
 
+.rps-label-input {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  transition: border-color .15s, background .15s;
+}
+
+.rps-label-input:hover {
+  border-color: rgba(255,255,255,.09);
+  background: rgba(255,255,255,.025);
+}
+
+.rps-label-input:focus {
+  border-color: rgba(79,124,255,.72);
+  background: rgba(79,124,255,.07);
+}
+
 .rps-formula-badge {
   flex: 0 0 auto;
   display: grid;
@@ -6982,6 +7006,47 @@ table th,
 .rps-value-cell {
   position: relative;
   padding: 4px 5px !important;
+}
+
+.rps-week-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 43px;
+  align-items: center;
+  gap: 3px;
+}
+
+.rps-week-entry .rps-cell-input {
+  padding: 0 4px 0 10px;
+}
+
+.rps-unit-select,
+.rps-month-mode {
+  height: 27px;
+  border: 1px solid rgba(79,124,255,.25);
+  border-radius: 6px;
+  outline: none;
+  background: #0c0f15;
+  color: #9db7f7;
+  font-size: .55rem;
+  cursor: pointer;
+}
+
+.rps-unit-select:focus,
+.rps-month-mode:focus {
+  border-color: rgba(79,124,255,.78);
+  box-shadow: 0 0 0 2px rgba(79,124,255,.1);
+}
+
+.rps-unit-readonly {
+  color: var(--text-faint);
+  font-size: .56rem;
+  text-align: center;
+}
+
+.rps-week-entry + .rps-comment-button {
+  left: 3px;
+  right: auto;
+  top: 15px;
 }
 
 .rps-cell-input {
@@ -7046,6 +7111,40 @@ table th,
 .rps-formula-cell strong {
   font-size: .66rem;
   font-weight: 690;
+}
+
+.rps-formula-cell small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-faint);
+  font-size: .5rem;
+  font-weight: 500;
+}
+
+.rps-formula-cell .rps-unit-select {
+  display: block;
+  width: 52px;
+  height: 21px;
+  margin: 2px 0 0 auto;
+}
+
+.rps-month-cell {
+  padding: 4px 5px !important;
+  text-align: center !important;
+}
+
+.rps-month-cell strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rps-month-mode {
+  width: 100%;
+  height: 22px;
+  margin-top: 3px;
+  text-align: center;
 }
 
 .rps-indicator-row.is-calculated > th {

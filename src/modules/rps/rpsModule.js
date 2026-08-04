@@ -1,5 +1,6 @@
 (function attachVectonRpsModule(window) {
   const WEEKS = ["S1", "S2", "S3", "S4", "S5"];
+  const UNIT_OPTIONS = ["R$", "un", "%", "hrs", "dias"];
   const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   const TABLE = "rps_snapshots";
   const DRAFT_PREFIX = "vecton-rps-draft-v1";
@@ -48,8 +49,8 @@
       item("Ajustes identificados", "R$"), item("Ajustes acumulados", "R$"), spacer()
     ],
     rh: [
-      item("Horas-extras (quantidade)", "h"), item("Horas-extras (valor)", "R$"), item("Absenteísmo", "%"),
-      item("Turnover", "%"), item("Acidentes com afastamento", "un"), item("Horas de treinamento", "h")
+      item("Horas-extras (quantidade)", "hrs"), item("Horas-extras (valor)", "R$"), item("Absenteísmo", "%"),
+      item("Turnover", "%"), item("Acidentes com afastamento", "un"), item("Horas de treinamento", "hrs")
     ],
     financeiro: [item("Clientes em atraso", "R$"), item("Saldo de caixa", "R$"), spacer()],
     sac: [
@@ -228,16 +229,45 @@
     if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
     const text = String(raw ?? "").trim();
     if (!text) return null;
-    const normalized = text.includes(",")
-      ? text.replace(/\./g, "").replace(",", ".")
-      : text;
-    const value = Number(normalized.replace(/[^0-9+\-.]/g, ""));
+    const numericText = text.replace(/[^0-9+,\-.]/g, "");
+    const normalized = numericText.includes(",")
+      ? numericText.replace(/\./g, "").replace(",", ".")
+      : /^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numericText)
+        ? numericText.replace(/\./g, "")
+        : numericText;
+    const value = Number(normalized);
     return Number.isFinite(value) ? value : null;
   }
 
   function formatNumber(value) {
     if (value === null || !Number.isFinite(value)) return "—";
     return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value);
+  }
+
+  function normalizeUnit(unit) {
+    return String(unit || "").trim().toLowerCase() === "h" ? "hrs" : String(unit || "").trim();
+  }
+
+  function formatValueForUnit(raw, unit, emptyValue = "") {
+    const value = parseNumber(raw);
+    if (value === null) return emptyValue;
+    const normalizedUnit = normalizeUnit(unit);
+    if (normalizedUnit === "R$") {
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+    }
+    if (normalizedUnit === "un") {
+      return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(value);
+    }
+    if (normalizedUnit === "%") {
+      return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value)}%`;
+    }
+    if (normalizedUnit === "hrs") {
+      return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value)} hrs`;
+    }
+    if (normalizedUnit === "dias") {
+      return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value)} dias`;
+    }
+    return formatNumber(value);
   }
 
   function calculateArithmetic(expression) {
@@ -379,11 +409,18 @@
       return Array.isArray(state.payload.indicadores?.[areaId]) ? state.payload.indicadores[areaId] : [];
     }
 
-    function getUnit(areaId, indicatorId, indicator) {
-      return state.payload.unidades[valueKey(areaId, indicatorId, "S1")]
+    function getUnit(areaId, indicatorId, indicator, column = "S1") {
+      return normalizeUnit(state.payload.unidades[valueKey(areaId, indicatorId, column)]
         || state.payload.unidades[`${areaId}|${indicatorId}`]
         || indicator?.unit
-        || "";
+        || "");
+    }
+
+    function renderUnitOptions(selectedUnit) {
+      const normalizedSelected = normalizeUnit(selectedUnit);
+      return [`<option value="">—</option>`, ...UNIT_OPTIONS.map((unit) => (
+        `<option value="${escapeHtml(unit)}" ${unit === normalizedSelected ? "selected" : ""}>${escapeHtml(unit)}</option>`
+      ))].join("");
     }
 
     function getWeekValue(areaId, indicator, week, stack = new Set()) {
@@ -414,11 +451,11 @@
     function getMonthValue(areaId, indicator) {
       const manual = parseNumber(state.payload.dadosMes[monthValueKey(areaId, indicator.id)]);
       if (state.payload.modoMes[`mes:${areaId}|${indicator.id}`] === "manual" && manual !== null) return manual;
+      const mode = state.payload.modoMes[`mes:${areaId}|${indicator.id}`] || "soma";
+      if (mode === "ultima") return getWeekValue(areaId, indicator, WEEKS[WEEKS.length - 1]) ?? manual;
       const values = WEEKS.map((week) => getWeekValue(areaId, indicator, week)).filter((value) => value !== null);
       if (!values.length) return manual;
-      const mode = state.payload.modoMes[`mes:${areaId}|${indicator.id}`] || "soma";
       if (mode === "media") return values.reduce((sum, value) => sum + value, 0) / values.length;
-      if (mode === "ultima") return values[values.length - 1];
       return values.reduce((sum, value) => sum + value, 0);
     }
 
@@ -454,31 +491,53 @@
           const variation = month !== null && target !== null ? month - target : null;
           const percent = variation !== null && target ? (variation / Math.abs(target)) * 100 : null;
           const trendClass = variation === null ? "neutral" : variation >= 0 ? "positive" : "negative";
-          const unit = getUnit(area.id, indicator.id, indicator);
+          const monthUnit = getUnit(area.id, indicator.id, indicator, "S1");
+          const monthModeKey = `mes:${area.id}|${indicator.id}`;
+          const monthMode = state.payload.modoMes[monthModeKey] || "soma";
           const weekCells = WEEKS.map((week) => {
             const key = valueKey(area.id, indicator.id, week);
+            const weekUnit = getUnit(area.id, indicator.id, indicator, week);
             if (calculatedRow) {
               const calculatedValue = getWeekValue(area.id, indicator, week);
-              return `<td class="rps-calculated-cell rps-formula-cell" title="${escapeHtml(indicator.formula || "Linha calculada")}"><strong>${formatNumber(calculatedValue)}</strong></td>`;
+              return `<td class="rps-calculated-cell rps-formula-cell" title="${escapeHtml(indicator.formula || "Linha calculada")}">
+                <strong>${escapeHtml(formatValueForUnit(calculatedValue, weekUnit, "—"))}</strong>
+                ${editable
+                  ? `<select class="rps-unit-select" data-rps-unit-key="${escapeHtml(key)}" aria-label="Unidade de ${escapeHtml(`${indicator.label} ${week}`)}">${renderUnitOptions(weekUnit)}</select>`
+                  : `<small>${escapeHtml(weekUnit)}</small>`}
+              </td>`;
             }
             const comment = state.payload.comentarios[commentKey(area.id, indicator.id, week)];
             return `<td class="rps-value-cell">
-              <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(state.payload.dados[key] || "")}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
+              <div class="rps-week-entry">
+                <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(formatValueForUnit(state.payload.dados[key], weekUnit))}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
+                ${editable
+                  ? `<select class="rps-unit-select" data-rps-unit-key="${escapeHtml(key)}" aria-label="Unidade de ${escapeHtml(`${indicator.label} ${week}`)}">${renderUnitOptions(weekUnit)}</select>`
+                  : `<span class="rps-unit-readonly">${escapeHtml(weekUnit)}</span>`}
+              </div>
               <button class="rps-comment-button ${comment ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, week))}" title="Comentário">●</button>
             </td>`;
           }).join("");
           const targetKey = targetValueKey(area.id, indicator.id);
           return `<tr class="rps-indicator-row ${calculatedRow ? "is-calculated" : ""}" data-area-id="${escapeHtml(area.id)}" data-indicator-id="${escapeHtml(indicator.id)}">
             <th scope="row">
-              <div class="rps-indicator-name">${calculatedRow ? `<b class="rps-formula-badge" title="Linha calculada">=</b>` : ""}<span>${escapeHtml(indicator.label)}</span>${unit ? `<em>${escapeHtml(unit)}</em>` : ""}</div>
+              <div class="rps-indicator-name">${calculatedRow ? `<b class="rps-formula-badge" title="Linha calculada">=</b>` : ""}${editable
+                ? `<input class="rps-label-input" data-rps-label-area="${escapeHtml(area.id)}" data-rps-label-id="${escapeHtml(indicator.id)}" value="${escapeHtml(indicator.label)}" aria-label="Nome do indicador">`
+                : `<span>${escapeHtml(indicator.label)}</span>`}</div>
             </th>
             ${weekCells}
-            <td class="rps-calculated-cell"><strong>${formatNumber(month)}</strong></td>
+            <td class="rps-calculated-cell rps-month-cell">
+              <strong>${escapeHtml(formatValueForUnit(month, monthUnit, "—"))}</strong>
+              ${editable ? `<select class="rps-month-mode" data-rps-month-mode="${escapeHtml(monthModeKey)}" aria-label="Consolidação mensal de ${escapeHtml(indicator.label)}">
+                <option value="soma" ${monthMode === "soma" ? "selected" : ""}>Soma</option>
+                <option value="media" ${monthMode === "media" ? "selected" : ""}>Média</option>
+                <option value="ultima" ${monthMode === "ultima" ? "selected" : ""}>Última</option>
+              </select>` : ""}
+            </td>
             <td class="rps-value-cell rps-target-cell">
-              <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(state.payload.dadosMeta[targetKey] || "")}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
+              <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="decimal" ${editable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
               <button class="rps-comment-button ${state.payload.comentarios[commentKey(area.id, indicator.id, "meta")] ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, "meta"))}" title="Comentário">●</button>
             </td>
-            <td class="rps-variation ${trendClass}">${variation === null ? "—" : `${variation > 0 ? "+" : ""}${formatNumber(variation)}`}</td>
+            <td class="rps-variation ${trendClass}">${variation === null ? "—" : `${variation > 0 ? "+" : ""}${escapeHtml(formatValueForUnit(variation, monthUnit))}`}</td>
             <td class="rps-variation ${trendClass}">${percent === null ? "—" : `${percent > 0 ? "+" : ""}${formatNumber(percent)}%`}</td>
           </tr>`;
         }).join("");
@@ -749,6 +808,30 @@
       renderShell();
     }
 
+    function renameIndicator(areaId, indicatorId, nextLabel) {
+      const indicators = getIndicators(areaId);
+      const indicator = indicators.find((item) => item.id === indicatorId);
+      const cleanLabel = String(nextLabel || "").trim();
+      if (!indicator || !cleanLabel || cleanLabel === indicator.label) return false;
+      const previousLabel = indicator.label;
+      indicators.forEach((item) => {
+        if (!item.formula) return;
+        item.formula = String(item.formula)
+          .split(/(\{[^}]+\})/g)
+          .map((part) => {
+            if (part.startsWith("{") && part.endsWith("}")) {
+              const referencedLabel = part.slice(1, -1);
+              return slugify(referencedLabel) === slugify(previousLabel) ? `{${cleanLabel}}` : part;
+            }
+            return part.split(previousLabel).join(cleanLabel);
+          })
+          .join("");
+      });
+      indicator.label = cleanLabel;
+      markDirty();
+      return true;
+    }
+
     function bindEvents() {
       if (!root || eventsBound) return;
       eventsBound = true;
@@ -773,6 +856,29 @@
       });
 
       root.addEventListener("change", (event) => {
+        const unitSelect = event.target.closest("[data-rps-unit-key]");
+        if (unitSelect) {
+          const key = unitSelect.dataset.rpsUnitKey;
+          const unit = normalizeUnit(unitSelect.value);
+          if (unit) state.payload.unidades[key] = unit;
+          else delete state.payload.unidades[key];
+          markDirty();
+          renderShell();
+          return;
+        }
+        const monthModeSelect = event.target.closest("[data-rps-month-mode]");
+        if (monthModeSelect) {
+          state.payload.modoMes[monthModeSelect.dataset.rpsMonthMode] = monthModeSelect.value;
+          markDirty();
+          renderShell();
+          return;
+        }
+        const labelInput = event.target.closest("[data-rps-label-id]");
+        if (labelInput) {
+          renameIndicator(labelInput.dataset.rpsLabelArea, labelInput.dataset.rpsLabelId, labelInput.value);
+          renderShell();
+          return;
+        }
         const valueInput = event.target.closest("[data-rps-value-key]");
         if (valueInput) {
           renderShell();
