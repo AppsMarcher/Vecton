@@ -147,7 +147,7 @@
         .cvp-side-meter { margin-top:auto; padding-top:16px; flex:1; display:flex; flex-direction:column; min-height:0; justify-content:center; }
         .cvp-blockbars { display:flex; flex-direction:column; gap:9px; }
         .cvp-blockbar-row { display:grid; grid-template-columns:72px 1fr 32px; align-items:center; gap:9px; }
-        .cvp-blockbar-lbl { font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--accent); }
+        .cvp-blockbar-lbl { font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.03em; color:var(--cvp-text); }
         .cvp-blockbar-track { display:flex; gap:3px; }
         .cvp-blockbar-track .blk { flex:1; height:9px; border-radius:2px; background:var(--cvp-bg-soft); }
         .cvp-blockbar-track .blk.on { background:var(--accent); }
