@@ -766,7 +766,7 @@
         <div class="msn-jan-head">
           <div class="msn-jan-identidade">
             ${contato ? avatarMarkup(contato) : ""}
-            <strong class="msn-jan-titulo">${escapeHtml(titulo || "Conversa")}</strong>
+            <strong class="msn-jan-titulo" title="${escapeHtml(titulo || "Conversa")}">${escapeHtml(titulo || "Conversa")}</strong>
           </div>
           <div class="msn-jan-acoes">
             <button type="button" class="msn-icon-btn" data-action="aba-conversa" title="Conversa">💬</button>
@@ -806,7 +806,11 @@
         (opcoes.userId && String(item.user_id) === String(opcoes.userId))
         || (item.thread_id && String(item.thread_id) === String(threadId))
       ) || null;
-      el.innerHTML = janelaMarkup(titulo, contato) + alcasRedimensionamentoMarkup();
+      const grupo = _grupos.find((item) => String(item.thread_id) === String(threadId)) || null;
+      const tituloExibido = grupo
+        ? `Grupo: ${grupo.titulo || titulo || "Participantes"}`
+        : titulo;
+      el.innerHTML = janelaMarkup(tituloExibido, contato) + alcasRedimensionamentoMarkup();
       document.body.appendChild(el);
       aplicarTemaEm(el);
 
@@ -820,7 +824,7 @@
       el.style.left = `${Math.max(12, direitaDoEspaco - larguraJanela - n * 26)}px`;
       el.style.top = `${Math.max(12, (painelRect?.top ?? 60) + n * 26)}px`;
 
-      const ctx = { el, threadId, titulo, mensagens: [], mensagensOcultas: new Set(), aba: "conversa", pendentes: [], ultimoId: null, focada: true };
+      const ctx = { el, threadId, titulo: tituloExibido, mensagens: [], mensagensOcultas: new Set(), aba: "conversa", pendentes: [], ultimoId: null, focada: true };
       _janelas.set(threadId, ctx);
       frente(ctx);
       ligarJanela(ctx);
