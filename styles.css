@@ -9137,8 +9137,8 @@ body.rps-laser-mode .rps-attachment-carousel * {
 }
 .msn-foto-frame {
   position: relative;
-  max-width: min(90vw, 900px);
-  max-height: 88vh;
+  max-width: min(27vw, 270px); /* 30% do tamanho original (90vw/900px) */
+  max-height: 26vh; /* 30% do tamanho original (88vh) */
   padding: 14px;
   background: #000;
   border: 1px solid var(--line);
@@ -9149,7 +9149,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .msn-foto-frame img {
   display: block;
   max-width: 100%;
-  max-height: calc(88vh - 28px);
+  max-height: calc(26vh - 28px);
   border-radius: 6px;
   object-fit: contain;
 }
