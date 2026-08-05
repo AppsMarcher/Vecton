@@ -979,7 +979,7 @@
           menuEmoji.hidden = true;
           botaoEmoji?.setAttribute("aria-expanded", "false");
         }
-        if (acao === "ver-foto") { if (ctx.fotoUrl) mostrarFotoAmpliada(ctx.fotoUrl, ctx.fotoNome); return; }
+        if (acao === "ver-foto") { if (ctx.fotoUrl) mostrarFotoAmpliada(ctx.fotoUrl, ctx.fotoNome, event.target.closest(".msn-jan-avatar-btn")); return; }
         if (acao === "fechar") { fecharJanela(ctx); return; }
         if (acao === "enviar") { void enviar(ctx); return; }
         if (acao === "anexar") { el.querySelector(".msn-file").click(); return; }
@@ -1003,7 +1003,7 @@
           return;
         }
         const anexoImg = event.target.closest(".msg-anexo-img[data-path]");
-        if (anexoImg) { void abrirFotoAmpliada(anexoImg.dataset.path, anexoImg.dataset.nome); return; }
+        if (anexoImg) { void abrirFotoAmpliada(anexoImg.dataset.path, anexoImg.dataset.nome, anexoImg); return; }
         const anexoArquivo = event.target.closest(".msg-anexo-file[data-path]");
         if (anexoArquivo) { void baixarAnexo(anexoArquivo.dataset.path, anexoArquivo.dataset.nome); }
       });
@@ -1303,11 +1303,30 @@
       document.removeEventListener("keydown", aoTeclarNaFoto);
     }
 
+    // Posiciona o cartão centralizado sobre o elemento que disparou o zoom
+    // (a miniatura clicada ou o avatar do cabeçalho) — efeito de "crescer no
+    // lugar" em vez de aparecer fixo num canto qualquer da tela.
+    function posicionarCartaoDeFoto(card, origem) {
+      const rectOrigem = origem?.getBoundingClientRect?.();
+      const rectCard = card.getBoundingClientRect();
+      const margem = 12;
+      let left = 16;
+      let top = 16;
+      if (rectOrigem && rectOrigem.width) {
+        left = rectOrigem.left + rectOrigem.width / 2 - rectCard.width / 2;
+        top = rectOrigem.top + rectOrigem.height / 2 - rectCard.height / 2;
+      }
+      left = Math.min(Math.max(margem, left), window.innerWidth - rectCard.width - margem);
+      top = Math.min(Math.max(margem, top), window.innerHeight - rectCard.height - margem);
+      card.style.left = `${left}px`;
+      card.style.top = `${top}px`;
+    }
+
     // Recebe uma URL já resolvida (assinada do Storage ou a do avatar) — quem
-    // chama decide se precisa assinar antes. Sem véu escurecendo a tela: o
-    // cartão (moldura branca + legenda) fica ancorado no canto superior
-    // esquerdo, como uma foto revelada sobre o fundo do app.
-    function mostrarFotoAmpliada(url, nome) {
+    // chama decide se precisa assinar antes. `origem` é o elemento clicado
+    // (miniatura do anexo ou avatar do cabeçalho): o zoom nasce ali, não num
+    // canto fixo da tela.
+    function mostrarFotoAmpliada(url, nome, origem = null) {
       fecharFotoAmpliada();
       const overlay = document.createElement("div");
       overlay.className = "msn-foto-overlay";
@@ -1322,6 +1341,11 @@
       document.body.appendChild(overlay);
       _zIndex += 1;
       overlay.style.zIndex = String(_zIndex + 200);
+      const card = overlay.querySelector(".msn-foto-card");
+      posicionarCartaoDeFoto(card, origem);
+      // Nasce "encolhido" no lugar certo e cresce — o zoom parte da foto de
+      // origem em vez de só aparecer.
+      requestAnimationFrame(() => card.classList.add("show"));
       overlay.addEventListener("click", (event) => { if (event.target === overlay) fecharFotoAmpliada(); });
       overlay.querySelector(".msn-foto-fechar").addEventListener("click", fecharFotoAmpliada);
       _fotoOverlay = overlay;
@@ -1329,10 +1353,10 @@
     }
 
     // Anexo de imagem: assina a URL do original (não a miniatura) antes de exibir.
-    async function abrirFotoAmpliada(path, nome) {
+    async function abrirFotoAmpliada(path, nome, origem = null) {
       try {
         const url = await createStorageSignedUrl(BUCKET, path);
-        mostrarFotoAmpliada(url, nome);
+        mostrarFotoAmpliada(url, nome, origem);
       } catch (error) {
         showToast(vpFriendlyError(error, "Falha ao abrir a foto."), "error");
       }

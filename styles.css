@@ -9192,14 +9192,18 @@ body.rps-laser-mode .rps-attachment-carousel * {
 }
 .msn-foto-card {
   position: absolute;
-  top: 16px;
+  top: 16px; /* fallback só até o JS reposicionar sobre a foto de origem */
   left: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   cursor: default;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
+.msn-foto-card.show { opacity: 1; transform: scale(1); }
 .msn-foto-frame {
   position: relative;
   max-width: min(27vw, 270px);
