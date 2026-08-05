@@ -500,7 +500,11 @@
         state.backupManager.restores = Array.isArray(data?.restores) ? data.restores : [];
         state.backupManager.lock = data?.lock || null;
         if (!state.backupManager.backups.some((item) => item.id === state.backupManager.selectedId)) {
-          state.backupManager.selectedId = state.backupManager.backups[0]?.id || "";
+          // A lista empilha todos os períodos; se o mês aberto na tela tiver
+          // backup, seleciona ele por padrão — senão cai pro mais recente.
+          const { year, month } = currentPeriod();
+          const ownPeriod = state.backupManager.backups.find((item) => Number(item.ano) === year && Number(item.mes) === month);
+          state.backupManager.selectedId = ownPeriod?.id || state.backupManager.backups[0]?.id || "";
         }
       } catch (error) {
         state.backupManager.error = error?.message || "Não foi possível carregar os backups.";
@@ -543,13 +547,18 @@
       if (!canManageBackups() || state.backupManager.working) return;
       const selected = state.backupManager.backups.find((item) => item.id === state.backupManager.selectedId);
       if (!selected) return;
-      if (state.dirty && !await requestSave()) {
+      // A restauração sempre mira o período de ORIGEM do backup selecionado
+      // (rps_start_restore exige v_run.ano/mes = destino) — não o mês que
+      // está aberto na tela, já que a lista agora empilha todos os meses.
+      const targetYear = Number(selected.ano);
+      const targetMonth = Number(selected.mes);
+      const targetsOpenPeriod = targetYear === currentPeriod().year && targetMonth === currentPeriod().month;
+      if (targetsOpenPeriod && state.dirty && !await requestSave()) {
         await appAlert("Não foi possível salvar as alterações atuais. A restauração foi cancelada.", "error");
         return;
       }
-      const { year, month } = currentPeriod();
       const confirmed = await appConfirm(
-        `Restaurar ${MONTHS[month - 1]} de ${year} para o backup de ${formatBackupDate(selected.captured_at)}?\n\nAntes de substituir o mês, o sistema criará um backup de segurança e bloqueará gravações até concluir ou desfazer a operação.`,
+        `Restaurar ${MONTHS[targetMonth - 1]} de ${targetYear} para o backup de ${formatBackupDate(selected.captured_at)}?\n\nAntes de substituir o período, o sistema criará um backup de segurança e bloqueará gravações até concluir ou desfazer a operação.`,
         "danger"
       );
       if (!confirmed) return;
@@ -558,12 +567,21 @@
       state.backupManager.error = "";
       renderShell();
       try {
-        const result = await callBackupManager("restore", { backup_run_id: selected.id });
-        clearDraft();
-        state.dirty = false;
+        const result = await callBackupManager("restore", {
+          backup_run_id: selected.id,
+          year: targetYear,
+          month: targetMonth
+        });
         state.backupManager.open = false;
-        await loadPeriod(true);
-        await appAlert(`Restauração concluída. ${Number(result?.filesRestored || 0)} anexo(s) verificado(s) e restaurado(s).`, "info");
+        if (targetsOpenPeriod) {
+          clearDraft();
+          state.dirty = false;
+          await loadPeriod(true);
+        }
+        await appAlert(
+          `Restauração de ${MONTHS[targetMonth - 1]}/${targetYear} concluída. ${Number(result?.filesRestored || 0)} anexo(s) verificado(s) e restaurado(s).`,
+          "info"
+        );
       } catch (error) {
         const restoreMessage = error?.message || "Falha ao restaurar backup.";
         await loadBackupManager();
@@ -574,41 +592,47 @@
       }
     }
 
+    function backupPeriodLabel(ano, mes) {
+      const monthLabel = MONTHS[Number(mes) - 1] || "—";
+      return `${monthLabel.slice(0, 3)}/${ano}`;
+    }
+
     function renderBackupManagerDialog() {
       if (!state.backupManager.open || !canManageBackups()) return "";
       const manager = state.backupManager;
       const selected = manager.backups.find((item) => item.id === manager.selectedId) || null;
       const backups = manager.backups.length
         ? manager.backups.map((item) => `<button type="button" class="rps-backup-item ${item.id === manager.selectedId ? "is-selected" : ""}" data-rps-backup-select="${escapeHtml(item.id)}">
-            <span class="rps-backup-kind">${escapeHtml(backupKindLabel(item.kind))}</span>
+            <span class="rps-backup-item-head"><span class="rps-backup-kind">${escapeHtml(backupKindLabel(item.kind))}</span><span class="rps-backup-period">${escapeHtml(backupPeriodLabel(item.ano, item.mes))}</span></span>
             <strong>${escapeHtml(formatBackupDate(item.captured_at))}</strong>
             <small>${Number(item.verified_file_count || 0)} arquivo(s) · ${escapeHtml(formatBackupBytes(item.verified_bytes))}</small>
           </button>`).join("")
-        : `<div class="rps-backup-empty">Nenhum backup íntegro disponível para este mês.</div>`;
+        : `<div class="rps-backup-empty">Nenhum backup íntegro disponível.</div>`;
       const restores = manager.restores.length
-        ? manager.restores.slice(0, 6).map((item) => `<div class="rps-restore-history-row" data-status="${escapeHtml(item.status)}">
-            <span>${escapeHtml(formatBackupDate(item.started_at))}</span><strong>${escapeHtml(item.status)}</strong><small>${escapeHtml(item.phase || "—")}</small>
+        ? manager.restores.slice(0, 10).map((item) => `<div class="rps-restore-history-row" data-status="${escapeHtml(item.status)}">
+            <span>${escapeHtml(formatBackupDate(item.started_at))} · ${escapeHtml(backupPeriodLabel(item.ano, item.mes))}</span><strong>${escapeHtml(item.status)}</strong><small>${escapeHtml(item.phase || "—")}</small>
           </div>`).join("")
-        : `<div class="rps-backup-empty is-compact">Nenhuma restauração registrada neste mês.</div>`;
+        : `<div class="rps-backup-empty is-compact">Nenhuma restauração registrada.</div>`;
+      const restoreLabel = selected ? `Restaurar somente ${escapeHtml(backupPeriodLabel(selected.ano, selected.mes))}` : "Restaurar";
       return `<div class="rps-backup-overlay" role="presentation">
         <section class="rps-backup-dialog" role="dialog" aria-modal="true" aria-labelledby="rps-backup-title">
           <header class="rps-backup-dialog-head">
-            <div><p class="section-kicker">PROTEÇÃO E RECUPERAÇÃO</p><h3 id="rps-backup-title">Backup da RPS · ${escapeHtml(state.periodKey)}</h3><span>Backups semanais às segundas, 18:45 · retenção de seis meses</span></div>
+            <div><p class="section-kicker">PROTEÇÃO E RECUPERAÇÃO</p><h3 id="rps-backup-title">Backup da RPS</h3><span>Backups semanais às segundas, 18:45 · retenção de seis meses · "Criar backup agora" captura ${escapeHtml(state.periodKey)}</span></div>
             <button type="button" class="rps-action" data-rps-backup-action="close" ${manager.working ? "disabled" : ""}>× <span>Fechar</span></button>
           </header>
-          ${manager.lock ? `<div class="rps-backup-lock">Uma restauração está em andamento. O mês permanece bloqueado até a conclusão.</div>` : ""}
+          ${manager.lock ? `<div class="rps-backup-lock">Uma restauração está em andamento em ${escapeHtml(state.periodKey)}. O período permanece bloqueado até a conclusão.</div>` : ""}
           ${manager.error ? `<div class="rps-backup-error">${escapeHtml(manager.error)}</div>` : ""}
           <div class="rps-backup-tools">
             <button type="button" class="rps-action" data-rps-backup-action="refresh" ${manager.working ? "disabled" : ""}>↻ <span>Atualizar lista</span></button>
-            <button type="button" class="rps-action rps-action-primary" data-rps-backup-action="create" ${manager.working || manager.lock ? "disabled" : ""}>＋ <span>Criar backup agora</span></button>
+            <button type="button" class="rps-action rps-action-primary" data-rps-backup-action="create" ${manager.working || manager.lock ? "disabled" : ""}>＋ <span>Criar backup agora (${escapeHtml(state.periodKey)})</span></button>
           </div>
           <div class="rps-backup-layout">
-            <div class="rps-backup-list"><h4>Backups íntegros</h4>${manager.loading ? `<div class="rps-backup-empty">Carregando backups...</div>` : backups}</div>
+            <div class="rps-backup-list"><h4>Backups íntegros · todos os períodos</h4>${manager.loading ? `<div class="rps-backup-empty">Carregando backups...</div>` : backups}</div>
             <div class="rps-backup-detail">
               <h4>Backup selecionado</h4>
-              ${selected ? `<dl><div><dt>Capturado em</dt><dd>${escapeHtml(formatBackupDate(selected.captured_at))}</dd></div><div><dt>Origem</dt><dd>${escapeHtml(backupKindLabel(selected.kind))}</dd></div><div><dt>Versão</dt><dd>${Number(selected.source_version || 0)}</dd></div><div><dt>Anexos verificados</dt><dd>${Number(selected.verified_file_count || 0)} · ${escapeHtml(formatBackupBytes(selected.verified_bytes))}</dd></div><div><dt>Retido até</dt><dd>${escapeHtml(formatBackupDate(selected.retention_until))}</dd></div><div><dt>Hash do snapshot</dt><dd class="is-hash">${escapeHtml(selected.snapshot_hash || "—")}</dd></div></dl>` : `<div class="rps-backup-empty">Selecione um backup para ver os detalhes.</div>`}
-              <button type="button" class="rps-backup-restore" data-rps-backup-action="restore" ${!selected || manager.working || manager.lock ? "disabled" : ""}>↶ Restaurar somente ${escapeHtml(state.periodKey)}</button>
-              <p>A restauração cria um ponto de segurança, valida os anexos em staging e desfaz a operação automaticamente se alguma etapa falhar.</p>
+              ${selected ? `<dl><div><dt>Período</dt><dd>${escapeHtml(backupPeriodLabel(selected.ano, selected.mes))}</dd></div><div><dt>Capturado em</dt><dd>${escapeHtml(formatBackupDate(selected.captured_at))}</dd></div><div><dt>Origem</dt><dd>${escapeHtml(backupKindLabel(selected.kind))}</dd></div><div><dt>Versão</dt><dd>${Number(selected.source_version || 0)}</dd></div><div><dt>Anexos verificados</dt><dd>${Number(selected.verified_file_count || 0)} · ${escapeHtml(formatBackupBytes(selected.verified_bytes))}</dd></div><div><dt>Retido até</dt><dd>${escapeHtml(formatBackupDate(selected.retention_until))}</dd></div><div><dt>Hash do snapshot</dt><dd class="is-hash">${escapeHtml(selected.snapshot_hash || "—")}</dd></div></dl>` : `<div class="rps-backup-empty">Selecione um backup para ver os detalhes.</div>`}
+              <button type="button" class="rps-backup-restore" data-rps-backup-action="restore" ${!selected || manager.working || manager.lock ? "disabled" : ""}>↶ ${restoreLabel}</button>
+              <p>A restauração cria um ponto de segurança, valida os anexos em staging e desfaz a operação automaticamente se alguma etapa falhar. Sempre restaura de volta no período de origem do backup selecionado, mesmo que seja diferente do mês aberto na tela.</p>
             </div>
           </div>
           <div class="rps-restore-history"><h4>Auditoria de restaurações</h4>${restores}</div>

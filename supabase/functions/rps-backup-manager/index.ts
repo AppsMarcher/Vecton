@@ -357,16 +357,22 @@ Deno.serve(async request => {
 
   try {
     if (action === "list") {
+      // Lista organization-wide (todos os períodos empilhados, mais recente
+      // primeiro) — não filtra mais por ano/mes. O período de cada backup/
+      // restauração vem junto (ano,mes) pra a tela poder rotular e, no caso
+      // de restore, mirar de volta no período de origem do próprio backup
+      // (rps_start_restore já exige v_run.ano/mes = destino, então só se
+      // restaura um backup no mês em que ele foi capturado).
       const now = new Date().toISOString();
       const [{ data: backups, error: backupsError }, { data: restores, error: restoresError }, { data: lock, error: lockError }] = await Promise.all([
         admin.from("rps_backup_runs")
-          .select("id,kind,status,captured_at,completed_at,retention_until,source_version,snapshot_hash,verified_file_count,verified_bytes,created_by,source_restore_id")
-          .eq("organization_id", organizationId).eq("ano", year).eq("mes", month)
-          .eq("status", "ready").gt("retention_until", now).order("captured_at", { ascending: false }).limit(80),
+          .select("id,ano,mes,kind,status,captured_at,completed_at,retention_until,source_version,snapshot_hash,verified_file_count,verified_bytes,created_by,source_restore_id")
+          .eq("organization_id", organizationId)
+          .eq("status", "ready").gt("retention_until", now).order("captured_at", { ascending: false }).limit(300),
         admin.from("rps_restore_operations")
-          .select("id,backup_run_id,safety_backup_run_id,status,phase,started_at,finished_at,initiated_by,files_replaced,bytes_replaced,error_message,rollback_error")
-          .eq("organization_id", organizationId).eq("ano", year).eq("mes", month)
-          .order("started_at", { ascending: false }).limit(20),
+          .select("id,ano,mes,backup_run_id,safety_backup_run_id,status,phase,started_at,finished_at,initiated_by,files_replaced,bytes_replaced,error_message,rollback_error")
+          .eq("organization_id", organizationId)
+          .order("started_at", { ascending: false }).limit(40),
         admin.from("rps_maintenance_locks").select("restore_id,locked_at,expires_at")
           .eq("organization_id", organizationId).eq("ano", year).eq("mes", month)
           .gt("expires_at", now).maybeSingle(),
