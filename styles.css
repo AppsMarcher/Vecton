@@ -8624,10 +8624,8 @@ body.rps-laser-mode .rps-attachment-carousel * {
 /* Rodapé do painel: "Conversa em grupo" saiu do cabeçalho pra cá. */
 .msn-rodape { padding: 10px 12px; flex: none; }
 .msn-rodape-btn {
+  position: relative;
   width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
   padding: 6px 12px;
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -8635,11 +8633,15 @@ body.rps-laser-mode .rps-attachment-carousel * {
   color: var(--text-soft);
   font-family: inherit;
   font-size: 0.74rem;
+  text-align: center;
   cursor: pointer;
 }
 .msn-rodape-btn:hover { color: var(--text); border-color: var(--blue); background: rgba(255, 255, 255, 0.05); }
 .msn-rodape-btn-icone {
-  flex: none;
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 26px;
   height: 26px;
   display: flex;
