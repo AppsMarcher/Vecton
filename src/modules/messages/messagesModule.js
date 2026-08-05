@@ -1304,25 +1304,26 @@
     }
 
     // Recebe uma URL já resolvida (assinada do Storage ou a do avatar) — quem
-    // chama decide se precisa assinar antes. `pathParaBaixar` só existe pra
-    // anexo real (a foto do avatar não ganha botão de baixar).
-    function mostrarFotoAmpliada(url, nome, pathParaBaixar = null) {
+    // chama decide se precisa assinar antes. Sem véu escurecendo a tela: o
+    // cartão (moldura branca + legenda) fica ancorado no canto superior
+    // esquerdo, como uma foto revelada sobre o fundo do app.
+    function mostrarFotoAmpliada(url, nome) {
       fecharFotoAmpliada();
       const overlay = document.createElement("div");
       overlay.className = "msn-foto-overlay";
       overlay.innerHTML = `
-        <div class="msn-foto-frame">
-          <button type="button" class="msn-foto-fechar" title="Fechar" aria-label="Fechar">✕</button>
-          <img src="${escapeHtml(url)}" alt="${escapeHtml(nome || "Foto")}">
+        <div class="msn-foto-card">
+          <div class="msn-foto-frame">
+            <button type="button" class="msn-foto-fechar" title="Fechar" aria-label="Fechar">✕</button>
+            <img src="${escapeHtml(url)}" alt="${escapeHtml(nome || "Foto")}">
+          </div>
           ${nome ? `<div class="msn-foto-nome">${escapeHtml(nome)}</div>` : ""}
-          ${pathParaBaixar ? `<button type="button" class="msn-foto-baixar" title="Baixar" aria-label="Baixar foto">⬇</button>` : ""}
         </div>`;
       document.body.appendChild(overlay);
       _zIndex += 1;
       overlay.style.zIndex = String(_zIndex + 200);
       overlay.addEventListener("click", (event) => { if (event.target === overlay) fecharFotoAmpliada(); });
       overlay.querySelector(".msn-foto-fechar").addEventListener("click", fecharFotoAmpliada);
-      overlay.querySelector(".msn-foto-baixar")?.addEventListener("click", () => void baixarAnexo(pathParaBaixar, nome));
       _fotoOverlay = overlay;
       document.addEventListener("keydown", aoTeclarNaFoto);
     }
@@ -1331,7 +1332,7 @@
     async function abrirFotoAmpliada(path, nome) {
       try {
         const url = await createStorageSignedUrl(BUCKET, path);
-        mostrarFotoAmpliada(url, nome, path);
+        mostrarFotoAmpliada(url, nome);
       } catch (error) {
         showToast(vpFriendlyError(error, "Falha ao abrir a foto."), "error");
       }
