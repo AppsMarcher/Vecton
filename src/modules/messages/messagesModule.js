@@ -89,6 +89,19 @@
       "✅", "❌", "⚠️", "💡", "📌", "🚀", "🏆", "☕", "🍻", "🌟"
     ];
 
+    // Mensagem composta só por emoji (até 3, como no Teams) ganha destaque
+    // grande no balão, sem fundo — texto misturado com emoji não conta.
+    const EMOJI_SEQ_RE = /\p{Extended_Pictographic}(?:\p{Emoji_Modifier}|️|‍\p{Extended_Pictographic})*️?/gu;
+    const MAX_EMOJI_GRANDE = 3;
+
+    function apenasEmojisGrandes(texto) {
+      const semEspacos = String(texto || "").replace(/\s+/g, "");
+      if (!semEspacos) return false;
+      const emojis = semEspacos.match(EMOJI_SEQ_RE) || [];
+      if (!emojis.length || emojis.length > MAX_EMOJI_GRANDE) return false;
+      return emojis.join("") === semEspacos;
+    }
+
     // thread_id -> { el, titulo, mensagens, aba, ultimoId, digitando }
     const _janelas = new Map();
 
@@ -773,11 +786,15 @@
     }
 
     // ── Janela de conversa ───────────────────────────────────────────────────
-    function janelaMarkup(titulo, contato = null) {
+    function janelaMarkup(titulo, contato = null, fotoUrl = null) {
+      const avatar = contato ? avatarMarkup(contato) : "";
+      const avatarBloco = fotoUrl
+        ? `<button type="button" class="msn-jan-avatar-btn" data-action="ver-foto" title="Ver foto" aria-label="Ver foto de ${escapeHtml(titulo || "")}">${avatar}</button>`
+        : avatar;
       return `
         <div class="msn-jan-head">
           <div class="msn-jan-identidade">
-            ${contato ? avatarMarkup(contato) : ""}
+            ${avatarBloco}
             <strong class="msn-jan-titulo" title="${escapeHtml(titulo || "Conversa")}">${escapeHtml(titulo || "Conversa")}</strong>
           </div>
           <div class="msn-jan-acoes">
@@ -822,7 +839,8 @@
       const tituloExibido = grupo
         ? `Grupo: ${grupo.titulo || titulo || "Participantes"}`
         : titulo;
-      el.innerHTML = janelaMarkup(tituloExibido, contato) + alcasRedimensionamentoMarkup();
+      const fotoUrl = (!grupo && contato && resolverFoto) ? resolverFoto(contato.foto_kind, contato.foto_value) : null;
+      el.innerHTML = janelaMarkup(tituloExibido, contato, fotoUrl) + alcasRedimensionamentoMarkup();
       document.body.appendChild(el);
       aplicarTemaEm(el);
 
@@ -836,7 +854,7 @@
       el.style.left = `${Math.max(12, direitaDoEspaco - larguraJanela - n * 26)}px`;
       el.style.top = `${Math.max(12, (painelRect?.top ?? 60) + n * 26)}px`;
 
-      const ctx = { el, threadId, titulo: tituloExibido, mensagens: [], mensagensOcultas: new Set(), aba: "conversa", pendentes: [], ultimoId: null, focada: true };
+      const ctx = { el, threadId, titulo: tituloExibido, fotoUrl, fotoNome: tituloExibido, mensagens: [], mensagensOcultas: new Set(), aba: "conversa", pendentes: [], ultimoId: null, focada: true };
       _janelas.set(threadId, ctx);
       frente(ctx);
       ligarJanela(ctx);
@@ -958,6 +976,7 @@
           menuEmoji.hidden = true;
           botaoEmoji?.setAttribute("aria-expanded", "false");
         }
+        if (acao === "ver-foto") { if (ctx.fotoUrl) mostrarFotoAmpliada(ctx.fotoUrl, ctx.fotoNome); return; }
         if (acao === "fechar") { fecharJanela(ctx); return; }
         if (acao === "enviar") { void enviar(ctx); return; }
         if (acao === "anexar") { el.querySelector(".msn-file").click(); return; }
@@ -980,8 +999,10 @@
           if (Number.isInteger(i)) { ctx.pendentes.splice(i, 1); pintarPendentes(ctx); }
           return;
         }
-        const anexo = event.target.closest("[data-path]");
-        if (anexo) { void baixarAnexo(anexo.dataset.path, anexo.dataset.nome); }
+        const anexoImg = event.target.closest(".msg-anexo-img[data-path]");
+        if (anexoImg) { void abrirFotoAmpliada(anexoImg.dataset.path, anexoImg.dataset.nome); return; }
+        const anexoArquivo = event.target.closest(".msg-anexo-file[data-path]");
+        if (anexoArquivo) { void baixarAnexo(anexoArquivo.dataset.path, anexoArquivo.dataset.nome); }
       });
 
       const input = el.querySelector(".msn-input");
@@ -1065,13 +1086,14 @@
           return `<div class="msn-nudge-aviso">${escapeHtml(m.autor)} ${escapeHtml(aviso)}</div>`;
         }
         const minha = m.autor_id === eu;
+        const somenteEmoji = Boolean(m.body) && !(m.anexos || []).length && apenasEmojisGrandes(m.body);
         return `
-          <div class="msg-bubble${minha ? " mine" : ""}" data-id="${escapeHtml(m.id)}">
+          <div class="msg-bubble${minha ? " mine" : ""}${somenteEmoji ? " emoji-only" : ""}" data-id="${escapeHtml(m.id)}">
             <div class="msg-bubble-head">
               <strong>${escapeHtml(m.autor || "")}</strong>
               <button type="button" class="msg-del" data-action="excluir-msg" data-id="${escapeHtml(m.id)}" data-minha="${minha ? "1" : "0"}" title="Excluir">✕</button>
             </div>
-            ${m.body ? `<p>${escapeHtml(m.body)}</p>` : ""}
+            ${m.body ? `<p class="${somenteEmoji ? "msg-emoji-grande" : ""}">${escapeHtml(m.body)}</p>` : ""}
             ${anexosMarkup(m.anexos)}
             <div class="msg-bubble-foot"><span>${escapeHtml(formatHora(m.created_at))}</span>${minha ? tiquesMarkup(m.status) : ""}</div>
           </div>`;
@@ -1262,6 +1284,53 @@
         await carregarContatos();
       } catch (error) {
         showToast(vpFriendlyError(error, "Falha ao sair da conversa."), "error");
+      }
+    }
+
+    // ── Foto ampliada (anexo de imagem ou avatar do contato no cabeçalho) ──────
+    let _fotoOverlay = null;
+
+    function aoTeclarNaFoto(event) {
+      if (event.key === "Escape") fecharFotoAmpliada();
+    }
+
+    function fecharFotoAmpliada() {
+      _fotoOverlay?.remove();
+      _fotoOverlay = null;
+      document.removeEventListener("keydown", aoTeclarNaFoto);
+    }
+
+    // Recebe uma URL já resolvida (assinada do Storage ou a do avatar) — quem
+    // chama decide se precisa assinar antes. `pathParaBaixar` só existe pra
+    // anexo real (a foto do avatar não ganha botão de baixar).
+    function mostrarFotoAmpliada(url, nome, pathParaBaixar = null) {
+      fecharFotoAmpliada();
+      const overlay = document.createElement("div");
+      overlay.className = "msn-foto-overlay";
+      overlay.innerHTML = `
+        <div class="msn-foto-frame">
+          <button type="button" class="msn-foto-fechar" title="Fechar" aria-label="Fechar">✕</button>
+          <img src="${escapeHtml(url)}" alt="${escapeHtml(nome || "Foto")}">
+          ${nome ? `<div class="msn-foto-nome">${escapeHtml(nome)}</div>` : ""}
+          ${pathParaBaixar ? `<button type="button" class="msn-foto-baixar" title="Baixar" aria-label="Baixar foto">⬇</button>` : ""}
+        </div>`;
+      document.body.appendChild(overlay);
+      _zIndex += 1;
+      overlay.style.zIndex = String(_zIndex + 200);
+      overlay.addEventListener("click", (event) => { if (event.target === overlay) fecharFotoAmpliada(); });
+      overlay.querySelector(".msn-foto-fechar").addEventListener("click", fecharFotoAmpliada);
+      overlay.querySelector(".msn-foto-baixar")?.addEventListener("click", () => void baixarAnexo(pathParaBaixar, nome));
+      _fotoOverlay = overlay;
+      document.addEventListener("keydown", aoTeclarNaFoto);
+    }
+
+    // Anexo de imagem: assina a URL do original (não a miniatura) antes de exibir.
+    async function abrirFotoAmpliada(path, nome) {
+      try {
+        const url = await createStorageSignedUrl(BUCKET, path);
+        mostrarFotoAmpliada(url, nome, path);
+      } catch (error) {
+        showToast(vpFriendlyError(error, "Falha ao abrir a foto."), "error");
       }
     }
 

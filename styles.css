@@ -27,6 +27,18 @@
   box-sizing: border-box;
 }
 
+/* Scroll bar embutida do app, em vez da padrão do navegador — aplicada
+   globalmente (qualquer elemento com overflow herda este visual); seletores
+   mais específicos (ex: .msn-lista) continuam podendo sobrescrever cor/largura. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.55); border-radius: 999px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
+
 .icon-sprite {
   position: absolute;
 }
@@ -8481,7 +8493,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .msn-head-menu .msn-icon-btn { font-size: 1rem; }
 .msn-head-logo {
   display: block;
-  width: 145px;
+  width: 130px; /* ~10% menor que os 145px originais */
   max-width: 100%;
   height: auto;
   object-fit: contain;
@@ -9106,6 +9118,105 @@ body.rps-laser-mode .rps-attachment-carousel * {
   stroke-linejoin: round;
 }
 .msg-tick.lido { stroke: var(--pos); }
+
+/* Visualizador de foto ampliada (anexo de imagem ou foto do contato no
+   cabeçalho da conversa) — moldura preta padrão do app, mesma linguagem dos
+   overlays de modal (fundo escuro + blur + card com borda/sombra). */
+.msn-foto-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  cursor: zoom-out;
+}
+.msn-foto-frame {
+  position: relative;
+  max-width: min(90vw, 900px);
+  max-height: 88vh;
+  padding: 14px;
+  background: #000;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  cursor: default;
+}
+.msn-foto-frame img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(88vh - 28px);
+  border-radius: 6px;
+  object-fit: contain;
+}
+.msn-foto-nome {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-soft);
+}
+.msn-foto-fechar {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.msn-foto-fechar:hover { background: var(--panel-hover); }
+.msn-foto-baixar {
+  position: absolute;
+  bottom: -14px;
+  right: -14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.msn-foto-baixar:hover { background: var(--panel-hover); }
+
+/* Botão do avatar no cabeçalho da janela: só existe quando o contato tem foto
+   real (resolverFoto retornou url); clicar amplia com o mesmo visualizador. */
+.msn-jan-avatar-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 10px;
+  line-height: 0;
+  transition: filter 0.12s;
+}
+.msn-jan-avatar-btn:hover { filter: brightness(1.15); }
+
+/* Mensagem só com emoji: cresce como no Teams, sem balão nem fundo. */
+.msg-bubble.emoji-only {
+  background: transparent;
+  border-color: transparent;
+  padding: 2px 4px;
+}
+.msg-bubble.emoji-only .msg-bubble-head strong { font-size: 0.64rem; color: var(--text-faint); }
+.msg-emoji-grande { font-size: 2.6rem; line-height: 1.15; margin: 2px 0 !important; }
 
 /* Botão de excluir: discreto, aparece ao passar o mouse na própria bolha. */
 .msg-del {
