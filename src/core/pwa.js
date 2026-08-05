@@ -3,6 +3,41 @@
 
   let installPrompt = null;
 
+  // ── Popover "Nova versão disponível" ──────────────────────────────────────
+  // Mesmo padrão do ExiladosApp: o SW novo fica em "waiting" (sw.js não dá
+  // mais skipWaiting() sozinho) até a pessoa clicar em Atualizar aqui.
+  let refreshing = false;
+  let bannerMostrado = false;
+
+  function mostrarBannerAtualizacao(registration) {
+    if (bannerMostrado || !registration?.waiting) return;
+    bannerMostrado = true;
+
+    const el = document.createElement("div");
+    el.className = "vp-update-banner";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
+    el.innerHTML = `
+      <span>Nova versão disponível.</span>
+      <button type="button">Atualizar</button>
+    `;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+
+    el.querySelector("button").addEventListener("click", () => {
+      const botao = el.querySelector("button");
+      botao.disabled = true;
+      botao.textContent = "Atualizando...";
+      registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+    });
+  }
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+
   function installButton() {
     return document.querySelector("#pwa-install-trigger");
   }
@@ -50,6 +85,25 @@
     // navegador só percebe que o sw.js mudou depois de até 10min, e até lá
     // continua rodando a versão antiga da Service Worker (deploy "sem efeito").
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((registration) => {
+      // Um SW já em "waiting" nesta primeira checagem (ex: aba ficou aberta
+      // desde antes do deploy) também dispara o popover, não só o evento
+      // "updatefound" de uma checagem futura.
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        mostrarBannerAtualizacao(registration);
+      }
+
+      registration.addEventListener("updatefound", () => {
+        const novoWorker = registration.installing;
+        if (!novoWorker) return;
+        novoWorker.addEventListener("statechange", () => {
+          // "installed" + já existir um controller = atualização (não a
+          // primeira instalação, que não tem ninguém pra avisar ainda).
+          if (novoWorker.state === "installed" && navigator.serviceWorker.controller) {
+            mostrarBannerAtualizacao(registration);
+          }
+        });
+      });
+
       registration.update().catch(() => {});
     }).catch((error) => {
       console.debug("PWA: service worker indisponível", error);

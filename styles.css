@@ -6202,6 +6202,47 @@ table th,
 .vp-toast-success { border-left-color: #22c55e; }
 .vp-toast-error { border-left-color: #ef4444; }
 
+/* Popover "Nova versão disponível" — persiste até a pessoa clicar em
+   Atualizar (não some sozinho como o toast). */
+.vp-update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 9800;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(92vw, 420px);
+  padding: 12px 12px 12px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  opacity: 0;
+  transform: translate(-50%, 18px);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.vp-update-banner.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.vp-update-banner button {
+  flex: none;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 14px;
+  background: var(--blue);
+  color: #fff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.vp-update-banner button:hover { background: var(--blue-strong); }
+.vp-update-banner button:disabled { opacity: 0.65; cursor: wait; }
+
 /* Modal de convite de usuário */
 .users-invite-overlay {
   position: fixed; inset: 0; z-index: 9600;

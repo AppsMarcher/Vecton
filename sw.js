@@ -1,10 +1,10 @@
 const CACHE_PREFIX = "vecton-static-";
-const CACHE_NAME = `${CACHE_PREFIX}20260804ae`;
+const CACHE_NAME = `${CACHE_PREFIX}20260805a`;
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./styles.css?v=20260804z7",
+  "./styles.css?v=20260805f",
   "./fav-icon.png",
   "./assets/msn-message.mp3?v=20260804b",
   "./assets/icq.mp3?v=20260804a",
@@ -15,7 +15,15 @@ const APP_SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
-  self.skipWaiting();
+  // Sem skipWaiting() automático: um SW novo instala e fica em "waiting" até
+  // o usuário confirmar no popover "Nova versão disponível" (pwa.js manda a
+  // mensagem abaixo) — evita trocar o app debaixo da pessoa no meio do uso.
+  // Na PRIMEIRA instalação (sem controller ainda) o navegador ativa sozinho,
+  // sem precisar disso.
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
