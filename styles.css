@@ -6881,8 +6881,9 @@ table th,
 }
 
 .rps-backup-item {
+  position: relative;
   width: 100%;
-  padding: 11px 12px;
+  padding: 11px 40px 11px 12px;
   display: grid;
   gap: 4px;
   border: 1px solid transparent;
@@ -6899,6 +6900,32 @@ table th,
   border-color: rgba(79,124,255,.5);
   background: rgba(79,124,255,.12);
 }
+
+/* Lixeira: some por padrão, aparece no hover/foco da linha (mesmo padrão do
+   .msg-del do Messenger) — não compete visualmente com o resto do card. */
+.rps-backup-item-delete {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-alt);
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s, color 0.12s, border-color 0.12s;
+}
+.rps-backup-item:hover .rps-backup-item-delete,
+.rps-backup-item:focus-within .rps-backup-item-delete { opacity: 1; }
+.rps-backup-item-delete:hover { border-color: var(--red); color: var(--red); background: rgba(239, 68, 68, 0.12); }
+.rps-backup-item-delete:disabled { opacity: 0.35 !important; cursor: wait; }
 
 .rps-backup-item small,
 .rps-restore-history-row small { color: var(--text-soft); font-size: .66rem; }

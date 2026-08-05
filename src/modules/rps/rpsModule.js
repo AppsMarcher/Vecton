@@ -592,6 +592,30 @@
       }
     }
 
+    async function deleteBackupRun(id) {
+      if (!canManageBackups() || state.backupManager.working) return;
+      const item = state.backupManager.backups.find((b) => b.id === id);
+      if (!item) return;
+      const confirmed = await appConfirm(
+        `Excluir o backup de ${formatBackupDate(item.captured_at)} (${backupPeriodLabel(item.ano, item.mes)})? Os arquivos e o snapshot são apagados definitivamente — isso não pode ser desfeito.`,
+        "danger"
+      );
+      if (!confirmed) return;
+      state.backupManager.working = true;
+      state.backupManager.error = "";
+      renderShell();
+      try {
+        await callBackupManager("delete", { backup_run_id: id });
+        if (state.backupManager.selectedId === id) state.backupManager.selectedId = "";
+        await loadBackupManager();
+      } catch (error) {
+        state.backupManager.error = error?.message || "Falha ao excluir backup.";
+      } finally {
+        state.backupManager.working = false;
+        renderShell();
+      }
+    }
+
     function backupPeriodLabel(ano, mes) {
       const monthLabel = MONTHS[Number(mes) - 1] || "—";
       return `${monthLabel.slice(0, 3)}/${ano}`;
@@ -602,11 +626,12 @@
       const manager = state.backupManager;
       const selected = manager.backups.find((item) => item.id === manager.selectedId) || null;
       const backups = manager.backups.length
-        ? manager.backups.map((item) => `<button type="button" class="rps-backup-item ${item.id === manager.selectedId ? "is-selected" : ""}" data-rps-backup-select="${escapeHtml(item.id)}">
+        ? manager.backups.map((item) => `<div class="rps-backup-item ${item.id === manager.selectedId ? "is-selected" : ""}" data-rps-backup-select="${escapeHtml(item.id)}" role="button" tabindex="0">
             <span class="rps-backup-item-head"><span class="rps-backup-kind">${escapeHtml(backupKindLabel(item.kind))}</span><span class="rps-backup-period">${escapeHtml(backupPeriodLabel(item.ano, item.mes))}</span></span>
             <strong>${escapeHtml(formatBackupDate(item.captured_at))}</strong>
             <small>${Number(item.verified_file_count || 0)} arquivo(s) · ${escapeHtml(formatBackupBytes(item.verified_bytes))}</small>
-          </button>`).join("")
+            <button type="button" class="rps-backup-item-delete" data-rps-backup-delete="${escapeHtml(item.id)}" title="Excluir backup" aria-label="Excluir backup de ${escapeHtml(formatBackupDate(item.captured_at))}" ${manager.working ? "disabled" : ""}>🗑</button>
+          </div>`).join("")
         : `<div class="rps-backup-empty">Nenhum backup íntegro disponível.</div>`;
       const restores = manager.restores.length
         ? manager.restores.slice(0, 10).map((item) => `<div class="rps-restore-history-row" data-status="${escapeHtml(item.status)}">
@@ -1514,6 +1539,11 @@
       document.addEventListener("pointerout", (event) => { if (!event.relatedTarget) hideLaserPointer(); });
 
       root.addEventListener("click", async (event) => {
+        const backupDelete = event.target.closest("[data-rps-backup-delete]");
+        if (backupDelete && canManageBackups()) {
+          await deleteBackupRun(backupDelete.dataset.rpsBackupDelete);
+          return;
+        }
         const backupSelection = event.target.closest("[data-rps-backup-select]");
         if (backupSelection && canManageBackups()) {
           state.backupManager.selectedId = backupSelection.dataset.rpsBackupSelect;

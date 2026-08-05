@@ -394,6 +394,37 @@ Deno.serve(async request => {
       return json(request, { ok: true, ...result });
     }
 
+    if (action === "delete") {
+      const backupRunId = String(body.backup_run_id || "");
+      if (!backupRunId) return json(request, { error: "Selecione um backup para excluir." }, 400);
+
+      const { data: run, error: runError } = await admin.from("rps_backup_runs")
+        .select("id,organization_id,status,storage_prefix").eq("id", backupRunId).maybeSingle();
+      if (runError) throw new Error(runError.message);
+      if (!run || run.organization_id !== organizationId) return json(request, { error: "Backup não encontrado." }, 404);
+      if (run.status !== "ready") return json(request, { error: "Este backup não está mais disponível." }, 409);
+
+      // Mesma faxina do expurgo automático (cleanupExpiredBackups): apaga os
+      // arquivos e o manifesto, mas mantém a LINHA do run como registro
+      // histórico (status "expired" — não existe status "deleted" na tabela,
+      // e reaproveitar o mesmo é semanticamente igual: "não pode mais ser
+      // restaurado"). Preserva a auditoria de restaurações que referenciam
+      // esse run_id (safety_backup_run_id / backup_run_id).
+      const deletedFiles = await removePrefix(admin, BACKUP_BUCKET, run.storage_prefix);
+      const { error: filesError } = await admin.from("rps_backup_files").delete().eq("run_id", run.id);
+      if (filesError) throw new Error(`Falha ao limpar manifesto: ${filesError.message}`);
+      const { error: snapshotError } = await admin.from("rps_backup_snapshots").delete().eq("run_id", run.id);
+      if (snapshotError) throw new Error(`Falha ao limpar snapshot: ${snapshotError.message}`);
+      const { error: expireError } = await admin.from("rps_backup_runs").update({
+        status: "expired",
+        error_message: null,
+        metadata: { deleted_at: new Date().toISOString(), deleted_by: user.id },
+      }).eq("id", run.id);
+      if (expireError) throw new Error(`Falha ao marcar backup como excluído: ${expireError.message}`);
+
+      return json(request, { ok: true, deletedFiles });
+    }
+
     if (action !== "restore") return json(request, { error: "Ação não suportada." }, 400);
     const backupRunId = String(body.backup_run_id || "");
     if (!backupRunId) return json(request, { error: "Selecione um backup." }, 400);
