@@ -635,6 +635,7 @@ const { loadAndRenderUsers, bindUsersInviteButton } = createUsersModule({
   requestPasswordRecovery,
   callEdgeFunction,
   showToast,
+  appConfirm,
   isSuperAdmin,
   isAdmin,
   getUserManagement,

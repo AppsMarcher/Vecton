@@ -10,6 +10,7 @@
       requestPasswordRecovery,
       callEdgeFunction,
       showToast,
+      appConfirm,
       isSuperAdmin,
       isAdmin,
       getUserManagement,
@@ -614,7 +615,8 @@
     }
 
     async function handleDelete(user) {
-      if (!confirm(`Excluir ${user.full_name || user.email}? Esta ação não pode ser desfeita.`)) return;
+      const ok = await appConfirm(`Excluir ${escapeHtml(user.full_name || user.email)}? Esta ação não pode ser desfeita.`, "danger");
+      if (!ok) return;
       try {
         const orgId = await resolveOrganizationId();
         await deleteSupabaseRows(
@@ -624,7 +626,7 @@
         await loadAndRenderUsers();
       } catch (err) {
         console.error(err);
-        alert("Erro ao excluir usuário.");
+        showToast("Erro ao excluir usuário.", "error");
       }
     }
 
