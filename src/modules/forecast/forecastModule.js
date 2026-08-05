@@ -248,6 +248,8 @@
       if (!container) return;
       if (isCreating) {
         renderNewForm(container);
+      } else if (selectedId === "budget") {
+        renderBudgetDetail(container);
       } else if (selectedId) {
         const sc = (scenarios || []).find(s => s.id === selectedId);
         renderDetail(container, sc);
@@ -289,6 +291,7 @@
 
       const budgetCard = `
         <button class="reports-report-card fc-scenario-card fc-budget-card" type="button"
+          data-scenario-id="budget"
           style="border-top-color:#64748b;--fc-accent:#64748b">
           <div class="rrc-top">
             <span class="rrc-icon-wrap" style="background:${hexToRgba("#64748b", 0.12)};border-color:${hexToRgba("#64748b", 0.25)};color:#94a3b8">
@@ -357,7 +360,13 @@
         }
         const card = e.target.closest("[data-scenario-id]");
         if (!card) return;
-        selectedId = card.dataset.scenarioId;
+        const id = card.dataset.scenarioId;
+        if (id === "budget") {
+          selectedId = "budget";
+          renderBudgetDetail(container);
+          return;
+        }
+        selectedId = id;
         renderDetail(container, (scenarios || []).find(s => s.id === selectedId));
       });
     }
@@ -673,6 +682,56 @@
       setTimeout(() => {
         document.addEventListener("click", (ev) => { if (!pop.contains(ev.target)) pop.remove(); }, { once: true });
       }, 0);
+    }
+
+    // Card fixo "Budget" (sem linha em forecast_scenarios) — mesmo padrão
+    // visual do detalhe de um cenário real, mas com DRE Societário puxando os
+    // dados do orçamento oficial em vez de um scenario_id (openScenarioDreReport
+    // já trata scenarioId vazio como fonte "budget").
+    function renderBudgetDetail(container) {
+      const year = Number(state.currentPeriod?.year || 2026);
+
+      container.innerHTML = `
+        <div class="reports-layout">
+          <div class="reports-catalog-card">
+            <div class="fc-detail-header">
+              <button class="fc-back-btn" id="fc-detail-back" type="button">← Cenários</button>
+              <div class="fc-detail-title-row">
+                <span class="fc-detail-icon" style="background:#64748b;color:#fff">${iconSvg("vp-icon-briefcase")}</span>
+                <div>
+                  <h2 class="fc-detail-name">Budget</h2>
+                  <span class="fc-detail-meta">Orçamento oficial · ${year}</span>
+                </div>
+              </div>
+            </div>
+            <div class="reports-card-grid">
+              <button class="reports-report-card fc-scenario-card" type="button" data-fc-report="dreSoc" style="border-top-color:#4f7cff">
+                <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(79,124,255,0.12);border-color:rgba(79,124,255,0.22);color:#4f7cff"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg></span></div>
+                <strong>DRE Societário</strong>
+                <span class="rrc-subtitle">Budget</span>
+              </button>
+              <div class="reports-report-card reports-report-card--soon">
+                <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-reports"></use></svg></span></div>
+                <strong>Balanço Patrimonial</strong>
+                <span class="rrc-subtitle">Em breve</span>
+              </div>
+              <div class="reports-report-card reports-report-card--soon">
+                <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-trend-up"></use></svg></span></div>
+                <strong>Fluxo de Caixa</strong>
+                <span class="rrc-subtitle">Em breve</span>
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+      container.querySelector("#fc-detail-back").addEventListener("click", () => {
+        selectedId = null;
+        renderGrid(container);
+      });
+
+      container.querySelector('[data-fc-report="dreSoc"]')?.addEventListener("click", () => {
+        if (typeof openScenarioDreReport === "function") openScenarioDreReport(null);
+      });
     }
 
     function renderDetail(container, scenario) {
