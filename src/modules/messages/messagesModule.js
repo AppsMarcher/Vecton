@@ -368,7 +368,10 @@
           ${!lista.length ? `<div class="msn-vazio">Nenhum contato encontrado.</div>` : ""}
         </div>
         <div class="msn-rodape">
-          <button type="button" class="msn-rodape-btn" data-action="novo-grupo">Conversa em grupo</button>
+          <button type="button" class="msn-rodape-btn" data-action="novo-grupo">
+            <span class="msn-rodape-btn-icone" aria-hidden="true">+</span>
+            <span>Conversa em grupo</span>
+          </button>
         </div>
       `;
     }

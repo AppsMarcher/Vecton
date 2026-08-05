@@ -8480,7 +8480,6 @@ body.rps-laser-mode .rps-attachment-carousel * {
   justify-content: center;
   min-height: 54px;
   padding: 5px 44px;
-  border-bottom: 1px solid var(--line);
   flex: none;
 }
 .msn-painel .msn-head { cursor: move; }
@@ -8493,7 +8492,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .msn-head-menu .msn-icon-btn { font-size: 1rem; }
 .msn-head-logo {
   display: block;
-  width: 130px; /* ~10% menor que os 145px originais */
+  width: 117px; /* ~10% menor que os 130px anteriores (145px original) */
   max-width: 100%;
   height: auto;
   object-fit: contain;
@@ -8623,10 +8622,13 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .msn-contato.off .msn-contato-copy strong { color: var(--text-soft); }
 
 /* Rodapé do painel: "Conversa em grupo" saiu do cabeçalho pra cá. */
-.msn-rodape { padding: 10px 12px; border-top: 1px solid var(--line); flex: none; }
+.msn-rodape { padding: 10px 12px; flex: none; }
 .msn-rodape-btn {
   width: 100%;
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: transparent;
@@ -8636,6 +8638,20 @@ body.rps-laser-mode .rps-attachment-carousel * {
   cursor: pointer;
 }
 .msn-rodape-btn:hover { color: var(--text); border-color: var(--blue); background: rgba(255, 255, 255, 0.05); }
+.msn-rodape-btn-icone {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-soft);
+}
+.msn-rodape-btn:hover .msn-rodape-btn-icone { border-color: var(--blue); color: var(--text); }
 .msn-badge {
   flex: none;
   min-width: 18px;
