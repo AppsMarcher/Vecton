@@ -19,7 +19,7 @@
 // Pré-requisito (secrets, configurar uma vez):
 //   supabase secrets set BROWSERLESS_API_TOKEN=xxxxxxxxx
 //   supabase secrets set RESEND_API_KEY=re_xxxxxxxxx
-//   supabase secrets set RESEND_FROM="Marcher Brasil <no-reply@marcher.com.br>"
+//   supabase secrets set RESEND_FROM="VectonPlan <no-reply@marcher.com.br>"
 //   (RESEND_FROM só funciona com domínio VERIFICADO no Resend -- já está ok
 //   pra marcher.com.br. BROWSERLESS_API_TOKEN vem do dashboard de conta em
 //   browserless.io, tem free tier limitado -- verificar necessidade de plano

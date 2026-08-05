@@ -14,7 +14,7 @@
 //
 // Pré-requisitos (secrets, os mesmos que send-report-email já usa):
 //   supabase secrets set RESEND_API_KEY=re_xxxxxxxxx
-//   supabase secrets set RESEND_FROM="Marcher Brasil <no-reply@marcher.com.br>"
+//   supabase secrets set RESEND_FROM="VectonPlan <no-reply@marcher.com.br>"
 //
 // Deploy:
 //   supabase functions deploy send-notification-emails --no-verify-jwt
