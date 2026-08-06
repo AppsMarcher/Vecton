@@ -5789,15 +5789,22 @@ body.auth-only .content-view {
   margin-left: 3px;
 }
 
-/* Tabela de Produtos: larguras fixas via <colgroup> (Código/Tipo/Nome
-   reduzido/Cultura/Ações em px, Descrição sem width = fica com o espaço
-   restante). table-layout:auto (regra acima) deixava o navegador decidir
-   a largura de cada coluna pelo conteúdo, sobrando um vão vazio depois de
+/* Tabela de Produtos: larguras fixas via <colgroup> (Código/Descrição/Tipo/
+   Cultura/Ações em px; Nome reduzido sem width = fica com o espaço que
+   sobra). table-layout:auto (regra acima) deixava o navegador decidir a
+   largura de cada coluna pelo conteúdo, sobrando um vão vazio depois de
    Código e de Descrição em vez de repassar esse espaço pra Nome reduzido —
-   fixed com colgroup dá controle exato e garante que Nome reduzido nunca
-   quebre em 2 linhas. */
+   fixed com colgroup dá controle exato. Descrição tem largura própria
+   (menor que o texto de itens longos) de propósito — pode quebrar em 2+
+   linhas, é aceitável; Nome reduzido nunca quebra (nowrap abaixo), herdando
+   todo o espaço liberado por Descrição ser mais estreita.
+   Fonte do corpo reduzida pro mesmo tamanho do cabeçalho da tabela
+   (.data-table th é 0.64rem — ver acima). */
 #comProdutos-view .cadastro-table {
   table-layout: fixed;
+}
+#comProdutos-view .cadastro-table td {
+  font-size: 0.64rem;
 }
 #comProdutos-view .cadastro-table th:nth-child(4),
 #comProdutos-view .cadastro-table td:nth-child(4) {
