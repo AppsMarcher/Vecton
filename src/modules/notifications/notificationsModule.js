@@ -46,8 +46,13 @@
       budget_batch_applied: "vp-icon-upload",
       headcount_batch_applied: "vp-icon-users",
       comercial_realizado_batch_applied: "vp-icon-briefcase",
-      comercial_planejado_batch_applied: "vp-icon-target"
+      comercial_planejado_batch_applied: "vp-icon-target",
+      rps_gestao_reminder: "vp-icon-activity"
     };
+
+    // 0=domingo..6=sábado — mesma convenção do extract(dow) do Postgres,
+    // usada direto em schedule_weekday (ver migration 110). Sem tradução.
+    const WEEKDAY_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
     function iconFor(kind) {
       return KIND_ICONS[kind] || "vp-icon-bell";
@@ -404,14 +409,41 @@
       return `${list.length} destinatários`;
     }
 
+    // Valor default de cada campo quando a org ainda não tem linha em
+    // notification_settings pra esse kind (org nova, ou tipo recém-criado
+    // antes do primeiro fetch semear a linha).
+    const DEFAULT_CFG = { in_app: true, email: false, email_recipients: [], is_active: true, schedule_weekday: null, schedule_time: null };
+
+    function scheduleRowMarkup(cfg) {
+      const weekdayOptions = WEEKDAY_LABELS
+        .map((label, idx) => `<option value="${idx}"${cfg.schedule_weekday === idx ? " selected" : ""}>${escapeHtml(label)}</option>`)
+        .join("");
+      const timeValue = cfg.schedule_time ? escapeHtml(String(cfg.schedule_time).slice(0, 5)) : "";
+      return `
+        <div class="notif-sched-row">
+          <label>Dia da semana
+            <select data-field="schedule_weekday" aria-label="Dia da semana">
+              <option value="">Selecione</option>
+              ${weekdayOptions}
+            </select>
+          </label>
+          <label>Horário
+            <input type="time" data-field="schedule_time" value="${timeValue}" aria-label="Horário">
+          </label>
+        </div>
+      `;
+    }
+
     function settingsRowMarkup(type) {
-      const cfg = _settings.get(type.kind) || { in_app: true, email: false, email_recipients: [] };
+      const cfg = { ...DEFAULT_CFG, ..._settings.get(type.kind) };
       const list = Array.isArray(cfg.email_recipients) ? cfg.email_recipients : [];
+      const isScheduled = type.trigger_mode === "scheduled";
       return `
         <tr data-kind="${escapeHtml(type.kind)}">
           <td>
             <strong class="notif-cfg-label">${escapeHtml(type.label)}</strong>
             <span class="notif-cfg-desc">${escapeHtml(type.description || "")}</span>
+            ${isScheduled ? scheduleRowMarkup(cfg) : ""}
           </td>
           <td class="notif-cfg-flag">
             <input type="checkbox" data-field="in_app"${cfg.in_app ? " checked" : ""} aria-label="Sininho">
@@ -425,6 +457,9 @@
               <span class="notif-rcpt-label">${escapeHtml(recipientsLabel(list))}</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
             </button>
+          </td>
+          <td class="notif-cfg-flag">
+            <input type="checkbox" data-field="is_active"${cfg.is_active !== false ? " checked" : ""} aria-label="Ativo">
           </td>
         </tr>
       `;
@@ -566,7 +601,7 @@
       const body = document.querySelector("#notif-config-body");
       if (!body) return;
       if (!_types.length) {
-        body.innerHTML = `<tr><td colspan="4" class="users-empty">Nenhum tipo de evento cadastrado. Rode a migration 092.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="5" class="users-empty">Nenhum tipo de evento cadastrado. Rode a migration 092.</td></tr>`;
         return;
       }
       body.innerHTML = _types.map(settingsRowMarkup).join("");
@@ -575,7 +610,7 @@
     async function loadAndRenderSettings() {
       const body = document.querySelector("#notif-config-body");
       if (!body) return;
-      body.innerHTML = `<tr><td colspan="4" class="users-empty">Carregando...</td></tr>`;
+      body.innerHTML = `<tr><td colspan="5" class="users-empty">Carregando...</td></tr>`;
       try {
         const orgId = await resolveOrganizationId();
         const [types, settings, users] = await Promise.all([
@@ -593,7 +628,7 @@
         paintSettings();
       } catch (error) {
         console.error(error);
-        body.innerHTML = `<tr><td colspan="4" class="users-empty">${escapeHtml(vpFriendlyError(error, "Falha ao carregar as notificações."))}</td></tr>`;
+        body.innerHTML = `<tr><td colspan="5" class="users-empty">${escapeHtml(vpFriendlyError(error, "Falha ao carregar as notificações."))}</td></tr>`;
       }
     }
 
@@ -601,13 +636,16 @@
 
     async function persistRow(kind, patch) {
       const orgId = await resolveOrganizationId();
-      const current = _settings.get(kind) || { in_app: true, email: false, email_recipients: [] };
+      const current = { ...DEFAULT_CFG, ..._settings.get(kind) };
       const merged = {
         organization_id: orgId,
         kind,
         in_app: patch.in_app !== undefined ? patch.in_app : current.in_app,
         email: patch.email !== undefined ? patch.email : current.email,
         email_recipients: patch.email_recipients !== undefined ? patch.email_recipients : (current.email_recipients || []),
+        is_active: patch.is_active !== undefined ? patch.is_active : current.is_active,
+        schedule_weekday: patch.schedule_weekday !== undefined ? patch.schedule_weekday : current.schedule_weekday,
+        schedule_time: patch.schedule_time !== undefined ? patch.schedule_time : current.schedule_time,
         updated_at: new Date().toISOString(),
         updated_by: getCurrentUserId()
       };
@@ -616,6 +654,16 @@
       // INSERT proposto passa — que é o que quebra em upsert parcial.
       await upsertSupabaseRows("notification_settings", [merged], ["organization_id", "kind"]);
       _settings.set(kind, merged);
+    }
+
+    const CHECKBOX_FIELDS = ["in_app", "email", "is_active"];
+    const SCHEDULE_FIELDS = ["schedule_weekday", "schedule_time"];
+
+    // Valor atual (já salvo) de um campo — usado pra restaurar a tela se o
+    // upsert falhar, sem precisar repintar a linha inteira.
+    function currentFieldValue(kind, field) {
+      const cfg = { ...DEFAULT_CFG, ..._settings.get(kind) };
+      return cfg[field];
     }
 
     function bindSettings() {
@@ -629,7 +677,9 @@
         if (!row || !isAdmin()) return;
         const kind = row.dataset.kind;
         const field = input.dataset.field;
-        if (field !== "in_app" && field !== "email") return;
+        const isCheckbox = CHECKBOX_FIELDS.includes(field);
+        const isSchedule = SCHEDULE_FIELDS.includes(field);
+        if (!isCheckbox && !isSchedule) return;
 
         const rcptTrigger = row.querySelector(".notif-rcpt-trigger");
         if (field === "email" && rcptTrigger) {
@@ -638,13 +688,26 @@
           if (!input.checked && _picker && _picker.trigger === rcptTrigger) closePicker();
         }
 
+        const value = isCheckbox
+          ? input.checked
+          : field === "schedule_weekday"
+            ? (input.value === "" ? null : Number(input.value))
+            : (input.value || null); // schedule_time: "" -> null
+
         try {
-          await persistRow(kind, { [field]: input.checked });
+          await persistRow(kind, { [field]: value });
           showToast("Notificações atualizadas.");
         } catch (error) {
           console.error(error);
-          input.checked = !input.checked;
-          if (field === "email" && rcptTrigger) rcptTrigger.disabled = !input.checked;
+          const previous = currentFieldValue(kind, field);
+          if (isCheckbox) {
+            input.checked = !!previous;
+            if (field === "email" && rcptTrigger) rcptTrigger.disabled = !input.checked;
+          } else {
+            input.value = previous === null || previous === undefined
+              ? ""
+              : (field === "schedule_time" ? String(previous).slice(0, 5) : String(previous));
+          }
           showToast(vpFriendlyError(error, "Falha ao salvar a configuração."), "error");
         }
       });

@@ -8501,6 +8501,29 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .notif-config-table td.notif-cfg-flag input { accent-color: var(--blue); cursor: pointer; }
 .notif-cfg-label { display: block; font-size: 0.78rem; }
 .notif-cfg-desc { display: block; font-size: 0.68rem; color: var(--text-faint); margin-top: 2px; }
+/* Seletor de dia/horário embutido — só na linha do tipo "agendado" (Lembrete
+   RPS de Gestão); as outras linhas (por evento) não têm essa célula extra. */
+.notif-sched-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.notif-sched-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.65rem;
+  color: var(--text-faint);
+}
+.notif-sched-row select,
+.notif-sched-row input[type="time"] {
+  padding: 5px 7px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.72rem;
+  outline: none;
+}
+.notif-sched-row select:focus,
+.notif-sched-row input[type="time"]:focus { border-color: var(--blue); }
 /* Botões do cabeçalho das notificações + alternância lida/não lida por item */
 .notif-head-acoes { display: flex; gap: 14px; }
 .notif-toggle {
