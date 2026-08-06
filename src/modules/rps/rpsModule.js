@@ -804,6 +804,36 @@
       document.querySelector(".rps-laser-pointer")?.remove();
     }
 
+    async function enterFullscreen() {
+      try {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (error) {
+        console.error("Não foi possível entrar em tela cheia", error);
+      }
+    }
+
+    async function exitFullscreen() {
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      } catch (error) {
+        console.error("Não foi possível sair da tela cheia", error);
+      }
+    }
+
+    function handleFullscreenChange() {
+      if (!document.fullscreenElement && state.presentation) {
+        state.presentation = false;
+        state.presentationZoom = 0;
+        closeAttachmentCarousel();
+        hideLaserPointer();
+        renderShell();
+      }
+    }
+
     function attachmentMediaKind(attachment) {
       const type = String(attachment?.type || "").toLowerCase();
       const name = String(attachment?.name || "").toLowerCase();
@@ -1652,13 +1682,17 @@
         } else if (action === "present") {
           state.presentation = !state.presentation;
           state.presentationZoom = 0;
-          if (!state.presentation) {
+          if (state.presentation) {
+            void enterFullscreen();
+          } else {
             closeAttachmentCarousel();
             hideLaserPointer();
+            void exitFullscreen();
           }
           renderShell();
         }
       });
+      document.addEventListener("fullscreenchange", handleFullscreenChange);
     }
 
     function render() {
@@ -1689,6 +1723,8 @@
       closeAttachmentModal();
       closeAttachmentCarousel();
       removeLaserPointer();
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      if (state.presentation) void exitFullscreen();
       state.backupManager.open = false;
       state.presentation = false;
       state.presentationZoom = 0;
