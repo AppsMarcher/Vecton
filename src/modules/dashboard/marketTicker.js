@@ -593,7 +593,7 @@
   // sozinha ja consome isso em poucos dias no ciclo de 60s do resto do
   // ticker. Por isso o brapi tem seu proprio intervalo, bem mais longo;
   // os demais itens (awesome/bcb/cepea) continuam no ciclo de 60s normal.
-  const BRAPI_REFRESH_MS = 30 * 60 * 1000; // 30 minutos
+  const BRAPI_REFRESH_MS = 60 * 60 * 1000; // 60 minutos
   let lastBrapiFetchAt = 0;
 
   async function fetchTickerLive() {
