@@ -140,7 +140,7 @@
       }
       tbody.innerHTML = visible.map((row) => `
         <tr data-id="${escapeHtml(row.id)}">
-          ${fields.map((f) => `<td>${escapeHtml(displayValue(f, row))}</td>`).join("")}
+          ${fields.map((f) => `<td title="${escapeHtml(displayValue(f, row))}">${escapeHtml(displayValue(f, row))}</td>`).join("")}
           <td>
             <div class="users-actions">
               <button class="users-action-btn" type="button" data-action="edit" data-id="${escapeHtml(row.id)}" title="Editar">
