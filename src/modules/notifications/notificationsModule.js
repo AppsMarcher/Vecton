@@ -434,34 +434,42 @@
       `;
     }
 
+    // Bloco de 2 linhas por evento: linha 1 = nome+descrição do evento,
+    // linha 2 = todos os controles (sininho/e-mail/destinatários/ativo, e o
+    // dia/horário quando for o tipo agendado) juntos numa barra só. Antes
+    // cada controle vivia numa coluna própria de uma tabela larga; virou
+    // lista de blocos pra caber melhor e deixar o texto do evento respirar.
     function settingsRowMarkup(type) {
       const cfg = { ...DEFAULT_CFG, ..._settings.get(type.kind) };
       const list = Array.isArray(cfg.email_recipients) ? cfg.email_recipients : [];
       const isScheduled = type.trigger_mode === "scheduled";
       return `
-        <tr data-kind="${escapeHtml(type.kind)}">
-          <td>
+        <div class="notif-cfg-row" data-kind="${escapeHtml(type.kind)}">
+          <div class="notif-cfg-info">
             <strong class="notif-cfg-label">${escapeHtml(type.label)}</strong>
             <span class="notif-cfg-desc">${escapeHtml(type.description || "")}</span>
-            ${isScheduled ? scheduleRowMarkup(cfg) : ""}
-          </td>
-          <td class="notif-cfg-flag">
-            <input type="checkbox" data-field="in_app"${cfg.in_app ? " checked" : ""} aria-label="Sininho">
-          </td>
-          <td class="notif-cfg-flag">
-            <input type="checkbox" data-field="email"${cfg.email ? " checked" : ""} aria-label="E-mail">
-          </td>
-          <td>
+          </div>
+          <div class="notif-cfg-controls">
+            <label class="notif-cfg-toggle">
+              <input type="checkbox" data-field="in_app"${cfg.in_app ? " checked" : ""} aria-label="Sininho">
+              <span>Sininho</span>
+            </label>
+            <label class="notif-cfg-toggle">
+              <input type="checkbox" data-field="email"${cfg.email ? " checked" : ""} aria-label="E-mail">
+              <span>E-mail</span>
+            </label>
             <button type="button" class="notif-rcpt-trigger${list.length ? " has-value" : ""}"
               data-kind="${escapeHtml(type.kind)}"${cfg.email ? "" : " disabled"}>
               <span class="notif-rcpt-label">${escapeHtml(recipientsLabel(list))}</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
             </button>
-          </td>
-          <td class="notif-cfg-flag">
-            <input type="checkbox" data-field="is_active"${cfg.is_active !== false ? " checked" : ""} aria-label="Ativo">
-          </td>
-        </tr>
+            ${isScheduled ? scheduleRowMarkup(cfg) : ""}
+            <label class="notif-cfg-toggle notif-cfg-toggle-active">
+              <input type="checkbox" data-field="is_active"${cfg.is_active !== false ? " checked" : ""} aria-label="Ativo">
+              <span>Ativo</span>
+            </label>
+          </div>
+        </div>
       `;
     }
 
@@ -601,7 +609,7 @@
       const body = document.querySelector("#notif-config-body");
       if (!body) return;
       if (!_types.length) {
-        body.innerHTML = `<tr><td colspan="5" class="users-empty">Nenhum tipo de evento cadastrado. Rode a migration 092.</td></tr>`;
+        body.innerHTML = `<div class="users-empty">Nenhum tipo de evento cadastrado. Rode a migration 092.</div>`;
         return;
       }
       body.innerHTML = _types.map(settingsRowMarkup).join("");
@@ -610,7 +618,7 @@
     async function loadAndRenderSettings() {
       const body = document.querySelector("#notif-config-body");
       if (!body) return;
-      body.innerHTML = `<tr><td colspan="5" class="users-empty">Carregando...</td></tr>`;
+      body.innerHTML = `<div class="users-empty">Carregando...</div>`;
       try {
         const orgId = await resolveOrganizationId();
         const [types, settings, users] = await Promise.all([
@@ -628,7 +636,7 @@
         paintSettings();
       } catch (error) {
         console.error(error);
-        body.innerHTML = `<tr><td colspan="5" class="users-empty">${escapeHtml(vpFriendlyError(error, "Falha ao carregar as notificações."))}</td></tr>`;
+        body.innerHTML = `<div class="users-empty">${escapeHtml(vpFriendlyError(error, "Falha ao carregar as notificações."))}</div>`;
       }
     }
 
@@ -667,13 +675,13 @@
     }
 
     function bindSettings() {
-      const table = document.querySelector("#notif-config-table");
-      if (!table || table.dataset.bound === "1") return;
-      table.dataset.bound = "1";
+      const list = document.querySelector("#notif-config-body");
+      if (!list || list.dataset.bound === "1") return;
+      list.dataset.bound = "1";
 
-      table.addEventListener("change", async (event) => {
+      list.addEventListener("change", async (event) => {
         const input = event.target;
-        const row = input.closest("tr[data-kind]");
+        const row = input.closest(".notif-cfg-row");
         if (!row || !isAdmin()) return;
         const kind = row.dataset.kind;
         const field = input.dataset.field;
@@ -714,7 +722,7 @@
 
       // Abre o seletor de destinatários. A gravação acontece ao FECHAR o
       // painel, não a cada clique de checkbox.
-      table.addEventListener("click", (event) => {
+      list.addEventListener("click", (event) => {
         const trigger = event.target.closest(".notif-rcpt-trigger");
         if (!trigger || trigger.disabled || !isAdmin()) return;
         if (_picker && _picker.trigger === trigger) { closePicker(); return; }

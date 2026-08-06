@@ -8519,15 +8519,43 @@ body.rps-laser-mode .rps-attachment-carousel * {
   color: var(--text-faint);
 }
 
-/* Tela Parâmetros → Notificações */
-.notif-config-table th.notif-cfg-flag,
-.notif-config-table td.notif-cfg-flag { width: 84px; text-align: center; }
-.notif-config-table td.notif-cfg-flag input { accent-color: var(--blue); cursor: pointer; }
+/* Tela Parâmetros → Notificações — lista de blocos de 2 linhas por evento
+   (linha 1: nome+descrição; linha 2: todos os controles juntos), no lugar da
+   tabela larga de antes (1 coluna por controle). */
+.notif-cfg-list { display: flex; flex-direction: column; }
+.notif-cfg-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.notif-cfg-row:last-child { border-bottom: none; }
+.notif-cfg-row:hover { background: rgba(255, 255, 255, 0.02); }
 .notif-cfg-label { display: block; font-size: 0.78rem; }
 .notif-cfg-desc { display: block; font-size: 0.68rem; color: var(--text-faint); margin-top: 2px; }
+.notif-cfg-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+}
+.notif-cfg-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  cursor: pointer;
+  user-select: none;
+}
+.notif-cfg-toggle input { accent-color: var(--blue); cursor: pointer; }
+/* "Ativo" é o disjuntor geral do tipo — separado dos outros controles,
+   empurrado pra ponta direita da barra. */
+.notif-cfg-toggle-active { margin-left: auto; font-weight: 600; color: var(--text); }
 /* Seletor de dia/horário embutido — só na linha do tipo "agendado" (Lembrete
    RPS de Gestão); as outras linhas (por evento) não têm essa célula extra. */
-.notif-sched-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.notif-sched-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .notif-sched-row label {
   display: flex;
   flex-direction: column;
