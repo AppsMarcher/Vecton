@@ -8548,6 +8548,8 @@ body.rps-laser-mode .rps-attachment-carousel * {
   color: var(--text-soft);
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
+  flex: none;
 }
 .notif-cfg-toggle input { accent-color: var(--blue); cursor: pointer; }
 /* "Ativo" é o disjuntor geral do tipo — separado dos outros controles,
