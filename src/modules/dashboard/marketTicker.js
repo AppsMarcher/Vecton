@@ -433,6 +433,27 @@
     });
   }
 
+  // Persiste o ultimo quote valido de cada item (todas as fontes, nao so
+  // CEPEA) entre recarregamentos de pagina. Sem isso, se a fonte falhar
+  // (ex: brapi com cota estourada — token e' fixo no cliente, cota
+  // compartilhada por TODAS as abas/usuarios) logo no primeiro fetch da
+  // sessao, o item fica preso em "Carregando..." pra sempre: tickerState
+  // nunca chega a existir pra esse id, entao nao ha nada pra marcar como
+  // "stale" (o marcador stale so cobre item que ja tinha sucesso ANTES,
+  // na mesma sessao). Com o cache, reabrir a pagina reidrata o ultimo
+  // valor conhecido (marcado stale) em vez de voltar a mostrar o mock.
+  const TICKER_STATE_KEY = "vecton-ticker-state-v1";
+
+  function loadTickerStateCache() {
+    try { return JSON.parse(localStorage.getItem(TICKER_STATE_KEY) || "{}"); }
+    catch { return {}; }
+  }
+
+  function saveTickerStateCache() {
+    try { localStorage.setItem(TICKER_STATE_KEY, JSON.stringify(tickerState)); }
+    catch {}
+  }
+
   const CEPEA_PREV_KEY = "vecton-cepea-prev-v2";
 
   function loadCepeaPrevCache() {
@@ -637,12 +658,21 @@
       console.warn("[ticker] CEPEA falhou:", cepeaResult.reason);
     }
 
+    saveTickerStateCache();
     rebuildTickerItems();
     renderMarketTicker();
   }
 
   function startMarketTicker() {
     initCepeaPrevCache();
+    // Reidrata o ultimo valor valido de cada item (ver comentario em
+    // TICKER_STATE_KEY) antes do primeiro fetch — assim, se a fonte falhar
+    // agora, o ticker mostra o ultimo valor conhecido (marcado stale) em
+    // vez do mock "Carregando...".
+    Object.entries(loadTickerStateCache()).forEach(([id, quote]) => {
+      if (quote && Number.isFinite(quote.value)) tickerState[id] = { ...quote, stale: true };
+    });
+    rebuildTickerItems();
     renderMarketTicker();
     bindTickerInteractions();
     void fetchTickerLive();
