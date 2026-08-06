@@ -379,7 +379,7 @@
     }
 
     // So ordena o ROTULO. O array `terrs` fica na ordem original de propósito:
-    // `terrs[0]` decide a cor do card no fluxo da impressao (htmlForGroup).
+    // `terrs[0]` decide a cor do card no fluxo da impressao (groupCard).
     function combinedTerrLabel(terrs) {
       const anchors = fixedAnchorSet();
       return [...terrs]
@@ -448,9 +448,9 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"></path><path d="m22 6-10 7L2 6"></path></svg>
                     Enviar por e-mail
                   </button>
-                  <button type="button" data-action="download">
+                  <button type="button" data-action="download-excel">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    Baixar PDF
+                    Baixar Excel
                   </button>
                 </div>
               </div>
@@ -1083,13 +1083,32 @@
       return has ? acc : null;
     }
 
-    // Card do report. grao/pec = linhas de quantidade (null = linha apagada,
-    // igual ao modelo); fatVals = os 6 valores da linha FATURA (sempre R$ cheio).
-    function printCard(cfg) {
+    // Modelo (dados) de um card do report -- desacoplado do "pintor" (HTML pro
+    // Imprimir/E-mail, Excel pro Baixar Excel): as DUAS saidas tem que nascer
+    // do mesmo card, senao divergem com o tempo. grao/pec = linhas de
+    // quantidade (null = linha apagada, igual ao modelo); fatVals = os 6
+    // valores da linha FATURA (sempre R$ cheio).
+    function buildCard(cfg) {
       const { name, terr, colors, grao, pec, fatVals, label, pecMemo } = cfg;
       // memo = Pecuaria da casa geografica que consolida em OUTRA coordenacao
       // (Sul/Norte -> Paulo). Preenche so a propria linha: TTL e FATURA ignoram.
       const memo = !pec && pecMemo ? pecMemo : null;
+      return { name: name || "", terr: terr || "", colors, grao: grao || null, pec: pec || null, memo, fatVals, label: label || null };
+    }
+
+    // Card a partir de linhas metricObj: FATURA = soma dos valores das linhas.
+    function cardFromLines(name, terr, colors, grao, pec, pecas, label, pecMemo) {
+      const fatVals = {};
+      METRICS.forEach((m) => {
+        fatVals[m] = (grao ? grao[m].v : 0) + (pec ? pec[m].v : 0) + (pecas ? pecas[m].v : 0);
+      });
+      return buildCard({ name, terr, colors, grao, pec, fatVals, label, pecMemo });
+    }
+
+    // Pintor HTML de um card (Imprimir / anexo de e-mail) -- saida idêntica à
+    // versão anterior (mesma marcação/CSS), só que a partir do card já pronto.
+    function cardHtml(card) {
+      const { name, terr, colors, grao, pec, memo, fatVals, label } = card;
       const cells = (line, k) => METRICS.map((m) => `<td>${line ? pfmt(line[m][k]) : ""}</td>`).join("");
       const empty = METRICS.map(() => "<td></td>").join("");
       const ttlCellsP = (grao || pec)
@@ -1111,15 +1130,6 @@
           </tbody>
         </table>
       </div>`;
-    }
-
-    // Card a partir de linhas metricObj: FATURA = soma dos valores das linhas.
-    function cardFromLines(name, terr, colors, grao, pec, pecas, label, pecMemo) {
-      const fatVals = {};
-      METRICS.forEach((m) => {
-        fatVals[m] = (grao ? grao[m].v : 0) + (pec ? pec[m].v : 0) + (pecas ? pecas[m].v : 0);
-      });
-      return printCard({ name, terr, colors, grao, pec, fatVals, label, pecMemo });
     }
 
     // Grade FIXA dos cards de território — espelha a posição exata do modelo
@@ -1159,19 +1169,23 @@
     ];
     const HOME_COLOR_KEY = { "Sul": "sul", "Norte": "norte", "Oeste": "oeste", "Exportação": "exportacao" };
 
-    function buildPrintPage(data, subtitle, scenarioName) {
+    // Monta o MODELO do report (dados, sem HTML nem Excel): qual card vai em
+    // cada uma das 3 colunas, na ordem. As duas saídas (pageModelToHtml pro
+    // Imprimir/e-mail, buildExcelWorkbook pro Baixar Excel) pintam esse mesmo
+    // modelo -- garante que os dois formatos nunca divirjam entre si.
+    function buildPageModel(data, subtitle, scenarioName) {
       const { coords: pc, regioes: pr, tipos: pt } = data;
       const coord = (n) => pc.find((x) => x.nome === n) || null;
 
       // --- 6 cards consolidados (topo de cada coluna) ---
       const tot = companyTotals(pc, pt);
       const numLine = (qMap) => { const o = {}; METRICS.forEach((m) => { o[m] = { q: qMap[m], v: 0 }; }); return o; };
-      const geralCard = printCard({
+      const geralCard = buildCard({
         name: "Pedro", terr: "BRASIL", colors: PRINT_COLORS.geral, label: "GERAL",
         grao: numLine(tot.grao), pec: numLine(tot.pec), fatVals: tot.fatv
       });
       const consolidated = (nome, terrLabel, colors, label) => {
-        const c = coord(nome); if (!c) return "";
+        const c = coord(nome); if (!c) return null;
         const pec = sumTerrLine(c, "pecuaria");
         // Sem Pecuaria no roteamento (Sul/Norte) -> mostra a da CASA geografica
         // como linha memo, ilustrativa. Mesma regra do painel ao vivo.
@@ -1179,11 +1193,15 @@
         return cardFromLines(c.gestor || nome, terrLabel, colors,
           sumTerrLine(c, "grao"), pec, sumTerrLine(c, "pecas"), label, memo);
       };
-      const col1Top = geralCard + consolidated("Sul", "SUL", PRINT_COLORS.sul, "REG. SUL");
-      const col2Top = consolidated("Pecuária", "PECUÁRIA", PRINT_COLORS.pecuaria, "PECUÁRIA")
-        + consolidated("Norte", "NORTE", PRINT_COLORS.norte, "REG. NORTE");
-      const col3Top = consolidated("Exportação", "EXPO", PRINT_COLORS.exportacao, "EXPORTAÇÃO")
-        + consolidated("Oeste", "OESTE", PRINT_COLORS.oeste, "REG. OESTE");
+      const col1Top = [geralCard, consolidated("Sul", "SUL", PRINT_COLORS.sul, "REG. SUL")].filter(Boolean);
+      const col2Top = [
+        consolidated("Pecuária", "PECUÁRIA", PRINT_COLORS.pecuaria, "PECUÁRIA"),
+        consolidated("Norte", "NORTE", PRINT_COLORS.norte, "REG. NORTE")
+      ].filter(Boolean);
+      const col3Top = [
+        consolidated("Exportação", "EXPO", PRINT_COLORS.exportacao, "EXPORTAÇÃO"),
+        consolidated("Oeste", "OESTE", PRINT_COLORS.oeste, "REG. OESTE")
+      ].filter(Boolean);
 
       // --- cards de território: posição fixa (ver PRINT_COL_LAYOUT acima) ---
       // terrHome guarda a casa geográfica de cada território (só pra cor — a
@@ -1234,7 +1252,7 @@
       // território da grade fixa primeiro, nunca a ordem de chegada da RPC.
       const labelFor = (g) => combinedTerrLabel(g.terrs);
       const drawnGroups = new Set();   // evita desenhar o mesmo grupo fundido 2x
-      const htmlForGroup = (idx, colorTerr) => {
+      const groupCard = (idx, colorTerr) => {
         const g = mergedGroups[idx];
         return cardFromLines(g.resp || "A definir", labelFor(g), colorFor(colorTerr), g.grao, g.pec, null);
       };
@@ -1242,13 +1260,13 @@
       const flow = PRINT_COL_LAYOUT.map((col) => col.map((slot) => {
         if (slot.pecas) {
           const cp = coord("Peças");
-          return cp ? cardFromLines(cp.gestor || "—", "PEÇAS", PRINT_COLORS.pecas, null, null, sumTerrLine(cp, "pecas")) : "";
+          return cp ? cardFromLines(cp.gestor || "—", "PEÇAS", PRINT_COLORS.pecas, null, null, sumTerrLine(cp, "pecas")) : null;
         }
         const anchorTerr = slot.terrs ? slot.terrs[0] : slot.terr;
         const idx = findGroupIdx(anchorTerr, slot.mode);
-        if (idx == null || drawnGroups.has(idx)) return "";
+        if (idx == null || drawnGroups.has(idx)) return null;
         drawnGroups.add(idx);
-        return htmlForGroup(idx, anchorTerr);
+        return groupCard(idx, anchorTerr);
       }).filter(Boolean));
 
       // Território fora da grade fixa (cadastro novo na Atribuição): qualquer
@@ -1259,21 +1277,32 @@
         drawnGroups.add(idx);
         let shortest = 0;
         for (let i = 1; i < flow.length; i++) if (flow[i].length < flow[shortest].length) shortest = i;
-        flow[shortest].push(htmlForGroup(idx, g.terrs[0]));
+        flow[shortest].push(groupCard(idx, g.terrs[0]));
       });
 
-      const emitted = new Date().toLocaleDateString("pt-BR");
+      return {
+        subtitle, scenarioName,
+        emitted: new Date().toLocaleDateString("pt-BR"),
+        empty: !pc.length,
+        cols: [col1Top.concat(flow[0]), col2Top.concat(flow[1]), col3Top.concat(flow[2])]
+      };
+    }
+
+    // Pintor HTML do modelo (Imprimir / anexo de e-mail) -- saída idêntica à
+    // versão anterior.
+    function pageModelToHtml(model) {
+      const { subtitle, scenarioName, emitted, empty, cols } = model;
       return `<section class="page">
         <div class="ph">
           <h1>Painel de Vendas · Marcher Brasil</h1>
           <span class="per">${escapeHtml(subtitle)}</span>
           <span class="meta">Meta: ${escapeHtml(scenarioName)} · emitido em ${emitted}</span>
         </div>
-        ${(!pc.length) ? `<p class="pempty">Sem dados de vendas para o período.</p>` : `
+        ${empty ? `<p class="pempty">Sem dados de vendas para o período.</p>` : `
         <div class="cols">
-          <div class="col">${col1Top}${flow[0].join("")}</div>
-          <div class="col">${col2Top}${flow[1].join("")}</div>
-          <div class="col">${col3Top}${flow[2].join("")}</div>
+          <div class="col">${cols[0].map(cardHtml).join("")}</div>
+          <div class="col">${cols[1].map(cardHtml).join("")}</div>
+          <div class="col">${cols[2].map(cardHtml).join("")}</div>
         </div>`}
       </section>`;
     }
@@ -1286,8 +1315,8 @@
     function buildPrintDoc(mesData, ytdData, autoPrint = true) {
       const scenarioName = scenarios.find((s) => s.id === scenarioId)?.name || "Budget";
       const mLabel = MONTHS[month - 1];
-      const p1 = buildPrintPage(mesData, `Mês — ${mLabel}/${year}`, scenarioName);
-      const p2 = buildPrintPage(ytdData, `Acumulado YTD — Janeiro a ${mLabel}/${year}`, scenarioName);
+      const p1 = pageModelToHtml(buildPageModel(mesData, `Mês — ${mLabel}/${year}`, scenarioName));
+      const p2 = pageModelToHtml(buildPageModel(ytdData, `Acumulado YTD — Janeiro a ${mLabel}/${year}`, scenarioName));
       return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -1394,39 +1423,181 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       return buildPrintDoc(mesData, ytdData, false);
     }
 
-    // ---------------------------------------------------------------- download do pdf
-    // Mesmo caminho servidor (Edge Function -> Browserless) do envio por
-    // e-mail -- mesmo html, mesmas opcoes de pdf() -- so que aqui a function
-    // devolve o PDF em base64 (mode:"download") em vez de anexar/enviar, e o
-    // navegador baixa direto. Garante fidelidade identica ao "Imprimir"/
-    // "Enviar por e-mail": mesmo layout, tabulacao, colunas, fontes, margens
-    // e paginacao.
-    function base64ToBlob(base64, type) {
-      const byteChars = atob(base64);
-      const byteNumbers = new Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
-      return new Blob([new Uint8Array(byteNumbers)], { type });
+    // ---------------------------------------------------------------- download em excel
+    // Gera um .xlsx EDITÁVEL a partir do mesmo MODELO (buildPageModel) usado
+    // no Imprimir/e-mail -- mesmas colunas (FATUR./FAT.+CART./META/anos),
+    // mesmas linhas (GRÃO/PECUÁRIA/TTL qtd/FATURA), mesmas cores por
+    // coordenação, negrito/itálico, bordas e paginação A4 paisagem em 1
+    // página por aba (Mês/YTD) -- só que como planilha de verdade (ExcelJS,
+    // 100% no navegador, sem passar pelo servidor). O único ajuste é o
+    // cabeçalho do card: o avatar circular + nome + território, que na
+    // impressão ficam em elementos HTML separados dentro da mesma célula
+    // visual, aqui viram um único texto "Nome · Território" na célula
+    // mesclada -- mesma informação, sem o círculo decorativo (Excel não tem
+    // um jeito nativo elegante para reproduzir isso numa célula).
+    function reportFilenameExcel() {
+      return `painel-vendas-${MONTHS[month - 1].toLowerCase()}-${year}.xlsx`;
     }
 
-    async function downloadReportPdf(container) {
+    const XLS_BORDER_THIN = { style: "thin", color: { argb: "FFE4E4E4" } };
+    const XLS_BORDER_ALL = { top: XLS_BORDER_THIN, left: XLS_BORDER_THIN, bottom: XLS_BORDER_THIN, right: XLS_BORDER_THIN };
+    const XLS_NUMFMT = '#,##0;(#,##0);"-"'; // mesmo criterio do pfmt: zero vira "-", negativo entre parenteses
+    const XLS_CARD_W = 8; // 2 cols (nome/terr mesclado) + 6 metricas, igual ao colgroup do card impresso
+    const XLS_BLOCK_STARTS = [1, 10, 19]; // col inicial de cada uma das 3 colunas do report (8 + 1 de respiro)
+    const XLS_TOTAL_COLS = XLS_BLOCK_STARTS[XLS_BLOCK_STARTS.length - 1] + XLS_CARD_W - 1;
+
+    function xlsHex(hex) { return `FF${hex.replace("#", "").toUpperCase()}`; }
+    function xlsColLetter(n) {
+      let s = "", x = n;
+      while (x > 0) { const m = (x - 1) % 26; s = String.fromCharCode(65 + m) + s; x = Math.floor((x - 1) / 26); }
+      return s;
+    }
+    function xlsFill(argb) { return { type: "pattern", pattern: "solid", fgColor: { argb } }; }
+
+    // Escreve um card (mesmo shape de buildCard/cardHtml) a partir da linha
+    // `row`, ocupando XLS_CARD_W colunas a partir de `col`. Devolve a
+    // próxima linha livre.
+    function writeCardToSheet(ws, card, row, col) {
+      const { name, terr, colors, grao, pec, memo, fatVals, label } = card;
+      let r = row;
+      const paintRow = (fillArgb) => {
+        for (let c = col; c < col + XLS_CARD_W; c++) {
+          const cell = ws.getCell(r, c);
+          cell.border = XLS_BORDER_ALL;
+          if (fillArgb) cell.fill = xlsFill(fillArgb);
+        }
+      };
+      if (label) {
+        ws.mergeCells(r, col, r, col + XLS_CARD_W - 1);
+        const c = ws.getCell(r, col);
+        c.value = label;
+        c.font = { size: 6, bold: true, color: { argb: "FF555555" } };
+        r++;
+      }
+      // header: nome+territorio mesclados + 6 metricas
+      ws.mergeCells(r, col, r, col + 1);
+      const nameCell = ws.getCell(r, col);
+      nameCell.value = terr ? `${name} · ${terr}` : name;
+      nameCell.font = { size: 7, bold: true, color: { argb: "FFFFFFFF" } };
+      nameCell.alignment = { vertical: "middle", wrapText: false };
+      ["FATUR.", "FAT.+CART.", "META", String(year - 1), String(year - 2), String(year - 3)].forEach((h, i) => {
+        const cell = ws.getCell(r, col + 2 + i);
+        cell.value = h;
+        cell.font = { size: 6, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+      });
+      paintRow(xlsHex(colors.head));
+      r++;
+      // linhas de dado: GRÃO, PECUÁRIA(*), TTL qtd, FATURA
+      const dataRow = (labelText, values, opts = {}) => {
+        ws.mergeCells(r, col, r, col + 1);
+        const labelCell = ws.getCell(r, col);
+        labelCell.value = labelText;
+        labelCell.font = { size: 6.5, bold: !!opts.bold, italic: !!opts.italic, color: { argb: opts.dim ? "FFB8B8B8" : (opts.italic ? "FF8A8A8A" : "FF333333") } };
+        METRICS.forEach((m, i) => {
+          const cell = ws.getCell(r, col + 2 + i);
+          const v = values ? values[m] : null;
+          if (v != null) { cell.value = Math.round(v); cell.numFmt = XLS_NUMFMT; }
+          cell.font = { size: 6.5, bold: !!opts.bold, italic: !!opts.italic };
+          cell.alignment = { horizontal: "right" };
+        });
+        paintRow(opts.fill);
+        r++;
+      };
+      const graoVals = grao ? Object.fromEntries(METRICS.map((m) => [m, grao[m].q])) : null;
+      dataRow("GRÃO", graoVals, { dim: !grao });
+      const pecLine = pec || memo;
+      const pecVals = pecLine ? Object.fromEntries(METRICS.map((m) => [m, pecLine[m].q])) : null;
+      dataRow(memo ? "PECUÁRIA *" : "PECUÁRIA", pecVals, { dim: !pecLine, italic: !!memo });
+      const ttlVals = (grao || pec)
+        ? Object.fromEntries(METRICS.map((m) => [m, (grao ? grao[m].q : 0) + (pec ? pec[m].q : 0)]))
+        : null;
+      dataRow("TTL qtd", ttlVals, { bold: true, fill: xlsHex(colors.ttl) });
+      dataRow("FATURA", fatVals, { bold: true, fill: "FFF5F5F5" });
+      return r;
+    }
+
+    function writeColumnCards(ws, cards, col, startRow) {
+      let r = startRow;
+      cards.forEach((card) => { r = writeCardToSheet(ws, card, r, col) + 1; }); // +1 = linha de respiro
+      return r;
+    }
+
+    function writePageSheet(workbook, name, model) {
+      const marginIn = 7 / 25.4; // 7mm, igual ao @page da impressão
+      const ws = workbook.addWorksheet(name, {
+        views: [{ showGridLines: false }],
+        pageSetup: {
+          paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 1,
+          margins: { left: marginIn, right: marginIn, top: marginIn, bottom: marginIn, header: 0, footer: 0 }
+        }
+      });
+      XLS_BLOCK_STARTS.forEach((start) => {
+        // 9.2, não 9: o ExcelJS trata width===9 como "igual ao default" e
+        // silenciosamente NÃO grava o customWidth no xlsx -- ao reabrir, a
+        // coluna volta pra largura padrão (bug confirmado empiricamente).
+        ws.getColumn(start).width = 9.2;
+        ws.getColumn(start + 1).width = 8;
+        for (let i = 2; i < XLS_CARD_W; i++) ws.getColumn(start + i).width = 6.5;
+        if (start > 1) ws.getColumn(start - 1).width = 2; // respiro entre colunas
+      });
+
+      ws.mergeCells(1, 1, 1, XLS_TOTAL_COLS);
+      const titleCell = ws.getCell(1, 1);
+      titleCell.value = `Painel de Vendas · Marcher Brasil — ${model.subtitle} — Meta: ${model.scenarioName} · emitido em ${model.emitted}`;
+      titleCell.font = { size: 11, bold: true, color: { argb: "FF1F3864" } };
+      ws.getRow(1).height = 18;
+
+      if (model.empty) {
+        ws.mergeCells(3, 1, 3, XLS_TOTAL_COLS);
+        const c = ws.getCell(3, 1);
+        c.value = "Sem dados de vendas para o período.";
+        c.alignment = { horizontal: "center" };
+        return;
+      }
+
+      const startRow = 3;
+      let maxRow = startRow;
+      model.cols.forEach((cards, i) => {
+        const endRow = writeColumnCards(ws, cards, XLS_BLOCK_STARTS[i], startRow);
+        if (endRow > maxRow) maxRow = endRow;
+      });
+      ws.pageSetup.printArea = `A1:${xlsColLetter(XLS_TOTAL_COLS)}${maxRow}`;
+    }
+
+    function buildExcelWorkbook(mesModel, ytdModel) {
+      const workbook = new window.ExcelJS.Workbook();
+      workbook.creator = "VectonPlan";
+      workbook.created = new Date();
+      writePageSheet(workbook, "Mês", mesModel);
+      writePageSheet(workbook, "YTD", ytdModel);
+      return workbook;
+    }
+
+    async function downloadReportExcel(container) {
       const btn = container.querySelector("#cvp-print-toggle");
       if (btn) btn.disabled = true;
       try {
-        const html = await buildReportHtmlForEmail();
-        const filename = reportFilename();
-        const data = await callEdgeFunction("send-report-email", { mode: "download", filename, html });
-        const blob = base64ToBlob(data.pdf_base64, "application/pdf");
+        if (!window.ExcelJS) throw new Error("Biblioteca de Excel não carregou. Recarregue a página e tente de novo.");
+        const scenarioName = scenarios.find((s) => s.id === scenarioId)?.name || "Budget";
+        const mLabel = MONTHS[month - 1];
+        const [mesData, ytdData] = await Promise.all([fetchPainelData("mes"), fetchPainelData("ytd")]);
+        const mesModel = buildPageModel(mesData, `Mês — ${mLabel}/${year}`, scenarioName);
+        const ytdModel = buildPageModel(ytdData, `Acumulado YTD — Janeiro a ${mLabel}/${year}`, scenarioName);
+        const workbook = buildExcelWorkbook(mesModel, ytdModel);
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = data.filename || filename;
+        a.download = reportFilenameExcel();
         document.body.appendChild(a);
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       } catch (e) {
-        console.error("baixar pdf:", e);
-        alert(e?.message || "Falha ao gerar o PDF. Verifique a conexão e tente de novo.");
+        console.error("baixar excel:", e);
+        alert(e?.message || "Falha ao gerar o Excel. Verifique a conexão e tente de novo.");
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -1618,7 +1789,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
         closeMenu();
         if (b.dataset.action === "print") openOnePagePrint(container);
         else if (b.dataset.action === "email") openEmailModal(container);
-        else if (b.dataset.action === "download") downloadReportPdf(container);
+        else if (b.dataset.action === "download-excel") downloadReportExcel(container);
       });
       // container.innerHTML e reconstruido a cada render() (troca de periodo/
       // cenario) -- sem remover o listener antigo antes, cada render empilharia
