@@ -36,6 +36,14 @@
       return typeof field.options === "function" ? (field.options() || []) : (field.options || []);
     }
 
+    // field.required aceita boolean fixo OU function(getValue) -> boolean, para
+    // obrigatoriedade condicional a outro campo do mesmo formulario (ex: Nome
+    // reduzido em Produtos, obrigatorio so quando Tipo = Maquinas). getValue(key)
+    // le o valor atual (ja digitado/selecionado) de outro campo do form.
+    function isFieldRequired(field, getValue) {
+      return typeof field.required === "function" ? !!field.required(getValue) : !!field.required;
+    }
+
     function displayValue(field, row) {
       const raw = row[field.key];
       if (field.type === "select") {
@@ -167,12 +175,12 @@
       });
     }
 
-    function fieldInputHtml(field, row) {
+    function fieldInputHtml(field, row, isRequired) {
       const value = row ? (row[field.key] ?? "") : "";
       const locked = field.lockOnEdit && row;
       if (field.type === "select") {
         const opts = fieldOptions(field);
-        const placeholder = field.required
+        const placeholder = isRequired
           ? `<option value="">— selecione —</option>`
           : `<option value="">— nenhuma —</option>`;
         const optionsHtml = opts.map((o) =>
@@ -210,10 +218,13 @@
             <button type="button" class="users-invite-close" aria-label="Fechar">✕</button>
           </div>
           <div class="users-invite-body">
-            ${fields.map((f) => `
-              <label class="ui-field">${escapeHtml(f.label)} ${f.required ? `<span style="color:var(--red)">*</span>` : ""}
-                ${fieldInputHtml(f, row)}
-              </label>`).join("")}
+            ${fields.map((f) => {
+              const initialRequired = isFieldRequired(f, (key) => String(row ? (row[key] ?? "") : ""));
+              return `
+              <label class="ui-field" data-field-key="${f.key}">${escapeHtml(f.label)} <span class="ui-field-required" style="color:var(--red);display:${initialRequired ? "inline" : "none"}">*</span>
+                ${fieldInputHtml(f, row, initialRequired)}
+              </label>`;
+            }).join("")}
             <p id="${idPrefix}-feedback" class="users-invite-feedback"></p>
           </div>
           <div class="users-invite-actions">
@@ -238,6 +249,25 @@
         source.addEventListener("change", () => { target.value = field.autoFill.value(source.value) || ""; });
       });
 
+      // Campos com required dinamico (function): recalcula o asterisco sempre
+      // que qualquer campo do form muda, ja que o gatilho pode ser outro campo
+      // (ex: Tipo mudando reflete no asterisco de Nome reduzido).
+      if (fields.some((f) => typeof f.required === "function")) {
+        const getValue = (key) => {
+          const el = overlay.querySelector(`#${idPrefix}-f-${key}`);
+          return el ? el.value : "";
+        };
+        const refreshRequiredMarks = () => {
+          fields.forEach((f) => {
+            if (typeof f.required !== "function") return;
+            const mark = overlay.querySelector(`[data-field-key="${f.key}"] .ui-field-required`);
+            if (mark) mark.style.display = isFieldRequired(f, getValue) ? "inline" : "none";
+          });
+        };
+        overlay.querySelectorAll(".users-invite-body input, .users-invite-body select")
+          .forEach((el) => el.addEventListener("change", refreshRequiredMarks));
+      }
+
       saveBtn.addEventListener("click", () => saveForm(row, overlay, feedback, saveBtn));
 
       const firstInput = overlay.querySelector(".users-invite-body input, .users-invite-body select");
@@ -245,11 +275,14 @@
     }
 
     async function saveForm(row, overlay, feedback, saveBtn) {
+      const getValue = (key) => {
+        const el = overlay.querySelector(`#${idPrefix}-f-${key}`);
+        return el ? el.value.trim() : "";
+      };
       const values = {};
       for (const f of fields) {
-        const el = overlay.querySelector(`#${idPrefix}-f-${f.key}`);
-        const raw = el ? el.value.trim() : "";
-        if (f.required && !raw) {
+        const raw = getValue(f.key);
+        if (isFieldRequired(f, getValue) && !raw) {
           feedback.textContent = `Preencha o campo "${f.label}".`;
           feedback.className = "users-invite-feedback is-error";
           return;

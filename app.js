@@ -823,6 +823,14 @@ const comProdutosMod = createCadastroModule({
     { key: "descricao", label: "Descrição", required: true },
     { key: "tipo_id", label: "Tipo", required: true, type: "select",
       options: () => comTiposMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
+    // Obrigatorio so quando Tipo = Maquinas (demais tipos ficam opcionais).
+    // Produtos ja cadastrados nao tem esse valor ainda — sera preenchido via
+    // carga, nao bloqueado por essa regra (ela so vale pro form manual).
+    { key: "nome_reduzido", label: "Nome reduzido",
+      required: (getValue) => {
+        const tipo = comTiposMod.getRows().find((r) => String(r.id) === String(getValue("tipo_id")));
+        return tipo?.nome === "Máquinas";
+      } },
     { key: "cultura_id", label: "Cultura", required: false, type: "select",
       options: () => comCulturasMod.getRows().map((r) => ({ value: r.id, label: r.nome })) }
   ]
