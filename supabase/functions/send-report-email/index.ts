@@ -1,6 +1,9 @@
 // Supabase Edge Function: send-report-email
-// Gera o PDF do relatório (Chrome de verdade, via Browserless) e envia por
-// e-mail via Resend (API HTTPS).
+// Gera o PDF do relatório (Chrome de verdade, via Browserless) e:
+//   - modo padrão: envia por e-mail via Resend (API HTTPS);
+//   - modo "download" (body.mode === "download"): devolve o PDF em base64
+//     pro navegador baixar direto, sem enviar e-mail (nome mantido por ser o
+//     uso original/principal da function; ver `isDownload` abaixo).
 //
 // Por que gerar o PDF aqui (servidor) e não no navegador: tentamos 3 vezes
 // gerar o PDF no cliente com html2canvas (rasteriza a tela como
@@ -85,6 +88,10 @@ Deno.serve(async (req) => {
     if (!profile) return json({ error: "Perfil do solicitante não encontrado" }, 403);
 
     const body = await req.json().catch(() => ({}));
+    // mode "download": só gera o PDF e devolve em base64 pro navegador baixar
+    // (sem e-mail, sem destinatário) -- mesmo HTML/Browserless do envio por
+    // e-mail, garantindo o PDF baixado idêntico ao anexado no e-mail.
+    const isDownload = body.mode === "download";
     const to = Array.isArray(body.to)
       ? body.to.map((e: unknown) => String(e).trim().toLowerCase()).filter(Boolean)
       : [];
@@ -96,9 +103,11 @@ Deno.serve(async (req) => {
     const bodyText = String(body.body_text ?? "Segue em anexo o relatório solicitado.").trim();
     const html = String(body.html ?? "");
 
-    if (!to.length) return json({ error: "Informe ao menos um destinatário" }, 400);
-    if (!to.every((e: string) => EMAIL_RE.test(e))) return json({ error: "Endereço de e-mail inválido em Para" }, 400);
-    if (cc.length && !cc.every((e: string) => EMAIL_RE.test(e))) return json({ error: "Endereço de e-mail inválido em Cc" }, 400);
+    if (!isDownload) {
+      if (!to.length) return json({ error: "Informe ao menos um destinatário" }, 400);
+      if (!to.every((e: string) => EMAIL_RE.test(e))) return json({ error: "Endereço de e-mail inválido em Para" }, 400);
+      if (cc.length && !cc.every((e: string) => EMAIL_RE.test(e))) return json({ error: "Endereço de e-mail inválido em Cc" }, 400);
+    }
     if (!html) return json({ error: "Conteúdo do relatório ausente" }, 400);
     if (html.length > MAX_HTML_CHARS) return json({ error: "Relatório excede o tamanho máximo permitido" }, 400);
 
@@ -135,6 +144,10 @@ Deno.serve(async (req) => {
     }
     const pdfBytes = new Uint8Array(await pdfRes.arrayBuffer());
     const pdfBase64 = bytesToBase64(pdfBytes);
+
+    if (isDownload) {
+      return json({ ok: true, filename, pdf_base64: pdfBase64 });
+    }
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {

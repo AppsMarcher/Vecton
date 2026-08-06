@@ -448,6 +448,10 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"></path><path d="m22 6-10 7L2 6"></path></svg>
                     Enviar por e-mail
                   </button>
+                  <button type="button" data-action="download">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Baixar PDF
+                  </button>
                 </div>
               </div>
             </div>
@@ -1390,6 +1394,44 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       return buildPrintDoc(mesData, ytdData, false);
     }
 
+    // ---------------------------------------------------------------- download do pdf
+    // Mesmo caminho servidor (Edge Function -> Browserless) do envio por
+    // e-mail -- mesmo html, mesmas opcoes de pdf() -- so que aqui a function
+    // devolve o PDF em base64 (mode:"download") em vez de anexar/enviar, e o
+    // navegador baixa direto. Garante fidelidade identica ao "Imprimir"/
+    // "Enviar por e-mail": mesmo layout, tabulacao, colunas, fontes, margens
+    // e paginacao.
+    function base64ToBlob(base64, type) {
+      const byteChars = atob(base64);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+      return new Blob([new Uint8Array(byteNumbers)], { type });
+    }
+
+    async function downloadReportPdf(container) {
+      const btn = container.querySelector("#cvp-print-toggle");
+      if (btn) btn.disabled = true;
+      try {
+        const html = await buildReportHtmlForEmail();
+        const filename = reportFilename();
+        const data = await callEdgeFunction("send-report-email", { mode: "download", filename, html });
+        const blob = base64ToBlob(data.pdf_base64, "application/pdf");
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = data.filename || filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (e) {
+        console.error("baixar pdf:", e);
+        alert(e?.message || "Falha ao gerar o PDF. Verifique a conexão e tente de novo.");
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
     let emailEl = null;
 
     // Destinatarios lembrados entre envios (localStorage, por navegador/usuario
@@ -1576,6 +1618,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
         closeMenu();
         if (b.dataset.action === "print") openOnePagePrint(container);
         else if (b.dataset.action === "email") openEmailModal(container);
+        else if (b.dataset.action === "download") downloadReportPdf(container);
       });
       // container.innerHTML e reconstruido a cada render() (troca de periodo/
       // cenario) -- sem remover o listener antigo antes, cada render empilharia
