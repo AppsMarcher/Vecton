@@ -8,7 +8,8 @@
   const CEPEA_WIDGET_BASE = "https://cepea.org.br/br/widgetproduto.js.php";
   const CEPEA_INDICATORS = {
     soy: 92,
-    corn: 77
+    corn: 77,
+    cattle: 2
   };
 
   const TICKER_ITEMS = [
@@ -19,7 +20,8 @@
     { id: "selic", label: "SELIC", source: "bcb", sourceLabel: "Banco Central do Brasil", seriesId: "432", prefix: "", suffix: "% a.a.", decimals: 2, changeMode: "diff", historyDepth: 40, officialUrl: "https://www.bcb.gov.br/controleinflacao/historicotaxasjuros" },
     { id: "ipca12", label: "IPCA 12m", source: "bcb", sourceLabel: "Banco Central do Brasil", seriesId: "13522", prefix: "", suffix: "%", decimals: 2, changeMode: "relativePct", historyDepth: 6, officialUrl: "https://www.bcb.gov.br/controleinflacao/historicotaxasjuros" },
     { id: "soy", label: "Soja", source: "cepea", sourceLabel: "CEPEA/ESALQ", indicatorId: CEPEA_INDICATORS.soy, prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/soja.aspx" },
-    { id: "corn", label: "Milho", source: "cepea", sourceLabel: "CEPEA/ESALQ", indicatorId: CEPEA_INDICATORS.corn, prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/milho.aspx" }
+    { id: "corn", label: "Milho", source: "cepea", sourceLabel: "CEPEA/ESALQ", indicatorId: CEPEA_INDICATORS.corn, prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/milho.aspx" },
+    { id: "cattle", label: "Boi Gordo", source: "cepea", sourceLabel: "CEPEA/B3", indicatorId: CEPEA_INDICATORS.cattle, prefix: "R$ ", suffix: "/@", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/boi-gordo.aspx" }
   ];
   const TICKER_ITEM_MAP = new Map(TICKER_ITEMS.map((item) => [item.id, item]));
 
@@ -31,7 +33,8 @@
     { id: "selic", label: "SELIC", value: "Carregando...", change: "-", dir: "flat", mock: true },
     { id: "ipca12", label: "IPCA 12m", value: "Carregando...", change: "-", dir: "flat", mock: true },
     { id: "soy", label: "Soja", value: "Carregando...", change: "-", dir: "flat", mock: true },
-    { id: "corn", label: "Milho", value: "Carregando...", change: "-", dir: "flat", mock: true }
+    { id: "corn", label: "Milho", value: "Carregando...", change: "-", dir: "flat", mock: true },
+    { id: "cattle", label: "Boi Gordo", value: "Carregando...", change: "-", dir: "flat", mock: true }
   ];
   const TICKER_FALLBACK_MAP = new Map(TICKER_FALLBACK.map((item) => [item.id, item]));
 
@@ -464,8 +467,9 @@
   function initCepeaPrevCache() {
     const cache = loadCepeaPrevCache();
     const seeds = {
-      soy:  { date: "22/06/2026", value: 132.84 },
-      corn: { date: "22/06/2026", value: 62.97 }
+      soy:    { date: "22/06/2026", value: 132.84 },
+      corn:   { date: "22/06/2026", value: 62.97 },
+      cattle: { date: "05/08/2026", value: 348.55 }
     };
     let changed = false;
     for (const [id, seed] of Object.entries(seeds)) {
@@ -564,19 +568,39 @@
     });
   }
 
+  // brapi (IBOV) tem cota mensal curta (15.000 req/mes) — uma aba aberta
+  // sozinha ja consome isso em poucos dias no ciclo de 60s do resto do
+  // ticker. Por isso o brapi tem seu proprio intervalo, bem mais longo;
+  // os demais itens (awesome/bcb/cepea) continuam no ciclo de 60s normal.
+  const BRAPI_REFRESH_MS = 30 * 60 * 1000; // 30 minutos
+  let lastBrapiFetchAt = 0;
+
   async function fetchTickerLive() {
     const awesomeItems = TICKER_ITEMS.filter((item) => item.source === "awesome");
     const brapiItems = TICKER_ITEMS.filter((item) => item.source === "brapi");
     const bcbItems = TICKER_ITEMS.filter((item) => item.source === "bcb");
     const cepeaItems = TICKER_ITEMS.filter((item) => item.source === "cepea");
 
+    const shouldFetchBrapi = brapiItems.length > 0 && (Date.now() - lastBrapiFetchAt >= BRAPI_REFRESH_MS);
+    // marca o timestamp na TENTATIVA (nao no sucesso) pra nao martelar a API
+    // a cada 60s enquanto a cota estiver estourada — so tenta de novo apos
+    // o intervalo cheio, sucesso ou falha.
+    if (shouldFetchBrapi) lastBrapiFetchAt = Date.now();
+
+    const staleKeys = new Set([
+      ...awesomeItems.map((item) => item.id),
+      ...(shouldFetchBrapi ? brapiItems.map((item) => item.id) : []),
+      ...bcbItems.map((item) => item.id),
+      ...cepeaItems.map((item) => item.id)
+    ]);
     Object.keys(tickerState).forEach((key) => {
+      if (!staleKeys.has(key)) return;
       tickerState[key] = { ...tickerState[key], stale: true };
     });
 
     const [awesomeResult, brapiResult, bcbResult, cepeaResult] = await Promise.allSettled([
       fetchAwesome(awesomeItems),
-      fetchBrapi(brapiItems, BRAPI_TOKEN),
+      shouldFetchBrapi ? fetchBrapi(brapiItems, BRAPI_TOKEN) : Promise.resolve({}),
       fetchBcb(bcbItems),
       fetchCepea(cepeaItems)
     ]);
@@ -593,7 +617,7 @@
       Object.entries(brapiResult.value).forEach(([key, quote]) => {
         tickerState[key] = { ...quote, stale: false };
       });
-    } else {
+    } else if (shouldFetchBrapi) {
       console.warn("[ticker] brapi falhou:", brapiResult.reason);
     }
 
