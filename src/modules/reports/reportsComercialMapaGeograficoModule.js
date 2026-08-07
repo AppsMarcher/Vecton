@@ -525,7 +525,7 @@
         offset += len;
         // data-model/data-share: permitem o tooltip mostrar a fatia
         // especifica sob o mouse (nao so o resumo do estado inteiro).
-        const segAttrs = s.label != null ? ` class="cmg-donut-seg" data-model="${escapeHtml(s.label)}" data-share="${frac}"` : "";
+        const segAttrs = s.label != null ? ` class="cmg-donut-seg" data-model="${escapeHtml(s.label)}" data-share="${frac}" data-color="${s.color}"` : "";
         return `<circle${segAttrs} cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="none" stroke="${s.color}" stroke-width="${strokeW.toFixed(1)}" stroke-dasharray="${dash}" transform="rotate(${rotate.toFixed(2)} ${cx.toFixed(1)} ${cy.toFixed(1)})"/>`;
       }).join("");
     }
@@ -867,7 +867,7 @@
           // mostrada como linha extra, abaixo do Modelo lider.
           const segEl = e.target.closest(".cmg-donut-seg");
           const segLine = segEl && segEl.dataset.model
-            ? `<br><strong>${escapeHtml(segEl.dataset.model)}</strong> — ${fmtPct(Number(segEl.dataset.share))}`
+            ? `<br><strong style="color:${escapeHtml(segEl.dataset.color || "")}">${escapeHtml(segEl.dataset.model)} — ${fmtPct(Number(segEl.dataset.share))}</strong>`
             : "";
           showTt(e, `${STATE_NAMES[uf] || uf} (${uf})`,
             `Máquinas: ${nf(v.qtd)}<br>Faturamento: ${fmtMoneyShort(v.val)}<br>Preço médio: ${price != null ? fmtMoneyShort(price) : "—"}<br>% Brasil: ${fmtPct(d.totQtd ? v.qtd / d.totQtd : 0)}` +
