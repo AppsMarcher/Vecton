@@ -361,7 +361,7 @@
         .cmg-row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
         @media (max-width:980px) { .cmg-row3 { grid-template-columns:1fr; } }
         .cmg-bars { padding:14px 16px 16px; display:flex; flex-direction:column; gap:10px; }
-        .cmg-bar-row { display:grid; grid-template-columns:82px 1fr 40px; align-items:center; gap:8px; font-size:12px; }
+        .cmg-bar-row { display:grid; grid-template-columns:minmax(96px,128px) 1fr 38px; align-items:center; gap:8px; font-size:11.5px; }
         .cmg-bar-row .nm { color:var(--soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .cmg-bar-track { height:9px; border-radius:99px; background:#1c2438; overflow:hidden; }
         .cmg-bar-fill { height:100%; border-radius:99px; }
@@ -373,9 +373,9 @@
         .cmg-cult-item .sub { font-size:11px; color:var(--faint); margin-top:1px; }
         .cmg-cult-item .pct { font-size:17px; font-weight:700; }
         .cmg-price-list { padding:14px 16px 16px; display:flex; flex-direction:column; gap:9px; }
-        .cmg-price-row { display:grid; grid-template-columns:44px 1fr 70px; align-items:center; gap:8px; font-size:12.5px; }
-        .cmg-price-row .nm { color:var(--soft); font-weight:600; }
-        .cmg-price-row .v { text-align:right; font-weight:600; }
+        .cmg-price-row { display:grid; grid-template-columns:minmax(88px,118px) 1fr 60px; align-items:center; gap:8px; font-size:11.5px; }
+        .cmg-price-row .nm { color:var(--soft); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cmg-price-row .v { text-align:right; font-weight:600; white-space:nowrap; }
         .cmg-cmp { margin-top:14px; }
         .cmg-cmp table { width:100%; border-collapse:collapse; font-size:12.5px; }
         .cmg-cmp th { text-align:right; font-size:10px; text-transform:uppercase; color:var(--faint); padding:0 8px 8px; }
@@ -685,7 +685,7 @@
         const max = list.length ? Math.max(...list.map((e) => avgPrice(e.val, e.qtd) || 0)) : 1;
         rows = list.map((e) => {
           const p = avgPrice(e.val, e.qtd);
-          return `<div class="cmg-price-row"><span class="nm" title="${escapeHtml(e.key)}">${escapeHtml(e.key.length > 10 ? e.key.slice(0, 10) + "…" : e.key)}</span>
+          return `<div class="cmg-price-row"><span class="nm" title="${escapeHtml(e.key)}">${escapeHtml(e.key)}</span>
             <div class="cmg-bar-track"><div class="cmg-bar-fill" style="width:${p && max ? (100 * p / max) : 0}%;background:#8b5cf6"></div></div>
             <span class="v">${p != null ? fmtMoneyShort(p) : "—"}</span></div>`;
         }).join("");
