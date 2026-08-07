@@ -316,6 +316,9 @@
         .cmg-row2 { display:grid; grid-template-columns:1fr 360px; gap:14px; margin-bottom:14px; align-items:start; }
         @media (max-width:1000px) { .cmg-row2 { grid-template-columns:1fr; } }
         .cmg-card { background:var(--panel); border:1px solid var(--line); border-radius:16px; }
+        /* mapa flutua direto no preto, sem caixa de card ao redor — mesma
+           tecnica que .cvm-mapcard ja usa no Mapa de Vendas existente */
+        .cmg-mapcard { background:#000; border:none; border-radius:16px; overflow:hidden; }
         .cmg-card-head { display:flex; align-items:center; justify-content:space-between; padding:15px 16px 0; }
         .cmg-card-head h3 { margin:0; font-size:13.5px; font-weight:600; }
         .cmg-card-head .info { color:var(--faint); cursor:help; font-size:11px; }
@@ -741,7 +744,7 @@
             : empty ? `<div class="cmg-empty">Nenhuma venda de máquinas encontrada para os filtros selecionados.<br><button id="cmg-clear-filters">Limpar filtros</button></div>` : `
           ${renderKpis(d)}
           <div class="cmg-row2">
-            <div class="cmg-card">
+            <div class="cmg-card cmg-mapcard">
               <div class="cmg-card-head"><h3>Distribuição Geográfica — Brasil</h3><span class="info" title="Tamanho do donut = quantidade de máquinas vendidas (exceto no modo Mix)">ⓘ</span></div>
               <div class="cmg-mapwrap" id="cmg-mapwrap">
                 <div class="cmg-zoom"><button data-z="in" title="Aproximar">+</button><button data-z="reset" title="Início">⟳</button><button data-z="out" title="Afastar">−</button></div>
