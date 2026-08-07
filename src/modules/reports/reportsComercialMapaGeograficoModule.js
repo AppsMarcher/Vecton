@@ -299,7 +299,7 @@
         @media (max-width:1200px) { .cmg-kpis { grid-template-columns:repeat(3,1fr); } }
         @media (max-width:760px) { .cmg-kpis { grid-template-columns:repeat(2,1fr); } }
         .cmg-kpi { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 18px; display:flex; gap:14px; align-items:center; }
-        .cmg-kpi .icon { width:48px; height:48px; border-radius:11px; display:flex; align-items:center; justify-content:center; flex:none; }
+        .cmg-kpi .icon { width:53px; height:53px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex:none; }
         .cmg-kpi .icon svg { width:24px; height:24px; }
         .cmg-kpi .icon.img { background:none; }
         .cmg-kpi .icon.img img { width:100%; height:100%; border-radius:11px; object-fit:cover; display:block; }
@@ -523,7 +523,10 @@
         const dash = `${len.toFixed(2)} ${Math.max(0.01, C - len).toFixed(2)}`;
         const rotate = (offset / C) * 360 - 90;
         offset += len;
-        return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="none" stroke="${s.color}" stroke-width="${strokeW.toFixed(1)}" stroke-dasharray="${dash}" transform="rotate(${rotate.toFixed(2)} ${cx.toFixed(1)} ${cy.toFixed(1)})"/>`;
+        // data-model/data-share: permitem o tooltip mostrar a fatia
+        // especifica sob o mouse (nao so o resumo do estado inteiro).
+        const segAttrs = s.label != null ? ` class="cmg-donut-seg" data-model="${escapeHtml(s.label)}" data-share="${frac}"` : "";
+        return `<circle${segAttrs} cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="none" stroke="${s.color}" stroke-width="${strokeW.toFixed(1)}" stroke-dasharray="${dash}" transform="rotate(${rotate.toFixed(2)} ${cx.toFixed(1)} ${cy.toFixed(1)})"/>`;
       }).join("");
     }
 
@@ -554,9 +557,9 @@
           const sw = r * 0.55;
           let segs;
           if (mapMode === "cultura") {
-            segs = topNPlusOutros(v.culturas, 5).map((e) => ({ qtd: e.qtd, color: colorForCultura(e.key) }));
+            segs = topNPlusOutros(v.culturas, 5).map((e) => ({ qtd: e.qtd, color: colorForCultura(e.key), label: e.key === "OUTROS" ? "Outros" : e.key }));
           } else {
-            segs = topNPlusOutros(v.modelos, 5).map((e) => ({ qtd: e.qtd, color: colorForModel(e.key) }));
+            segs = topNPlusOutros(v.modelos, 5).map((e) => ({ qtd: e.qtd, color: colorForModel(e.key), label: e.key === "OUTROS" ? "Outros" : e.key }));
           }
           const cls = ["cmg-donut"];
           if (selectedState && selectedState !== uf) cls.push("cmg-dim");
@@ -860,9 +863,16 @@
           if (!v) { showTt(e, `${STATE_NAMES[uf] || uf} (${uf})`, "Nenhuma máquina vendida no período selecionado."); return; }
           const price = avgPrice(v.val, v.qtd);
           const leaderModel = Object.entries(v.modelos).sort((a, b) => b[1].qtd - a[1].qtd)[0];
+          // fatia especifica sob o mouse (donut de modelo ou de cultura) —
+          // mostrada como linha extra, abaixo do Modelo lider.
+          const segEl = e.target.closest(".cmg-donut-seg");
+          const segLine = segEl && segEl.dataset.model
+            ? `<br><strong>${escapeHtml(segEl.dataset.model)}</strong> — ${fmtPct(Number(segEl.dataset.share))}`
+            : "";
           showTt(e, `${STATE_NAMES[uf] || uf} (${uf})`,
             `Máquinas: ${nf(v.qtd)}<br>Faturamento: ${fmtMoneyShort(v.val)}<br>Preço médio: ${price != null ? fmtMoneyShort(price) : "—"}<br>% Brasil: ${fmtPct(d.totQtd ? v.qtd / d.totQtd : 0)}` +
-            (leaderModel ? `<br>Modelo líder: ${escapeHtml(leaderModel[0])} — ${fmtPct(v.qtd ? leaderModel[1].qtd / v.qtd : 0)}` : ""));
+            (leaderModel ? `<br>Modelo líder: ${escapeHtml(leaderModel[0])} — ${fmtPct(v.qtd ? leaderModel[1].qtd / v.qtd : 0)}` : "") +
+            segLine);
         });
         el.addEventListener("mouseleave", hideTt);
       });
