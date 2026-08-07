@@ -321,8 +321,8 @@
         .cmg-card-head .info { color:var(--faint); cursor:help; font-size:11px; }
         .cmg-mapwrap { position:relative; padding:8px; }
         .cmg-mapwrap svg { display:block; width:100%; height:auto; }
-        .cmg-state { stroke:#0a0d16; stroke-width:.6; cursor:pointer; transition:opacity .12s; fill:#161e2f; }
-        .cmg-state:hover { opacity:.85; }
+        .cmg-state { stroke:rgba(255,255,255,.16); stroke-width:.7; cursor:pointer; transition:fill .12s; fill:transparent; }
+        .cmg-state:hover { fill:rgba(255,255,255,.05); }
         .cmg-state.cmg-dim { opacity:.25; }
         .cmg-state.cmg-hi { stroke:#fff; stroke-width:1.6; }
         .cmg-donut { cursor:pointer; }
