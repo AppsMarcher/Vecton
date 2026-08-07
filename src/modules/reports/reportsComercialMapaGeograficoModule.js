@@ -318,14 +318,21 @@
         .cmg-card { background:var(--panel); border:1px solid var(--line); border-radius:16px; }
         /* mapa flutua direto no preto, sem caixa de card ao redor — mesma
            tecnica que .cvm-mapcard ja usa no Mapa de Vendas existente */
-        .cmg-mapcard { background:#000; border:none; border-radius:16px; overflow:hidden; }
+        /* Nada de card aqui de proposito: sem fundo, sem borda, sem raio —
+           o mapa fica direto em cima do fundo da propria pagina, sem caixa
+           nenhuma ao redor. */
+        .cmg-mapcard { background:transparent; border:none; border-radius:0; }
         .cmg-card-head { display:flex; align-items:center; justify-content:space-between; padding:15px 16px 0; }
         .cmg-card-head h3 { margin:0; font-size:13.5px; font-weight:600; }
         .cmg-card-head .info { color:var(--faint); cursor:help; font-size:11px; }
         .cmg-mapwrap { position:relative; padding:8px; }
         .cmg-mapwrap svg { display:block; width:100%; height:auto; }
-        .cmg-state { stroke:rgba(255,255,255,.16); stroke-width:.7; cursor:pointer; transition:fill .12s; fill:transparent; }
-        .cmg-state:hover { fill:rgba(255,255,255,.05); }
+        /* Preenchimento azul, um degrau mais forte que o fundo da pagina
+           (#09090a) — so pra dar presenca ao mapa, nao codifica dado (quem
+           representa dado e o tamanho do donut, exceto no modo Preco Medio,
+           que sobrescreve via inline style). Linhas cinzas = fronteira. */
+        .cmg-state { fill:#13203a; stroke:rgba(148,163,184,.4); stroke-width:.7; cursor:pointer; transition:fill .12s; }
+        .cmg-state:hover { fill:#1a2c50; }
         .cmg-state.cmg-dim { opacity:.25; }
         .cmg-state.cmg-hi { stroke:#fff; stroke-width:1.6; }
         .cmg-donut { cursor:pointer; }
