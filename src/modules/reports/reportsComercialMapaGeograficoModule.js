@@ -743,7 +743,6 @@
           ${renderKpis(d)}
           <div class="cmg-row2">
             <div class="cmg-card cmg-mapcard">
-              <div class="cmg-card-head"><h3>Distribuição Geográfica — Brasil</h3><span class="info" title="Tamanho do donut = quantidade de máquinas vendidas (exceto no modo Mix)">ⓘ</span></div>
               <div class="cmg-mapwrap" id="cmg-mapwrap">
                 <div class="cmg-zoom"><button data-z="in" title="Aproximar">+</button><button data-z="reset" title="Início">⟳</button><button data-z="out" title="Afastar">−</button></div>
                 ${loading ? `<div class="cmg-empty">Carregando…</div>` : mapSvg(d)}
