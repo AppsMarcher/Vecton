@@ -9370,7 +9370,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
   padding: 2px 4px;
 }
 .msg-bubble.emoji-only .msg-bubble-head strong { font-size: 0.64rem; color: var(--text-faint); }
-.msg-emoji-grande { font-size: 2.6rem; line-height: 1.15; margin: 2px 0 !important; }
+.msg-bubble p.msg-emoji-grande { font-size: 2.6rem; line-height: 1.15; margin: 2px 0 !important; }
 
 /* Botão de excluir: discreto, aparece ao passar o mouse na própria bolha. */
 .msg-del {
