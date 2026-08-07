@@ -192,6 +192,17 @@
         .cvp-email-actions button.primary { background:#4f7cff; border-color:#4f7cff; color:#fff; }
         .cvp-email-actions button.primary:hover { background:#3f6bef; }
         .cvp-email-actions button:disabled { opacity:.55; cursor:default; }
+        .cvp-alert-backdrop { position:fixed; inset:0; z-index:9950; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:20px; }
+        .cvp-alert { background:#1a1c22; border:1px solid #2a2d34; border-radius:14px; box-shadow:0 30px 80px rgba(0,0,0,.65); color:#fff; width:100%; max-width:360px; padding:20px; display:flex; flex-direction:column; gap:16px; }
+        .cvp-alert-row { display:flex; align-items:flex-start; gap:12px; }
+        .cvp-alert-icon { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:none; }
+        .cvp-alert-icon.err { background:rgba(239,68,68,.15); color:#f87171; }
+        .cvp-alert-icon.ok { background:rgba(34,197,94,.15); color:#4ade80; }
+        .cvp-alert-icon svg { width:17px; height:17px; }
+        .cvp-alert-msg { font-size:13px; line-height:1.5; color:#e5e7eb; padding-top:5px; }
+        .cvp-alert-actions { display:flex; justify-content:flex-end; }
+        .cvp-alert-actions button { border-radius:10px; padding:8px 22px; font-size:12.5px; font-weight:600; font-family:inherit; cursor:pointer; border:1px solid #4f7cff; background:#4f7cff; color:#fff; }
+        .cvp-alert-actions button:hover { background:#3f6bef; }
         .cvp-drill { cursor:pointer; }
         .cvp-drill:hover { color:#7aa2ff; text-decoration:underline; text-underline-offset:2px; }
         .cvp-pop-backdrop { position:fixed; inset:0; z-index:9800; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:32px; }
@@ -1638,6 +1649,43 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
     }
     function onEmailKey(e) { if (e.key === "Escape") closeEmailModal(); }
 
+    // Popover de alerta (erro de validacao/envio ou confirmacao de sucesso),
+    // sempre exibido por cima do modal de e-mail. Escuta Escape em fase de
+    // captura + stopPropagation pra impedir que o Escape "vaze" pro listener
+    // do modal de e-mail (onEmailKey) e feche o modal por baixo do popover.
+    function showEmailAlert(message, kind, onOk) {
+      const backdrop = document.createElement("div");
+      backdrop.className = "cvp-alert-backdrop";
+      const isErr = kind === "err";
+      backdrop.innerHTML = `
+        <div class="cvp-alert" role="alertdialog" aria-modal="true">
+          <div class="cvp-alert-row">
+            <div class="cvp-alert-icon ${isErr ? "err" : "ok"}">
+              ${isErr
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>'}
+            </div>
+            <div class="cvp-alert-msg">${escapeHtml(message)}</div>
+          </div>
+          <div class="cvp-alert-actions"><button type="button" class="cvp-alert-ok">OK</button></div>
+        </div>
+      `;
+      document.body.appendChild(backdrop);
+      const okBtn = backdrop.querySelector(".cvp-alert-ok");
+      function dismiss() {
+        backdrop.remove();
+        document.removeEventListener("keydown", onKey, true);
+        if (onOk) onOk();
+      }
+      function onKey(e) {
+        if (e.key === "Escape" || e.key === "Enter") { e.stopPropagation(); dismiss(); }
+      }
+      okBtn.addEventListener("click", dismiss);
+      backdrop.addEventListener("click", (e) => { if (e.target === backdrop) dismiss(); });
+      document.addEventListener("keydown", onKey, true);
+      okBtn.focus();
+    }
+
     function openEmailModal(container) {
       closeEmailModal();
       const mLabel = MONTHS[month - 1];
@@ -1722,10 +1770,13 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
         const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         const to = parseEmails(toInput.value);
         const cc = parseEmails(ccInput.value);
-        if (!to.length) { setMsg("Informe ao menos um destinatário em Para.", "err"); return; }
+        if (!to.length) { showEmailAlert("Informe ao menos um destinatário em Para.", "err"); return; }
         const invalid = to.concat(cc).filter((e) => !EMAIL_RE.test(e));
-        if (invalid.length) { setMsg(`E-mail inválido: ${invalid.join(", ")}`, "err"); return; }
-        if (!subjectInput.value.trim()) { setMsg("Informe o assunto.", "err"); return; }
+        if (invalid.length) {
+          showEmailAlert(`E-mail inválido: ${invalid.join(", ")}. Separe múltiplos endereços por vírgula (,).`, "err");
+          return;
+        }
+        if (!subjectInput.value.trim()) { showEmailAlert("Informe o assunto.", "err"); return; }
 
         sendBtn.disabled = true;
         fields.forEach((el) => { el.disabled = true; });
@@ -1744,14 +1795,15 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
           });
           if (emailEl !== backdrop) return;
           if (rememberChk.checked) saveRecipients(to.concat(cc));
-          setMsg("E-mail enviado com sucesso.", "ok");
-          setTimeout(() => { if (emailEl === backdrop) closeEmailModal(); }, 1400);
+          setMsg("", "");
+          showEmailAlert("E-mail enviado com sucesso.", "ok", () => { if (emailEl === backdrop) closeEmailModal(); });
         } catch (e) {
           console.error("enviar por e-mail:", e);
           if (emailEl !== backdrop) return;
-          setMsg(e?.message || "Falha ao enviar o e-mail.", "err");
+          setMsg("", "");
           sendBtn.disabled = false;
           fields.forEach((el) => { el.disabled = false; });
+          showEmailAlert(e?.message || "Falha ao enviar o e-mail.", "err");
         }
       }
 
