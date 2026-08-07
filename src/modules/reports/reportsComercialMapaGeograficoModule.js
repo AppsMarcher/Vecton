@@ -592,9 +592,12 @@
       // Icones sao PNGs de verdade (pedido do usuario, cansado de SVG feito a
       // mao) — cada um ja vem com seu proprio "tile" glass/neon, entao o
       // .icon aqui nao aplica fundo colorido, so encaixa a imagem.
+      // ?v= evita servir icone antigo do cache do service worker (sw.js
+      // cacheia por URL exata) quando o PNG e trocado sem mudar o nome.
       const ICON_BASE = "src/modules/reports/icons/";
+      const ICON_V = "20260807c";
       const kpiImg = (file, val, label, delta) => `<div class="cmg-kpi">
-        <span class="icon img"><img src="${ICON_BASE}${file}" alt="" loading="lazy"></span>
+        <span class="icon img"><img src="${ICON_BASE}${file}?v=${ICON_V}" alt="" loading="lazy"></span>
         <div class="body"><div class="v">${val}</div><div class="l">${label}</div>${delta || ""}</div>
       </div>`;
       return `<div class="cmg-kpis">
