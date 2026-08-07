@@ -265,13 +265,11 @@
         .cmg * { box-sizing:border-box; }
         .cmg-crumb { font-size:12px; color:var(--soft); margin-bottom:10px; }
         .cmg-crumb a { color:var(--accent); cursor:pointer; text-decoration:none; }
-        /* Sem z-index aqui de proposito: o popover do periodo do cabecalho do
-           site (.period-popover) usa z-index:20 — se o relatorio competir
-           nesse mesmo valor, quem vem depois no DOM (o relatorio) cobre o
-           calendario do cabecalho. Elementos position:absolute (o .cmg-pop
-           abaixo) ja pintam acima do conteudo estatico do proprio relatorio
-           sem precisar de z-index explicito. */
-        .cmg-filters { display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:14px; position:relative; }
+        /* z-index positivo mas ABAIXO de 20 (o do .period-popover do
+           cabecalho do site) — alto o bastante pra sempre ficar acima do
+           resto do proprio relatorio (mapa, zoom em z-index:5 etc.), baixo o
+           bastante pra nunca cobrir o calendario do cabecalho. */
+        .cmg-filters { display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:14px; position:relative; z-index:10; }
         .cmg-fspacer { flex:1; }
         .cmg-chip { position:relative; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:7px 12px; display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; }
         .cmg-chip:hover { background:#1d2537; }
@@ -279,7 +277,7 @@
         .cmg-chip .ico { color:var(--faint); display:flex; }
         .cmg-chip .lbl { color:var(--faint); }
         .cmg-chip .val { color:var(--ink); font-weight:600; white-space:nowrap; }
-        .cmg-pop { position:absolute; top:calc(100% + 6px); left:0; background:#171f30; border:1px solid var(--line); border-radius:12px; padding:12px; min-width:220px; max-width:320px; box-shadow:0 20px 44px rgba(0,0,0,.5); }
+        .cmg-pop { position:absolute; top:calc(100% + 6px); left:0; z-index:15; background:#171f30; border:1px solid var(--line); border-radius:12px; padding:12px; min-width:220px; max-width:320px; box-shadow:0 20px 44px rgba(0,0,0,.5); }
         .cmg-pop.right { left:auto; right:0; }
         .cmg-pop h4 { margin:0 0 8px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:600; }
         .cmg-pop .grp + .grp { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
