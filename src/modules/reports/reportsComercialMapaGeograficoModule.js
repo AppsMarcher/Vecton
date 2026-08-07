@@ -15,7 +15,6 @@
     const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, fetchAllSupabaseRows, isSupabaseConfigured } = deps;
 
     const REPORT_ID = "comercialMapaGeografico";
-    const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
     const REGIOES = {
       AC: "Norte", AP: "Norte", AM: "Norte", PA: "Norte", RO: "Norte", RR: "Norte", TO: "Norte",
@@ -96,6 +95,7 @@
     let prevTotals = { qtd: 0, val: 0 };
     let loading = false;
     let loadedKey = null;
+    let lastError = null;
     let optionsLoaded = false;
     let MODELOS = [];       // lista de nomes de modelo (Maquinas)
     let TERRITORIOS = [];
@@ -116,12 +116,6 @@
         return month === 1 ? { year: year - 1, month: 12, period: "mes" } : { year, month: month - 1, period: "mes" };
       }
       return { year: year - 1, month, period };
-    }
-    function periodLabel() {
-      const m = MONTHS[month - 1] || "";
-      if (period === "mes") return `${m}/${year}`;
-      if (period === "fy") return `Ano ${year}`;
-      return `YTD até ${m}/${year}`;
     }
 
     // ------------------------------------------------------------ helpers
@@ -214,19 +208,27 @@
       optionsLoaded = true;
     }
     async function loadData() {
-      loading = true; rows = []; prevTotals = { qtd: 0, val: 0 };
+      loading = true; rows = []; prevTotals = { qtd: 0, val: 0 }; lastError = null;
       if (!isSupabaseConfigured()) { loading = false; loadedKey = paramsKey(); return; }
-      const org = await resolveOrganizationId();
-      await loadOptions(org);
-      const pv = prevPeriodParams();
-      const curParams = buildFilterParams(year, month, period); curParams.p_org = org;
-      const prevParams = buildFilterParams(pv.year, pv.month, pv.period); prevParams.p_org = org;
-      const [curRows, prevRows] = await Promise.all([
-        callSupabaseRpc("comercial_mapa_geografico_vendas", curParams),
-        callSupabaseRpc("comercial_mapa_geografico_vendas", prevParams)
-      ]);
-      rows = curRows || [];
-      prevTotals = (prevRows || []).reduce((a, r) => { a.qtd += Number(r.quantidade) || 0; a.val += Number(r.valor) || 0; return a; }, { qtd: 0, val: 0 });
+      try {
+        const org = await resolveOrganizationId();
+        await loadOptions(org);
+        const pv = prevPeriodParams();
+        const curParams = buildFilterParams(year, month, period); curParams.p_org = org;
+        const prevParams = buildFilterParams(pv.year, pv.month, pv.period); prevParams.p_org = org;
+        const [curRows, prevRows] = await Promise.all([
+          callSupabaseRpc("comercial_mapa_geografico_vendas", curParams),
+          callSupabaseRpc("comercial_mapa_geografico_vendas", prevParams)
+        ]);
+        rows = curRows || [];
+        prevTotals = (prevRows || []).reduce((a, r) => { a.qtd += Number(r.quantidade) || 0; a.val += Number(r.valor) || 0; return a; }, { qtd: 0, val: 0 });
+      } catch (e) {
+        // Erro real (ex.: RPC com assinatura desatualizada no banco) NAO pode
+        // virar silenciosamente "sem dados" — o usuario precisa ver que algo
+        // quebrou, nao que o periodo esta vazio.
+        console.error(e);
+        lastError = (e && e.message) || String(e);
+      }
       loadedKey = paramsKey();
       loading = false;
     }
@@ -266,8 +268,6 @@
         .cmg-h1 .info { color:var(--faint); cursor:help; }
         .cmg-crumb { font-size:12px; color:var(--soft); margin-top:3px; }
         .cmg-crumb a { color:var(--accent); cursor:pointer; text-decoration:none; }
-        .cmg-export { background:var(--panel2); border:1px solid var(--line); color:var(--ink); font:inherit; font-size:12.5px; font-weight:500; padding:9px 14px; border-radius:10px; cursor:pointer; display:flex; align-items:center; gap:7px; }
-        .cmg-export:hover { background:#1d2537; }
         .cmg-filters { display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:14px; position:relative; z-index:20; }
         .cmg-fspacer { flex:1; }
         .cmg-chip { position:relative; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:7px 12px; display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; }
@@ -495,7 +495,6 @@
           <button data-mode="precoMedio" ${mapMode === "precoMedio" ? 'class="on"' : ""}>Preço Médio</button>
           <button data-mode="cultura" ${mapMode === "cultura" ? 'class="on"' : ""}>Cultura</button>
         </div>
-        <button class="cmg-export" id="cmg-export"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Exportar</button>
       </div>`;
     }
 
@@ -722,17 +721,18 @@
         return;
       }
       const d = derive();
-      const empty = !loading && rows.length === 0;
+      const empty = !loading && !lastError && rows.length === 0;
       container.innerHTML = `
         <div class="cmg ${loading ? "cmg-skel" : ""}">
           <div class="cmg-head">
             <div>
-              <h1 class="cmg-h1">Vendas de Máquinas — Distribuição Geográfica <span class="info" title="Fonte: vendas faturadas de Máquinas (Grão/Pecuária). Preço médio = faturamento ÷ quantidade. Período segue o cabeçalho do site.">ⓘ</span></h1>
-              <div class="cmg-crumb">${periodLabel()}${selectedState ? ` &nbsp;·&nbsp; <a data-crumb-brasil>Brasil</a> &nbsp;›&nbsp; ${escapeHtml(STATE_NAMES[selectedState] || selectedState)}` : ""}</div>
+              <h1 class="cmg-h1">Vendas de Máquinas — Distribuição Geográfica</h1>
+              ${selectedState ? `<div class="cmg-crumb"><a data-crumb-brasil>Brasil</a> &nbsp;›&nbsp; ${escapeHtml(STATE_NAMES[selectedState] || selectedState)}</div>` : ""}
             </div>
           </div>
           ${renderFilterBar()}
-          ${empty ? `<div class="cmg-empty">Nenhuma venda de máquinas encontrada para os filtros selecionados.<br><button id="cmg-clear-filters">Limpar filtros</button></div>` : `
+          ${lastError ? `<div class="cmg-empty">Não foi possível carregar os dados.<br><span style="color:var(--faint);font-size:11px">${escapeHtml(lastError)}</span><br><button id="cmg-retry">Tentar novamente</button></div>`
+            : empty ? `<div class="cmg-empty">Nenhuma venda de máquinas encontrada para os filtros selecionados.<br><button id="cmg-clear-filters">Limpar filtros</button></div>` : `
           ${renderKpis(d)}
           <div class="cmg-row2">
             <div class="cmg-card">
@@ -865,30 +865,13 @@
       container.querySelector("#cmg-toggle-ranking")?.addEventListener("click", () => { showAllRanking = !showAllRanking; render(container); });
       container.querySelector("[data-crumb-brasil]")?.addEventListener("click", () => { selectedState = null; render(container); });
 
-      // exportar (CSV do ranking de estados, respeitando os filtros atuais)
-      container.querySelector("#cmg-export")?.addEventListener("click", () => exportCsv());
-
       container.querySelector("#cmg-clear-filters")?.addEventListener("click", () => {
         selUFs.clear(); selCultura = ""; selModelo = ""; equipe = { tipo: "", valor: "" }; selectedState = null;
         reloadAndRender(container);
       });
+      container.querySelector("#cmg-retry")?.addEventListener("click", () => reloadAndRender(container));
 
       bindDocClose();
-    }
-
-    function exportCsv() {
-      const d = derive();
-      const arr = Object.entries(d.byUF).map(([uf, v]) => ({ uf, qtd: v.qtd, val: v.val })).sort((a, b) => b.qtd - a.qtd);
-      const lines = ["UF;Maquinas vendidas;Participacao;Faturamento;Preco medio"];
-      arr.forEach((r) => {
-        const price = avgPrice(r.val, r.qtd);
-        lines.push([r.uf, r.qtd, (d.totQtd ? (100 * r.qtd / d.totQtd).toFixed(1) : "0") + "%", r.val.toFixed(2), price != null ? price.toFixed(2) : ""].join(";"));
-      });
-      const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `vendas-maquinas-geografico_${year}-${String(month).padStart(2, "0")}_${period}.csv`;
-      document.body.appendChild(a); a.click(); a.remove();
     }
 
     async function reloadAndRender(container) {
