@@ -345,10 +345,10 @@
         .cmg-lg-bar { width:120px; height:8px; border-radius:99px; background:linear-gradient(90deg,${HEAT_STOPS.join(",")}); }
         .cmg-note { font-size:10.5px; color:var(--faint); padding:0 16px 12px; }
         .cmg-side { padding:14px 16px 16px; }
-        .cmg-side table { width:100%; border-collapse:collapse; font-size:12.5px; }
-        .cmg-side thead th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); font-weight:600; padding:0 6px 8px; }
-        .cmg-side thead th.num, .cmg-side td.num { text-align:right; }
-        .cmg-side tbody td { padding:8px 6px; border-top:1px solid var(--line); vertical-align:middle; }
+        .cmg-side table { width:100%; border-collapse:collapse; font-size:11.5px; table-layout:fixed; }
+        .cmg-side thead th { text-align:left; font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--faint); font-weight:600; padding:0 5px 8px; white-space:nowrap; }
+        .cmg-side thead th.num, .cmg-side td.num { text-align:right; white-space:nowrap; }
+        .cmg-side tbody td { padding:8px 5px; border-top:1px solid var(--line); vertical-align:middle; }
         .cmg-side tbody tr { cursor:pointer; }
         .cmg-side tbody tr:hover td { background:#171f30; }
         .cmg-side tbody tr.sel td { background:rgba(59,130,246,.14); }
@@ -624,10 +624,11 @@
         </tr>`;
       }).join("");
       return `<div class="cmg-card">
-        <div class="cmg-card-head"><h3>Top Estados</h3><span class="info" title="Clique num estado pra ver o detalhamento abaixo">ⓘ</span></div>
+        <div class="cmg-card-head"><h3>Top Estados</h3></div>
         <div class="cmg-side">
           ${arr.length ? `<table>
-            <thead><tr><th></th><th>Estado</th><th class="num">Máquinas vendidas</th><th class="num">Participação</th><th class="num">Preço médio</th></tr></thead>
+            <colgroup><col style="width:16px"><col style="width:15%"><col style="width:34%"><col style="width:17%"><col style="width:26%"></colgroup>
+            <thead><tr><th></th><th>UF</th><th class="num">Qtd</th><th class="num">Part</th><th class="num">Preço médio</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>` : `<div class="cmg-note" style="padding:12px 0">Sem dados no período/filtros.</div>`}
           ${arr.length > 5 ? `<button class="cmg-more" id="cmg-toggle-ranking">${showAllRanking ? "Ver top 5" : "Ver todos os estados ›"}</button>` : ""}
