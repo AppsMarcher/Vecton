@@ -301,6 +301,8 @@
         .cmg-kpi { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; }
         .cmg-kpi .icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex:none; }
         .cmg-kpi .icon svg { width:19px; height:19px; }
+        .cmg-kpi .icon.img { background:none; }
+        .cmg-kpi .icon.img img { width:100%; height:100%; border-radius:10px; object-fit:cover; display:block; }
         .cmg-kpi .body { min-width:0; }
         .cmg-kpi .v { font-size:19px; font-weight:700; line-height:1.15; white-space:nowrap; }
         .cmg-kpi .l { font-size:11.5px; color:var(--soft); margin-top:1px; }
@@ -584,21 +586,20 @@
       const leaderModel = topNPlusOutros(d.byModeloBR, 1)[0];
       const leaderModelReal = Object.entries(d.byModeloBR).sort((a, b) => b[1].qtd - a[1].qtd)[0];
       const leaderUF = Object.entries(d.byUF).sort((a, b) => b[1].qtd - a[1].qtd)[0];
-      const kpi = (icon, bg, val, label, delta) => `<div class="cmg-kpi">
-        <span class="icon" style="background:${bg}22;color:${bg}">${icon}</span>
+      // Icones sao PNGs de verdade (pedido do usuario, cansado de SVG feito a
+      // mao) — cada um ja vem com seu proprio "tile" glass/neon, entao o
+      // .icon aqui nao aplica fundo colorido, so encaixa a imagem.
+      const ICON_BASE = "src/modules/reports/icons/";
+      const kpiImg = (file, val, label, delta) => `<div class="cmg-kpi">
+        <span class="icon img"><img src="${ICON_BASE}${file}" alt="" loading="lazy"></span>
         <div class="body"><div class="v">${val}</div><div class="l">${label}</div>${delta || ""}</div>
       </div>`;
       return `<div class="cmg-kpis">
-        ${kpi(`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="12.5" y="6" width="5.5" height="5.5" rx="1"/><path d="M6 10h6.5v4H4.2a2.2 2.2 0 0 1 1.8-4z"/><rect x="17.3" y="3.5" width="1.4" height="3.2" rx="0.7"/><circle cx="7" cy="17" r="2.3"/><circle cx="16.3" cy="17" r="3"/></svg>`,
-          "#3b82f6", nf(d.totQtd), "Máquinas vendidas", deltaBadge(d.totQtd, prevTotals.qtd))}
-        ${kpi(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l5-5 4 3 8-9M14 6h6v6"/></svg>`,
-          "#14b8a6", fmtMoneyShort(d.totVal), "Faturamento", deltaBadge(d.totVal, prevTotals.val))}
-        ${kpi(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-1.5z"/></svg>`,
-          "#8b5cf6", price != null ? fmtMoneyShort(price) : "—", "Preço médio", price != null && prevPrice != null ? deltaBadge(price, prevPrice) : "")}
-        ${kpi(`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 2h8v6a4 4 0 0 1-8 0V2z"/><path d="M8 3H5a1 1 0 0 0-1 1v1a4 4 0 0 0 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16 3h3a1 1 0 0 1 1 1v1a4 4 0 0 1-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="11" y="12" width="2" height="4"/><rect x="7" y="19" width="10" height="2" rx="1"/><path d="M9 16h6l1 3H8l1-3z"/></svg>`,
-          "#3b82f6", leaderModelReal ? leaderModelReal[0] : "—", `Modelo líder${leaderModelReal ? " · " + fmtPct(leaderModelReal[1].qtd / (d.totQtd || 1)) : ""}`, "")}
-        ${kpi(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.01,8.53 Q2,8.58 2.2,9.06 Q2.39,9.53 6.37,14.84 Q10.35,20.14 11.43,21.05 Q12.5,21.96 12.71,21.8 Q12.91,21.63 15.62,19.05 Q18.32,16.47 18.59,16.22 Q18.85,15.96 19.18,15.29 Q19.51,14.61 20.67,11.95 Q21.83,9.28 21.91,9.05 Q21.98,8.82 21.99,8.7 Q22,8.57 21.96,8.31 Q21.92,8.04 21.85,7.79 Q21.77,7.53 21.71,7.45 Q21.65,7.36 17.56,4.92 Q13.46,2.47 11.25,2.26 Q9.04,2.04 8.9,2.05 Q8.77,2.07 7.73,2.31 Q6.68,2.55 5.4,3.2 Q4.12,3.85 3.07,6.17 Q2.01,8.48 2.01,8.53 Z"/></svg>`,
-          "#14b8a6", leaderUF ? leaderUF[0] : "—", leaderUF ? `Maior mercado · ${fmtPct(leaderUF[1].qtd / (d.totQtd || 1))}` : "Maior mercado", "")}
+        ${kpiImg("kpi-tractor.png", nf(d.totQtd), "Máquinas vendidas", deltaBadge(d.totQtd, prevTotals.qtd))}
+        ${kpiImg("kpi-faturamento.png", fmtMoneyShort(d.totVal), "Faturamento", deltaBadge(d.totVal, prevTotals.val))}
+        ${kpiImg("kpi-preco.png", price != null ? fmtMoneyShort(price) : "—", "Preço médio", price != null && prevPrice != null ? deltaBadge(price, prevPrice) : "")}
+        ${kpiImg("kpi-trofeu.png", leaderModelReal ? leaderModelReal[0] : "—", `Modelo líder${leaderModelReal ? " · " + fmtPct(leaderModelReal[1].qtd / (d.totQtd || 1)) : ""}`, "")}
+        ${kpiImg("kpi-brasil.png", leaderUF ? leaderUF[0] : "—", leaderUF ? `Maior mercado · ${fmtPct(leaderUF[1].qtd / (d.totQtd || 1))}` : "Maior mercado", "")}
       </div>`;
     }
 
