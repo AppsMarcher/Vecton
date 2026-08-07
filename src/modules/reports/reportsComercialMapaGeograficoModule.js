@@ -26,6 +26,12 @@
     const REGIOES_ORDEM = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"];
     const PALETTE = ["#3b82f6", "#14b8a6", "#8b5cf6", "#f59e0b", "#ec4899", "#22c55e", "#06b6d4", "#eab308"];
     const OUTROS_COLOR = "#6b7280";
+    // Top N antes de agrupar o resto em "Outros" nos donuts/mix por modelo.
+    // Era 5 (sugestão da spec original); subiu pra 8 porque em estados de
+    // baixo volume com muitos modelos distintos vendidos (ex: MG jul/2026,
+    // 9 modelos reais em 12 máquinas) o corte em 5 inflava o Outros sem
+    // nenhum problema de dado por trás — só matemática de amostra pequena.
+    const MODEL_TOP_N = 8;
     const CULTURA_COLORS = { "Grãos": "#14b8a6", "Pecuária": "#8b5cf6", "Outros": OUTROS_COLOR };
     const HEAT_STOPS = ["#131a28", "#2b5fa0", "#4f8fef"];
     const DF_FALLBACK_LONLAT = [-47.93, -15.78]; // brStatesGeo.js traz DF com rings vazios (embutido em GO no dado simplificado)
@@ -557,9 +563,9 @@
           const sw = r * 0.55;
           let segs;
           if (mapMode === "cultura") {
-            segs = topNPlusOutros(v.culturas, 5).map((e) => ({ qtd: e.qtd, color: colorForCultura(e.key), label: e.key === "OUTROS" ? "Outros" : e.key }));
+            segs = topNPlusOutros(v.culturas, MODEL_TOP_N).map((e) => ({ qtd: e.qtd, color: colorForCultura(e.key), label: e.key === "OUTROS" ? "Outros" : e.key }));
           } else {
-            segs = topNPlusOutros(v.modelos, 5).map((e) => ({ qtd: e.qtd, color: colorForModel(e.key), label: e.key === "OUTROS" ? "Outros" : e.key }));
+            segs = topNPlusOutros(v.modelos, MODEL_TOP_N).map((e) => ({ qtd: e.qtd, color: colorForModel(e.key), label: e.key === "OUTROS" ? "Outros" : e.key }));
           }
           const cls = ["cmg-donut"];
           if (selectedState && selectedState !== uf) cls.push("cmg-dim");
@@ -650,7 +656,7 @@
     }
 
     function renderMixModelo(scope) {
-      const list = topNPlusOutros(scope.modelos, 5);
+      const list = topNPlusOutros(scope.modelos, MODEL_TOP_N);
       const max = list.length ? Math.max(...list.map((e) => e.qtd)) : 1;
       const rows = list.map((e) => `<div class="cmg-bar-row">
         <span class="nm" title="${escapeHtml(e.key)}">${escapeHtml(e.key)}</span>
@@ -686,7 +692,7 @@
       const selected = !!selectedState;
       let title = "Preço Médio", rows;
       if (selected) {
-        const list = topNPlusOutros(scope.modelos, 5).filter((e) => e.key !== "OUTROS");
+        const list = topNPlusOutros(scope.modelos, MODEL_TOP_N).filter((e) => e.key !== "OUTROS");
         const max = list.length ? Math.max(...list.map((e) => avgPrice(e.val, e.qtd) || 0)) : 1;
         rows = list.map((e) => {
           const p = avgPrice(e.val, e.qtd);
@@ -709,7 +715,7 @@
 
     function renderComparativo(d, scope) {
       if (!selectedState) return "";
-      const list = topNPlusOutros(scope.modelos, 5);
+      const list = topNPlusOutros(scope.modelos, MODEL_TOP_N);
       const rows = list.map((e) => {
         const ufShare = scope.qtd ? e.qtd / scope.qtd : 0;
         const brEntry = d.byModeloBR[e.key];
@@ -756,7 +762,7 @@
               </div>
               ${mapMode === "precoMedio" ? `<div class="cmg-legend"><span>Preço médio</span><div class="cmg-lg-scale"><span>menor</span><div class="cmg-lg-bar"></div><span>maior</span></div></div>`
                 : mapMode === "cultura" ? `<div class="cmg-legend">${Object.entries(CULTURA_COLORS).filter(([k]) => k !== "Outros").map(([k, c]) => `<span><span class="cmg-lg-dot" style="background:${c}"></span>${k}</span>`).join("")}</div>`
-                : `<div class="cmg-legend">${topNPlusOutros(mapMode === "cultura" ? d.byCulturaBR : d.byModeloBR, 5).map((e) => `<span><span class="cmg-lg-dot" style="background:${colorForModel(e.key)}"></span>${e.key === "OUTROS" ? "Outros" : escapeHtml(e.key)}</span>`).join("")}</div>`}
+                : `<div class="cmg-legend">${topNPlusOutros(mapMode === "cultura" ? d.byCulturaBR : d.byModeloBR, MODEL_TOP_N).map((e) => `<span><span class="cmg-lg-dot" style="background:${colorForModel(e.key)}"></span>${e.key === "OUTROS" ? "Outros" : escapeHtml(e.key)}</span>`).join("")}</div>`}
               <div class="cmg-note">Tamanho do gráfico = quantidade de máquinas vendidas. Clique num estado pra detalhar.</div>
             </div>
             ${renderRanking(d)}
