@@ -263,10 +263,7 @@
       s.textContent = `
         .cmg { --bg:#0a0d16; --panel:#121826; --panel2:#171f30; --line:#232c40; --ink:#eef1f6; --soft:#9aa4b8; --faint:#6b7690; --accent:#3b82f6; color:var(--ink); }
         .cmg * { box-sizing:border-box; }
-        .cmg-head { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
-        .cmg-h1 { font-size:19px; font-weight:600; margin:0; display:flex; align-items:center; gap:8px; }
-        .cmg-h1 .info { color:var(--faint); cursor:help; }
-        .cmg-crumb { font-size:12px; color:var(--soft); margin-top:3px; }
+        .cmg-crumb { font-size:12px; color:var(--soft); margin-bottom:10px; }
         .cmg-crumb a { color:var(--accent); cursor:pointer; text-decoration:none; }
         /* Sem z-index aqui de proposito: o popover do periodo do cabecalho do
            site (.period-popover) usa z-index:20 — se o relatorio competir
@@ -740,12 +737,7 @@
       const empty = !loading && !lastError && rows.length === 0;
       container.innerHTML = `
         <div class="cmg ${loading ? "cmg-skel" : ""}">
-          <div class="cmg-head">
-            <div>
-              <h1 class="cmg-h1">Vendas de Máquinas — Distribuição Geográfica</h1>
-              ${selectedState ? `<div class="cmg-crumb"><a data-crumb-brasil>Brasil</a> &nbsp;›&nbsp; ${escapeHtml(STATE_NAMES[selectedState] || selectedState)}</div>` : ""}
-            </div>
-          </div>
+          ${selectedState ? `<div class="cmg-crumb"><a data-crumb-brasil>Brasil</a> &nbsp;›&nbsp; ${escapeHtml(STATE_NAMES[selectedState] || selectedState)}</div>` : ""}
           ${renderFilterBar()}
           ${lastError ? `<div class="cmg-empty">Não foi possível carregar os dados. Tente novamente em instantes.<br><button id="cmg-retry">Tentar novamente</button></div>`
             : empty ? `<div class="cmg-empty">Nenhuma venda de máquinas encontrada para os filtros selecionados.<br><button id="cmg-clear-filters">Limpar filtros</button></div>` : `
