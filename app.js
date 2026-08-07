@@ -1281,6 +1281,7 @@ const comercialMapaModule = createComercialMapaModule({
 });
 const comercialMapaGeograficoModule = createComercialMapaGeograficoModule({
   escapeHtml,
+  state,
   resolveOrganizationId,
   callSupabaseRpc,
   fetchAllSupabaseRows,

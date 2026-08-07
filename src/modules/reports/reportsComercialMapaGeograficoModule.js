@@ -12,9 +12,10 @@
   // dos outros relatorios comerciais — CSS proprio (prefixo cmg-), decisao
   // explicita do usuario.
   function createComercialMapaGeograficoModule(deps) {
-    const { escapeHtml, resolveOrganizationId, callSupabaseRpc, fetchAllSupabaseRows, isSupabaseConfigured } = deps;
+    const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, fetchAllSupabaseRows, isSupabaseConfigured } = deps;
 
     const REPORT_ID = "comercialMapaGeografico";
+    const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
     const REGIOES = {
       AC: "Norte", AP: "Norte", AM: "Norte", PA: "Norte", RO: "Norte", RR: "Norte", TO: "Norte",
@@ -73,7 +74,13 @@
     });
 
     // ------------------------------------------------------------ estado
-    let dateFrom = null, dateTo = null; // ISO yyyy-mm-dd
+    // Periodo NAO tem controle proprio dentro do relatorio — regra do app e
+    // o mes/ano virem sempre do cabecalho do site (state.currentPeriod),
+    // igual Painel e Mapa de Vendas. Aqui so um toggle Mes/YTD/Ano define a
+    // janela em torno desse mes (mesmo padrao das outras 2 RPCs comerciais).
+    let period = "ytd";                 // mes | ytd | fy
+    let year = Number(state.currentPeriod?.year || new Date().getFullYear());
+    let month = Number(state.currentPeriod?.month || new Date().getMonth() + 1);
     let selUFs = new Set();             // vazio = Todas
     let selCultura = "";                // "" = Todas
     let selModelo = "";                 // "" = Todos
@@ -98,20 +105,23 @@
     let hostContainer = null;
     let docCloseBound = false;
 
-    setDefaultPeriod();
-    function setDefaultPeriod() {
-      const now = new Date();
-      dateFrom = `${now.getFullYear()}-01-01`;
-      dateTo = isoDate(now);
+    function syncFromHeader() {
+      year = Number(state.currentPeriod?.year || year);
+      month = Number(state.currentPeriod?.month || month);
     }
-    function isoDate(d) { return d.toISOString().slice(0, 10); }
-    function brDate(iso) { if (!iso) return ""; const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`; }
-    function prevWindow(from, to) {
-      const f = new Date(from + "T00:00:00"), t = new Date(to + "T00:00:00");
-      const days = Math.round((t - f) / 86400000) + 1;
-      const pTo = new Date(f); pTo.setDate(pTo.getDate() - 1);
-      const pFrom = new Date(pTo); pFrom.setDate(pFrom.getDate() - (days - 1));
-      return [isoDate(pFrom), isoDate(pTo)];
+    // "periodo anterior" dos cards: mes -> mes anterior (MoM); ytd/fy -> mesma
+    // janela no ano anterior (comparacao YoY, mais natural pra acumulado).
+    function prevPeriodParams() {
+      if (period === "mes") {
+        return month === 1 ? { year: year - 1, month: 12, period: "mes" } : { year, month: month - 1, period: "mes" };
+      }
+      return { year: year - 1, month, period };
+    }
+    function periodLabel() {
+      const m = MONTHS[month - 1] || "";
+      if (period === "mes") return `${m}/${year}`;
+      if (period === "fy") return `Ano ${year}`;
+      return `YTD até ${m}/${year}`;
     }
 
     // ------------------------------------------------------------ helpers
@@ -165,13 +175,14 @@
 
     // ------------------------------------------------------------ dados
     function paramsKey() {
-      return [dateFrom, dateTo, [...selUFs].sort().join(","), selCultura, selModelo, equipe.tipo, equipe.valor].join("|");
+      return [year, month, period, [...selUFs].sort().join(","), selCultura, selModelo, equipe.tipo, equipe.valor].join("|");
     }
-    function buildFilterParams(from, to) {
+    function buildFilterParams(y, m, p) {
       return {
         p_org: null, // preenchido em loadData
-        p_date_from: from,
-        p_date_to: to,
+        p_year: y,
+        p_month: m,
+        p_period: p,
         p_uf: selUFs.size ? [...selUFs] : null,
         p_cultura: selCultura || null,
         p_modelo: selModelo ? [selModelo] : null,
@@ -207,9 +218,9 @@
       if (!isSupabaseConfigured()) { loading = false; loadedKey = paramsKey(); return; }
       const org = await resolveOrganizationId();
       await loadOptions(org);
-      const [pFrom, pTo] = prevWindow(dateFrom, dateTo);
-      const curParams = buildFilterParams(dateFrom, dateTo); curParams.p_org = org;
-      const prevParams = buildFilterParams(pFrom, pTo); prevParams.p_org = org;
+      const pv = prevPeriodParams();
+      const curParams = buildFilterParams(year, month, period); curParams.p_org = org;
+      const prevParams = buildFilterParams(pv.year, pv.month, pv.period); prevParams.p_org = org;
       const [curRows, prevRows] = await Promise.all([
         callSupabaseRpc("comercial_mapa_geografico_vendas", curParams),
         callSupabaseRpc("comercial_mapa_geografico_vendas", prevParams)
@@ -270,19 +281,16 @@
         .cmg-pop h4 { margin:0 0 8px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:600; }
         .cmg-pop .grp + .grp { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
         .cmg-pop-list { max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
-        .cmg-pop label { display:flex; align-items:center; gap:8px; font-size:12.5px; padding:5px 6px; border-radius:7px; cursor:pointer; }
+        /* .cmg-pop input[type=checkbox|radio] herda width:100% do <input> global
+           do site (styles.css) — sem isso, o controle "estica" e empurra o
+           texto do label pro canto direito do popover. */
+        .cmg-pop label { display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:8px; font-size:12.5px; text-align:left; padding:5px 6px; border-radius:7px; cursor:pointer; }
         .cmg-pop label:hover { background:#1d2537; }
-        .cmg-pop input[type=checkbox], .cmg-pop input[type=radio] { accent-color:var(--accent); }
+        .cmg-pop label span { text-align:left; }
+        .cmg-pop input[type=checkbox], .cmg-pop input[type=radio] { width:auto; min-width:0; flex:none; accent-color:var(--accent); margin:0; }
         .cmg-pop-ufgrid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px; max-height:260px; overflow-y:auto; }
         .cmg-pop-foot { display:flex; justify-content:flex-end; margin-top:9px; padding-top:9px; border-top:1px solid var(--line); }
         .cmg-pop-clear { background:none; border:none; color:var(--accent); font:inherit; font-size:12px; cursor:pointer; padding:4px 6px; }
-        .cmg-pop-dates { display:flex; flex-direction:column; gap:8px; }
-        .cmg-pop-dates .row { display:flex; gap:8px; }
-        .cmg-pop-dates label.fld { flex:1; display:block; font-size:10.5px; color:var(--faint); }
-        .cmg-pop-dates input[type=date] { width:100%; margin-top:3px; background:#0f1420; border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:6px 7px; font:inherit; font-size:12px; }
-        .cmg-preset { background:#0f1420; border:1px solid var(--line); color:var(--soft); font:inherit; font-size:11.5px; padding:5px 9px; border-radius:8px; cursor:pointer; }
-        .cmg-preset:hover { color:var(--ink); border-color:var(--accent); }
-        .cmg-preset-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:9px; }
         .cmg-seg { display:flex; gap:2px; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:3px; }
         .cmg-seg button { border:none; background:transparent; color:var(--soft); font:inherit; font-size:12.5px; font-weight:500; padding:7px 14px; border-radius:8px; cursor:pointer; white-space:nowrap; }
         .cmg-seg button.on { background:var(--accent); color:#fff; }
@@ -392,23 +400,6 @@
     }
 
     function popoverHtml(key) {
-      if (key === "periodo") {
-        return `<div class="cmg-pop" data-pop="periodo">
-          <h4>Período</h4>
-          <div class="cmg-preset-row">
-            <button class="cmg-preset" data-preset="mes">Este mês</button>
-            <button class="cmg-preset" data-preset="mesant">Mês anterior</button>
-            <button class="cmg-preset" data-preset="ano">Ano atual</button>
-            <button class="cmg-preset" data-preset="12m">Últimos 12 meses</button>
-          </div>
-          <div class="cmg-pop-dates">
-            <div class="row">
-              <label class="fld">De<input type="date" id="cmg-date-from" value="${dateFrom}"></label>
-              <label class="fld">Até<input type="date" id="cmg-date-to" value="${dateTo}"></label>
-            </div>
-          </div>
-        </div>`;
-      }
       if (key === "regiao") {
         return `<div class="cmg-pop" data-pop="regiao">
           <h4>Região</h4>
@@ -477,7 +468,6 @@
     }
 
     const ICO = {
-      periodo: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>`,
       regiao: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"/></svg>`,
       uf: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 20l-6-3V4l6 3 6-3 6 3v13l-6-3-6 3z"/></svg>`,
       cultura: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22V12M12 12C7 12 4 8 4 3c5 0 8 3 8 9zM12 12c5 0 8-4 8-9-5 0-8 3-8 9z"/></svg>`,
@@ -487,7 +477,11 @@
 
     function renderFilterBar() {
       return `<div class="cmg-filters">
-        ${filterChip("periodo", ICO.periodo, "Período", `${brDate(dateFrom)} – ${brDate(dateTo)}`)}
+        <div class="cmg-seg" id="cmg-period">
+          <button data-p="mes" ${period === "mes" ? 'class="on"' : ""}>Mês</button>
+          <button data-p="ytd" ${period === "ytd" ? 'class="on"' : ""}>YTD</button>
+          <button data-p="fy" ${period === "fy" ? 'class="on"' : ""}>Ano</button>
+        </div>
         ${filterChip("regiao", ICO.regiao, "Região", regiaoLabel())}
         ${filterChip("uf", ICO.uf, "UF", ufLabel())}
         ${filterChip("cultura", ICO.cultura, "Cultura", selCultura || "Todas")}
@@ -733,8 +727,8 @@
         <div class="cmg ${loading ? "cmg-skel" : ""}">
           <div class="cmg-head">
             <div>
-              <h1 class="cmg-h1">Vendas de Máquinas — Distribuição Geográfica <span class="info" title="Fonte: vendas faturadas de Máquinas (Grão/Pecuária). Preço médio = faturamento ÷ quantidade.">ⓘ</span></h1>
-              ${selectedState ? `<div class="cmg-crumb"><a data-crumb-brasil>Brasil</a> &nbsp;›&nbsp; ${escapeHtml(STATE_NAMES[selectedState] || selectedState)}</div>` : ""}
+              <h1 class="cmg-h1">Vendas de Máquinas — Distribuição Geográfica <span class="info" title="Fonte: vendas faturadas de Máquinas (Grão/Pecuária). Preço médio = faturamento ÷ quantidade. Período segue o cabeçalho do site.">ⓘ</span></h1>
+              <div class="cmg-crumb">${periodLabel()}${selectedState ? ` &nbsp;·&nbsp; <a data-crumb-brasil>Brasil</a> &nbsp;›&nbsp; ${escapeHtml(STATE_NAMES[selectedState] || selectedState)}` : ""}</div>
             </div>
           </div>
           ${renderFilterBar()}
@@ -801,20 +795,13 @@
           render(container);
         });
       });
-      container.querySelector('[data-pop="periodo"]')?.addEventListener("click", (e) => e.stopPropagation());
       container.querySelectorAll(".cmg-pop").forEach((p) => p.addEventListener("click", (e) => e.stopPropagation()));
 
-      // periodo: presets + inputs
-      container.querySelectorAll(".cmg-preset").forEach((b) => b.addEventListener("click", () => {
-        const now = new Date();
-        if (b.dataset.preset === "mes") { dateFrom = isoDate(new Date(now.getFullYear(), now.getMonth(), 1)); dateTo = isoDate(now); }
-        else if (b.dataset.preset === "mesant") { const f = new Date(now.getFullYear(), now.getMonth() - 1, 1), t = new Date(now.getFullYear(), now.getMonth(), 0); dateFrom = isoDate(f); dateTo = isoDate(t); }
-        else if (b.dataset.preset === "ano") { dateFrom = `${now.getFullYear()}-01-01`; dateTo = isoDate(now); }
-        else if (b.dataset.preset === "12m") { const f = new Date(now); f.setMonth(f.getMonth() - 12); dateFrom = isoDate(f); dateTo = isoDate(now); }
-        reloadAndRender(container);
-      }));
-      container.querySelector("#cmg-date-from")?.addEventListener("change", (e) => { if (e.target.value) dateFrom = e.target.value; });
-      container.querySelector("#cmg-date-to")?.addEventListener("change", (e) => { if (e.target.value) { dateTo = e.target.value; reloadAndRender(container); } });
+      // periodo: segue o cabecalho do site, so o toggle Mes/YTD/Ano e local
+      container.querySelector("#cmg-period")?.addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-p]"); if (!b) return;
+        period = b.dataset.p; reloadAndRender(container);
+      });
 
       // regiao
       container.querySelectorAll('[data-regiao]').forEach((cb) => cb.addEventListener("change", () => {
@@ -882,7 +869,7 @@
       container.querySelector("#cmg-export")?.addEventListener("click", () => exportCsv());
 
       container.querySelector("#cmg-clear-filters")?.addEventListener("click", () => {
-        selUFs.clear(); selCultura = ""; selModelo = ""; equipe = { tipo: "", valor: "" }; setDefaultPeriod(); selectedState = null;
+        selUFs.clear(); selCultura = ""; selModelo = ""; equipe = { tipo: "", valor: "" }; selectedState = null;
         reloadAndRender(container);
       });
 
@@ -900,7 +887,7 @@
       const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `vendas-maquinas-geografico_${dateFrom}_a_${dateTo}.csv`;
+      a.download = `vendas-maquinas-geografico_${year}-${String(month).padStart(2, "0")}_${period}.csv`;
       document.body.appendChild(a); a.click(); a.remove();
     }
 
@@ -913,6 +900,7 @@
 
     function renderSelectedMapaGeografico(container, reportId) {
       if (reportId !== REPORT_ID) return false;
+      syncFromHeader();
       hideTt();
       if (loadedKey === paramsKey() && (rows.length || loadedKey !== null)) {
         render(container);
