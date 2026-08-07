@@ -66,6 +66,7 @@ const { createComercialVendasCargaModule } = window.VECTON_COMERCIAL_VENDAS_CARG
 const { createComercialPlanejadoCargaModule } = window.VECTON_COMERCIAL_PLANEJADO_CARGA;
 const { createComercialPainelModule } = window.VECTON_COMERCIAL_PAINEL;
 const { createComercialMapaModule } = window.VECTON_COMERCIAL_MAPA;
+const { createComercialMapaGeograficoModule } = window.VECTON_COMERCIAL_MAPA_GEOGRAFICO;
 const { createComercialReportsModule } = window.VECTON_COMERCIAL_REPORTS;
 const { createReportsHelpersModule } = window.VECTON_REPORTS_HELPERS;
 const { createDashboardCardsModule } = window.VECTON_DASHBOARD_CARDS;
@@ -1278,6 +1279,13 @@ const comercialMapaModule = createComercialMapaModule({
   callSupabaseRpc,
   isSupabaseConfigured,
 });
+const comercialMapaGeograficoModule = createComercialMapaGeograficoModule({
+  escapeHtml,
+  resolveOrganizationId,
+  callSupabaseRpc,
+  fetchAllSupabaseRows,
+  isSupabaseConfigured,
+});
 const headcountRenderModule = createHeadcountRenderModule({
   escapeHtml,
   formatMonthLabel,
@@ -2000,7 +2008,7 @@ function isConsolidatedReport(reportId) {
 // libera (basta UM dos perfis da pessoa liberar o relatório).
 function roleCanSeeReport(role, reportId) {
   if (role === "super_admin" || role === "admin") return true;
-  if (role === "comercial") return String(reportId).startsWith("comercialRelatorio_") || ["comercialPainel", "comercialMapa"].includes(reportId);
+  if (role === "comercial") return String(reportId).startsWith("comercialRelatorio_") || ["comercialPainel", "comercialMapa", "comercialMapaGeografico"].includes(reportId);
   if (role === "manager") return true;
   if (role === "analyst") return !isConsolidatedReport(reportId);
   return false; // rps_gestao e outros perfis sem tela de Relatórios própria
@@ -2714,7 +2722,8 @@ const REPORT_TITLES = {
   headcountReal: "Headcount Realizado",
   headcountBudget: "Headcount Planejado",
   comercialPainel: "Painel de Vendas",
-  comercialMapa: "Mapa de Vendas"
+  comercialMapa: "Mapa de Vendas",
+  comercialMapaGeografico: "Vendas - Distribuição Geográfica"
 };
 
 /*
@@ -2943,6 +2952,7 @@ function renderReportsView() {
     comercialReportsModule.renderSelectedReport(detailPanel, selectedReportId) ||
     comercialPainelModule.renderSelectedPainel(detailPanel, selectedReportId) ||
     comercialMapaModule.renderSelectedMapa(detailPanel, selectedReportId) ||
+    comercialMapaGeograficoModule.renderSelectedMapaGeografico(detailPanel, selectedReportId) ||
     reportsDreModule.renderSelectedDreReport(detailPanel, selectedReportId) ||
     reportsOpexModule.renderSelectedOpexReport(detailPanel, selectedReportId) ||
     reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId);
