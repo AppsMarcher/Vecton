@@ -298,14 +298,14 @@
         .cmg-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:16px; }
         @media (max-width:1200px) { .cmg-kpis { grid-template-columns:repeat(3,1fr); } }
         @media (max-width:760px) { .cmg-kpis { grid-template-columns:repeat(2,1fr); } }
-        .cmg-kpi { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; display:flex; gap:12px; align-items:flex-start; }
-        .cmg-kpi .icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex:none; }
-        .cmg-kpi .icon svg { width:19px; height:19px; }
+        .cmg-kpi { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 18px; display:flex; gap:14px; align-items:center; }
+        .cmg-kpi .icon { width:48px; height:48px; border-radius:11px; display:flex; align-items:center; justify-content:center; flex:none; }
+        .cmg-kpi .icon svg { width:24px; height:24px; }
         .cmg-kpi .icon.img { background:none; }
-        .cmg-kpi .icon.img img { width:100%; height:100%; border-radius:10px; object-fit:cover; display:block; }
+        .cmg-kpi .icon.img img { width:100%; height:100%; border-radius:11px; object-fit:cover; display:block; }
         .cmg-kpi .body { min-width:0; }
-        .cmg-kpi .v { font-size:19px; font-weight:700; line-height:1.15; white-space:nowrap; }
-        .cmg-kpi .l { font-size:11.5px; color:var(--soft); margin-top:1px; }
+        .cmg-kpi .v { font-size:21px; font-weight:700; line-height:1.15; white-space:nowrap; }
+        .cmg-kpi .l { font-size:12px; color:var(--soft); margin-top:2px; }
         .cmg-delta { display:block; font-size:10.5px; margin-top:5px; font-weight:600; }
         .cmg-delta.up { color:#22c55e; }
         .cmg-delta.down { color:#f87171; }
