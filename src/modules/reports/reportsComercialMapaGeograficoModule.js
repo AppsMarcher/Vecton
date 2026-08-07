@@ -589,15 +589,15 @@
         <div class="body"><div class="v">${val}</div><div class="l">${label}</div>${delta || ""}</div>
       </div>`;
       return `<div class="cmg-kpis">
-        ${kpi(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="9" width="16" height="7" rx="1"/><path d="M18 12h2l2 3v1h-4"/><circle cx="6.5" cy="18" r="1.8"/><circle cx="15.5" cy="18" r="1.8"/></svg>`,
+        ${kpi(`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="12.5" y="6" width="5.5" height="5.5" rx="1"/><path d="M6 10h6.5v4H4.2a2.2 2.2 0 0 1 1.8-4z"/><rect x="17.3" y="3.5" width="1.4" height="3.2" rx="0.7"/><circle cx="7" cy="17" r="2.3"/><circle cx="16.3" cy="17" r="3"/></svg>`,
           "#3b82f6", nf(d.totQtd), "Máquinas vendidas", deltaBadge(d.totQtd, prevTotals.qtd))}
         ${kpi(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l5-5 4 3 8-9M14 6h6v6"/></svg>`,
           "#14b8a6", fmtMoneyShort(d.totVal), "Faturamento", deltaBadge(d.totVal, prevTotals.val))}
         ${kpi(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-1.5z"/></svg>`,
           "#8b5cf6", price != null ? fmtMoneyShort(price) : "—", "Preço médio", price != null && prevPrice != null ? deltaBadge(price, prevPrice) : "")}
-        ${kpi(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 5H4a2 2 0 0 0 0 4h1M17 5h3a2 2 0 0 1 0 4h-1"/></svg>`,
+        ${kpi(`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 2h8v6a4 4 0 0 1-8 0V2z"/><path d="M8 3H5a1 1 0 0 0-1 1v1a4 4 0 0 0 4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16 3h3a1 1 0 0 1 1 1v1a4 4 0 0 1-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><rect x="11" y="12" width="2" height="4"/><rect x="7" y="19" width="10" height="2" rx="1"/><path d="M9 16h6l1 3H8l1-3z"/></svg>`,
           "#3b82f6", leaderModelReal ? leaderModelReal[0] : "—", `Modelo líder${leaderModelReal ? " · " + fmtPct(leaderModelReal[1].qtd / (d.totQtd || 1)) : ""}`, "")}
-        ${kpi(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2c1.7-.3 3.4.4 4.4 1.8.9 1.2 1.1 2.8 2.4 3.6.9.6 1.4 1.7 1.2 2.8-.2 1.1-1.1 1.9-1.1 3 0 1.3.9 2.4.7 3.7-.2 1.4-1.5 2.3-2.8 2.6-1.4.3-2.9-.1-4.2.4-1.1.4-1.9 1.4-3 1.7-1.5.4-3.1-.3-4.1-1.5-.9-1-1.3-2.4-1.1-3.7.1-.9.6-1.7.5-2.6-.1-1.1-.9-1.9-1.2-2.9-.4-1.3 0-2.8 1-3.7.8-.7 1.9-.9 2.6-1.7.6-.7.7-1.7 1.3-2.4.8-.9 2-1.2 2.4-1.1z"/></svg>`,
+        ${kpi(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.01,8.53 Q2,8.58 2.2,9.06 Q2.39,9.53 6.37,14.84 Q10.35,20.14 11.43,21.05 Q12.5,21.96 12.71,21.8 Q12.91,21.63 15.62,19.05 Q18.32,16.47 18.59,16.22 Q18.85,15.96 19.18,15.29 Q19.51,14.61 20.67,11.95 Q21.83,9.28 21.91,9.05 Q21.98,8.82 21.99,8.7 Q22,8.57 21.96,8.31 Q21.92,8.04 21.85,7.79 Q21.77,7.53 21.71,7.45 Q21.65,7.36 17.56,4.92 Q13.46,2.47 11.25,2.26 Q9.04,2.04 8.9,2.05 Q8.77,2.07 7.73,2.31 Q6.68,2.55 5.4,3.2 Q4.12,3.85 3.07,6.17 Q2.01,8.48 2.01,8.53 Z"/></svg>`,
           "#14b8a6", leaderUF ? leaderUF[0] : "—", leaderUF ? `Maior mercado · ${fmtPct(leaderUF[1].qtd / (d.totQtd || 1))}` : "Maior mercado", "")}
       </div>`;
     }
