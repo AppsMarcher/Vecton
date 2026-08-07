@@ -72,11 +72,11 @@
         .cvm-lbl { fill:#cfd6e0; paint-order:stroke; stroke:#0a0c10; stroke-width:2.4px; font-weight:600; pointer-events:none; }
         .cvm-back { position:absolute; top:14px; left:14px; z-index:5; background:#171b22; border:1px solid var(--line); color:var(--ink); font:inherit; font-size:12px; font-weight:500; padding:6px 12px; border-radius:9px; cursor:pointer; }
         .cvm-back:hover { background:#222834; }
-        .cvm-zoom { position:absolute; top:50%; left:14px; transform:translateY(-50%); z-index:6; display:flex; flex-direction:column; align-items:center; gap:7px; background:rgba(23,27,34,.82); border:1px solid var(--line); border-radius:12px; padding:9px 6px; backdrop-filter:blur(4px); }
-        .cvm-zoom button { width:24px; height:24px; border:none; border-radius:7px; background:#222834; color:var(--ink); font-size:15px; line-height:1; cursor:pointer; padding:0; }
-        .cvm-zoom button:hover { background:#2c333f; }
-        .cvm-zoom input[type=range] { writing-mode:vertical-lr; direction:rtl; -webkit-appearance:slider-vertical; width:6px; height:120px; accent-color:#3f63d6; cursor:pointer; }
-        .cvm-zpct { font-size:9px; color:var(--faint); font-variant-numeric:tabular-nums; }
+        .cvm-zoom { position:absolute; top:50%; left:14px; transform:translateY(-50%); z-index:6; display:flex; flex-direction:column; align-items:center; gap:6px; background:rgba(21,26,36,.9); border:1px solid var(--line); border-radius:16px; padding:8px 6px; backdrop-filter:blur(4px); box-shadow:0 8px 22px rgba(0,0,0,.4); }
+        .cvm-zoom button { width:30px; height:27px; border:none; border-radius:9px; background:#232a37; color:var(--ink); font-size:15px; line-height:1; cursor:pointer; padding:0; display:flex; align-items:center; justify-content:center; }
+        .cvm-zoom button:hover { background:#2c3542; }
+        .cvm-zoom button[data-z="reset"] { width:26px; height:26px; border-radius:50%; color:var(--soft); }
+        .cvm-zoom button[data-z="reset"] svg { width:14px; height:14px; }
         .cvm-side { display:flex; flex-direction:column; gap:14px; }
         .cvm-kpis { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
         .cvm-kpi { background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:11px 8px; text-align:center; }
@@ -206,8 +206,6 @@
     function applyViewBox(container) {
       const svg = container.querySelector("#cvm-map svg"); if (!svg) return;
       svg.setAttribute("viewBox", currentViewBox().map((n) => n.toFixed(1)).join(" "));
-      const pct = container.querySelector("#cvm-zpct"); if (pct) pct.textContent = Math.round(zoom * 100) + "%";
-      const rng = container.querySelector("#cvm-zrange"); if (rng && parseFloat(rng.value) !== zoom) rng.value = zoom;
       const map = container.querySelector("#cvm-map"); if (map) map.style.cursor = zoom > 1 ? "grab" : "";
     }
 
@@ -252,7 +250,7 @@
             </div>
           </div>
           <div class="cvm-layout">
-            <div class="cvm-card cvm-mapcard"><button class="cvm-back" id="cvm-back" hidden>← Brasil</button><div class="cvm-zoom" id="cvm-zoom"><button data-z="in" title="Aproximar">+</button><input type="range" id="cvm-zrange" min="0.3" max="8" step="0.1" value="0.9" aria-label="Zoom do mapa"><button data-z="out" title="Afastar">−</button><span class="cvm-zpct" id="cvm-zpct">90%</span></div><div id="cvm-map"></div><div class="cvm-note" id="cvm-note"></div></div>
+            <div class="cvm-card cvm-mapcard"><button class="cvm-back" id="cvm-back" hidden>← Brasil</button><div class="cvm-zoom" id="cvm-zoom"><button data-z="in" title="Aproximar">+</button><button data-z="reset" title="Resetar zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></button><button data-z="out" title="Afastar">−</button></div><div id="cvm-map"></div><div class="cvm-note" id="cvm-note"></div></div>
             <aside class="cvm-side" id="cvm-side"></aside>
           </div>
         </div>`;
@@ -421,11 +419,10 @@
     }
 
     function wireZoom(container) {
-      const rng = container.querySelector("#cvm-zrange");
       const setZoom = (z) => { zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z)); if (zoom <= 1) { panX = 0; panY = 0; } applyViewBox(container); };
-      rng?.addEventListener("input", () => setZoom(parseFloat(rng.value)));
       container.querySelector("#cvm-zoom")?.addEventListener("click", (e) => {
         const b = e.target.closest("button[data-z]"); if (!b) return;
+        if (b.dataset.z === "reset") { resetZoom(); applyViewBox(container); return; }
         setZoom(zoom * (b.dataset.z === "in" ? 1.25 : 0.8));
       });
     }
