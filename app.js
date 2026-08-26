@@ -235,7 +235,7 @@ const authModule = createAuthModule({
   hydrateFromSupabase,
   buildAuthHeaders,
   supabaseConfig,
-  onLogoutCleanup: () => { organizationIdCache = null; },
+  onLogoutCleanup: () => { organizationIdCache = null; reportCardLabelsCache = {}; },
   getCurrentSession: () => currentSession,
   setCurrentSession: (value) => { currentSession = value; },
   getCurrentUser: () => currentUser,
@@ -1501,25 +1501,41 @@ function bindEvents() {
 }
 
 // ── Labels customizáveis dos cards de relatório ───────────────────────────
-function reportLabelsKey() {
-  return `vp_report_labels_${currentUser?.id || "anon"}`;
+// Org-wide via Supabase (report_card_labels, migration 121): admin/super_admin
+// edita, todo mundo da organização vê o mesmo apelido. Antes disso era
+// localStorage por usuário (vp_report_labels_<user_id>) — cada admin via só
+// o próprio apelido, sem refletir pra ninguém; não repetir esse padrão aqui.
+let reportCardLabelsCache = {};
+
+async function loadReportCardLabels() {
+  if (!isSupabaseConfigured()) { reportCardLabelsCache = {}; return reportCardLabelsCache; }
+  const orgId = await resolveOrganizationId();
+  const rows = await fetchSupabaseRowsSafe(
+    "report_card_labels",
+    `organization_id=eq.${orgId}&select=report_id,label,subtitle`
+  );
+  const next = {};
+  (rows || []).forEach(row => { next[row.report_id] = { label: row.label, subtitle: row.subtitle }; });
+  reportCardLabelsCache = next;
+  return reportCardLabelsCache;
 }
 
-function loadReportLabels() {
-  try { return JSON.parse(localStorage.getItem(reportLabelsKey()) || "{}"); } catch { return {}; }
-}
-
-function saveReportLabel(id, label, subtitle) {
-  const labels = loadReportLabels();
-  labels[id] = { label, subtitle };
-  try { localStorage.setItem(reportLabelsKey(), JSON.stringify(labels)); } catch {}
+async function saveReportCardLabel(id, label, subtitle) {
+  const orgId = await resolveOrganizationId();
+  await upsertSupabaseRows("report_card_labels", [{
+    organization_id: orgId,
+    report_id: id,
+    label,
+    subtitle,
+    updated_by: currentUser?.id || null,
+  }], ["organization_id", "report_id"], { minimal: true });
+  reportCardLabelsCache[id] = { label, subtitle };
 }
 
 function applyReportLabels() {
-  const labels = loadReportLabels();
   document.querySelectorAll(".reports-report-card[data-report-id]").forEach(card => {
     const id = card.dataset.reportId;
-    const data = labels[id];
+    const data = reportCardLabelsCache[id];
     const labelEl = card.querySelector(".rrc-label");
     const subtitleEl = card.querySelector(".rrc-subtitle");
     if (data?.label && labelEl) labelEl.textContent = data.label;
@@ -1567,8 +1583,7 @@ function initReportCardEdit() {
 
     if (openPopover) { closePopover(); return; }
 
-    const labels = loadReportLabels();
-    const current = labels[id] || {};
+    const current = reportCardLabelsCache[id] || {};
     const labelEl = card.querySelector(".rrc-label");
     const currentLabel = labelEl?.textContent || "";
     const currentSub = current.subtitle || "";
@@ -1596,17 +1611,25 @@ function initReportCardEdit() {
     pop.querySelector(".rrc-edit-name").focus();
 
     pop.querySelector(".cancel").addEventListener("click", e => { e.stopPropagation(); closePopover(); });
-    pop.querySelector(".primary").addEventListener("click", e => {
+    pop.querySelector(".primary").addEventListener("click", async e => {
       e.stopPropagation();
+      const saveBtn = pop.querySelector(".primary");
       const newLabel = pop.querySelector(".rrc-edit-name").value.trim();
       const newSub = pop.querySelector(".rrc-edit-sub").value.trim();
-      if (newLabel) {
+      if (!newLabel) { closePopover(); return; }
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Salvando...";
+      try {
+        await saveReportCardLabel(id, newLabel, newSub);
         if (labelEl) labelEl.textContent = newLabel;
         const subEl = card.querySelector(".rrc-subtitle");
         if (subEl) subEl.textContent = newSub;
-        saveReportLabel(id, newLabel, newSub);
+        closePopover();
+      } catch (error) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Salvar";
+        window.alert(vpFriendlyError(error, "Falha ao salvar o apelido do relatório."));
       }
-      closePopover();
     });
     pop.querySelector(".rrc-edit-name").addEventListener("keydown", e => {
       if (e.key === "Enter") pop.querySelector(".primary").click();
@@ -1816,6 +1839,7 @@ async function hydrateFromSupabase() {
     budgetReportsErrorMessage = "";
 
     persistAndRender();
+    await loadReportCardLabels();
     applyReportLabels();
     applyReportAccess();
     initReportCardEdit();
