@@ -8296,21 +8296,32 @@ body.rps-presentation-mode .rps-table-scroll {
 }
 
 body.rps-presentation-mode .rps-table {
-  width: max(1460px, calc(100% + 220px));
-  min-width: 1460px;
+  width: var(--rps-presentation-table-width);
+  min-width: var(--rps-presentation-table-width);
 }
 
-/* Coluna de indicador mais estreita e Var.% reduzida em 40% (108px → ~65px)
-   só na apresentação — libera espaço pras colunas de valor. O scroll
-   horizontal em si (aparecer sempre que a tabela não couber) vem da regra
-   base .rps-table (width:max-content/min-width:100%, ~linha 7100) — não
-   precisa de override aqui, só as larguras de coluna. */
-body.rps-presentation-mode .rps-table thead th:first-child {
-  width: 190px;
+/* Na apresentação, Área/Indicador + S1–S5 + Mês formam o primeiro quadro
+   visível. Meta e variações continuam à direita, alcançadas pelo scroll.
+   As variáveis crescem junto com o zoom para o texto nunca aumentar dentro
+   de uma coluna que permaneceu estreita. */
+body.rps-presentation-mode .rps-table thead th.rps-col-indicator {
+  width: var(--rps-presentation-indicator-width);
 }
 
-body.rps-presentation-mode .rps-table thead th:last-child {
-  width: 65px; /* 108px base − 40% */
+body.rps-presentation-mode .rps-table thead th.rps-col-primary {
+  width: var(--rps-presentation-primary-width);
+}
+
+body.rps-presentation-mode .rps-table thead th.rps-col-target {
+  width: var(--rps-presentation-target-width);
+}
+
+body.rps-presentation-mode .rps-table thead th.rps-col-variation {
+  width: var(--rps-presentation-variation-width);
+}
+
+body.rps-presentation-mode .rps-table thead th.rps-col-variation-percent {
+  width: var(--rps-presentation-variation-percent-width);
 }
 
 body.rps-presentation-mode .rps-table th,
@@ -8356,6 +8367,11 @@ body.rps-presentation-mode .rps-indicator-name em {
 body.rps-presentation-mode .rps-cell-input {
   height: calc(29px + var(--rps-presentation-zoom, 0px));
   font-size: calc(.66rem + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-month-cell strong {
+  overflow: visible;
+  text-overflow: clip;
 }
 
 body.rps-presentation-mode .rps-unit-readonly {

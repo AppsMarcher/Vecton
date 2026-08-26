@@ -1193,8 +1193,25 @@
       const structural = canEditStructure() && !state.presentation;
       const focusWeek = focusedWeek();
       const columnResizer = fillable ? '<span class="col-resizer" aria-hidden="true"></span>' : "";
+      const presentationColumnWidths = state.presentation ? {
+        indicator: 190 + (state.presentationZoom * 3),
+        primary: 178 + (state.presentationZoom * 7),
+        target: 140 + (state.presentationZoom * 6),
+        variation: 125 + (state.presentationZoom * 6),
+        variationPercent: 100 + (state.presentationZoom * 4)
+      } : null;
+      const presentationTableWidth = presentationColumnWidths
+        ? presentationColumnWidths.indicator
+          + (presentationColumnWidths.primary * 6)
+          + presentationColumnWidths.target
+          + presentationColumnWidths.variation
+          + presentationColumnWidths.variationPercent
+        : 0;
+      const presentationStyle = presentationColumnWidths
+        ? ` style="--rps-presentation-indicator-width:${presentationColumnWidths.indicator}px;--rps-presentation-primary-width:${presentationColumnWidths.primary}px;--rps-presentation-target-width:${presentationColumnWidths.target}px;--rps-presentation-variation-width:${presentationColumnWidths.variation}px;--rps-presentation-variation-percent-width:${presentationColumnWidths.variationPercent}px;--rps-presentation-table-width:${presentationTableWidth}px"`
+        : "";
       root.innerHTML = `
-        <div class="rps-page ${state.presentation ? "is-presenting" : ""}">
+        <div class="rps-page ${state.presentation ? "is-presenting" : ""}"${presentationStyle}>
           <div class="rps-hero">
             <div class="rps-hero-copy">
               <p class="section-kicker">GESTÃO DE PERFORMANCE</p>
@@ -1216,7 +1233,7 @@
           <section class="content-card rps-table-card">
             <div class="rps-table-scroll ${state.loading ? "is-loading" : ""}">
               <table class="rps-table" ${fillable ? "data-resizable-cols" : ""}>
-                <thead><tr><th>Área / indicador${columnResizer}</th>${WEEKS.map((week) => `<th class="${week === focusWeek ? "is-focused" : ""}"><button type="button" class="rps-week-focus" data-rps-focus-week="${week}" aria-pressed="${week === focusWeek}" title="Destacar ${week}">${week}</button>${columnResizer}</th>`).join("")}<th>Mês${columnResizer}</th><th>Meta${columnResizer}</th><th>Var.${columnResizer}</th><th>Var. %${columnResizer}</th></tr></thead>
+                <thead><tr><th class="rps-col-indicator">Área / indicador${columnResizer}</th>${WEEKS.map((week) => `<th class="rps-col-primary rps-col-week ${week === focusWeek ? "is-focused" : ""}"><button type="button" class="rps-week-focus" data-rps-focus-week="${week}" aria-pressed="${week === focusWeek}" title="Destacar ${week}">${week}</button>${columnResizer}</th>`).join("")}<th class="rps-col-primary rps-col-month">Mês${columnResizer}</th><th class="rps-col-target">Meta${columnResizer}</th><th class="rps-col-variation">Var.${columnResizer}</th><th class="rps-col-variation-percent">Var. %${columnResizer}</th></tr></thead>
                 <tbody>${renderRows()}</tbody>
               </table>
               ${state.loading ? `<div class="rps-loading"><span></span><p>Carregando o período...</p></div>` : ""}
