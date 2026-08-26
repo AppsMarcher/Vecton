@@ -680,10 +680,19 @@
       if (!ok) return;
       try {
         const orgId = await resolveOrganizationId();
-        await deleteSupabaseRows(
+        const response = await deleteSupabaseRows(
           "user_profiles",
           `organization_id=eq.${orgId}&user_id=eq.${user.user_id}`
         );
+        // O RLS não estoura erro quando a policy filtra a linha do DELETE —
+        // o PostgREST só devolve 0 linhas afetadas (return=representation).
+        // Sem checar isso aqui, uma exclusão sem permissão passava batido:
+        // nenhum toast, nenhuma mudança, e o usuário achava que "não fez nada".
+        const deletedRows = await response.json().catch(() => []);
+        if (!Array.isArray(deletedRows) || deletedRows.length === 0) {
+          showToast("Você não tem permissão para excluir este usuário.", "error");
+          return;
+        }
         await loadAndRenderUsers();
       } catch (err) {
         console.error(err);
