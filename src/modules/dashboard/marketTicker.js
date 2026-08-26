@@ -5,12 +5,6 @@
   const BRAPI_URL = "https://brapi.dev/api/quote/";
   const BRAPI_TOKEN = "4LwMAWvanm6vsnH4cAtfo7";
   const BCB_SGS_URL = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.";
-  const CEPEA_WIDGET_BASE = "https://cepea.org.br/br/widgetproduto.js.php";
-  const CEPEA_INDICATORS = {
-    soy: 92,
-    corn: 77,
-    cattle: 2
-  };
 
   const TICKER_ITEMS = [
     { id: "usd", label: "USD", source: "awesome", sourceLabel: "AwesomeAPI / Banco Central", pair: "USD-BRL", key: "USDBRL", prefix: "R$ ", decimals: 4, officialUrl: "https://www.bcb.gov.br/estabilidadefinanceira/historicocotacoes" },
@@ -19,9 +13,15 @@
     { id: "ibov", label: "IBOV", source: "brapi", sourceLabel: "B3 / brapi", symbol: "^BVSP", prefix: "", decimals: 0, officialUrl: "https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/cotacoes/indices.htm" },
     { id: "selic", label: "SELIC", source: "bcb", sourceLabel: "Banco Central do Brasil", seriesId: "432", prefix: "", suffix: "% a.a.", decimals: 2, changeMode: "diff", historyDepth: 40, officialUrl: "https://www.bcb.gov.br/controleinflacao/historicotaxasjuros" },
     { id: "ipca12", label: "IPCA 12m", source: "bcb", sourceLabel: "Banco Central do Brasil", seriesId: "13522", prefix: "", suffix: "%", decimals: 2, changeMode: "relativePct", historyDepth: 6, officialUrl: "https://www.bcb.gov.br/controleinflacao/historicotaxasjuros" },
-    { id: "soy", label: "Soja", source: "cepea", sourceLabel: "CEPEA/ESALQ", indicatorId: CEPEA_INDICATORS.soy, prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/soja.aspx" },
-    { id: "corn", label: "Milho", source: "cepea", sourceLabel: "CEPEA/ESALQ", indicatorId: CEPEA_INDICATORS.corn, prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/milho.aspx" },
-    { id: "cattle", label: "Boi Gordo", source: "cepea", sourceLabel: "CEPEA/B3", indicatorId: CEPEA_INDICATORS.cattle, prefix: "R$ ", suffix: "/@", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/boi-gordo.aspx" }
+    // soy/corn/cattle: até 2026-08 buscavam direto do widget da CEPEA via
+    // iframe escondido (scraping). A CEPEA passou a bloquear esse endpoint
+    // com desafio Cloudflare (403 + "Cf-Mitigated: challenge"), então agora
+    // lemos de public.market_commodities, um cache gravado 1x/dia por uma
+    // Edge Function agendada (supabase/functions/market-commodities-worker)
+    // que busca no GiroRural. Ver fetchVectonCommodities() abaixo.
+    { id: "soy", label: "Soja", source: "vecton_db", sourceLabel: "GiroRural (CEPEA/B3)", prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/soja.aspx" },
+    { id: "corn", label: "Milho", source: "vecton_db", sourceLabel: "GiroRural (CEPEA/B3)", prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/milho.aspx" },
+    { id: "cattle", label: "Boi Gordo", source: "vecton_db", sourceLabel: "GiroRural (CEPEA/B3)", prefix: "R$ ", suffix: "/@", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/boi-gordo.aspx" }
   ];
   const TICKER_ITEM_MAP = new Map(TICKER_ITEMS.map((item) => [item.id, item]));
 
@@ -41,8 +41,6 @@
   let tickerItems = TICKER_FALLBACK.slice();
   let tickerRefreshHandle = null;
   const tickerState = {};
-  let cepeaHost = null;
-  const cepeaFrames = new Map();
   let tickerPopover = null;
 
   function buildTickerHtml(items) {
@@ -328,113 +326,9 @@
     return output;
   }
 
-  function ensureCepeaHost() {
-    if (cepeaHost) return cepeaHost;
-    cepeaHost = document.createElement("div");
-    cepeaHost.setAttribute("aria-hidden", "true");
-    cepeaHost.style.cssText = [
-      "position:absolute",
-      "left:-9999px",
-      "top:0",
-      "width:1px",
-      "height:1px",
-      "overflow:hidden",
-      "opacity:0",
-      "pointer-events:none"
-    ].join(";");
-    document.body.appendChild(cepeaHost);
-    return cepeaHost;
-  }
 
-  function buildCepeaSrcdoc(indicatorId) {
-    const scriptUrl = `${CEPEA_WIDGET_BASE}?fonte=arial&tamanho=10&largura=320px&corfundo=111214&cortexto=f3f4f6&corlinha=16181d&id_indicador%5B%5D=${indicatorId}`;
-    return `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;overflow:hidden;background:#111214;color:#f3f4f6"><script src="${scriptUrl}"></script></body></html>`;
-  }
-
-  function getCepeaFrame(item) {
-    ensureCepeaHost();
-    if (cepeaFrames.has(item.id)) {
-      return cepeaFrames.get(item.id);
-    }
-    const frame = document.createElement("iframe");
-    frame.setAttribute("aria-hidden", "true");
-    frame.tabIndex = -1;
-    frame.style.cssText = "display:block;width:320px;height:120px;border:0;overflow:hidden;";
-    cepeaHost.appendChild(frame);
-    cepeaFrames.set(item.id, frame);
-    return frame;
-  }
-
-  function extractCepeaQuoteFromDocument(doc) {
-    const text = String(doc?.body?.innerText || doc?.body?.textContent || "")
-      .replace(/\u00a0/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!text) return null;
-
-    const currencyMatch = text.match(/R\$\s*([\d.]+,\d{2})/i);
-    const numberMatches = text.match(/[\d.]+,\d{2}/g) || [];
-    const percentMatch = text.match(/([+\-−]?\d+,\d{2})\s*%/);
-    const dateMatch = text.match(/(\d{2}\/\d{2}\/\d{4})/);
-
-    const value = parsePtBrNumber(currencyMatch?.[1] || numberMatches[0]);
-    const pct = parsePtBrNumber(percentMatch?.[1] || "0");
-
-    if (!Number.isFinite(value)) return null;
-    return {
-      value,
-      pct: Number.isFinite(pct) ? pct : 0,
-      dataDate: dateMatch?.[1] || null,      // data do pregão publicada no widget (dd/mm/aaaa)
-      updatedAtText: dateMatch?.[1] || null  // tooltip mostra a data do dado, não a hora do fetch
-    };
-  }
-
-  function loadCepeaItem(item) {
-    return new Promise((resolve, reject) => {
-      const frame = getCepeaFrame(item);
-      let finished = false;
-
-      const finish = (result, error = null) => {
-        if (finished) return;
-        finished = true;
-        frame.removeEventListener("load", onLoad);
-        clearTimeout(timeoutId);
-        timers.forEach((timer) => clearTimeout(timer));
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(result);
-      };
-
-      const tryRead = () => {
-        try {
-          const quote = extractCepeaQuoteFromDocument(frame.contentDocument);
-          if (quote) finish(quote);
-        } catch (_) {
-          // aguarda proxima tentativa
-        }
-      };
-
-      const onLoad = () => {
-        tryRead();
-        timers.push(setTimeout(tryRead, 400));
-        timers.push(setTimeout(tryRead, 1200));
-        timers.push(setTimeout(tryRead, 2500));
-      };
-
-      const timers = [];
-      const timeoutId = setTimeout(() => {
-        finish(null, new Error(`CEPEA timeout (${item.label})`));
-      }, 6000);
-
-      frame.addEventListener("load", onLoad, { once: true });
-      frame.srcdoc = buildCepeaSrcdoc(item.indicatorId);
-    });
-  }
-
-  // Persiste o ultimo quote valido de cada item (todas as fontes, nao so
-  // CEPEA) entre recarregamentos de pagina. Sem isso, se a fonte falhar
+  // Persiste o ultimo quote valido de cada item (todas as fontes) entre
+  // recarregamentos de pagina. Sem isso, se a fonte falhar
   // (ex: brapi com cota estourada — token e' fixo no cliente, cota
   // compartilhada por TODAS as abas/usuarios) logo no primeiro fetch da
   // sessao, o item fica preso em "Carregando..." pra sempre: tickerState
@@ -454,84 +348,38 @@
     catch {}
   }
 
-  const CEPEA_PREV_KEY = "vecton-cepea-prev-v2";
-
-  function loadCepeaPrevCache() {
-    try { return JSON.parse(localStorage.getItem(CEPEA_PREV_KEY) || "{}"); }
-    catch { return {}; }
-  }
-
-  function saveCepeaPrevCache(cache) {
-    try { localStorage.setItem(CEPEA_PREV_KEY, JSON.stringify(cache)); }
-    catch {}
-  }
-
-  // Variação da soja/milho: o widget do CEPEA só publica VALOR + data do pregão
-  // (sem %). Guardamos por DATA DE PREGÃO e comparamos o valor do pregão atual
-  // com o do anterior. Keyar pela data do DADO (não pelo dia do fetch) evita o
-  // bug de zerar a variação em fins de semana/feriados, quando o mesmo valor é
-  // lido em vários dias de calendário.
-  function updateCepeaByDate(cache, id, dataDate, value) {
-    const entry = cache[id];
-    if (entry && entry.date === dataDate) {
-      // mesmo pregão relido: mantém o valor do pregão anterior
-      cache[id] = { date: dataDate, value, prevValue: entry.prevValue ?? null };
-    } else {
-      // pregão novo: o valor atual passa a ser o "anterior"
-      cache[id] = { date: dataDate, value, prevValue: entry ? entry.value : null };
-    }
-  }
-
-  // Seed inicial: uma referência de pregão anterior pra primeira variação sair
-  // não-zero antes do cache acumular dois pregões reais. Só semeia se não há
-  // entrada nenhuma (localStorage novo / key v2).
-  function initCepeaPrevCache() {
-    const cache = loadCepeaPrevCache();
-    const seeds = {
-      soy:    { date: "22/06/2026", value: 132.84 },
-      corn:   { date: "22/06/2026", value: 62.97 },
-      cattle: { date: "05/08/2026", value: 348.55 }
-    };
-    let changed = false;
-    for (const [id, seed] of Object.entries(seeds)) {
-      if (!cache[id]) {
-        cache[id] = { date: seed.date, value: seed.value, prevValue: null };
-        changed = true;
-      }
-    }
-    if (changed) saveCepeaPrevCache(cache);
-  }
-
-  async function fetchCepea(items) {
+  // soy/corn/cattle: le o cache gravado 1x/dia pela Edge Function
+  // market-commodities-worker (ver supabase/functions/market-commodities-worker)
+  // em vez de buscar direto na CEPEA (bloqueada por Cloudflare desde 2026-08).
+  // Mesmo dado publico que os demais indicadores do ticker (USD/SELIC/IBOV),
+  // por isso segue sem token de sessao, so a chave anonima do projeto.
+  async function fetchVectonCommodities(items) {
     if (!items.length) return {};
-    const output = {};
-    const prevCache = loadCepeaPrevCache();
+    const config = window.FORECASTAPP_SUPABASE || {};
+    if (!config.projectUrl || !config.anonKey) return {};
 
-    await Promise.all(items.map(async (item) => {
-      const quote = await loadCepeaItem(item);
-      if (!quote) return;
-
-      let pct = quote.pct || 0;
-
-      // O widget não fornece %: calcula a variação entre o pregão atual e o
-      // anterior, guardados por DATA DE PREGÃO no localStorage. Se ainda é o
-      // mesmo pregão em cache, compara com o pregão anterior (prevValue); se
-      // chegou pregão novo, compara com o último valor guardado.
-      if (pct === 0 && quote.dataDate) {
-        const entry = prevCache[item.id];
-        const baseValue = entry
-          ? (entry.date === quote.dataDate ? entry.prevValue : entry.value)
-          : null;
-        if (Number.isFinite(baseValue) && baseValue !== 0) {
-          pct = ((quote.value - baseValue) / baseValue) * 100;
-        }
+    const ids = items.map((item) => item.id).join(",");
+    const url = `${config.projectUrl}/rest/v1/market_commodities?select=item_id,value,pct,quote_date,updated_at&item_id=in.(${ids})`;
+    const response = await fetch(url, {
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`
       }
+    });
+    if (!response.ok) throw new Error(`market_commodities HTTP ${response.status}`);
 
-      if (quote.dataDate) updateCepeaByDate(prevCache, item.id, quote.dataDate, quote.value);
-      output[item.id] = { ...quote, pct };
-    }));
-
-    saveCepeaPrevCache(prevCache);
+    const rows = await response.json();
+    const output = {};
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const value = Number(row.value);
+      if (!Number.isFinite(value)) return;
+      output[row.item_id] = {
+        value,
+        pct: Number(row.pct) || 0,
+        updatedAtText: row.quote_date || null,
+        updatedAt: row.updated_at
+      };
+    });
     return output;
   }
 
@@ -592,7 +440,7 @@
   // brapi (IBOV) tem cota mensal curta (15.000 req/mes) — uma aba aberta
   // sozinha ja consome isso em poucos dias no ciclo de 60s do resto do
   // ticker. Por isso o brapi tem seu proprio intervalo, bem mais longo;
-  // os demais itens (awesome/bcb/cepea) continuam no ciclo de 60s normal.
+  // os demais itens (awesome/bcb/vecton_db) continuam no ciclo de 60s normal.
   const BRAPI_REFRESH_MS = 60 * 60 * 1000; // 60 minutos
   let lastBrapiFetchAt = 0;
 
@@ -600,7 +448,7 @@
     const awesomeItems = TICKER_ITEMS.filter((item) => item.source === "awesome");
     const brapiItems = TICKER_ITEMS.filter((item) => item.source === "brapi");
     const bcbItems = TICKER_ITEMS.filter((item) => item.source === "bcb");
-    const cepeaItems = TICKER_ITEMS.filter((item) => item.source === "cepea");
+    const vectonDbItems = TICKER_ITEMS.filter((item) => item.source === "vecton_db");
 
     const shouldFetchBrapi = brapiItems.length > 0 && (Date.now() - lastBrapiFetchAt >= BRAPI_REFRESH_MS);
     // marca o timestamp na TENTATIVA (nao no sucesso) pra nao martelar a API
@@ -612,18 +460,18 @@
       ...awesomeItems.map((item) => item.id),
       ...(shouldFetchBrapi ? brapiItems.map((item) => item.id) : []),
       ...bcbItems.map((item) => item.id),
-      ...cepeaItems.map((item) => item.id)
+      ...vectonDbItems.map((item) => item.id)
     ]);
     Object.keys(tickerState).forEach((key) => {
       if (!staleKeys.has(key)) return;
       tickerState[key] = { ...tickerState[key], stale: true };
     });
 
-    const [awesomeResult, brapiResult, bcbResult, cepeaResult] = await Promise.allSettled([
+    const [awesomeResult, brapiResult, bcbResult, vectonDbResult] = await Promise.allSettled([
       fetchAwesome(awesomeItems),
       shouldFetchBrapi ? fetchBrapi(brapiItems, BRAPI_TOKEN) : Promise.resolve({}),
       fetchBcb(bcbItems),
-      fetchCepea(cepeaItems)
+      fetchVectonCommodities(vectonDbItems)
     ]);
 
     if (awesomeResult.status === "fulfilled") {
@@ -650,12 +498,12 @@
       console.warn("[ticker] BCB falhou:", bcbResult.reason);
     }
 
-    if (cepeaResult.status === "fulfilled") {
-      Object.entries(cepeaResult.value).forEach(([key, quote]) => {
+    if (vectonDbResult.status === "fulfilled") {
+      Object.entries(vectonDbResult.value).forEach(([key, quote]) => {
         tickerState[key] = { ...quote, stale: false };
       });
     } else {
-      console.warn("[ticker] CEPEA falhou:", cepeaResult.reason);
+      console.warn("[ticker] market_commodities falhou:", vectonDbResult.reason);
     }
 
     saveTickerStateCache();
@@ -664,7 +512,6 @@
   }
 
   function startMarketTicker() {
-    initCepeaPrevCache();
     // Reidrata o ultimo valor valido de cada item (ver comentario em
     // TICKER_STATE_KEY) antes do primeiro fetch — assim, se a fonte falhar
     // agora, o ticker mostra o ultimo valor conhecido (marcado stale) em
