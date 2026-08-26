@@ -133,25 +133,25 @@
       const label = active ? "● Ativo" : "○ Inativo";
       const isSelf = getCurrentUserId?.() && user.user_id === getCurrentUserId();
       if (isSelf) {
-        return `<span class="${cls}" title="Você não pode desativar o próprio acesso.">${label}</span>`;
+        return `<span class="${cls}" title="Você não pode inativar o próprio acesso.">${label}</span>`;
       }
       if (!canEditUser(user)) {
         return `<span class="${cls}">${label}</span>`;
       }
-      return `<button type="button" class="users-status-toggle ${cls}" data-action="toggleActive" data-uid="${escapeHtml(user.id)}" title="Clique para ${active ? "desativar" : "reativar"} o acesso">${label}</button>`;
+      return `<button type="button" class="users-status-toggle ${cls}" data-action="toggleActive" data-uid="${escapeHtml(user.id)}" title="Clique para ${active ? "inativar" : "ativar"} o acesso">${label}</button>`;
     }
 
     async function handleToggleActive(user) {
       const nextActive = user.is_active === false;
       const name = user.full_name || user.email || "este usuário";
       const msg = nextActive
-        ? `Reativar o acesso de ${escapeHtml(name)}? A pessoa poderá fazer login novamente.`
-        : `Desativar o acesso de ${escapeHtml(name)}? A pessoa não conseguirá mais fazer login nem acessar o sistema.`;
-      const ok = await appConfirm(msg, nextActive ? "info" : "danger");
+        ? `Ativar o acesso de ${escapeHtml(name)}? A pessoa poderá fazer login novamente.`
+        : `Inativar o acesso de ${escapeHtml(name)}? A pessoa não conseguirá mais fazer login nem acessar o sistema.`;
+      const ok = await appConfirm(msg, nextActive ? "activate" : "deactivate");
       if (!ok) return;
       try {
         await callEdgeFunction("set-user-active", { user_id: user.user_id, is_active: nextActive });
-        showToast(nextActive ? `${name} reativado.` : `${name} desativado.`, "success");
+        showToast(nextActive ? `${name} ativado.` : `${name} inativado.`, "success");
         if (editingUserId === user.id) {
           document.querySelector("#users-edit-panel")?.classList.remove("open");
           editingUserId = null;
@@ -216,7 +216,7 @@
         <div class="ue-status-row">
           <div>
             <div class="ue-status-label">Status do acesso</div>
-            <div class="ue-status-hint">Usuário desativado não consegue mais fazer login.</div>
+            <div class="ue-status-hint">Usuário inativado não consegue mais fazer login.</div>
           </div>
           ${statusBadgeHtml(user)}
         </div>

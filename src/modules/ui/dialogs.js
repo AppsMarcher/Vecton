@@ -61,6 +61,8 @@
   function appConfirm(message, type) {
     const cfg = {
       danger: { icon: "🗑️", label: "CONFIRMAR EXCLUSÃO", confirmLabel: "Excluir", confirmColor: "var(--red)" },
+      deactivate: { icon: "🔒", label: "CONFIRMAR INATIVAÇÃO", confirmLabel: "Inativar", confirmColor: "var(--red)" },
+      activate: { icon: "🔓", label: "CONFIRMAR ATIVAÇÃO", confirmLabel: "Ativar", confirmColor: "var(--green)" },
       warn: { icon: "⚠️", label: "CONFIRMAR AÇÃO", confirmLabel: "Confirmar", confirmColor: "var(--amber)" },
       info: { icon: "ℹ️", label: "CONFIRMAR", confirmLabel: "Confirmar", confirmColor: "var(--blue)" }
     }[type || "warn"] || { icon: "⚠️", label: "CONFIRMAR AÇÃO", confirmLabel: "Confirmar", confirmColor: "var(--amber)" };
