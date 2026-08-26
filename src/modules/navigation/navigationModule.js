@@ -28,6 +28,7 @@
       canAccessDashboard,
       canAccessPlanning,
       canAccessReportsMenu,
+      canAccessRps,
       canManageUsers
     } = deps;
 
@@ -58,6 +59,9 @@
       // display: grid/flex no CSS, que sobrescreve o [hidden] do user-agent.
       const dashBtn = document.querySelector(".menu-button[data-view='dashboard']");
       if (dashBtn) dashBtn.style.display = canAccessDashboard() ? "" : "none";
+
+      const rpsBtn = document.querySelector(".menu-button[data-view='rps']");
+      if (rpsBtn) rpsBtn.style.display = canAccessRps() ? "" : "none";
 
       const planBtn = document.querySelector(".menu-button[data-view='planning']");
       if (planBtn) planBtn.style.display = canAccessPlanning() ? "" : "none";

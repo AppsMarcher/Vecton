@@ -580,6 +580,7 @@ const navigationModule = createNavigationModule({
   canAccessDashboard,
   canAccessPlanning,
   canAccessReportsMenu,
+  canAccessRps,
   canManageUsers
 });
 const headerModule = createHeaderModule({
@@ -1954,6 +1955,9 @@ function isRpsGestao()   { return hasRole("rps_gestao"); }
 function canAccessDashboard() { return isSuperAdmin() || isAdmin() || isManager(); }
 function canAccessPlanning()  { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst(); }
 function canAccessReportsMenu() { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst() || isComercial(); }
+// Mesmo conjunto de canFillValues() na RPS (rpsModule.js) — quem não preenche
+// valores também não precisa ver o menu. Comercial/Analista "puros" ficam de fora.
+function canAccessRps() { return isSuperAdmin() || isAdmin() || isManager() || isRpsGestao(); }
 function canAccessParams()    { return isAdmin(); }
 function canManageUsers()     { return isAdmin(); }
 function getUserManagement()  { return state.profile?.management || null; }
