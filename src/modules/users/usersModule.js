@@ -114,6 +114,56 @@
 
     let allUsers = [];
     let editingUserId = null;
+    let sortKey = "full_name";
+    let sortDir = 1;
+
+    // ── Ordenação da tabela (mesmo padrão de Actuals/Budget: thead com
+    // data-sort, seta ↑↓, clique alterna direção) ─────────────────────────────
+    function renderUsersThead() {
+      function th(key, cls, label) {
+        const active = sortKey === key;
+        const arrow = active ? (sortDir === 1 ? " ↑" : " ↓") : "";
+        return `<th class="${cls}" data-sort="${key}" style="cursor:pointer;user-select:none${active ? ";color:var(--blue)" : ""}">${label}${arrow}</th>`;
+      }
+      return `
+        ${th("full_name", "", "Usuário")}
+        ${th("email", "", "E-mail")}
+        ${th("department", "", "Departamento")}
+        ${th("access_role", "", "Perfil de Acesso")}
+        ${th("is_active", "", "Status")}
+        <th class="users-col-actions"></th>
+      `;
+    }
+
+    function sortedUsers(users) {
+      const getValue = (user) => {
+        if (sortKey === "is_active") return user.is_active !== false ? 1 : 0;
+        if (sortKey === "access_role") return (ROLE_LABELS[user.access_role] || user.access_role || "").toLowerCase();
+        return String(user[sortKey] || "").toLowerCase();
+      };
+      return [...users].sort((a, b) => {
+        const va = getValue(a);
+        const vb = getValue(b);
+        if (va < vb) return -sortDir;
+        if (va > vb) return sortDir;
+        return 0;
+      });
+    }
+
+    function bindUsersSort() {
+      const theadEl = document.querySelector("#users-table-body")?.closest("table")?.querySelector("thead");
+      if (theadEl && !theadEl.dataset.bound) {
+        theadEl.dataset.bound = "1";
+        theadEl.addEventListener("click", (event) => {
+          const th = event.target.closest("th[data-sort]");
+          if (!th) return;
+          const key = th.dataset.sort;
+          sortDir = key === sortKey ? -sortDir : 1;
+          sortKey = key;
+          renderUsersTable(document.querySelector("#users-table-body"), allUsers);
+        });
+      }
+    }
 
     // ── Ativar/Desativar acesso ───────────────────────────────────────────────
     // Mesmo controle (badge clicável) usado na tabela e dentro do painel de
@@ -584,7 +634,10 @@
 
     // ── Monta a tabela a partir de uma lista de usuários ──────────────────────
     function renderUsersTable(tbody, users) {
-        tbody.innerHTML = users.map((user) => {
+        const theadRow = tbody.closest("table")?.querySelector("thead tr");
+        if (theadRow) theadRow.innerHTML = renderUsersThead();
+
+        tbody.innerHTML = sortedUsers(users).map((user) => {
           const role     = user.access_role || "analyst";
           const allRoles = [role, ...(user.additional_access_roles || [])].filter(Boolean);
           const badges   = allRoles.map((r) => {
@@ -882,7 +935,7 @@
       }
     }
 
-    return { loadAndRenderUsers, bindUsersInviteButton: bindInviteButton };
+    return { loadAndRenderUsers, bindUsersInviteButton: bindInviteButton, bindUsersSort };
   }
 
   window.VECTON_USERS_MODULE = { createUsersModule };

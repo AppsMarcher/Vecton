@@ -627,7 +627,7 @@ const headerModule = createHeaderModule({
   setHeadcountReturnView: (value) => { headcountReturnView = value; },
   setSelectedHeadcountBatchId: (value) => { selectedHeadcountBatchId = value; }
 });
-const { loadAndRenderUsers, bindUsersInviteButton } = createUsersModule({
+const { loadAndRenderUsers, bindUsersInviteButton, bindUsersSort } = createUsersModule({
   escapeHtml,
   state,
   resolveOrganizationId,
@@ -1496,6 +1496,7 @@ function bindEvents() {
 
   bindProfileEvents();
   bindUsersInviteButton();
+  bindUsersSort();
 
   // ── handlers do dialog de perfil ──────────────────────────────────
 }
