@@ -12,16 +12,20 @@
     { id: "btc", label: "BTC", source: "awesome", sourceLabel: "AwesomeAPI", pair: "BTC-BRL", key: "BTCBRL", prefix: "R$ ", decimals: 2, officialUrl: "https://economia.awesomeapi.com.br/json/last/BTC-BRL" },
     { id: "ibov", label: "IBOV", source: "brapi", sourceLabel: "B3 / brapi", symbol: "^BVSP", prefix: "", decimals: 0, officialUrl: "https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/cotacoes/indices.htm" },
     { id: "selic", label: "SELIC", source: "bcb", sourceLabel: "Banco Central do Brasil", seriesId: "432", prefix: "", suffix: "% a.a.", decimals: 2, changeMode: "diff", historyDepth: 40, officialUrl: "https://www.bcb.gov.br/controleinflacao/historicotaxasjuros" },
-    { id: "ipca12", label: "IPCA 12m", source: "bcb", sourceLabel: "Banco Central do Brasil", seriesId: "13522", prefix: "", suffix: "%", decimals: 2, changeMode: "relativePct", historyDepth: 6, officialUrl: "https://www.bcb.gov.br/controleinflacao/historicotaxasjuros" },
-    // soy/corn/cattle: até 2026-08 buscavam direto do widget da CEPEA via
-    // iframe escondido (scraping). A CEPEA passou a bloquear esse endpoint
-    // com desafio Cloudflare (403 + "Cf-Mitigated: challenge"), então agora
-    // lemos de public.market_commodities, um cache gravado 1x/dia por uma
-    // Edge Function agendada (supabase/functions/market-commodities-worker)
-    // que busca no GiroRural. Ver fetchVectonCommodities() abaixo.
-    { id: "soy", label: "Soja", source: "vecton_db", sourceLabel: "GiroRural (CEPEA/B3)", prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/soja.aspx" },
-    { id: "corn", label: "Milho", source: "vecton_db", sourceLabel: "GiroRural (CEPEA/B3)", prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/milho.aspx" },
-    { id: "cattle", label: "Boi Gordo", source: "vecton_db", sourceLabel: "GiroRural (CEPEA/B3)", prefix: "R$ ", suffix: "/@", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/boi-gordo.aspx" }
+    { id: "ipca12", label: "IPCA 12m", source: "bcb", sourceLabel: "Banco Central do Brasil", seriesId: "13522", prefix: "", suffix: "%", decimals: 2, changeMode: "relativePct", historyDepth: 6, officialUrl: "https://www.bcb.gov.br/controleinflacao/historicotaxasjuros" }
+    // soy/corn/cattle removidos temporariamente (2026-08-26): a CEPEA passou
+    // a bloquear o widget usado antes (403 + desafio Cloudflare, e o site
+    // público também, não só o widget) e a alternativa avaliada (GiroRural)
+    // tem cadastro quebrado e dados de qualidade duvidosa (linhas de outras
+    // commodities misturadas na resposta) — não vale a pena depender dela.
+    // Infra pronta pra retomar assim que decidirmos uma fonte confiável:
+    // fetchVectonCommodities() abaixo lê public.market_commodities, que é
+    // alimentada por supabase/functions/market-commodities-worker (ainda
+    // não implantada). Pra reativar: descomentar os 3 itens abaixo (e em
+    // TICKER_FALLBACK) e resolver a fonte de dados na Edge Function.
+    // { id: "soy", label: "Soja", source: "vecton_db", sourceLabel: "?", prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/soja.aspx" },
+    // { id: "corn", label: "Milho", source: "vecton_db", sourceLabel: "?", prefix: "R$ ", suffix: "/sc", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/milho.aspx" },
+    // { id: "cattle", label: "Boi Gordo", source: "vecton_db", sourceLabel: "?", prefix: "R$ ", suffix: "/@", decimals: 2, officialUrl: "https://www.cepea.org.br/br/indicador/boi-gordo.aspx" }
   ];
   const TICKER_ITEM_MAP = new Map(TICKER_ITEMS.map((item) => [item.id, item]));
 
@@ -31,10 +35,11 @@
     { id: "btc", label: "BTC", value: "Carregando...", change: "-", dir: "flat", mock: true },
     { id: "ibov", label: "IBOV", value: "Carregando...", change: "-", dir: "flat", mock: true },
     { id: "selic", label: "SELIC", value: "Carregando...", change: "-", dir: "flat", mock: true },
-    { id: "ipca12", label: "IPCA 12m", value: "Carregando...", change: "-", dir: "flat", mock: true },
-    { id: "soy", label: "Soja", value: "Carregando...", change: "-", dir: "flat", mock: true },
-    { id: "corn", label: "Milho", value: "Carregando...", change: "-", dir: "flat", mock: true },
-    { id: "cattle", label: "Boi Gordo", value: "Carregando...", change: "-", dir: "flat", mock: true }
+    { id: "ipca12", label: "IPCA 12m", value: "Carregando...", change: "-", dir: "flat", mock: true }
+    // soy/corn/cattle removidos junto com TICKER_ITEMS acima — ver comentário lá.
+    // { id: "soy", label: "Soja", value: "Carregando...", change: "-", dir: "flat", mock: true },
+    // { id: "corn", label: "Milho", value: "Carregando...", change: "-", dir: "flat", mock: true },
+    // { id: "cattle", label: "Boi Gordo", value: "Carregando...", change: "-", dir: "flat", mock: true }
   ];
   const TICKER_FALLBACK_MAP = new Map(TICKER_FALLBACK.map((item) => [item.id, item]));
 
