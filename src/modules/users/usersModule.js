@@ -14,7 +14,8 @@
       isSuperAdmin,
       isAdmin,
       getUserManagement,
-      getReportTitles
+      getReportTitles,
+      getCurrentUserId
     } = deps;
 
     const ROLE_LABELS = {
@@ -114,6 +115,55 @@
     let allUsers = [];
     let editingUserId = null;
 
+    // ── Ativar/Desativar acesso ───────────────────────────────────────────────
+    // Mesmo controle (badge clicável) usado na tabela e dentro do painel de
+    // edição — clicar sempre confirma e aplica na hora (não fica pendente de
+    // "Salvar"), porque desligar o acesso de alguém é um efeito imediato:
+    // chama a Edge Function que bane o usuário no GoTrue (bloqueia login de
+    // verdade) e marca is_active=false, que por sua vez derruba o acesso de
+    // qualquer sessão já aberta via RLS (ver 117_user_profiles_is_active.sql).
+    function canEditUser(user) {
+      const allRoles = [user.access_role, ...(user.additional_access_roles || [])].filter(Boolean);
+      return isSuperAdmin() || (isAdmin() && !allRoles.includes("super_admin"));
+    }
+
+    function statusBadgeHtml(user) {
+      const active = user.is_active !== false;
+      const cls = active ? "users-status-active" : "users-status-inactive";
+      const label = active ? "● Ativo" : "○ Inativo";
+      const isSelf = getCurrentUserId?.() && user.user_id === getCurrentUserId();
+      if (isSelf) {
+        return `<span class="${cls}" title="Você não pode desativar o próprio acesso.">${label}</span>`;
+      }
+      if (!canEditUser(user)) {
+        return `<span class="${cls}">${label}</span>`;
+      }
+      return `<button type="button" class="users-status-toggle ${cls}" data-action="toggleActive" data-uid="${escapeHtml(user.id)}" title="Clique para ${active ? "desativar" : "reativar"} o acesso">${label}</button>`;
+    }
+
+    async function handleToggleActive(user) {
+      const nextActive = user.is_active === false;
+      const name = user.full_name || user.email || "este usuário";
+      const msg = nextActive
+        ? `Reativar o acesso de ${escapeHtml(name)}? A pessoa poderá fazer login novamente.`
+        : `Desativar o acesso de ${escapeHtml(name)}? A pessoa não conseguirá mais fazer login nem acessar o sistema.`;
+      const ok = await appConfirm(msg, nextActive ? "info" : "danger");
+      if (!ok) return;
+      try {
+        await callEdgeFunction("set-user-active", { user_id: user.user_id, is_active: nextActive });
+        showToast(nextActive ? `${name} reativado.` : `${name} desativado.`, "success");
+        if (editingUserId === user.id) {
+          document.querySelector("#users-edit-panel")?.classList.remove("open");
+          editingUserId = null;
+        }
+        allUsers = [];
+        await loadAndRenderUsers();
+      } catch (err) {
+        console.error(err);
+        showToast(String(err?.message || "Erro ao atualizar o status do usuário."), "error");
+      }
+    }
+
     // ── Painel de edição (slide-in lateral) ──────────────────────────────────
     function getOrCreatePanel() {
       let panel = document.querySelector("#users-edit-panel");
@@ -163,6 +213,13 @@
       ].join("");
 
       panel.querySelector("#ue-panel-body").innerHTML = `
+        <div class="ue-status-row">
+          <div>
+            <div class="ue-status-label">Status do acesso</div>
+            <div class="ue-status-hint">Usuário desativado não consegue mais fazer login.</div>
+          </div>
+          ${statusBadgeHtml(user)}
+        </div>
         <div class="ue-section">
           <label class="ue-label">Nome de exibição</label>
           <input class="ue-input" id="ue-name" type="text" value="${escapeHtml(user.full_name || "")}" placeholder="Nome completo">
@@ -188,6 +245,9 @@
           </div>
         </div>
       `;
+
+      panel.querySelector('.ue-status-row [data-action="toggleActive"]')
+        ?.addEventListener("click", () => handleToggleActive(user));
 
       // perfil de acesso: picker de múltipla marcação (checkboxes), não select único
       const currentRoles = [user.access_role, ...(user.additional_access_roles || [])].filter(Boolean);
@@ -503,7 +563,7 @@
         const orgId = await resolveOrganizationId();
         const rows = await fetchSupabaseRowsSafe(
           "user_profiles",
-          `organization_id=eq.${orgId}&select=id,user_id,full_name,email,department,access_role,additional_access_roles,management,extra_managements,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,photo_kind,photo_value&order=full_name.asc`
+          `organization_id=eq.${orgId}&select=id,user_id,full_name,email,department,access_role,additional_access_roles,management,extra_managements,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,is_active,photo_kind,photo_value&order=full_name.asc`
         );
 
         allUsers = rows || [];
@@ -534,7 +594,7 @@
           }).join(" ");
           const initials = (user.full_name || user.email || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
           const mgmt     = user.management ? `<br><span style="font-size:0.68rem;color:var(--text-faint)">${escapeHtml(user.management)}</span>` : "";
-          const canEdit  = isSuperAdmin() || (isAdmin() && !allRoles.includes("super_admin"));
+          const canEdit  = canEditUser(user);
 
           return `<tr data-user-id="${escapeHtml(user.id)}">
             <td>
@@ -546,7 +606,7 @@
             <td><span class="users-email-text">${escapeHtml(user.email || "—")}</span></td>
             <td><span class="users-email-text">${escapeHtml(user.department || "—")}</span></td>
             <td>${badges}</td>
-            <td><span class="users-status-active">● Ativo</span></td>
+            <td>${statusBadgeHtml(user)}</td>
             <td>
               <div class="users-actions">
                 ${canEdit ? `<button class="users-action-btn users-action-invite" type="button" title="Reenviar convite (usuário ainda não definiu senha)" data-action="resendInvite" data-uid="${escapeHtml(user.id)}">
@@ -576,6 +636,7 @@
             const user = allUsers.find((u) => u.id === uid);
             if (!user) return;
             if (btn.dataset.action === "edit")          openEditPanel(user);
+            if (btn.dataset.action === "toggleActive")  handleToggleActive(user);
             if (btn.dataset.action === "resendInvite")  handleResendInvite(user);
             if (btn.dataset.action === "resend")        handleResend(user);
             if (btn.dataset.action === "delete")        handleDelete(user);

@@ -640,7 +640,8 @@ const { loadAndRenderUsers, bindUsersInviteButton } = createUsersModule({
   isSuperAdmin,
   isAdmin,
   getUserManagement,
-  getReportTitles: () => REPORT_TITLES
+  getReportTitles: () => REPORT_TITLES,
+  getCurrentUserId: () => currentUser?.id || null
 });
 const { loadAndRenderManagements, bindManagementsAddButton } = createManagementsModule({
   escapeHtml,
