@@ -2830,7 +2830,6 @@ thead .col-frozen-3 {
 .ticker-change.down { color: #f87171; }
 .ticker-change.flat { color: var(--text-faint); }
 .ticker-stale { opacity: 0.58; }
-.ticker-mock .ticker-value { color: var(--text-soft); }
 .ticker-mock .ticker-label { opacity: 0.6; }
 
 .ticker-link-popover {
