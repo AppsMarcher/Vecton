@@ -7,7 +7,6 @@
       fetchSupabaseRowsSafe,
       upsertSupabaseRows,
       deleteSupabaseRows,
-      requestPasswordRecovery,
       callEdgeFunction,
       showToast,
       appConfirm,
@@ -714,17 +713,22 @@
       }
     }
 
-    // Reenvia o email de REDEFINIÇÃO de senha (GoTrue /auth/v1/recover) — pra
-    // usuário que já é ativo e esqueceu a senha. Endpoint público, sem
-    // privilégio de service_role.
+    // Reenvia o email de REDEFINIÇÃO de senha — pra usuário que já é ativo e
+    // esqueceu a senha. Via Edge Function (resend-password): gera o link com
+    // service_role e envia pelo Resend, em vez do antigo endpoint público
+    // GoTrue /auth/v1/recover (SMTP do painel tem o nome do remetente
+    // sobrescrito pelo GAL do Outlook em destinatários @marcher.com.br).
     async function handleResend(user) {
-      if (!user.email) return;
+      if (!user.user_id) return;
       try {
-        await requestPasswordRecovery(user.email);
+        await callEdgeFunction("resend-password", {
+          user_id: user.user_id,
+          redirect_to: window.location.origin + window.location.pathname
+        });
         showToast(`Email de redefinição de senha enviado para ${user.email}`, "success");
       } catch (err) {
         console.error(err);
-        showToast("Não foi possível enviar o email de redefinição de senha.", "error");
+        showToast(String(err?.message || "Não foi possível enviar o email de redefinição de senha."), "error");
       }
     }
 
