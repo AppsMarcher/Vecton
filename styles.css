@@ -2829,8 +2829,10 @@ thead .col-frozen-3 {
 .ticker-change.up   { color: #22c55e; }
 .ticker-change.down { color: #f87171; }
 .ticker-change.flat { color: var(--text-faint); }
-.ticker-stale { opacity: 0.58; }
-.ticker-mock .ticker-label { opacity: 0.6; }
+/* .ticker-stale e .ticker-mock não reduzem mais opacidade/cor — todo item
+   do ticker fica sempre 100% branco, seja fresco, desatualizado ("stale")
+   ou ainda sem primeiro valor ("mock"/"Carregando..."). Decisão explícita:
+   sem indicador visual de "valor pode estar desatualizado". */
 
 .ticker-link-popover {
   position: fixed;
