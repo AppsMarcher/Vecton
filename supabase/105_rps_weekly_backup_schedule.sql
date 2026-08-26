@@ -26,8 +26,10 @@ begin
   from vault.decrypted_secrets where name = 'rps_backup_cron_secret' limit 1;
 
   if nullif(trim(v_project_url), '') is null or nullif(trim(v_cron_secret), '') is null then
-    raise warning 'Backup RPS nao disparado: configure rps_backup_project_url e rps_backup_cron_secret no Vault';
-    return null;
+    raise exception using
+      errcode = 'P0001',
+      message = 'RPS_BACKUP_VAULT_NOT_CONFIGURED',
+      detail = 'Configure rps_backup_project_url e rps_backup_cron_secret no Vault.';
   end if;
 
   select net.http_post(
@@ -36,7 +38,8 @@ begin
       'Content-Type', 'application/json',
       'x-rps-backup-secret', v_cron_secret
     ),
-    body := jsonb_build_object('trigger', 'cron', 'requested_at', now())
+    body := jsonb_build_object('trigger', 'cron', 'requested_at', now()),
+    timeout_milliseconds := 120000
   ) into v_request_id;
   return v_request_id;
 end;
