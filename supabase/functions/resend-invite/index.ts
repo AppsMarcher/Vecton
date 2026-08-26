@@ -1,15 +1,19 @@
 // Supabase Edge Function: resend-invite
-// Reenvia o email de CONVITE original (auth.admin.inviteUserByEmail) para um
-// usuário que já foi convidado mas ainda não definiu a senha (pending).
-// Diferente de "reenviar senha" (recovery, público, feito direto no front
-// via /auth/v1/recover): reenviar convite exige service_role, por isso
-// precisa de Edge Function.
+// Reenvia o email de CONVITE original para um usuário que já foi convidado
+// mas ainda não definiu a senha (pending). Diferente de "reenviar senha"
+// (recovery, público, feito direto no front via /auth/v1/recover): reenviar
+// convite exige service_role, por isso precisa de Edge Function.
+//
+// E-mail via Resend, não via inviteUserByEmail (2026-08-26): mesmo mecanismo
+// de invite-user/index.ts — `generateLink` + envio manual pelo Resend (ver
+// _shared/inviteEmail.ts pro motivo).
 //
 // Deploy:
 //   supabase functions deploy resend-invite --no-verify-jwt
 //   (--no-verify-jwt porque validamos o token do chamador manualmente abaixo)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendInviteEmailViaResend } from "../_shared/inviteEmail.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -78,11 +82,17 @@ Deno.serve(async (req) => {
     }
     if (!targetProfile.email) return json({ error: "Usuário sem email cadastrado" }, 400);
 
-    const { error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
-      targetProfile.email,
-      redirectTo ? { redirectTo } : undefined
-    );
-    if (inviteErr) return json({ error: inviteErr.message || "Falha ao reenviar convite" }, 400);
+    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+      type: "invite",
+      email: targetProfile.email,
+      options: redirectTo ? { redirectTo } : undefined,
+    });
+    if (linkErr) return json({ error: linkErr.message || "Falha ao gerar o convite" }, 400);
+    const actionLink = linkData?.properties?.action_link;
+    if (!actionLink) return json({ error: "Link de convite não foi gerado" }, 500);
+
+    const emailResult = await sendInviteEmailViaResend(targetProfile.email, actionLink);
+    if (!emailResult.ok) return json({ error: `Falha ao enviar o e-mail de convite: ${emailResult.error}` }, 500);
 
     return json({ ok: true, email: targetProfile.email });
   } catch (e) {

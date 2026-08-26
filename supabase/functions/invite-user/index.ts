@@ -6,6 +6,12 @@
 // pode ir pro browser. Aqui ela roda no servidor (a Supabase injeta
 // SUPABASE_SERVICE_ROLE_KEY automaticamente nas Edge Functions).
 //
+// E-mail via Resend, não via inviteUserByEmail (2026-08-26): usamos
+// `generateLink` (cria o usuário, devolve o link, NÃO envia e-mail) + envio
+// manual pelo Resend — ver _shared/inviteEmail.ts pro motivo (SMTP do painel
+// tem o nome do remetente sobrescrito pelo GAL do Outlook em destinatários
+// @marcher.com.br).
+//
 // Deploy:
 //   supabase functions deploy invite-user --no-verify-jwt
 //   (--no-verify-jwt porque validamos o token do chamador manualmente abaixo)
@@ -13,8 +19,11 @@
 // Pré-requisitos no painel Supabase:
 //   - Authentication → URL Configuration → Site URL e Redirect URLs apontando
 //     para a URL do app (é pra onde o convidado vai definir a senha).
+//   - Secrets RESEND_API_KEY e RESEND_FROM (já usados por send-report-email /
+//     send-notification-emails).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendInviteEmailViaResend } from "../_shared/inviteEmail.ts";
 
 const ALLOWED_ROLES = ["super_admin", "admin", "manager", "analyst", "comercial", "rps_gestao"];
 // Perfis se combinam (ex: Comercial + RPS Gestão). ROLE_PRIORITY decide qual
@@ -101,14 +110,19 @@ Deno.serve(async (req) => {
     // Cliente admin (service_role) — cria o usuário e grava perfil/membership.
     const admin = createClient(url, serviceKey);
 
-    const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
+    // generateLink (em vez de inviteUserByEmail) cria o usuário e devolve o
+    // link de ativação SEM disparar o e-mail pelo SMTP do painel — o e-mail é
+    // enviado abaixo, pelo Resend (ver _shared/inviteEmail.ts pro motivo).
+    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+      type: "invite",
       email,
-      redirectTo ? { redirectTo } : undefined
-    );
-    if (inviteErr || !invited?.user) {
-      return json({ error: inviteErr?.message || "Falha ao enviar o convite" }, 400);
+      options: redirectTo ? { redirectTo } : undefined,
+    });
+    if (linkErr || !linkData?.user) {
+      return json({ error: linkErr?.message || "Falha ao gerar o convite" }, 400);
     }
-    const newUserId = invited.user.id;
+    const newUserId = linkData.user.id;
+    const actionLink = linkData.properties?.action_link;
 
     const { error: memErr } = await admin
       .from("organization_users")
@@ -129,6 +143,14 @@ Deno.serve(async (req) => {
         management,
       }, { onConflict: "organization_id,user_id" });
     if (profErr) return json({ error: `Convite enviado, mas falhou o perfil: ${profErr.message}` }, 500);
+
+    if (!actionLink) {
+      return json({ error: "Usuário criado, mas o link de convite não foi gerado. Use \"Reenviar convite\"." }, 500);
+    }
+    const emailResult = await sendInviteEmailViaResend(email, actionLink);
+    if (!emailResult.ok) {
+      return json({ error: `Usuário criado, mas falhou o envio do e-mail de convite: ${emailResult.error}. Use "Reenviar convite".` }, 500);
+    }
 
     return json({ ok: true, user_id: newUserId, email });
   } catch (e) {
