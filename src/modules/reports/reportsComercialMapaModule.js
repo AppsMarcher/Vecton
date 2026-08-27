@@ -4,7 +4,7 @@
   // comercial_mapa_vendas. Geografia: window.VECTON_BR_GEO (estados) + a RPC
   // devolve lat/long por municipio. Classes cvm-.
   function createComercialMapaModule(deps) {
-    const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, isSupabaseConfigured } = deps;
+    const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, fetchAllSupabaseRows, isSupabaseConfigured } = deps;
 
     const REPORT_ID = "comercialMapa";
     const MONTHS = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -38,9 +38,16 @@
     let highlight = null;      // {type:'region'|'uf', key} destacado a partir da lateral
     let hostContainer = null;  // ultimo container renderizado (p/ reset via clique fora)
     let docResetBound = false;
+    let docEqCloseBound = false;
     let cityRows = [];
     let loadedKey = null;
     let loading = false;
+    let equipe = { tipo: "", valor: "" }; // tipo: territorio|coordenacao|vendedor
+    let openPopover = null;    // "equipe" quando o popover de Equipe Comercial esta aberto
+    let optionsLoaded = false;
+    let TERRITORIOS = [];
+    let COORDENACOES = [];
+    let VENDEDORES = [];       // {codigo, nome}
 
     // ---------------------------------------------------------------- css
     function ensureStyle() {
@@ -55,6 +62,20 @@
         .cvm-h1 { font-size:20px; font-weight:600; margin:0; }
         .cvm-sub { color:var(--soft); font-size:12.5px; margin:5px 0 0; }
         .cvm-ctrls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .cvm-eqwrap { position:relative; }
+        .cvm-eqbtn { display:flex; align-items:center; gap:7px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:7px 12px; font:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; }
+        .cvm-eqbtn:hover { background:#1c222c; }
+        .cvm-eqbtn.on { border-color:${BLUE}; }
+        .cvm-eqbtn .ico { color:var(--faint); display:flex; }
+        .cvm-eqbtn .lbl { color:var(--faint); }
+        .cvm-eqbtn .val { color:var(--ink); font-weight:600; white-space:nowrap; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+        .cvm-eqpop { position:absolute; top:calc(100% + 6px); left:0; z-index:15; background:#171b22; border:1px solid var(--line); border-radius:12px; padding:12px; min-width:240px; max-width:300px; box-shadow:0 20px 44px rgba(0,0,0,.5); }
+        .cvm-eqpop h4 { margin:0 0 8px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:600; }
+        .cvm-eqpop .grp + .grp { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+        .cvm-eqpop-list { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+        .cvm-eqpop label { display:flex; align-items:center; gap:8px; font-size:12.5px; padding:5px 6px; border-radius:7px; cursor:pointer; }
+        .cvm-eqpop label:hover { background:#1c222c; }
+        .cvm-eqpop input[type=radio] { width:auto; min-width:0; flex:none; accent-color:${BLUE}; margin:0; }
         .cvm-seg { display:flex; gap:2px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:3px; }
         .cvm-seg button { border:none; background:transparent; color:var(--soft); font:inherit; font-size:12.5px; font-weight:500; padding:6px 13px; border-radius:7px; cursor:pointer; }
         .cvm-seg button.on { background:#222834; color:#fff; }
@@ -112,14 +133,31 @@
     }
 
     // ---------------------------------------------------------------- data
-    function paramsKey() { return `${year}|${month}|${period}`; }
+    function paramsKey() { return `${year}|${month}|${period}|${equipe.tipo}|${equipe.valor}`; }
+
+    async function loadOptions(org) {
+      if (optionsLoaded) return;
+      const [territorios, coordenacoes, vendedores] = await Promise.all([
+        fetchAllSupabaseRows("comercial_territorios", `select=nome&organization_id=eq.${org}&order=nome.asc`),
+        fetchAllSupabaseRows("comercial_coordenacoes", `select=nome&organization_id=eq.${org}&order=nome.asc`),
+        fetchAllSupabaseRows("comercial_vendedores", `select=codigo,nome&organization_id=eq.${org}&order=nome.asc`)
+      ]);
+      TERRITORIOS = (territorios || []).map((t) => t.nome);
+      COORDENACOES = (coordenacoes || []).map((c) => c.nome);
+      VENDEDORES = (vendedores || []).map((v) => ({ codigo: v.codigo, nome: v.nome }));
+      optionsLoaded = true;
+    }
 
     async function loadData() {
       loading = true; cityRows = [];
       if (isSupabaseConfigured()) {
         const org = await resolveOrganizationId();
+        await loadOptions(org);
         cityRows = await callSupabaseRpc("comercial_mapa_vendas", {
-          p_org: org, p_year: year, p_month: month, p_period: period
+          p_org: org, p_year: year, p_month: month, p_period: period,
+          p_territorio: equipe.tipo === "territorio" && equipe.valor ? [equipe.valor] : null,
+          p_coordenacao: equipe.tipo === "coordenacao" && equipe.valor ? [equipe.valor] : null,
+          p_vendedor: equipe.tipo === "vendedor" && equipe.valor ? [equipe.valor] : null
         }) || [];
       }
       loadedKey = paramsKey(); loading = false;
@@ -152,6 +190,28 @@
       const pw = (x1 - x0) * 0.10, ph = (y1 - y0) * 0.10;
       return [x0 - pw, y0 - ph, (x1 - x0) + 2 * pw, (y1 - y0) + 2 * ph];
     }
+    function equipeLabel() {
+      if (!equipe.tipo || !equipe.valor) return "Todas";
+      const pref = equipe.tipo === "territorio" ? "Território" : equipe.tipo === "coordenacao" ? "Coordenação" : "Vendedor";
+      return `${pref}: ${equipe.valor}`;
+    }
+    function equipePopoverHtml() {
+      return `<div class="cvm-eqpop" data-pop="equipe">
+        <div class="cvm-eqpop-list">
+          <label><input type="radio" name="cvm-equipe" value="|" ${!equipe.tipo ? "checked" : ""}>Todas</label>
+        </div>
+        <div class="grp"><h4>Território</h4><div class="cvm-eqpop-list">${TERRITORIOS.map((t) =>
+          `<label><input type="radio" name="cvm-equipe" value="territorio|${escapeHtml(t)}" ${equipe.tipo === "territorio" && equipe.valor === t ? "checked" : ""}>${escapeHtml(t)}</label>`
+        ).join("")}</div></div>
+        <div class="grp"><h4>Coordenação</h4><div class="cvm-eqpop-list">${COORDENACOES.map((c) =>
+          `<label><input type="radio" name="cvm-equipe" value="coordenacao|${escapeHtml(c)}" ${equipe.tipo === "coordenacao" && equipe.valor === c ? "checked" : ""}>${escapeHtml(c)}</label>`
+        ).join("")}</div></div>
+        <div class="grp"><h4>Vendedor</h4><div class="cvm-eqpop-list">${VENDEDORES.map((v) =>
+          `<label><input type="radio" name="cvm-equipe" value="vendedor|${escapeHtml(v.codigo)}" ${equipe.tipo === "vendedor" && equipe.valor === v.codigo ? "checked" : ""}>${escapeHtml(v.nome)}</label>`
+        ).join("")}</div></div>
+      </div>`;
+    }
+
     function wedge(cx, cy, r, a0, a1) {
       const x0 = cx + r * Math.sin(a0), y0 = cy - r * Math.cos(a0), x1 = cx + r * Math.sin(a1), y1 = cy - r * Math.cos(a1), la = (a1 - a0) > Math.PI ? 1 : 0;
       return `M${cx.toFixed(1)},${cy.toFixed(1)} L${x0.toFixed(1)},${y0.toFixed(1)} A${r.toFixed(1)},${r.toFixed(1)} 0 ${la} 1 ${x1.toFixed(1)},${y1.toFixed(1)} Z`;
@@ -233,6 +293,14 @@
               <p class="cvm-sub">Faturado por estado (calor) e por cidade (bolhas) · Grão vs. Pecuária</p>
             </div>
             <div class="cvm-ctrls">
+              <div class="cvm-eqwrap" id="cvm-eq">
+                <button type="button" class="cvm-eqbtn${equipe.tipo ? " on" : ""}" id="cvm-eq-btn">
+                  <span class="ico"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="18" cy="8.5" r="2.6"/><path d="M15.7 14.3c2.9.3 5 2.4 5.8 5.7"/></svg></span>
+                  <span class="lbl">Equipe Comercial</span>
+                  <span class="val">${escapeHtml(equipeLabel())}</span>
+                </button>
+                ${openPopover === "equipe" ? equipePopoverHtml() : ""}
+              </div>
               <div class="cvm-seg lay" id="cvm-layer">
                 <button data-l="ambos"${layer === "ambos" ? ' class="on"' : ""}>Ambos</button>
                 <button data-l="grao"${layer === "grao" ? ' class="on"' : ""}>Grão</button>
@@ -406,6 +474,19 @@
       });
     }
 
+    // fecha o popover de Equipe Comercial ao clicar fora dele ou apertar Esc
+    function bindDocEqClose() {
+      if (docEqCloseBound) return; docEqCloseBound = true;
+      document.addEventListener("click", (e) => {
+        const c = hostContainer; if (!c || !openPopover) return;
+        if (e.target.closest("#cvm-eq")) return;
+        openPopover = null; render(c);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && openPopover && hostContainer) { openPopover = null; render(hostContainer); }
+      });
+    }
+
     function wireStateClick(container) {
       container.querySelectorAll(".cvm-state").forEach((el) => {
         // clique simples: destaca (mesmo efeito da lista lateral); duplo-clique: aproxima
@@ -453,6 +534,19 @@
     }
 
     function bind(container) {
+      container.querySelector("#cvm-eq-btn")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openPopover = openPopover === "equipe" ? null : "equipe";
+        render(container);
+      });
+      container.querySelector(".cvm-eqpop")?.addEventListener("click", (e) => e.stopPropagation());
+      container.querySelectorAll('input[name="cvm-equipe"]').forEach((r) => r.addEventListener("change", async () => {
+        const [tipo, valor] = r.value.split("|");
+        equipe = tipo ? { tipo, valor } : { tipo: "", valor: "" };
+        openPopover = null;
+        await reloadAndRender(container);
+      }));
+      bindDocEqClose();
       container.querySelector("#cvm-seg")?.addEventListener("click", async (e) => {
         const b = e.target.closest("button[data-p]"); if (!b) return;
         period = b.dataset.p; await reloadAndRender(container);

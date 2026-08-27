@@ -1292,6 +1292,7 @@ const comercialMapaModule = createComercialMapaModule({
   state,
   resolveOrganizationId,
   callSupabaseRpc,
+  fetchAllSupabaseRows,
   isSupabaseConfigured,
 });
 const comercialMapaGeograficoModule = createComercialMapaGeograficoModule({
