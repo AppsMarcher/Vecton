@@ -52,7 +52,7 @@
       try {
         const restoredSession = await restoreSession();
         if (!restoredSession) {
-          showAuthShell("Entre com seu usuario para carregar os dados.", "warn");
+          showAuthShell("", "warn");
           setSyncStatus("Nao autenticado", "warn");
           return;
         }
@@ -247,6 +247,9 @@
     async function handleLoginSubmit(event) {
       event.preventDefault();
 
+      const submitButton = loginForm?.querySelector("button[type=submit]");
+      const submitLabel = submitButton?.querySelector("span");
+
       if (!hasSupabaseBaseConfig()) {
         showAuthFeedback("Preencha primeiro o supabase-config.js.", "error");
         return;
@@ -262,6 +265,8 @@
       }
 
       try {
+        if (submitButton) submitButton.disabled = true;
+        if (submitLabel) submitLabel.textContent = "Entrando...";
         showAuthFeedback("Entrando...", "ok");
         const session = await signInWithPassword(email, password);
         applySession(session);
@@ -276,6 +281,9 @@
         clearSessionState();
         showAuthShell(parseAuthError(error), "error");
         setSyncStatus("Falha no login", "error");
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+        if (submitLabel) submitLabel.textContent = "Entrar";
       }
     }
 

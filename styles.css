@@ -196,6 +196,472 @@ textarea {
   color: var(--green);
 }
 
+/* ── Index / autenticação Vecton Planning ─────────────────────────────── */
+body.auth-only {
+  overflow: hidden;
+  background: #020814;
+}
+
+.auth-shell {
+  --auth-bg: #020814;
+  --auth-blue: #1677ff;
+  --auth-blue-bright: #1e90ff;
+  --auth-cyan: #19d3f3;
+  --auth-text: #f5f7fb;
+  --auth-text-soft: #b9c3d4;
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  color: var(--auth-text);
+  background:
+    radial-gradient(ellipse at 54% 40%, rgba(2, 79, 194, .24) 0%, rgba(3, 28, 75, .14) 31%, transparent 58%),
+    radial-gradient(ellipse at 78% 23%, rgba(14, 61, 151, .18), transparent 38%),
+    linear-gradient(112deg, #01050e 0%, #020817 40%, #030a1d 70%, #020615 100%);
+}
+
+.auth-shell.active { display: block; }
+
+.auth-shell::before,
+.auth-shell::after,
+.auth-ambient {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.auth-shell::before {
+  inset: 0;
+  opacity: .27;
+  background-image:
+    radial-gradient(circle at 15% 21%, rgba(59, 151, 255, .65) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 42% 35%, rgba(55, 156, 255, .7) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 60% 61%, rgba(0, 115, 255, .65) 0 1px, transparent 1.5px);
+  background-size: 91px 83px, 137px 111px, 173px 149px;
+  mask-image: linear-gradient(90deg, transparent 10%, #000 34%, #000 68%, transparent 80%);
+}
+
+.auth-shell::after {
+  width: 820px;
+  height: 600px;
+  left: 29%;
+  top: 19%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 105, 255, .14), transparent 67%);
+  filter: blur(14px);
+}
+
+.auth-ambient {
+  width: 50vw;
+  height: 1px;
+  left: 27vw;
+  top: 78%;
+  background: linear-gradient(90deg, transparent, rgba(22, 119, 255, .65), transparent);
+  box-shadow: 0 0 45px 14px rgba(0, 91, 255, .11);
+  transform: rotate(-8deg);
+}
+
+.auth-page {
+  /* Em monitor ultrawide (ex: 3440px) sobrava ~820px de vazio de cada lado
+     com o teto antigo de 1800px. Em qualquer tela até este teto (inclusive
+     full HD/1920) o conteúdo usa 100% da largura (só limitado pelo
+     padding); só telas MAIORES voltam a sobrar fundo nas laterais, e numa
+     proporção bem menor que antes. */
+  width: min(100%, 2760px);
+  min-height: 100vh;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.42fr) minmax(480px, .88fr);
+  grid-template-rows: minmax(0, 1fr) 82px;
+  column-gap: clamp(22px, 3vw, 62px);
+  padding: clamp(38px, 4.2vh, 50px) clamp(38px, 4vw, 78px) 0;
+}
+
+.auth-hero {
+  position: relative;
+  min-width: 0;
+  z-index: 2;
+}
+
+.auth-shell .auth-hero-logo {
+  display: block;
+  width: clamp(175px, 11.6vw, 210px);
+  height: auto;
+}
+
+.auth-hero-copy {
+  position: relative;
+  z-index: 6;
+  width: min(720px, 50%);
+  margin-top: clamp(56px, 6.1vh, 70px);
+}
+
+.auth-hero-copy h1 {
+  margin: 0;
+  font-size: clamp(42px, 3.45vw, 66px);
+  line-height: 1.08;
+  letter-spacing: -.045em;
+  font-weight: 800;
+  color: #f7f9fc;
+}
+
+.auth-hero-copy h1 span {
+  display: block;
+  margin-top: .13em;
+  color: #1480ff;
+  background: linear-gradient(90deg, #18a1ff 0%, #0876ff 54%, #155edc 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-hero-copy > p {
+  max-width: 500px;
+  margin: clamp(20px, 2.5vh, 28px) 0 0;
+  color: rgba(226, 233, 244, .82);
+  font-size: clamp(16px, 1.06vw, 20px);
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.auth-features {
+  position: relative;
+  z-index: 6;
+  display: grid;
+  gap: clamp(12px, 1.65vh, 18px);
+  width: min(580px, 43%);
+  margin-top: clamp(24px, 2.8vh, 31px);
+}
+
+.auth-feature {
+  display: grid;
+  grid-template-columns: clamp(46px, 2.7vw, 52px) minmax(0, 1fr);
+  align-items: center;
+  column-gap: 16px;
+}
+
+.auth-feature-icon {
+  width: clamp(46px, 2.7vw, 52px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #168bff;
+  background: rgba(3, 20, 48, .72);
+  border: 1px solid rgba(24, 126, 255, .38);
+  box-shadow: inset 0 0 18px rgba(17, 93, 222, .08), 0 0 20px rgba(0, 94, 255, .05);
+}
+
+.auth-feature-icon svg { width: 24px; height: 24px; }
+.auth-feature-icon--cyan { color: #13d8df; border-color: rgba(0, 202, 220, .38); }
+.auth-feature-icon--purple { color: #7651ff; border-color: rgba(112, 66, 255, .43); }
+
+.auth-feature h2 {
+  margin: 0 0 4px;
+  color: #f1f4f9;
+  font-size: clamp(13px, .86vw, 16px);
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.auth-feature p {
+  margin: 0;
+  color: rgba(197, 208, 225, .8);
+  font-size: clamp(11px, .69vw, 13px);
+  line-height: 1.5;
+}
+
+.analytics-stage {
+  position: absolute;
+  z-index: 3;
+  top: clamp(80px, 8vh, 94px);
+  right: 0;
+  bottom: 38px;
+  width: 64%;
+  min-width: 590px;
+  pointer-events: none;
+}
+
+.analytics-stage::before {
+  content: "";
+  position: absolute;
+  inset: 17% 0 8% 0;
+  background: radial-gradient(ellipse, rgba(0, 100, 255, .24), rgba(0, 68, 180, .04) 52%, transparent 72%);
+  filter: blur(13px);
+}
+
+.analytics-map {
+  position: absolute;
+  top: 26%;
+  left: 5%;
+  width: 67%;
+  height: 33%;
+  opacity: .15;
+  background-image: radial-gradient(circle, #208bff 0 1.25px, transparent 1.6px);
+  background-size: 7px 7px;
+  mask-image:
+    radial-gradient(ellipse at 15% 42%, #000 0 8%, transparent 9%),
+    radial-gradient(ellipse at 34% 48%, #000 0 15%, transparent 16%),
+    radial-gradient(ellipse at 58% 45%, #000 0 19%, transparent 20%),
+    radial-gradient(ellipse at 81% 62%, #000 0 13%, transparent 14%);
+}
+
+.analytics-growth { position: absolute; inset: 4% 0 0; width: 100%; height: 88%; overflow: visible; }
+.analytics-floor path { fill: none; stroke: rgba(25, 120, 255, .15); stroke-width: 1; }
+.analytics-bars rect { fill: url(#auth-bar-fill); stroke: rgba(39, 143, 255, .48); stroke-width: 1; filter: drop-shadow(0 0 7px rgba(0, 101, 255, .5)); }
+.analytics-line { fill: none; stroke: url(#auth-line-fill); stroke-width: 2.7; filter: url(#auth-line-glow); }
+.analytics-line--glow { stroke: #0075ff; stroke-width: 8; opacity: .25; }
+
+.analytics-widget {
+  position: absolute;
+  z-index: 4;
+  width: clamp(156px, 10.2vw, 190px);
+  padding: clamp(12px, .9vw, 16px);
+  border-radius: 13px;
+  color: #f3f7fd;
+  background: linear-gradient(145deg, rgba(3, 23, 57, .88), rgba(2, 11, 33, .91));
+  border: 1px solid rgba(50, 133, 255, .33);
+  box-shadow: 0 15px 45px rgba(0, 0, 0, .3), inset 0 1px rgba(255, 255, 255, .025), 0 0 26px rgba(0, 100, 255, .07);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.analytics-widget > span { display: block; margin-bottom: 7px; color: #e5edf9; font-size: clamp(10px, .65vw, 12px); }
+.analytics-widget > strong { display: block; margin-bottom: 5px; font-size: clamp(16px, 1.08vw, 20px); font-weight: 600; letter-spacing: -.02em; }
+.analytics-widget small { display: block; font-size: clamp(8px, .49vw, 9.5px); font-weight: 600; white-space: nowrap; }
+.analytics-widget small em { color: rgba(213, 224, 240, .7); font-style: normal; font-weight: 400; }
+.metric-positive { color: #00ddcf; }
+.metric-negative { color: #ff3b81; }
+.analytics-widget > svg:not(.people-mark) { display: block; width: 100%; height: 42px; margin-top: 11px; overflow: visible; }
+.mini-line { fill: none; stroke: #158cff; stroke-width: 1.5; }
+.mini-line--cyan { stroke: #17d8d0; }
+.mini-area { fill: rgba(22, 119, 255, .12); }
+.mini-area--cyan { fill: rgba(0, 217, 199, .08); }
+.mini-dots { fill: #168bff; }
+
+.widget-revenue { top: 3%; left: 31%; }
+.widget-ebitda { top: 40%; right: 1%; width: clamp(148px, 9.3vw, 174px); }
+.widget-kpi { left: 16%; top: 60%; width: clamp(178px, 11vw, 206px); }
+.widget-expenses { right: 9%; top: 67%; width: clamp(162px, 10vw, 185px); }
+.widget-people { left: 21%; bottom: 1%; width: clamp(162px, 10.4vw, 195px); min-height: 87px; }
+
+.widget-kpi-row { display: flex; align-items: center; gap: 10px; }
+.widget-kpi-row > p { margin: 0; color: rgba(230, 236, 246, .9); font-size: clamp(9px, .58vw, 11px); line-height: 1.45; }
+.widget-kpi-row > p small { margin-top: 5px; }
+.kpi-ring { width: 49px; height: 49px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(#11d4d1 0 68%, #1687ff 68% 92%, rgba(50, 104, 170, .24) 92%); box-shadow: 0 0 15px rgba(0, 127, 255, .24); }
+.kpi-ring::before { content: ""; position: absolute; width: 35px; height: 35px; border-radius: 50%; background: #06132d; }
+.kpi-ring strong { position: relative; z-index: 1; font-size: 11px; }
+.mini-bars { height: 40px; margin-top: 10px; display: flex; align-items: end; gap: 6px; }
+.mini-bars i { flex: 1; min-width: 4px; background: linear-gradient(180deg, #146fff, rgba(21, 93, 216, .25)); border-top: 1px solid rgba(78, 163, 255, .7); }
+.people-mark { position: absolute; right: 12px; bottom: 13px; width: 47px; height: 32px; fill: #1579f7; opacity: .95; }
+
+.analytics-particle { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #55bdff; box-shadow: 0 0 9px 3px rgba(0, 132, 255, .65); }
+.particle-one { left: 12%; top: 35%; }.particle-two { left: 64%; top: 25%; }.particle-three { left: 37%; bottom: 18%; }
+
+.auth-login-region {
+  z-index: 7;
+  align-self: center;
+  justify-self: end;
+  width: min(100%, 780px);
+  margin-top: -12px;
+  transform: translateY(-4vh);
+}
+
+.auth-panel {
+  width: 100%;
+  min-height: 636px;
+  padding: clamp(38px, 3vw, 52px);
+  display: grid;
+  gap: clamp(26px, 2.5vh, 34px);
+  border-radius: 28px;
+  background: linear-gradient(145deg, rgba(4, 21, 52, .84), rgba(2, 9, 27, .95));
+  border: 1px solid rgba(60, 145, 255, .47);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .48), inset 0 1px rgba(255, 255, 255, .025), 0 0 40px rgba(0, 100, 255, .1);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.auth-copy { display: grid; gap: 9px; text-align: center; }
+.auth-brand { margin: 0 0 clamp(25px, 3vh, 34px); }
+.brand-logo-auth { width: clamp(190px, 13vw, 224px); height: auto; }
+.auth-title { margin: 0; color: #f4f7fc; font-size: clamp(25px, 1.65vw, 31px); line-height: 1.15; font-weight: 750; letter-spacing: -.035em; }
+.auth-text { margin: 0; color: rgba(220, 230, 245, .67); font-size: clamp(14px, .85vw, 16px); line-height: 1.5; }
+
+.auth-form { display: grid; grid-template-columns: 1fr; gap: 0; }
+.auth-form > label { margin: 0 0 9px; color: rgba(243, 247, 253, .94); font-size: 13px; font-weight: 500; }
+.auth-input-wrap { position: relative; display: flex; align-items: center; width: 100%; margin-bottom: 21px; }
+.auth-input-wrap > svg { position: absolute; z-index: 1; left: 17px; width: 20px; height: 20px; color: #168bff; pointer-events: none; }
+.auth-input-wrap input {
+  width: 100%;
+  height: 56px;
+  padding: 0 48px;
+  color: #f5f7fb;
+  background: rgba(1, 8, 23, .58);
+  border: 1px solid rgba(120, 150, 190, .34);
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+.auth-input-wrap input::placeholder { color: rgba(190, 202, 220, .61); }
+.auth-input-wrap input:focus { border-color: rgba(24, 125, 255, .82); box-shadow: 0 0 0 3px rgba(24, 125, 255, .11), 0 0 22px rgba(0, 100, 255, .07); background: rgba(2, 11, 29, .75); }
+.auth-password-wrap input { padding-right: 50px; }
+.auth-password-toggle { right: 13px; width: 34px; height: 34px; justify-content: center; padding: 7px; color: rgba(215, 225, 239, .82); }
+.auth-password-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.auth-password-toggle:focus-visible { outline: 2px solid #168bff; outline-offset: 1px; }
+
+.auth-forgot-link { justify-self: end; margin: -7px 0 0; color: #168bff; font-size: 12px; line-height: 1.4; transition: opacity 180ms ease; }
+.auth-forgot-link:hover { opacity: .82; text-decoration: none; }
+.auth-feedback { min-height: 18px; margin: 8px 0 12px; padding: 0; color: rgba(194, 205, 221, .75); font-size: 11px; line-height: 1.45; }
+.auth-feedback:empty { min-height: 12px; margin-top: 2px; margin-bottom: 8px; }
+.auth-feedback.is-error,
+.auth-feedback.is-ok:not(:empty) { padding: 9px 11px; border-radius: 9px; }
+.auth-feedback.is-error { color: #ff829d; background: rgba(255, 59, 129, .09); border: 1px solid rgba(255, 59, 129, .18); }
+.auth-feedback.is-ok:not(:empty) { color: #42e6d5; background: rgba(18, 217, 196, .07); border: 1px solid rgba(18, 217, 196, .15); }
+.auth-actions { display: block; width: 100%; }
+.auth-actions .primary-button.auth-submit {
+  width: 100%;
+  height: 59px;
+  padding: 0 23px;
+  border: 0;
+  border-radius: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #1493ff 0%, #086eff 100%);
+  box-shadow: 0 12px 30px rgba(0, 90, 255, .18), inset 0 1px rgba(255, 255, 255, .16);
+  transition: transform 180ms ease, filter 180ms ease, box-shadow 180ms ease;
+}
+.auth-submit span { grid-column: 2; }
+.auth-submit svg { grid-column: 3; justify-self: end; width: 22px; height: 22px; }
+.auth-actions .primary-button.auth-submit:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 15px 34px rgba(0, 95, 255, .26), inset 0 1px rgba(255, 255, 255, .18); }
+.auth-actions .primary-button.auth-submit:focus-visible { outline: 3px solid rgba(83, 170, 255, .52); outline-offset: 3px; }
+.auth-actions .primary-button.auth-submit:disabled { cursor: wait; opacity: .72; filter: saturate(.75); }
+
+.auth-setpw-form { margin-top: -8px; }
+.auth-setpw-title { margin: 0 0 7px; text-align: center; font-size: 22px; }
+.auth-setpw-intro { margin: 0 0 19px; text-align: center; font-size: 12px; color: var(--auth-text-soft); }
+.auth-setpw-form .auth-input-wrap { margin-bottom: 17px; }
+
+.auth-secure { margin: 25px 0 0; display: flex; justify-content: center; align-items: center; gap: 9px; color: rgba(220, 230, 245, .6); font-size: 12px; }
+.auth-secure svg { width: 17px; height: 17px; }
+
+.auth-footer {
+  grid-column: 1 / -1;
+  z-index: 8;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-top: 1px solid rgba(52, 127, 228, .16);
+  color: rgba(216, 225, 238, .68);
+  font-size: clamp(11px, .7vw, 13px);
+}
+.auth-footer p { margin: 0; display: flex; align-items: center; gap: 12px; }
+.auth-footer p:first-child span { width: 34px; height: 34px; display: grid; place-items: center; color: #168bff; border: 1px solid rgba(22, 119, 255, .35); border-radius: 8px; background: rgba(3, 25, 58, .72); }
+.auth-footer svg { width: 20px; height: 20px; }
+/* .auth-footer p é flex (por causa do ícone do outro parágrafo do rodapé);
+   texto solto + <a> viram 2 "flex items" e herdam o gap:12px do pai, abrindo
+   um vão maior que o espaço normal entre "por" e "@MarcherBrasil". Este
+   parágrafo não tem ícone, então volta a ser bloco de texto comum. */
+.auth-footer p.auth-footer-credit { display: block; }
+.auth-footer-link { color: inherit; text-decoration: none; transition: color 180ms ease; }
+.auth-footer-link:hover, .auth-footer-link:focus-visible { color: #5cb3ff; text-decoration: underline; }
+body.auth-only .vp-update-banner { display: none; }
+
+@media (max-height: 920px) and (min-width: 1200px) {
+  .auth-page { grid-template-rows: minmax(0, 1fr) 62px; padding-top: 26px; }
+  .auth-hero-copy { margin-top: 36px; }
+  .auth-hero-copy h1 { font-size: clamp(39px, 3.25vw, 56px); }
+  .auth-hero-copy > p { margin-top: 17px; font-size: clamp(14px, 1vw, 17px); }
+  .auth-features { margin-top: 18px; gap: 10px; }
+  .auth-feature-icon { width: 44px; }
+  .auth-feature { grid-template-columns: 44px minmax(0, 1fr); column-gap: 13px; }
+  .analytics-stage { top: 51px; bottom: 20px; }
+  .auth-panel { padding: 32px 38px; gap: 20px; }
+  .auth-panel { min-height: 0; }
+  .auth-brand { margin-bottom: 19px; }
+  .auth-input-wrap { margin-bottom: 14px; }
+  .auth-input-wrap input { height: 50px; }
+  .auth-actions .primary-button.auth-submit { height: 53px; }
+  .auth-feedback { margin-top: 4px; margin-bottom: 7px; }
+  .auth-secure { margin-top: 16px; }
+}
+
+@media (max-width: 1199px) {
+  body.auth-only { overflow-x: hidden; overflow-y: auto; }
+  .auth-shell { overflow: visible; }
+  .auth-page { grid-template-columns: 1fr; grid-template-rows: auto auto auto; gap: 54px; min-height: 100vh; padding: 38px clamp(28px, 6vw, 72px) 0; }
+  /* Nesta faixa (tablet/notebook estreito) o texto do hero não tem largura
+     sobrando pro visual analítico ficar sobreposto em absolute como no
+     desktop — ele derruba pra fluxo normal, empilhado ABAIXO dos recursos
+     (spec: "Hero / Features / Analytical visual / Login / Footer"), em vez
+     de continuar absoluto e invadir a lista de recursos. */
+  .auth-hero { display: flex; flex-direction: column; min-height: 0; }
+  .auth-hero-copy { width: 60%; }
+  .auth-features { width: 55%; }
+  .analytics-stage {
+    position: relative;
+    top: auto; right: auto; bottom: auto; left: auto;
+    width: 100%;
+    min-width: 0;
+    height: clamp(420px, 52vw, 560px);
+    margin-top: clamp(28px, 4vh, 40px);
+  }
+  .auth-login-region { grid-row: 2; justify-self: center; width: min(560px, 100%); margin: 0; }
+  .auth-login-region { transform: none; }
+  .auth-footer { grid-row: 3; min-height: 76px; }
+}
+
+@media (min-width: 1200px) and (max-width: 1450px) {
+  .auth-page { grid-template-columns: minmax(0, 1.5fr) minmax(440px, .86fr); column-gap: 26px; padding-left: 36px; padding-right: 36px; }
+  .auth-hero-copy { width: 52%; }
+  .auth-features { width: 47%; }
+  .analytics-stage { right: 1%; width: 62%; min-width: 500px; }
+  .widget-kpi { left: 22%; }
+  .auth-login-region { width: min(100%, 500px); }
+}
+
+@media (max-width: 767px) {
+  .auth-page { gap: 38px; padding: 25px 18px 0; }
+  .auth-hero { display: contents; }
+  .auth-hero-logo { grid-row: 1; width: 170px; }
+  .auth-hero-copy { grid-row: 2; width: 100%; margin: 3px 0 0; }
+  .auth-hero-copy h1 { font-size: clamp(38px, 12vw, 51px); }
+  .auth-hero-copy > p { max-width: 520px; font-size: 16px; }
+  .auth-login-region { grid-row: 3; }
+  .auth-panel { min-height: 0; padding: 30px 22px; border-radius: 22px; }
+  .brand-logo-auth { width: 185px; }
+  .auth-features { grid-row: 4; width: 100%; margin: 4px 0 0; gap: 18px; }
+  .auth-feature { grid-template-columns: 48px minmax(0, 1fr); }
+  .auth-feature-icon { width: 48px; }
+  .auth-feature h2 { font-size: 15px; }
+  .auth-feature p { font-size: 12px; }
+  .analytics-stage { grid-row: 5; position: relative; top: auto; right: auto; bottom: auto; width: calc(100% + 20px); min-width: 0; height: 540px; margin-left: -10px; }
+  .analytics-growth { inset: 7% 0 0; height: 85%; }
+  .analytics-widget { width: 145px; padding: 11px; }
+  .widget-revenue { left: 28%; }.widget-ebitda { right: 0; width: 140px; }.widget-kpi { left: 0; width: 168px; }.widget-expenses { right: 3%; width: 148px; }.widget-people { left: 12%; width: 160px; }
+  .auth-footer { grid-row: 6; flex-direction: column; align-items: flex-start; justify-content: center; padding: 20px 0 24px; line-height: 1.5; }
+}
+
+@media (max-width: 420px) {
+  .auth-hero-copy h1 { font-size: 39px; }
+  .auth-panel { padding: 28px 18px; }
+  .auth-title { font-size: 25px; }
+  .auth-input-wrap input { padding-left: 44px; }
+  .analytics-stage { height: 500px; transform: scale(.93); transform-origin: center top; width: 108%; margin-left: -4%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-actions .primary-button.auth-submit { transition: none; }
+}
+
 .app-layout {
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
@@ -9777,4 +10243,44 @@ body.rps-laser-mode .rps-attachment-carousel * {
   cursor: pointer;
 }
 .notif-rcpt-add-btn:hover { color: var(--text); border-color: var(--blue); }
+
+/* Chrome/Edge em notebooks 1366x768 deixam apenas ~600px úteis depois das
+   barras do navegador. Nesse caso preservamos a composição 16:9 inteira e a
+   reduzimos proporcionalmente, em vez de esmagar cada bloco separadamente. */
+@media (min-width: 1200px) and (max-height: 650px) {
+  body.auth-only { overflow: hidden; }
+
+  .auth-page {
+    /* Essa faixa é pra notebook com pouca altura útil (barra de favoritos
+       etc reduzindo o viewport) — a solução é encolher a composição toda
+       proporcionalmente (scale) pra caber sem cortar nem rolar. Só escalar
+       com base na altura, sem compensar a largura, deixava a caixa visual
+       mais estreita que o viewport e sobrava vão morto nas duas laterais
+       (exatamente o que foi reportado). --vp-scale guarda o fator; a
+       largura nativa é inflada na proporção inversa ANTES do scale, então
+       o resultado visual (width × scale) volta a ocupar 100% da tela. */
+    --vp-scale: calc(100vh / 750px);
+    position: absolute;
+    /* Ancorado no centro (left:50% + margin-left negativo de metade da
+       largura inflada) em vez do canto esquerdo — assim a caixa já nasce
+       centralizada no viewport, e o scale() em volta do próprio centro
+       simplesmente encolhe sem deslocar nada pro lado (o anchor anterior,
+       "0 auto auto 0", empurrava a caixa toda pra direita ao inflar a
+       largura, sobrando vão só na esquerda e cortando a direita). */
+    inset: 0 auto auto 50%;
+    width: calc(100% / var(--vp-scale));
+    max-width: none;
+    min-height: 750px;
+    margin: 0 0 0 calc(-50% / var(--vp-scale));
+    padding: 26px 36px 0;
+    grid-template-columns: minmax(0, 1.5fr) minmax(440px, .86fr);
+    grid-template-rows: minmax(0, 1fr) 62px;
+    column-gap: 26px;
+    transform: scale(var(--vp-scale));
+    transform-origin: top center;
+  }
+
+  .auth-login-region { transform: translateY(-3vh); }
+  .auth-footer { min-height: 62px; }
+}
 
