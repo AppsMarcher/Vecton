@@ -276,8 +276,7 @@
            resto do proprio relatorio (mapa, zoom em z-index:5 etc.), baixo o
            bastante pra nunca cobrir o calendario do cabecalho. */
         .cmg-filters { display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:14px; position:relative; z-index:10; }
-        .cmg-fspacer { flex:1; }
-        .cmg-chip { position:relative; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:7px 12px; display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; }
+        .cmg-chip { position:relative; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:10px 12px; display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; }
         .cmg-chip:hover { background:#1d2537; }
         .cmg-chip.on { border-color:var(--accent); }
         .cmg-chip .ico { color:var(--faint); display:flex; }
@@ -506,7 +505,6 @@
         ${filterChip("cultura", ICO.cultura, "Cultura", selCultura || "Todas")}
         ${filterChip("modelo", ICO.modelo, "Modelo", selModelo || "Todos")}
         ${filterChip("equipe", ICO.equipe, "Equipe Comercial", equipeLabel())}
-        <div class="cmg-fspacer"></div>
         <div class="cmg-seg" id="cmg-mode">
           <span style="padding:7px 4px 7px 8px;font-size:11px;color:var(--faint);white-space:nowrap">Exibir mapa por:</span>
           <button data-mode="quantidade" ${mapMode === "quantidade" ? 'class="on"' : ""}>Quantidade</button>
