@@ -12,6 +12,13 @@
 // _shared/ -- o deploy é feito pelo editor do painel Supabase (sem CLI neste
 // projeto), que não resolve import relativo pra fora da pasta da function.
 //
+// Link do e-mail NÃO é mais o action_link bruto do GoTrue (2026-08-27): era
+// consumido pelo Microsoft Defender Safe Links (varredura em tempo de
+// ENTREGA do e-mail, tenant @marcher.com.br) antes do usuário clicar, dando
+// sempre "link inválido ou expirado" no primeiro clique real. Troca pra link
+// do PRÓPRIO app com `?token_hash=...&type=invite` na query — ver nota
+// grande em authSession.js (handleInviteRecoveryFlow) no front.
+//
 // Deploy:
 //   supabase functions deploy resend-invite --no-verify-jwt
 //   (--no-verify-jwt porque validamos o token do chamador manualmente abaixo)
@@ -64,8 +71,9 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const targetUserId = String(body.user_id ?? "").trim();
-    const redirectTo = body.redirect_to ? String(body.redirect_to).trim() : null;
+    const redirectTo = body.redirect_to ? String(body.redirect_to).trim() : "";
     if (!targetUserId) return json({ error: "user_id é obrigatório" }, 400);
+    if (!redirectTo) return json({ error: "redirect_to é obrigatório" }, 400);
 
     const admin = createClient(url, serviceKey);
 
@@ -88,13 +96,14 @@ Deno.serve(async (req) => {
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       type: "invite",
       email: targetProfile.email,
-      options: redirectTo ? { redirectTo } : undefined,
+      options: { redirectTo },
     });
     if (linkErr) return json({ error: linkErr.message || "Falha ao gerar o convite" }, 400);
-    const actionLink = linkData?.properties?.action_link;
-    if (!actionLink) return json({ error: "Link de convite não foi gerado" }, 500);
+    const hashedToken = linkData?.properties?.hashed_token;
+    if (!hashedToken) return json({ error: "Link de convite não foi gerado" }, 500);
+    const confirmLink = buildConfirmLink(redirectTo, "invite", hashedToken);
 
-    const emailResult = await sendInviteEmailViaResend(targetProfile.email, actionLink);
+    const emailResult = await sendInviteEmailViaResend(targetProfile.email, confirmLink);
     if (!emailResult.ok) return json({ error: `Falha ao enviar o e-mail de convite: ${emailResult.error}` }, 500);
 
     return json({ ok: true, email: targetProfile.email });
@@ -103,12 +112,20 @@ Deno.serve(async (req) => {
   }
 });
 
+// Constrói o link do e-mail apontando pro PRÓPRIO app (não mais o
+// action_link bruto do GoTrue) -- ver nota no topo do arquivo e em
+// authSession.js (handleInviteRecoveryFlow) sobre o Defender Safe Links.
+function buildConfirmLink(redirectTo: string, type: string, hashedToken: string): string {
+  const sep = redirectTo.includes("?") ? "&" : "?";
+  return `${redirectTo}${sep}token_hash=${encodeURIComponent(hashedToken)}&type=${type}`;
+}
+
 // Envio do e-mail de convite via Resend -- ver comentário no topo do arquivo
 // sobre por que não vai pelo SMTP do painel e por que esta função é
 // duplicada aqui e em invite-user/index.ts em vez de vir de _shared/.
 async function sendInviteEmailViaResend(
   to: string,
-  actionLink: string
+  confirmLink: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) return { ok: false, error: "Secret RESEND_API_KEY ausente" };
@@ -124,7 +141,7 @@ async function sendInviteEmailViaResend(
       from,
       to: [to],
       subject: "Seu acesso ao VectonPlan foi liberado",
-      html: buildInviteHtml(actionLink),
+      html: buildInviteHtml(confirmLink),
     }),
   });
   const data = await res.json().catch(() => ({}));
@@ -133,10 +150,10 @@ async function sendInviteEmailViaResend(
 }
 
 // Mesmo conteúdo/visual de supabase/email-templates/invite-user.html, só que
-// com {{ .ConfirmationURL }} já resolvido para o action_link real (o Resend
-// não processa a sintaxe de template do Supabase -- o link precisa ir pronto).
-// Se o template visual mudar lá, replicar aqui também (e em invite-user).
-function buildInviteHtml(actionLink: string): string {
+// com {{ .ConfirmationURL }} já resolvido pro link de confirmação real (o
+// Resend não processa a sintaxe de template do Supabase -- o link precisa ir
+// pronto). Se o template visual mudar lá, replicar aqui também (e em invite-user).
+function buildInviteHtml(confirmLink: string): string {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -166,7 +183,7 @@ function buildInviteHtml(actionLink: string): string {
                     <table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px 0 24px 0;">
                       <tr>
                         <td align="center" bgcolor="#4f7cff" style="border-radius:14px;">
-                          <a href="${actionLink}" style="display:inline-block;padding:15px 24px;font-size:15px;font-weight:700;line-height:1;text-decoration:none;color:#ffffff;">
+                          <a href="${confirmLink}" style="display:inline-block;padding:15px 24px;font-size:15px;font-weight:700;line-height:1;text-decoration:none;color:#ffffff;">
                             Definir senha e acessar
                           </a>
                         </td>
@@ -188,7 +205,7 @@ function buildInviteHtml(actionLink: string): string {
                       Se o botão não funcionar, copie e cole este link no navegador:
                     </p>
                     <p style="margin:0;padding:14px 16px;border-radius:14px;background:#0b0c0f;border:1px solid #2a2d34;font-size:13px;line-height:1.6;color:#cbd5e1;word-break:break-all;">
-                      ${actionLink}
+                      ${confirmLink}
                     </p>
                   </td>
                 </tr>

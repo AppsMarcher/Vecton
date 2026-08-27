@@ -68,8 +68,9 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const email = String(body.email ?? "").trim().toLowerCase();
-    const redirectTo = body.redirect_to ? String(body.redirect_to).trim() : null;
+    const redirectTo = body.redirect_to ? String(body.redirect_to).trim() : "";
     if (!email || !email.includes("@")) return json({ error: "E-mail inválido" }, 400);
+    if (!redirectTo) return json({ error: "redirect_to é obrigatório" }, 400);
 
     const admin = createClient(url, serviceKey);
 
@@ -98,16 +99,17 @@ Deno.serve(async (req) => {
     const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
       type: "recovery",
       email: profile.email,
-      options: redirectTo ? { redirectTo } : undefined,
+      options: { redirectTo },
     });
     if (linkErr) {
       console.error("generateLink falhou:", linkErr.message);
       return GENERIC_OK;
     }
-    const actionLink = linkData?.properties?.action_link;
-    if (!actionLink) return GENERIC_OK;
+    const hashedToken = linkData?.properties?.hashed_token;
+    if (!hashedToken) return GENERIC_OK;
+    const confirmLink = buildConfirmLink(redirectTo, "recovery", hashedToken);
 
-    const emailResult = await sendResetPasswordEmailViaResend(profile.email, actionLink);
+    const emailResult = await sendResetPasswordEmailViaResend(profile.email, confirmLink);
     if (!emailResult.ok) {
       console.error("Resend falhou:", emailResult.error);
     }
@@ -120,12 +122,20 @@ Deno.serve(async (req) => {
   }
 });
 
+// Constrói o link do e-mail apontando pro PRÓPRIO app (não mais o
+// action_link bruto do GoTrue) -- ver nota no topo do arquivo e em
+// authSession.js (handleInviteRecoveryFlow) sobre o Defender Safe Links.
+function buildConfirmLink(redirectTo: string, type: string, hashedToken: string): string {
+  const sep = redirectTo.includes("?") ? "&" : "?";
+  return `${redirectTo}${sep}token_hash=${encodeURIComponent(hashedToken)}&type=${type}`;
+}
+
 // Envio do e-mail de redefinição de senha via Resend — réplica exata do
 // helper em resend-password/index.ts (mesmo template visual). Se o layout
 // mudar lá, replicar aqui também.
 async function sendResetPasswordEmailViaResend(
   to: string,
-  actionLink: string
+  confirmLink: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) return { ok: false, error: "Secret RESEND_API_KEY ausente" };
@@ -141,7 +151,7 @@ async function sendResetPasswordEmailViaResend(
       from,
       to: [to],
       subject: "Redefina sua senha do VectonPlan",
-      html: buildResetPasswordHtml(actionLink),
+      html: buildResetPasswordHtml(confirmLink),
     }),
   });
   const data = await res.json().catch(() => ({}));
@@ -153,7 +163,7 @@ async function sendResetPasswordEmailViaResend(
 // que com {{ .ConfirmationURL }} já resolvido para o action_link real (o
 // Resend não processa a sintaxe de template do Supabase -- o link precisa ir
 // pronto). Se o template visual mudar lá, replicar aqui também.
-function buildResetPasswordHtml(actionLink: string): string {
+function buildResetPasswordHtml(confirmLink: string): string {
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -183,7 +193,7 @@ function buildResetPasswordHtml(actionLink: string): string {
                     <table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px 0 24px 0;">
                       <tr>
                         <td align="center" bgcolor="#4f7cff" style="border-radius:14px;">
-                          <a href="${actionLink}" style="display:inline-block;padding:15px 24px;font-size:15px;font-weight:700;line-height:1;text-decoration:none;color:#ffffff;">
+                          <a href="${confirmLink}" style="display:inline-block;padding:15px 24px;font-size:15px;font-weight:700;line-height:1;text-decoration:none;color:#ffffff;">
                             Criar nova senha
                           </a>
                         </td>
@@ -205,7 +215,7 @@ function buildResetPasswordHtml(actionLink: string): string {
                       Se o botão não funcionar, copie e cole este link no navegador:
                     </p>
                     <p style="margin:0;padding:14px 16px;border-radius:14px;background:#0b0c0f;border:1px solid #2a2d34;font-size:13px;line-height:1.6;color:#cbd5e1;word-break:break-all;">
-                      ${actionLink}
+                      ${confirmLink}
                     </p>
                   </td>
                 </tr>

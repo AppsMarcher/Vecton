@@ -34,9 +34,19 @@
       setSyncStatus("Validando sessao...", "warn");
 
       // Convite/recuperação: se a URL trouxe tokens (link do email), abre o
-      // fluxo de definir senha em vez do login normal.
-      if (await handleInviteRecoveryFlow()) {
-        return;
+      // fluxo de definir senha em vez do login normal. try/catch aqui é
+      // defesa-em-profundidade: um erro não previsto neste trecho NÃO pode
+      // propagar pra fora de initializeAuth() e derrubar o resto do
+      // bootstrap() do app (header, período, render) — já aconteceu uma vez
+      // (bug de TDZ do reportCardLabelsCache, 2026-08-27) e nada aqui dentro
+      // é crítico o bastante pra justificar travar o app inteiro por causa
+      // disso; na pior hipótese o usuário só cai no login normal.
+      try {
+        if (await handleInviteRecoveryFlow()) {
+          return;
+        }
+      } catch (error) {
+        console.error("handleInviteRecoveryFlow falhou:", error);
       }
 
       try {
@@ -59,7 +69,10 @@
       }
     }
 
-    // Lê tokens de auth vindos do link de email (hash da URL).
+    // Lê tokens de auth vindos do link de email (hash da URL) — formato
+    // ANTIGO, mantido só por compatibilidade com convites/recuperações já
+    // enviados antes de 2026-08-27 (ver getQueryTokenHash/verifyOtpTokenHash
+    // abaixo pro formato atual).
     function getUrlAuthTokens() {
       const hash = window.location.hash.replace(/^#/, "");
       const params = new URLSearchParams(hash || window.location.search.replace(/^\?/, ""));
@@ -72,9 +85,72 @@
       };
     }
 
+    // Lê token_hash + type da QUERY STRING do link de email — formato ATUAL
+    // (2026-08-27), ver nota grande em handleInviteRecoveryFlow sobre o
+    // porquê da troca.
+    function getQueryTokenHash() {
+      const params = new URLSearchParams(window.location.search);
+      return { tokenHash: params.get("token_hash") || "", type: params.get("type") || "" };
+    }
+
+    // Troca token_hash+type por uma sessão de verdade — equivalente REST do
+    // supabase-js `verifyOtp({token_hash, type})`. POST (não GET): só roda
+    // quando o JS do app executa, nunca por um simples fetch de reputação de
+    // URL (ver nota abaixo).
+    async function verifyOtpTokenHash(type, tokenHash) {
+      const response = await fetch(`${supabaseConfig.projectUrl}/auth/v1/verify`, {
+        method: "POST",
+        headers: buildAuthHeaders(),
+        body: JSON.stringify({ type, token_hash: tokenHash })
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return response.json();
+    }
+
     // Fluxo de convite/recuperação: estabelece a sessão do token e abre o form
     // de definir senha. Retorna true se tratou (pra pular o login normal).
+    //
+    // MUDANÇA 2026-08-27 — por que o link do e-mail não é mais o action_link
+    // bruto do GoTrue: usuários reportavam "Link inválido ou expirado" logo
+    // no PRIMEIRO clique do convite (nunca tinham aberto antes). Causa: o
+    // action_link (`/auth/v1/verify?token=...&type=invite&redirect_to=...`)
+    // é um GET de USO ÚNICO — o Microsoft Defender for Office 365 (Safe
+    // Links, ativo no tenant @marcher.com.br, mesmo tenant que já
+    // sobrescrevia o "Sender name" via GAL) faz varredura em TEMPO DE ENTREGA
+    // do e-mail: busca a URL pra checar reputação/phishing ANTES de qualquer
+    // humano abrir a mensagem — isso já consome o token, então o clique real
+    // do usuário sempre cai em "already used". Fix (mesma técnica recomendada
+    // pelo Supabase pra esse cenário): o e-mail agora linka pro PRÓPRIO app
+    // com `?token_hash=...&type=...` na query (link normal pro nosso
+    // domínio, sem nenhum efeito colateral em ser só buscado/pré-carregado) e
+    // a troca de fato (POST /auth/v1/verify, só roda quando o JS executa)
+    // acontece aqui, no carregamento real da página pelo navegador do
+    // usuário — scanners de reputação de link tipicamente não executam JS.
+    // invite-user/resend-invite/resend-password/forgot-password (Edge
+    // Functions) constroem esse link a partir de `linkData.properties.
+    // hashed_token` em vez de usar `action_link`.
     async function handleInviteRecoveryFlow() {
+      const q = getQueryTokenHash();
+      if (q.tokenHash && ["invite", "recovery", "signup", "email_change", "magiclink"].includes(q.type)) {
+        history.replaceState(null, "", window.location.pathname);
+        clearSessionState();
+        onLogoutCleanup();
+        try {
+          const session = await verifyOtpTokenHash(q.type, q.tokenHash);
+          applySession(session);
+          showSetPasswordForm();
+          setSyncStatus("Defina sua senha", "warn");
+        } catch (error) {
+          console.error(error);
+          showAuthShell("Link inválido ou expirado. Peça um novo convite ou uma nova redefinição de senha.", "error");
+        }
+        return true;
+      }
+
+      // Formato antigo (hash da URL) — só pra links já enviados antes desta
+      // mudança ainda funcionarem se clicados a tempo.
       const t = getUrlAuthTokens();
       if (!t.accessToken || !["invite", "recovery", "signup"].includes(t.type)) {
         if (t.errorDesc) {

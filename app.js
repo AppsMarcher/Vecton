@@ -90,6 +90,19 @@ let selectedCcCode = state.ccNodes.find((node) => node.class === "Analitica")?.c
 let expandedCcCodes = new Set(getDefaultExpandedCcCodes(state.ccNodes));
 let dragPayload = null;
 let organizationIdCache = null;
+// Declarado aqui (não perto de loadReportCardLabels, mais abaixo) porque
+// onLogoutCleanup (passado pro authModule logo adiante) fecha sobre esta
+// variável e pode rodar DURANTE bootstrap()/initializeAuth() -- ou seja,
+// antes do topo-a-baixo do script chegar na declaração "natural" -- se
+// ficasse com `let` lá embaixo, um clique em link de convite/recuperação
+// disparava "Cannot access before initialization" (TDZ) bem no meio do
+// handleInviteRecoveryFlow, sem try/catch em volta, derrubando o resto do
+// bootstrap() inteiro (header, período, render) e deixando a tela de login
+// exibida no lugar da tela de definir senha, mesmo com o token perfeitamente
+// válido. Bug real encontrado testando o fix do e-mail de convite
+// (2026-08-27) -- nunca dava pra reproduzir num carregamento normal (sem
+// token na URL) porque só nesse fluxo onLogoutCleanup roda tão cedo.
+let reportCardLabelsCache = {};
 let currentSession = null;
 let currentUser = null;
 let profileDraft = null;
@@ -1518,7 +1531,8 @@ function bindEvents() {
 // edita, todo mundo da organização vê o mesmo apelido. Antes disso era
 // localStorage por usuário (vp_report_labels_<user_id>) — cada admin via só
 // o próprio apelido, sem refletir pra ninguém; não repetir esse padrão aqui.
-let reportCardLabelsCache = {};
+// (reportCardLabelsCache é declarado lá em cima, perto de organizationIdCache
+// — ver comentário lá sobre o bug de TDZ que isso corrigiu.)
 
 async function loadReportCardLabels() {
   if (!isSupabaseConfigured()) { reportCardLabelsCache = {}; return reportCardLabelsCache; }
