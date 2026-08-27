@@ -204,9 +204,14 @@
     }
 
     // "Esqueci minha senha": usa o e-mail já digitado no campo de login e
-    // pede pro GoTrue mandar o link de recuperação. Ao clicar no link, o
-    // usuário volta pro app com type=recovery na URL, tratado pelo mesmo
-    // handleInviteRecoveryFlow() que já existe pra convite.
+    // pede o link de recuperação via Edge Function forgot-password (NÃO o
+    // endpoint público GoTrue /auth/v1/recover — esse manda pelo SMTP do
+    // painel/Office365, que pra destinatários @marcher.com.br tem o nome do
+    // remetente sobrescrito pelo GAL do Outlook, "no reply - Marcher Brasil"
+    // em vez de "VectonPlan". Mesmo fix já aplicado em convite/resend-password
+    // — ver [[project_vecton_plan]] 2026-08-26/27). Ao clicar no link do
+    // e-mail, o usuário volta pro app com type=recovery na URL, tratado pelo
+    // mesmo handleInviteRecoveryFlow() que já existe pra convite.
     async function requestPasswordRecovery() {
       if (!hasSupabaseBaseConfig()) {
         showAuthFeedback("Preencha primeiro o supabase-config.js.", "error");
@@ -222,18 +227,19 @@
       try {
         showAuthFeedback("Enviando e-mail de recuperação...", "ok");
         const redirectTo = window.location.origin + window.location.pathname;
-        const response = await fetch(
-          `${supabaseConfig.projectUrl}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,
-          {
-            method: "POST",
-            headers: buildAuthHeaders(),
-            body: JSON.stringify({ email })
-          }
-        );
+        // Sem token de sessão (usuário deslogado) — só a anon key, igual
+        // signInWithPassword. A function é pública (--no-verify-jwt) de
+        // propósito e responde {ok:true} genérico sempre, exista o e-mail ou
+        // não, pra não virar oráculo de enumeração.
+        const response = await fetch(`${supabaseConfig.projectUrl}/functions/v1/forgot-password`, {
+          method: "POST",
+          headers: buildAuthHeaders(),
+          body: JSON.stringify({ email, redirect_to: redirectTo })
+        });
         if (!response.ok) {
           throw new Error(await response.text());
         }
-        showAuthFeedback("Enviamos um e-mail com o link de recuperação de senha.", "ok");
+        showAuthFeedback("Se o e-mail estiver cadastrado, enviamos um link de recuperação.", "ok");
       } catch (error) {
         console.error(error);
         showAuthFeedback("Não foi possível enviar o e-mail de recuperação. Tente novamente.", "error");
