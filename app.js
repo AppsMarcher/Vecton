@@ -2036,24 +2036,28 @@ function isConsolidatedReport(reportId) {
   return String(reportId).startsWith("dre");
 }
 
+const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo"];
+
 // Visibilidade do card no catálogo — modelo POR PAPEL (conforme tela Perfis de Acesso):
 //  • admin/super_admin: tudo
-//  • manager (Gestor): tudo (cockpit + DRE consolidado + drill-down da sua gestão)
-//  • analyst (Analista): só os relatórios por CC (não vê DRE consolidado)
-//  • comercial: allowlist fixa (Painel/Mapa de Vendas)
-//  • extra_report_ids: concessão ADICIONAL (libera um relatório específico como exceção)
+//  • manager (Gestor): tudo, incluindo os quatro relatórios comerciais
+//  • analyst (Analista): somente OPEX e Headcount por gestão/CC
+//  • comercial: allowlist fixa dos quatro relatórios comerciais
+//  • extra_report_ids: concessão ADICIONAL, exceto para os quatro relatórios
+//    comerciais fixos, que exigem um perfil que os autorize explicitamente
 // Com perfis combináveis, o resultado é a UNIÃO do que cada perfil marcado
 // libera (basta UM dos perfis da pessoa liberar o relatório).
 function roleCanSeeReport(role, reportId) {
   if (role === "super_admin" || role === "admin") return true;
-  if (role === "comercial") return String(reportId).startsWith("comercialRelatorio_") || ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo"].includes(reportId);
+  if (role === "comercial") return String(reportId).startsWith("comercialRelatorio_") || CORE_COMMERCIAL_REPORT_IDS.includes(reportId);
   if (role === "manager") return true;
-  if (role === "analyst") return !isConsolidatedReport(reportId);
+  if (role === "analyst") return ["opexReal", "opexBudget", "headcountReal", "headcountBudget"].includes(reportId);
   return false; // rps_gestao e outros perfis sem tela de Relatórios própria
 }
 function canSeeReport(reportId) {
-  if (getExtraReportIds().includes(reportId)) return true;
-  return getAllAccessRoles().some((role) => roleCanSeeReport(role, reportId));
+  if (getAllAccessRoles().some((role) => roleCanSeeReport(role, reportId))) return true;
+  if (CORE_COMMERCIAL_REPORT_IDS.includes(reportId)) return false;
+  return getExtraReportIds().includes(reportId);
 }
 
 // Pode ver a conta contábil? Restrito → só as marcadas em extra_account_codes.
