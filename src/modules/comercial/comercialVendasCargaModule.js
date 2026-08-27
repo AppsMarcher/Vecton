@@ -349,6 +349,8 @@
         ${th("tipo", "comven-col-tipo", "Tipo")}
         ${th("codProduto", "comven-col-produto", "Produto")}
         ${th("codCliente", "comven-col-cliente", "Cliente")}
+        ${th("documento", "comven-col-documento", "NF / Documento")}
+        ${th("serieDocumento", "comven-col-serie", "Série")}
         ${th("codTerritorio", "comven-col-territorio", "Território")}
         ${th("codVendedor", "comven-col-vendedor", "Cód. vendedor")}
         ${th("quantidade", "comven-col-qtd", "Qtd")}
@@ -430,6 +432,8 @@
           <td class="comven-col-tipo"><input class="actuals-field" data-field="tipo" type="text" list="comven-tipo-list" maxlength="12" value="${escapeHtml(row.tipo || "")}"></td>
           <td class="comven-col-produto"><input class="actuals-field" data-field="codProduto" type="text" maxlength="20" value="${escapeHtml(row.codProduto || "")}"></td>
           <td class="comven-col-cliente"><input class="actuals-field" data-field="codCliente" type="text" maxlength="20" value="${escapeHtml(row.codCliente || "")}"></td>
+          <td class="comven-col-documento"><input class="actuals-field" data-field="documento" type="text" maxlength="60" value="${escapeHtml(row.documento || "")}"></td>
+          <td class="comven-col-serie"><input class="actuals-field" data-field="serieDocumento" type="text" maxlength="20" value="${escapeHtml(row.serieDocumento || "")}"></td>
           <td class="comven-col-territorio"><input class="actuals-field" data-field="codTerritorio" type="text" maxlength="30" value="${escapeHtml(row.codTerritorio || "")}"></td>
           <td class="comven-col-vendedor"><input class="actuals-field" data-field="codVendedor" type="text" inputmode="numeric" maxlength="20" value="${escapeHtml(row.codVendedor || "")}"></td>
           <td class="comven-col-qtd"><input class="actuals-field actuals-field-amount" data-field="quantidade" type="text" maxlength="15" value="${escapeHtml(row.quantidade == null ? "" : String(row.quantidade))}"></td>
@@ -549,6 +553,8 @@
           entryDate: buildPeriodDate(state.currentPeriod.year, state.currentPeriod.month),
           codProduto: "",
           codCliente: "",
+          documento: "",
+          serieDocumento: "",
           codTerritorio: "",
           codVendedor: "",
           quantidade: "",
@@ -670,6 +676,8 @@
         entryDate: rowElement.querySelector('[data-field="entryDate"]').value,
         codProduto: rowElement.querySelector('[data-field="codProduto"]').value,
         codCliente: rowElement.querySelector('[data-field="codCliente"]').value,
+        documento: rowElement.querySelector('[data-field="documento"]').value,
+        serieDocumento: rowElement.querySelector('[data-field="serieDocumento"]').value,
         codTerritorio: rowElement.querySelector('[data-field="codTerritorio"]').value,
         codVendedor: rowElement.querySelector('[data-field="codVendedor"]').value,
         quantidade: rowElement.querySelector('[data-field="quantidade"]').value,
@@ -703,7 +711,7 @@
         if (isSupabaseConfigured()) {
           const [fresh] = await fetchSupabaseRowsSafe(
             "comercial_realizado_import_rows",
-            `id=eq.${encodeURIComponent(rowId)}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,cod_territorio,cod_vendedor,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&limit=1`
+            `id=eq.${encodeURIComponent(rowId)}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,documento,serie_documento,cod_territorio,cod_vendedor,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&limit=1`
           );
           if (fresh) {
             const normalized = normalizeRow(fresh);
@@ -785,6 +793,8 @@
         entry_date: row.entryDate || null,
         cod_produto: row.codProduto || null,
         cod_cliente: row.codCliente || null,
+        documento: row.documento || null,
+        serie_documento: row.serieDocumento || null,
         cod_territorio: row.codTerritorio || null,
         cod_vendedor: row.codVendedor || null,
         quantidade: row.quantidade == null || Number.isNaN(Number(row.quantidade)) ? null : Number(row.quantidade),
@@ -849,7 +859,7 @@
       while (true) {
         const page = await fetchSupabaseRowsSafe(
           "comercial_realizado_import_rows",
-          `batch_id=eq.${batchId}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,cod_territorio,cod_vendedor,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&order=row_number.asc&limit=${pageSize}&offset=${offset}`
+          `batch_id=eq.${batchId}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,documento,serie_documento,cod_territorio,cod_vendedor,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&order=row_number.asc&limit=${pageSize}&offset=${offset}`
         );
         if (!page || page.length === 0) break;
         allRows = allRows.concat(page);
@@ -962,6 +972,8 @@
         entryDate: sourceRow[headerMap.entryDate],
         codProduto: sourceRow[headerMap.codProduto],
         codCliente: sourceRow[headerMap.codCliente],
+        documento: headerMap.documento ? sourceRow[headerMap.documento] : "",
+        serieDocumento: headerMap.serieDocumento ? sourceRow[headerMap.serieDocumento] : "",
         codTerritorio: headerMap.codTerritorio ? sourceRow[headerMap.codTerritorio] : "",
         codVendedor: headerMap.codVendedor ? sourceRow[headerMap.codVendedor] : "",
         quantidade: sourceRow[headerMap.quantidade],
@@ -978,6 +990,8 @@
         entryDate: ["data", "datalancamento", "dataprevisao"],
         codProduto: ["codproduto", "produto", "codprod", "codigoproduto"],
         codCliente: ["codcliente", "cliente", "codcli", "codigocliente"],
+        documento: ["documento", "nf", "notafiscal", "numeronota", "numnota", "numnf"],
+        serieDocumento: ["serie", "serienf", "seriedocumento"],
         codTerritorio: ["territorio", "regional", "regionalmarcher"],
         codVendedor: ["codvendedor", "codigovendedor", "vendedorcodigo", "codvend"],
         quantidade: ["quantidade", "qtd", "qtde", "qtdpedido"],
@@ -1024,6 +1038,8 @@
         entryDate: normalizeDateInput(row.entryDate ?? row.entry_date ?? ""),
         codProduto: String(row.codProduto ?? row.cod_produto ?? "").trim(),
         codCliente: String(row.codCliente ?? row.cod_cliente ?? "").trim(),
+        documento: String(row.documento ?? "").trim(),
+        serieDocumento: String(row.serieDocumento ?? row.serie_documento ?? "").trim(),
         codTerritorio: String(row.codTerritorio ?? row.cod_territorio ?? "").trim(),
         codVendedor: String(row.codVendedor ?? row.cod_vendedor ?? "").trim(),
         quantidade: qtd == null || qtd === "" ? null : Number(qtd),
@@ -1048,6 +1064,8 @@
         entryDate: normalizeDateInput(row.entryDate),
         codProduto: String(row.codProduto ?? "").trim(),
         codCliente: String(row.codCliente ?? "").trim(),
+        documento: String(row.documento ?? "").trim(),
+        serieDocumento: String(row.serieDocumento ?? "").trim(),
         codTerritorio: String(row.codTerritorio ?? "").trim(),
         codVendedor: String(row.codVendedor ?? "").trim(),
         quantidade: Number.isNaN(qtd) ? null : qtd,
