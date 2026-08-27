@@ -61,14 +61,20 @@
         .cvm-kick { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin:0 0 4px; }
         .cvm-h1 { font-size:20px; font-weight:600; margin:0; }
         .cvm-sub { color:var(--soft); font-size:12.5px; margin:5px 0 0; }
-        .cvm-ctrls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .cvm-ctrls { --cvm-ctrl-h:35px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
         .cvm-eqwrap { position:relative; }
-        .cvm-eqbtn { display:flex; align-items:center; gap:7px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:7px 12px; font:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; }
+        .cvm-eqbtn { min-height:var(--cvm-ctrl-h); display:flex; align-items:center; gap:0; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:3px; font:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; transition:border-color .14s, box-shadow .14s, background .14s; }
         .cvm-eqbtn:hover { background:#1c222c; }
-        .cvm-eqbtn.on { border-color:${BLUE}; }
-        .cvm-eqbtn .ico { color:var(--faint); display:flex; }
-        .cvm-eqbtn .lbl { color:var(--faint); }
-        .cvm-eqbtn .val { color:var(--ink); font-weight:600; white-space:nowrap; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+        .cvm-eqbtn.is-open { border-color:${BLUE}; box-shadow:0 0 0 2px rgba(63,99,214,.14); }
+        .cvm-eqbtn:focus-visible, .cvm-seg button:focus-visible { outline:2px solid ${BLUE}; outline-offset:2px; }
+        .cvm-eqbtn .ico { color:var(--faint); display:flex; padding:0 6px 0 7px; }
+        .cvm-eqbtn .lbl { color:var(--soft); white-space:nowrap; padding-right:8px; }
+        .cvm-eqbtn .val { min-height:27px; display:flex; align-items:center; gap:8px; color:var(--ink); background:#222834; border-radius:7px; padding:5px 10px; font-weight:600; white-space:nowrap; max-width:170px; transition:background .14s, color .14s; }
+        .cvm-eqbtn .val-text { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+        .cvm-eqbtn .val::after { content:""; width:6px; height:6px; flex:none; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; transform:translateY(-2px) rotate(45deg); opacity:.65; transition:transform .14s; }
+        .cvm-eqbtn:hover .val { background:#2a3240; }
+        .cvm-eqbtn.is-open .val::after { transform:translateY(2px) rotate(225deg); }
+        .cvm-eqbtn.is-filtered .val { background:rgba(63,99,214,.22); color:#cbd8ff; }
         .cvm-eqpop { position:absolute; top:calc(100% + 6px); left:0; z-index:15; background:#171b22; border:1px solid var(--line); border-radius:12px; padding:12px; min-width:240px; max-width:300px; box-shadow:0 20px 44px rgba(0,0,0,.5); }
         .cvm-eqpop h4 { margin:0 0 8px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:600; }
         .cvm-eqpop .grp + .grp { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
@@ -76,8 +82,9 @@
         .cvm-eqpop label { display:flex; align-items:center; gap:8px; font-size:12.5px; padding:5px 6px; border-radius:7px; cursor:pointer; }
         .cvm-eqpop label:hover { background:#1c222c; }
         .cvm-eqpop input[type=radio] { width:auto; min-width:0; flex:none; accent-color:${BLUE}; margin:0; }
-        .cvm-seg { display:flex; gap:2px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:3px; }
-        .cvm-seg button { border:none; background:transparent; color:var(--soft); font:inherit; font-size:12.5px; font-weight:500; padding:6px 13px; border-radius:7px; cursor:pointer; }
+        .cvm-seg { min-height:var(--cvm-ctrl-h); display:flex; gap:2px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:3px; }
+        .cvm-seg button { border:none; background:transparent; color:var(--soft); font:inherit; font-size:12.5px; font-weight:500; padding:5px 13px; border-radius:7px; cursor:pointer; transition:background .14s, color .14s; }
+        .cvm-seg button:hover:not(.on) { background:#1c222c; color:var(--ink); }
         .cvm-seg button.on { background:#222834; color:#fff; }
         .cvm-seg.lay button.on[data-l="grao"] { background:rgba(99,179,255,.22); color:#bcd8ff; }
         .cvm-seg.lay button.on[data-l="pec"] { background:rgba(245,158,11,.20); color:#f6c67a; }
@@ -196,7 +203,7 @@
       return `${pref}: ${equipe.valor}`;
     }
     function equipePopoverHtml() {
-      return `<div class="cvm-eqpop" data-pop="equipe">
+      return `<div class="cvm-eqpop" id="cvm-eq-pop" data-pop="equipe" role="dialog" aria-label="Filtrar por equipe comercial">
         <div class="cvm-eqpop-list">
           <label><input type="radio" name="cvm-equipe" value="|" ${!equipe.tipo ? "checked" : ""}>Todas</label>
         </div>
@@ -294,10 +301,10 @@
             </div>
             <div class="cvm-ctrls">
               <div class="cvm-eqwrap" id="cvm-eq">
-                <button type="button" class="cvm-eqbtn${equipe.tipo ? " on" : ""}" id="cvm-eq-btn">
+                <button type="button" class="cvm-eqbtn${openPopover === "equipe" ? " is-open" : ""}${equipe.tipo ? " is-filtered" : ""}" id="cvm-eq-btn" aria-haspopup="dialog"${openPopover === "equipe" ? ' aria-controls="cvm-eq-pop"' : ""} aria-expanded="${openPopover === "equipe" ? "true" : "false"}">
                   <span class="ico"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="18" cy="8.5" r="2.6"/><path d="M15.7 14.3c2.9.3 5 2.4 5.8 5.7"/></svg></span>
                   <span class="lbl">Equipe Comercial</span>
-                  <span class="val">${escapeHtml(equipeLabel())}</span>
+                  <span class="val"><span class="val-text">${escapeHtml(equipeLabel())}</span></span>
                 </button>
                 ${openPopover === "equipe" ? equipePopoverHtml() : ""}
               </div>
@@ -483,7 +490,10 @@
         openPopover = null; render(c);
       });
       document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && openPopover && hostContainer) { openPopover = null; render(hostContainer); }
+        if (e.key === "Escape" && openPopover && hostContainer) {
+          openPopover = null; render(hostContainer);
+          hostContainer.querySelector("#cvm-eq-btn")?.focus();
+        }
       });
     }
 
@@ -538,6 +548,7 @@
         e.stopPropagation();
         openPopover = openPopover === "equipe" ? null : "equipe";
         render(container);
+        container.querySelector("#cvm-eq-btn")?.focus();
       });
       container.querySelector(".cvm-eqpop")?.addEventListener("click", (e) => e.stopPropagation());
       container.querySelectorAll('input[name="cvm-equipe"]').forEach((r) => r.addEventListener("change", async () => {
@@ -545,6 +556,7 @@
         equipe = tipo ? { tipo, valor } : { tipo: "", valor: "" };
         openPopover = null;
         await reloadAndRender(container);
+        container.querySelector("#cvm-eq-btn")?.focus();
       }));
       bindDocEqClose();
       container.querySelector("#cvm-seg")?.addEventListener("click", async (e) => {
