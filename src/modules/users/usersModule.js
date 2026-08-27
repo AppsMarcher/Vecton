@@ -130,7 +130,7 @@
         ${th("department", "", "Departamento")}
         ${th("access_role", "", "Perfil de Acesso")}
         ${th("is_active", "", "Status")}
-        <th class="users-col-actions"></th>
+        <th class="users-col-actions">Demais Parâmetros</th>
       `;
     }
 
@@ -657,7 +657,7 @@
             </td>
             <td><span class="users-email-text">${escapeHtml(user.email || "—")}</span></td>
             <td><span class="users-email-text">${escapeHtml(user.department || "—")}</span></td>
-            <td>${badges}</td>
+            <td><div class="users-role-list">${badges}</div></td>
             <td>${statusBadgeHtml(user)}</td>
             <td>
               <div class="users-actions">
