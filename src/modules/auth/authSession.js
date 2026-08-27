@@ -203,6 +203,43 @@
       }
     }
 
+    // "Esqueci minha senha": usa o e-mail já digitado no campo de login e
+    // pede pro GoTrue mandar o link de recuperação. Ao clicar no link, o
+    // usuário volta pro app com type=recovery na URL, tratado pelo mesmo
+    // handleInviteRecoveryFlow() que já existe pra convite.
+    async function requestPasswordRecovery() {
+      if (!hasSupabaseBaseConfig()) {
+        showAuthFeedback("Preencha primeiro o supabase-config.js.", "error");
+        return;
+      }
+
+      const email = String(document.querySelector("#login-email")?.value || "").trim();
+      if (!email) {
+        showAuthFeedback("Informe seu e-mail no campo acima para recuperar a senha.", "error");
+        return;
+      }
+
+      try {
+        showAuthFeedback("Enviando e-mail de recuperação...", "ok");
+        const redirectTo = window.location.origin + window.location.pathname;
+        const response = await fetch(
+          `${supabaseConfig.projectUrl}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`,
+          {
+            method: "POST",
+            headers: buildAuthHeaders(),
+            body: JSON.stringify({ email })
+          }
+        );
+        if (!response.ok) {
+          throw new Error(await response.text());
+        }
+        showAuthFeedback("Enviamos um e-mail com o link de recuperação de senha.", "ok");
+      } catch (error) {
+        console.error(error);
+        showAuthFeedback("Não foi possível enviar o e-mail de recuperação. Tente novamente.", "error");
+      }
+    }
+
     async function handleLogout() {
       const currentSession = getCurrentSession();
       if (currentSession?.access_token) {
@@ -468,6 +505,7 @@
     return {
       initializeAuth,
       handleLoginSubmit,
+      requestPasswordRecovery,
       handleLogout,
       refreshSession,
       applySession,

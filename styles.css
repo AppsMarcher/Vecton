@@ -160,6 +160,18 @@ textarea {
 .auth-password-toggle:hover { color: var(--text); }
 .auth-password-toggle.active { color: var(--blue); }
 
+.auth-forgot-link {
+  justify-self: end;
+  margin-top: -6px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--blue);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.auth-forgot-link:hover { text-decoration: underline; }
+
 .auth-actions {
   display: flex;
   justify-content: center;

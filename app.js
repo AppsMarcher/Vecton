@@ -246,6 +246,7 @@ const authModule = createAuthModule({
 const {
   initializeAuth,
   handleLoginSubmit,
+  requestPasswordRecovery,
   handleLogout,
   refreshSession,
   applySession,
@@ -1471,6 +1472,10 @@ function setupHeaderSearch() {
 
 function bindEvents() {
   loginForm.addEventListener("submit", handleLoginSubmit);
+  const forgotLink = document.querySelector("#login-forgot-link");
+  if (forgotLink) {
+    forgotLink.addEventListener("click", requestPasswordRecovery);
+  }
   // Para o polling do sininho antes de sair: senão o timer sobrevive ao
   // logout e fica batendo no BD com uma sessão que não existe mais.
   logoutButton.addEventListener("click", () => {
