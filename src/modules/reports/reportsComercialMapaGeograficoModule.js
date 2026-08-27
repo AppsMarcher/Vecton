@@ -33,7 +33,7 @@
     // nenhum problema de dado por trás — só matemática de amostra pequena.
     const MODEL_TOP_N = 8;
     const CULTURA_COLORS = { "Grãos": "#14b8a6", "Pecuária": "#8b5cf6", "Outros": OUTROS_COLOR };
-    const HEAT_STOPS = ["#131a28", "#2b5fa0", "#4f8fef"];
+    const HEAT_STOPS = ["#131a28", "#183480", "#1d4ed8"];
     const DF_FALLBACK_LONLAT = [-47.93, -15.78]; // brStatesGeo.js traz DF com rings vazios (embutido em GO no dado simplificado)
 
     const BR = window.VECTON_BR_GEO || { bbox: [-74, -34, -32, 6], states: [] };
@@ -267,7 +267,7 @@
       const s = document.createElement("style");
       s.id = "cmg-style";
       s.textContent = `
-        .cmg { --bg:#0a0d16; --panel:#121826; --panel2:#171f30; --line:#232c40; --ink:#eef1f6; --soft:#9aa4b8; --faint:#6b7690; --accent:#3b82f6; color:var(--ink); }
+        .cmg { --bg:#0a0d16; --panel:#121826; --panel2:#171f30; --line:#232c40; --ink:#eef1f6; --soft:#9aa4b8; --faint:#6b7690; --accent:#1d4ed8; color:var(--ink); }
         .cmg * { box-sizing:border-box; }
         .cmg-crumb { font-size:12px; color:var(--soft); margin-bottom:10px; }
         .cmg-crumb a { color:var(--accent); cursor:pointer; text-decoration:none; }
@@ -357,7 +357,7 @@
         .cmg-side tbody td { padding:8px 5px; border-top:1px solid var(--line); vertical-align:middle; }
         .cmg-side tbody tr { cursor:pointer; }
         .cmg-side tbody tr:hover td { background:#171f30; }
-        .cmg-side tbody tr.sel td { background:rgba(59,130,246,.14); }
+        .cmg-side tbody tr.sel td { background:rgba(29,78,216,.14); }
         .cmg-rk { color:var(--faint); font-variant-numeric:tabular-nums; width:18px; display:inline-block; }
         .cmg-uf-bar-wrap { display:flex; align-items:center; gap:8px; }
         .cmg-uf-bar { flex:1; height:5px; border-radius:99px; background:#1c2438; overflow:hidden; min-width:40px; }
