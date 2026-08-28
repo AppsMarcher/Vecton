@@ -516,8 +516,13 @@
       closePicker();
     }
 
-    function onPickerReposition() {
-      if (_picker) positionPicker(_picker.el, _picker.trigger);
+    function onPickerReposition(event) {
+      if (!_picker) return;
+      // Listener em capture na window: sem isso, rolar a própria lista de
+      // destinatários (dentro do painel) também dispara este handler a cada
+      // tick, forçando reflow/reposicionamento e travando a rolagem nativa.
+      if (event?.target && _picker.el.contains(event.target)) return;
+      positionPicker(_picker.el, _picker.trigger);
     }
 
     function positionPicker(panel, trigger) {

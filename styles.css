@@ -10164,7 +10164,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
   box-shadow: var(--shadow);
   overflow: hidden;
 }
-.notif-rcpt-opts { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; }
+.notif-rcpt-opts { flex: 1; min-height: 0; overflow-y: auto; padding: 6px; overscroll-behavior: contain; }
 .notif-rcpt-opt {
   display: flex;
   align-items: center;
