@@ -527,12 +527,22 @@
 
     function positionPicker(panel, trigger) {
       const r = trigger.getBoundingClientRect();
+      const GAP = 6;
+      const MARGIN = 8;
+      const espacoAbaixo = window.innerHeight - r.bottom - GAP - MARGIN;
+      const espacoAcima = r.top - GAP - MARGIN;
+      // Linhas do meio da tabela não têm 60vh livres nem embaixo nem em cima
+      // (só as pontas têm) — antes isso caía sempre pro "embaixo" e o painel
+      // (fixo em 60vh via CSS) estourava a tela, cortando a lista e o rodapé
+      // de adicionar e-mail. Agora abre pro lado com mais espaço e encolhe o
+      // próprio painel pra caber ali, sobrando scroll interno em vez de corte.
+      const abrirParaCima = espacoAbaixo < espacoAcima;
+      const espacoDisponivel = Math.max(160, abrirParaCima ? espacoAcima : espacoAbaixo);
+      panel.style.maxHeight = `${Math.min(espacoDisponivel, window.innerHeight * 0.6)}px`;
       const h = panel.offsetHeight;
-      const espacoAbaixo = window.innerHeight - r.bottom;
-      // Abre pra cima quando não cabe embaixo (linhas do fim da tabela).
-      const top = (espacoAbaixo < h + 12 && r.top > h + 12) ? r.top - h - 6 : r.bottom + 6;
-      panel.style.top = `${Math.max(8, top)}px`;
-      panel.style.left = `${Math.max(8, Math.min(r.right - panel.offsetWidth, window.innerWidth - panel.offsetWidth - 8))}px`;
+      const top = abrirParaCima ? r.top - h - GAP : r.bottom + GAP;
+      panel.style.top = `${Math.max(MARGIN, top)}px`;
+      panel.style.left = `${Math.max(MARGIN, Math.min(r.right - panel.offsetWidth, window.innerWidth - panel.offsetWidth - MARGIN))}px`;
     }
 
     function pickerOptionsMarkup(selected) {
