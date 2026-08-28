@@ -9090,6 +9090,11 @@ body.rps-laser-mode .rps-attachment-carousel * {
 /* "Ativo" é o disjuntor geral do tipo — separado dos outros controles,
    empurrado pra ponta direita da barra. */
 .notif-cfg-toggle-active { margin-left: auto; font-weight: 600; color: var(--text); }
+/* Sininho/E-mail/destinatários não têm rótulo acima (como Dia da
+   semana/Horário têm), então com align-items:center da linha eles ficam
+   mais altos que os selects. Ancora pelo rodapé pra emparelhar as bases. */
+.notif-cfg-toggle:not(.notif-cfg-toggle-active),
+.notif-rcpt-trigger { align-self: flex-end; }
 /* Seletor de dia/horário embutido — só na linha do tipo "agendado" (Lembrete
    RPS de Gestão); as outras linhas (por evento) não têm essa célula extra. */
 .notif-sched-row { display: flex; flex-wrap: wrap; gap: 10px; }
