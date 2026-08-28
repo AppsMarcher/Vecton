@@ -72,7 +72,7 @@ const { createReportsHelpersModule } = window.VECTON_REPORTS_HELPERS;
 const { createDashboardCardsModule } = window.VECTON_DASHBOARD_CARDS;
 const { createDashboardModule } = window.VECTON_DASHBOARD_MODULE;
 const { createDashboardVisualsModule } = window.VECTON_DASHBOARD_VISUALS;
-const { appAlert, appConfirm, appPrompt } = window.VECTON_DIALOGS;
+const { appAlert, appConfirm, appPrompt, showToast } = window.VECTON_DIALOGS;
 const { startMarketTicker } = window.VECTON_MARKET_TICKER;
 const { createReportsBuilderModule } = window.VECTON_REPORTS_BUILDER || {};
 const { createReportSectionsModule } = window.VECTON_REPORT_SECTIONS || {};
@@ -1279,6 +1279,7 @@ const comercialPainelModule = createComercialPainelModule({
   callSupabaseRpc,
   callEdgeFunction,
   isSupabaseConfigured,
+  appAlert,
   // Toggle de período do cabeçalho (topo do site) nunca pode ficar descasado
   // do mês que o Painel está mostrando — ver renderSelectedPainel no módulo.
   syncHeaderPeriod: (year, month) => {
@@ -1425,6 +1426,8 @@ const reportsBuilderModule = createReportsBuilderModule ? createReportsBuilderMo
   onCatalogChanged: () => reportsSectionsModule.renderSections(),
   fetchScenariosForYear,
   fetchScenarioHeadcountForYear,
+  appConfirm,
+  showToast,
 }) : _noop;
 
 const _sectionsNoop = { loadSections: async () => {}, renderSections: () => {} };
@@ -1436,6 +1439,8 @@ const reportsSectionsModule = createReportSectionsModule ? createReportSectionsM
   getAccessRole,
   supabaseApiUrl: supabaseConfig.projectUrl,
   authenticatedFetch,
+  appConfirm,
+  showToast,
 }) : _sectionsNoop;
 
 const comercialReportsModule = createComercialReportsModule({
@@ -1449,6 +1454,8 @@ const comercialReportsModule = createComercialReportsModule({
   setSelectedReportId: (value) => { selectedReportId = value; },
   renderReportsView,
   getReportTitles: () => REPORT_TITLES,
+  appConfirm,
+  showToast,
   onCatalogChanged: async () => {
     await reportsSectionsModule.loadSections();
     reportsSectionsModule.renderSections();
@@ -1656,7 +1663,7 @@ function initReportCardEdit() {
       } catch (error) {
         saveBtn.disabled = false;
         saveBtn.textContent = "Salvar";
-        window.alert(vpFriendlyError(error, "Falha ao salvar o apelido do relatório."));
+        showToast(vpFriendlyError(error, "Falha ao salvar o apelido do relatório."), "error");
       }
     });
     pop.querySelector(".rrc-edit-name").addEventListener("keydown", e => {
@@ -1911,27 +1918,6 @@ function showAppLoading() {
 
 function hideAppLoading() {
   document.querySelector("#app-loading-overlay")?.classList.remove("visible");
-}
-
-// Toast próprio do app — substitui alert()/confirm() do navegador pra
-// feedback de ações (ex: reenvio de convite/senha). Empilha no canto
-// superior direito, some sozinho.
-function showToast(message, type = "success") {
-  let host = document.querySelector("#vp-toast-host");
-  if (!host) {
-    host = document.createElement("div");
-    host.id = "vp-toast-host";
-    document.body.appendChild(host);
-  }
-  const el = document.createElement("div");
-  el.className = `vp-toast vp-toast-${type}`;
-  el.textContent = message;
-  host.appendChild(el);
-  requestAnimationFrame(() => el.classList.add("show"));
-  setTimeout(() => {
-    el.classList.remove("show");
-    setTimeout(() => el.remove(), 250);
-  }, 3800);
 }
 
 function setupDreResizer() {

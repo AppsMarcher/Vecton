@@ -5,6 +5,7 @@
     const {
       escapeHtml, fetchSupabaseRowsSafe, isSupabaseConfigured,
       resolveOrganizationId, getAccessRole, supabaseApiUrl, authenticatedFetch,
+      appConfirm, showToast,
     } = deps;
 
     function isAdmin() { return ["admin", "super_admin"].includes(getAccessRole()); }
@@ -312,10 +313,15 @@
             const msg = hasItems
               ? `Excluir a seção "${current?.name}"? Os relatórios dela voltam para "Sem seção".`
               : `Excluir a seção "${current?.name}"?`;
-            if (!window.confirm(msg)) return;
-            await authenticatedFetch(`${supabaseApiUrl}/rest/v1/report_sections?id=eq.${sectionId}`, { method: "DELETE" });
-            await refreshAfterSectionChange();
-            renderList();
+            if (!await appConfirm(msg, "danger")) return;
+            try {
+              await authenticatedFetch(`${supabaseApiUrl}/rest/v1/report_sections?id=eq.${sectionId}`, { method: "DELETE" });
+              await refreshAfterSectionChange();
+              renderList();
+              showToast("Seção excluída.", "success");
+            } catch (error) {
+              showToast(String(error?.message || "Não foi possível excluir a seção."), "error");
+            }
           });
 
           row.querySelectorAll(".rsm-move").forEach((btn) => {

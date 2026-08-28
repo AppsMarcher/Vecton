@@ -14,6 +14,8 @@
       renderReportsView,
       getReportTitles,
       onCatalogChanged,
+      appConfirm,
+      showToast,
     } = deps;
     const { exportRowsToExcel, exportButtonHtml } = window.VECTON_CORE_UTILS;
 
@@ -579,15 +581,17 @@
     // execuções oficializadas. Só relatório personalizado — a RPC recusa
     // bateu_levou/final_ano, e o botão nem aparece pra eles.
     async function deleteReport(report, overlay) {
-      if (!window.confirm(`Excluir o relatório "${report.nome}"? Esta ação não pode ser desfeita.`)) return;
+      if (!await appConfirm(`Excluir o relatório "${report.nome}"? Esta ação não pode ser desfeita.`, "danger")) return;
       const feedback = overlay.querySelector(".vcr-feedback");
       feedback.textContent = "Excluindo...";
       try {
         await callSupabaseRpc("comercial_report_delete", { p_report_id: report.id });
         closeOverlay();
         await refreshCatalog();
+        showToast("Relatório excluído.", "success");
       } catch (error) {
         feedback.textContent = String(error?.message || "Erro ao excluir.");
+        showToast(String(error?.message || "Erro ao excluir o relatório."), "error");
       }
     }
 

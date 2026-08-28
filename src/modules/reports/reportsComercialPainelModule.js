@@ -13,7 +13,8 @@
       callSupabaseRpc,
       callEdgeFunction,
       isSupabaseConfigured,
-      syncHeaderPeriod
+      syncHeaderPeriod,
+      appAlert
     } = deps;
     const { exportRowsToExcel, exportButtonHtml } = window.VECTON_CORE_UTILS;
 
@@ -1398,7 +1399,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       const btn = container.querySelector("#cvp-print-toggle");
       // window.open precisa ser síncrono no clique, senão o popup blocker segura.
       const w = window.open("", "_blank");
-      if (!w) { alert("O navegador bloqueou a janela do report. Libere pop-ups para este site e tente de novo."); return; }
+      if (!w) { await appAlert("O navegador bloqueou a janela do relatório. Libere pop-ups para este site e tente novamente.", "warn"); return; }
       w.document.write(`<p style="font-family:sans-serif;padding:24px;color:#555">Gerando One Page Report…</p>`);
       if (btn) btn.disabled = true;
       try {
@@ -1410,7 +1411,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       } catch (e) {
         console.error("one page report:", e);
         try { w.close(); } catch (_) { /* já fechada */ }
-        alert("Falha ao gerar o One Page Report. Verifique a conexão e tente de novo.");
+        await appAlert("Falha ao gerar o One Page Report. Verifique a conexão e tente novamente.", "error");
       } finally {
         if (btn) btn.disabled = false;
       }
@@ -1608,7 +1609,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       } catch (e) {
         console.error("baixar excel:", e);
-        alert(e?.message || "Falha ao gerar o Excel. Verifique a conexão e tente de novo.");
+        await appAlert(e?.message || "Falha ao gerar o Excel. Verifique a conexão e tente novamente.", "error");
       } finally {
         if (btn) btn.disabled = false;
       }

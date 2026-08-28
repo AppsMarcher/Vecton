@@ -10,6 +10,7 @@
       getCurrentUser, supabaseApiUrl, authenticatedFetch,
       setSelectedReportId, renderReportsView, getReportTitles, initFloatingScrollbar,
       onCatalogChanged, fetchScenariosForYear, fetchScenarioHeadcountForYear,
+      appConfirm, showToast,
     } = deps;
     const { exportRowsToExcel, exportButtonHtml } = window.VECTON_CORE_UTILS;
 
@@ -872,12 +873,13 @@
         await loadCustomReports();
         injectCatalogCards();
         onCatalogChanged?.();
-      } catch (e) { alert("Erro ao copiar: " + e.message); }
+        showToast("Relatório duplicado.", "success");
+      } catch (e) { showToast("Erro ao copiar: " + e.message, "error"); }
     }
 
     async function removeAndReload(reportId) {
       const r = _savedReports.find(x => x.id === reportId || x.id === Number(reportId));
-      if (!confirm(`Remover "${r?.label || "este relatório"}"?`)) return;
+      if (!await appConfirm(`Excluir o relatório "${r?.label || "este relatório"}"? Esta ação não pode ser desfeita.`, "danger")) return;
       try {
         await deleteReport(reportId);
         await loadCustomReports();
@@ -885,7 +887,8 @@
         onCatalogChanged?.();
         setSelectedReportId(null);
         renderReportsView();
-      } catch (e) { alert("Erro ao remover: " + e.message); }
+        showToast("Relatório excluído.", "success");
+      } catch (e) { showToast("Erro ao excluir: " + e.message, "error"); }
     }
 
     // ── Builder shell ─────────────────────────────────────────────────
@@ -1363,7 +1366,7 @@
 
     async function doSave(panel) {
       collectCurrent(panel);
-      if (!_cfg.label.trim()) { alert("Informe um nome para o relatório."); return; }
+      if (!_cfg.label.trim()) { showToast("Informe um nome para o relatório.", "warn"); return; }
       const btn = panel.querySelector("#vb-save");
       if (btn) { btn.disabled = true; btn.textContent = "Salvando..."; }
       try {
@@ -1373,8 +1376,9 @@
         onCatalogChanged?.();
         setSelectedReportId("custom_" + newId);
         renderReportsView();
+        showToast("Relatório salvo.", "success");
       } catch (err) {
-        alert("Erro ao salvar: " + err.message);
+        showToast("Erro ao salvar: " + err.message, "error");
         if (btn) { btn.disabled = false; btn.textContent = "Salvar"; }
       }
     }
