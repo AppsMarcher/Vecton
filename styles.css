@@ -6418,21 +6418,39 @@ body.auth-only .content-view {
    toda a folga pras colunas do meio (E-mail/Departamento/Perfil/Status),
    empurrando a coluna de ações pro canto sem espaço pra caber os botões.
    E-mail mais estreita (fica mais perto de Usuário); Departamento e Perfil
-   de Acesso mais largas (Perfil fica mais perto de Status) — sem isso
-   Departamento herdava white-space:nowrap de .data-table td:not(:first-child)
-   e nome comprido (ex.: "Controladoria - Custos") vazava por cima da
-   coluna de Perfil de Acesso ao lado, com table-layout:fixed. */
+   de Acesso mais largas (Perfil fica mais perto de Status). E-mail e
+   Departamento herdavam white-space:nowrap de .data-table td:not(:first-
+   child) — com table-layout:fixed, texto comprido (e-mail ou "Controladoria
+   - Custos") vazava por cima da coluna vizinha em vez de quebrar linha.
+   E-mail usa break-all (não tem espaço pra quebrar em palavra); fonte das
+   3 colunas reduzida pro mesmo tamanho do texto de gestão sob o nome do
+   usuário (0.68rem, ver mgmt em renderUsersTable). */
 .users-table th:nth-child(1), .users-table td:nth-child(1) { width: 19%; min-width: 190px; }
 .users-table th:nth-child(2), .users-table td:nth-child(2),
 .users-table th:nth-child(3), .users-table td:nth-child(3) { text-align: left; }
-.users-table th:nth-child(2), .users-table td:nth-child(2) { width: 15%; }
-.users-table th:nth-child(3), .users-table td:nth-child(3) { width: 16%; white-space: normal; word-break: break-word; }
+.users-table th:nth-child(2), .users-table td:nth-child(2) {
+  width: 15%;
+  white-space: normal;
+  word-break: break-all;
+  font-size: 0.68rem;
+}
+.users-table th:nth-child(3), .users-table td:nth-child(3) {
+  width: 16%;
+  white-space: normal;
+  word-break: break-word;
+  font-size: 0.68rem;
+}
 .users-table th:nth-child(4), .users-table td:nth-child(4) {
   width: 22%;
   text-align: left;
   white-space: normal;
 }
 .users-table th:nth-child(5), .users-table td:nth-child(5) { width: 9%; }
+/* Escopado à tabela (não ao popover de edição, que reaproveita a mesma
+   classe do badge de status em tamanho maior de propósito). */
+.users-table .users-status-active,
+.users-table .users-status-pending,
+.users-table .users-status-inactive { font-size: 0.68rem; }
 .users-col-actions,
 .users-table td:last-child { width: 19%; }
 
