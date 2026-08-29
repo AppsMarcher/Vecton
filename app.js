@@ -1181,6 +1181,7 @@ const shellEventsModule = createShellEventsModule({
   bindNotificationSettings,
   renderPlanningView,
   renderRps,
+  renderStrategic,
   resetPlanningState,
   getPlanningContainer: () => document.querySelector("#planning-view"),
 });

@@ -9,6 +9,7 @@
       comercialModules,
       menuButtons,
       submenuButtons,
+      renderStrategic,
       periodTrigger,
       periodPopover,
       closePeriodPicker,
@@ -107,6 +108,9 @@
           }
           if (getActiveView() === "rps") {
             renderRps();
+          }
+          if (getActiveView() === "strategic") {
+            renderStrategic();
           }
         });
       });
