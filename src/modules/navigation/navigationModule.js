@@ -29,6 +29,7 @@
       canAccessPlanning,
       canAccessReportsMenu,
       canAccessRps,
+      canAccessStrategic,
       canManageUsers
     } = deps;
 
@@ -62,6 +63,13 @@
 
       const rpsBtn = document.querySelector(".menu-button[data-view='rps']");
       if (rpsBtn) rpsBtn.style.display = canAccessRps() ? "" : "none";
+
+      // Módulo isolado — só quem tem gestao_estrategica (primário ou
+      // adicional), admin ou super_admin vê o botão. Sem leitura ampla
+      // temporária (decisão #15 da especificação), mesmo padrão de RPS
+      // Gestão mas com seu próprio helper (canAccessStrategic em app.js).
+      const strategicBtn = document.querySelector(".menu-button[data-view='strategic']");
+      if (strategicBtn) strategicBtn.style.display = canAccessStrategic() ? "" : "none";
 
       const planBtn = document.querySelector(".menu-button[data-view='planning']");
       if (planBtn) planBtn.style.display = canAccessPlanning() ? "" : "none";

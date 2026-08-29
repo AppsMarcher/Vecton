@@ -78,6 +78,7 @@ const { createReportsBuilderModule } = window.VECTON_REPORTS_BUILDER || {};
 const { createReportSectionsModule } = window.VECTON_REPORT_SECTIONS || {};
 const { createForecastModule } = window.VECTON_FORECAST || {};
 const { createRpsModule } = window.VECTON_RPS || {};
+const { createStrategicModule } = window.VECTON_STRATEGIC || {};
 
 const FUN_AVATARS = buildFunAvatars();
 
@@ -183,6 +184,7 @@ const views = {
   dashboard: document.querySelector("#dashboard-view"),
   planning:  document.querySelector("#planning-view"),
   rps: document.querySelector("#rps-view"),
+  strategic: document.querySelector("#strategic-view"),
   reports: document.querySelector("#reports-view"),
   branchPlan: document.querySelector("#branchPlan-view"),
   drePlan: document.querySelector("#drePlan-view"),
@@ -595,6 +597,7 @@ const navigationModule = createNavigationModule({
   canAccessPlanning,
   canAccessReportsMenu,
   canAccessRps,
+  canAccessStrategic,
   canManageUsers
 });
 const headerModule = createHeaderModule({
@@ -1103,6 +1106,35 @@ const rpsModule = createRpsModule
 
 const renderRps = () => rpsModule.render();
 
+// Módulo A3 - Gestão Estratégica — isolado de RPS Gestão (tabelas,
+// permissões, snapshots e bucket de anexos próprios). Mesmo padrão de
+// injeção de dependências do rpsModule, mas sem snapshot/backup — grava
+// direto via RPC (motor de cálculo autoritativo no banco, migrations
+// 129/130/131).
+const strategicModule = createStrategicModule
+  ? createStrategicModule({
+      root: document.querySelector("#strategic-root"),
+      getPeriod: () => ({
+        year: Number(state.currentPeriod?.year || 2026),
+        month: Number(state.currentPeriod?.month || 1)
+      }),
+      resolveOrganizationId,
+      callSupabaseRpc,
+      authenticatedFetch,
+      supabaseApiUrl: supabaseConfig.projectUrl,
+      getCurrentUser: () => currentUser,
+      getAccessRole,
+      getAllAccessRoles,
+      appAlert,
+      appConfirm,
+      appPrompt,
+      uploadToStorage,
+      escapeHtml
+    })
+  : { render: () => {}, destroy: () => {} };
+
+const renderStrategic = () => strategicModule.render();
+
 const shellEventsModule = createShellEventsModule({
   appLayout,
   sidebar,
@@ -1401,6 +1433,7 @@ const renderModule = createRenderModule({
   renderComercialVendasView: () => comVendasCargaMod.renderView(),
   renderComercialPlanejadoView: () => comPlanejadoCargaMod.renderView(),
   renderRps,
+  renderStrategic,
   renderDashboard
 });
 
@@ -1990,12 +2023,19 @@ function isManager()     { return hasRole("manager"); }
 function isAnalyst()     { return hasRole("analyst"); }
 function isComercial()   { return hasRole("comercial"); }
 function isRpsGestao()   { return hasRole("rps_gestao"); }
+function isGestaoEstrategica() { return hasRole("gestao_estrategica"); }
 function canAccessDashboard() { return isSuperAdmin() || isAdmin() || isManager(); }
 function canAccessPlanning()  { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst(); }
 function canAccessReportsMenu() { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst() || isComercial(); }
 // Mesmo conjunto de canFillValues() na RPS (rpsModule.js) — quem não preenche
 // valores também não precisa ver o menu. Comercial/Analista "puros" ficam de fora.
 function canAccessRps() { return isSuperAdmin() || isAdmin() || isManager() || isRpsGestao(); }
+// Módulo isolado (decisão #15/#22 da especificação): sem leitura ampla —
+// só super_admin/admin/gestao_estrategica, nunca manager/analyst/comercial
+// "puros" como no RPS Gestão acima. A RLS do banco já bloqueia de verdade
+// (can_manage_strategic_a3, migration 128); isto aqui só evita mostrar o
+// menu pra quem de qualquer forma tomaria 403 nas RPCs.
+function canAccessStrategic() { return isSuperAdmin() || isAdmin() || isGestaoEstrategica(); }
 function canAccessParams()    { return isAdmin(); }
 function canManageUsers()     { return isAdmin(); }
 function getUserManagement()  { return state.profile?.management || null; }

@@ -308,6 +308,10 @@
             <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-activity"></use></svg>
             <span class="menu-item">RPS Gestão</span>
           </button>
+          <button class="menu-button" type="button" data-view="strategic">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-target"></use></svg>
+            <span class="menu-item">A3 - Gestão Estratégica</span>
+          </button>
           <button class="menu-button" type="button" data-view="reports">
             <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-reports"></use></svg>
             <span class="menu-item">Relatorios</span>
@@ -521,6 +525,10 @@
 
       <section id="rps-view" class="content-view" aria-label="Reunião de Performance Semanal">
         <div id="rps-root" class="rps-root" aria-live="polite"></div>
+      </section>
+
+      <section id="strategic-view" class="content-view" aria-label="A3 - Gestão Estratégica">
+        <div id="strategic-root" class="strategic-root" aria-live="polite"></div>
       </section>
 
       <section id="reports-view" class="content-view">
@@ -1446,6 +1454,7 @@
   <script src="src/modules/reports/reportsOpexModule.js?v=20260719r"></script>
   <script src="src/modules/forecast/forecastModule.js?v=20260805a"></script>
   <script src="src/modules/rps/rpsModule.js?v=20260806c"></script>
+  <script src="src/modules/strategic/strategicModule.js?v=20260828a"></script>
   <script src="src/modules/reports/reportsHeadcountModule.js?v=20260719r"></script>
   <script src="src/modules/headcount/headcountRenderModule.js?v=20260719r"></script>
   <script src="src/modules/ui/shellEventsModule.js?v=20260804a"></script>
