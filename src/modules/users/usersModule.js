@@ -118,6 +118,22 @@
     let sortKey = "full_name";
     let sortDir = 1;
 
+    // A3-mãe do módulo Estratégico, pro picker de "Acessos adicionais" —
+    // carregada 1x (só existem 9 hoje, mudam raramente) e cacheada, mesmo
+    // padrão de ensureOrgUsers() do strategicModule.js. openEditPanel()
+    // aguarda essa promise antes de montar o corpo do painel.
+    let strategicAreasCache = null;
+    async function ensureStrategicAreas() {
+      if (strategicAreasCache) return strategicAreasCache;
+      const orgId = await resolveOrganizationId();
+      const rows = await fetchSupabaseRowsSafe(
+        "strategic_a3",
+        `organization_id=eq.${orgId}&parent_id=is.null&is_active=eq.true&select=id,name,management&order=display_order`
+      );
+      strategicAreasCache = rows || [];
+      return strategicAreasCache;
+    }
+
     // ── Ordenação da tabela (mesmo padrão de Actuals/Budget: thead com
     // data-sort, seta ↑↓, clique alterna direção) ─────────────────────────────
     function renderUsersThead() {
@@ -250,8 +266,10 @@
     }
 
     // ── Renderiza corpo do painel para um usuário ─────────────────────────────
-    function openEditPanel(user) {
+    async function openEditPanel(user) {
       editingUserId = user.id;
+      await ensureStrategicAreas(); // cacheado após a 1ª vez — as árvores abaixo leem strategicAreasCache direto
+      if (editingUserId !== user.id) return; // usuário trocou de painel antes do fetch voltar
       const panel = getOrCreatePanel();
       panel.querySelector("#ue-panel-title").textContent = user.full_name || user.email || "Editar usuário";
 
@@ -286,6 +304,13 @@
           <label class="ue-label">Gestão <span class="ue-label-hint">(Gestor / Analista)</span></label>
           <select class="ue-select" id="ue-mgmt">${mgmtOptions}</select>
         </div>
+        <div class="ue-section" id="ue-strategic-mode-section">
+          <label class="ue-label">Modo de acesso ao A3 Estratégicos</label>
+          <select class="ue-select" id="ue-strategic-mode">
+            <option value="write" ${(user.strategic_access_mode || "write") === "write" ? "selected" : ""}>Leitura e gravação</option>
+            <option value="read" ${user.strategic_access_mode === "read" ? "selected" : ""}>Somente leitura</option>
+          </select>
+        </div>
 
         <div class="ue-divider"></div>
 
@@ -303,30 +328,35 @@
       // perfil de acesso: picker de múltipla marcação (checkboxes), não select único
       const currentRoles = [user.access_role, ...(user.additional_access_roles || [])].filter(Boolean);
       const mgmtSection = panel.querySelector("#ue-mgmt-section");
+      const strategicModeSection = panel.querySelector("#ue-strategic-mode-section");
       const updateFromRoles = () => {
         const roles = getSelectedRoles(panel);
         mgmtSection.style.display = roles.some((r) => ["manager", "analyst"].includes(r)) ? "" : "none";
-        rebuildTrees(panel, user, pickPrimaryRole(roles), panel.querySelector("#ue-mgmt").value);
+        strategicModeSection.style.display = roles.includes("gestao_estrategica") ? "" : "none";
+        rebuildTrees(panel, user, pickPrimaryRole(roles), panel.querySelector("#ue-mgmt").value, roles);
       };
       panel.querySelector("#ue-role-section").append(buildProfileRolePicker(currentRoles, updateFromRoles));
       panel.querySelector("#ue-mgmt").addEventListener("change", updateFromRoles);
       // append árvores como DOM
       const treeSection = panel.querySelector(".ue-section:last-child");
-      treeSection.append(renderAccessTrees(user));
+      treeSection.append(renderAccessTrees(user, currentRoles));
 
       updateFromRoles();
       panel.classList.add("open");
     }
 
-    // ── Constrói as 4 árvores de acesso ──────────────────────────────────────
-    function renderAccessTrees(user) {
+    // ── Constrói as 5 árvores de acesso (a de A3 Estratégicos só aparece se
+    // o perfil marcado incluir manager ou gestao_estrategica) ────────────────
+    function renderAccessTrees(user, roles) {
       const wrap = document.createElement("div");
       wrap.className = "ue-trees";
       wrap.append(renderManagementTree(user), renderBranchTree(user), renderAccountTree(user), renderCcTree(user), renderReportTree(user));
+      const strategicTree = renderStrategicTree(user, roles || [], strategicAreasCache);
+      if (strategicTree) wrap.append(strategicTree);
       return wrap;
     }
 
-    function rebuildTrees(panel, user, role, mgmt) {
+    function rebuildTrees(panel, user, role, mgmt, roles) {
       const mgmtChanged = mgmt !== (user.management || "");
       const fakeUser = {
         ...user,
@@ -336,7 +366,7 @@
         extra_managements: mgmtChanged ? [] : user.extra_managements
       };
       const old = panel.querySelector(".ue-trees");
-      if (old) old.replaceWith(renderAccessTrees(fakeUser));
+      if (old) old.replaceWith(renderAccessTrees(fakeUser, roles));
     }
 
     function isDefaultBranch() { return true; } // branches: todos são padrão por default
@@ -364,6 +394,19 @@
 
     function isExtraManagement(user, mgmtName) {
       return (user.extra_managements || []).includes(mgmtName);
+    }
+
+    function isExtraStrategicA3(user, a3Id) {
+      return (user.extra_strategic_a3_ids || []).some((id) => String(id) === String(a3Id));
+    }
+
+    // Gestor: a A3-mãe cuja Gestão bate com a dele já vem marcada por
+    // padrão (mesma regra do banco, strategic_can_edit_a3 — migration 143).
+    // A3 Estratégicos (gestao_estrategica): NADA vem por padrão — é o
+    // perfil "escolha quais A3", tudo é opt-in via extra_strategic_a3_ids.
+    function isDefaultStrategicA3(user, area) {
+      if (user.access_role !== "manager") return false;
+      return !!area.management && area.management === (user.management || "").trim();
     }
 
     function buildAccessRow(id, label, checked, isDefault) {
@@ -529,6 +572,26 @@
       );
     }
 
+    // Só aparece quando o perfil marcado inclui manager ou gestao_estrategica
+    // (primário ou adicional) — pros demais papéis o conceito "quais A3" não
+    // existe (super_admin/admin já têm tudo; analyst/comercial/rps_gestao
+    // nem enxergam o módulo, canAccessStrategic() em app.js). roles = lista
+    // COMPLETA (não só primário) — vem de getSelectedRoles(panel).
+    function renderStrategicTree(user, roles, areas) {
+      if (!roles.includes("manager") && !roles.includes("gestao_estrategica")) return null;
+      const icon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
+      return makeTree("strategic", icon, "A3 Estratégicos", () =>
+        (areas || []).map((area) => {
+          const isDefault = isDefaultStrategicA3(user, area);
+          const isExtra = isExtraStrategicA3(user, area.id);
+          const label = area.management ? `${area.name} (${area.management})` : area.name;
+          const row = buildAccessRow(String(area.id), label, isDefault || isExtra, isDefault);
+          row.dataset.tree = "strategic";
+          return row;
+        })
+      );
+    }
+
     // ── Salvar edição ─────────────────────────────────────────────────────────
     async function saveEdit() {
       const panel = document.querySelector("#users-edit-panel");
@@ -565,6 +628,8 @@
         const extraCcIds        = getExtras("cc");
         const extraAccountCodes = getExtras("account");
         const extraReportIds    = getExtras("report");
+        const extraStrategicA3Ids = getExtras("strategic");
+        const strategicMode = panel.querySelector("#ue-strategic-mode")?.value || "write";
 
         const user = allUsers.find((u) => u.id === editingUserId);
         const orgId = await resolveOrganizationId();
@@ -581,7 +646,9 @@
           extra_branch_ids:   extraBranchIds,
           extra_cc_ids:       extraCcIds,
           extra_account_codes: extraAccountCodes,
-          extra_report_ids:   extraReportIds
+          extra_report_ids:   extraReportIds,
+          strategic_access_mode: selectedRoles.includes("gestao_estrategica") ? strategicMode : null,
+          extra_strategic_a3_ids: extraStrategicA3Ids
         }], ["organization_id", "user_id"]);
 
         panel.classList.remove("open");
@@ -614,7 +681,7 @@
         const orgId = await resolveOrganizationId();
         const rows = await fetchSupabaseRowsSafe(
           "user_profiles",
-          `organization_id=eq.${orgId}&select=id,user_id,full_name,email,department,access_role,additional_access_roles,management,extra_managements,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,is_active,photo_kind,photo_value&order=full_name.asc`
+          `organization_id=eq.${orgId}&select=id,user_id,full_name,email,department,access_role,additional_access_roles,management,extra_managements,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,strategic_access_mode,extra_strategic_a3_ids,is_active,photo_kind,photo_value&order=full_name.asc`
         );
 
         allUsers = rows || [];
