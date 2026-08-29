@@ -196,8 +196,32 @@
         .sa3-attachment-remove:hover { color:var(--sa3-neg); }
         .sa3-attachment-add { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:999px; border:1px dashed var(--sa3-line); color:var(--sa3-faint); font-size:.68rem; font-weight:600; cursor:pointer; }
         .sa3-attachment-add:hover { border-color:rgba(79,124,255,.4); color:#8fb0ff; }
-        .sa3-kpi-check-list { display:flex; flex-direction:column; gap:4px; max-height:120px; overflow-y:auto; border:1px solid var(--sa3-line); border-radius:8px; padding:8px 10px; }
-        .sa3-kpi-check-list label { display:flex; align-items:center; gap:7px; font-size:.76rem; text-transform:none; font-weight:400; color:var(--sa3-soft); }
+        /* Picker de Responsáveis — linhas compactas com checkbox estilizado
+           (checkmark próprio, sem a caixinha nativa do navegador — mesmo
+           visual do seletor de acessos da tela de Usuários), caixa curta
+           (não precisa ocupar a tela toda pra 2-3 nomes). */
+        .sa3-owner-list { display:flex; flex-direction:column; max-height:104px; overflow-y:auto; border:1px solid var(--sa3-line); border-radius:8px; padding:4px 6px; }
+        /* .sa3-owner-row é um <label> — precisa de 2 classes na especificidade
+           pra vencer a regra genérica ".sa3-form label" (uppercase/bold/
+           display:block), senão a linha quebra o layout em flex. */
+        .sa3-owner-list .sa3-owner-row {
+          display:flex; align-items:center; gap:8px; padding:4px 6px; border-radius:6px;
+          font-size:.76rem; font-weight:400; text-transform:none; color:var(--sa3-soft);
+          cursor:pointer; user-select:none; margin-bottom:0;
+        }
+        .sa3-owner-list .sa3-owner-row:hover { background:rgba(255,255,255,.04); }
+        .sa3-owner-row input[type="checkbox"] {
+          appearance:none; -webkit-appearance:none; margin:0; flex-shrink:0; cursor:pointer;
+          width:14px; height:14px; border-radius:4px; border:1px solid var(--sa3-line);
+          background:rgba(255,255,255,.03); display:grid; place-items:center;
+        }
+        .sa3-owner-row input[type="checkbox"]::after {
+          content:""; width:7px; height:4px; opacity:0;
+          border-left:1.6px solid #7fa4ff; border-bottom:1.6px solid #7fa4ff;
+          transform:rotate(-45deg) translateY(-1px);
+        }
+        .sa3-owner-row input[type="checkbox"]:checked { background:rgba(79,124,255,.18); border-color:rgba(79,124,255,.55); }
+        .sa3-owner-row input[type="checkbox"]:checked::after { opacity:1; }
         .sa3-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.66rem; font-weight:700; white-space:nowrap; }
         .sa3-pill.pos { background:rgba(74,222,128,.12); color:var(--sa3-pos); }
         .sa3-pill.neg { background:rgba(248,113,113,.12); color:var(--sa3-neg); }
@@ -253,9 +277,8 @@
         .sa3-entry-meta-row { display:flex; gap:4px; }
         .sa3-entry-meta-row input, .sa3-entry-real > input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; text-align:right; }
         .sa3-entry-meta-row input:disabled, .sa3-entry-real > input:disabled { opacity:.55; }
-        .sa3-entry-row input[type="number"] { -moz-appearance:textfield; }
-        .sa3-entry-row input[type="number"]::-webkit-inner-spin-button,
-        .sa3-entry-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+        /* Remoção do seletor nativo (setinhas) de input number agora é
+           regra global em styles.css — não precisa repetir aqui. */
         .sa3-entry-real .sa3-entry-target { margin-top:0; padding-top:8px; }
         .sa3-entry-driver-row { display:flex; align-items:center; gap:6px; margin-top:2px; }
         .sa3-entry-driver-row label { font-size:.62rem; color:var(--sa3-faint); flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1281,7 +1304,7 @@
       const priorityOptions = ACTION_PRIORITY_OPTIONS.map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
       const ownersHtml = (state.orgUsers || []).length
         ? state.orgUsers.map((u) => `
-            <label><input type="checkbox" data-field="owner" value="${escapeHtml(u.user_id)}"> ${escapeHtml(u.full_name || u.email || "Usuário")}</label>
+            <label class="sa3-owner-row"><input type="checkbox" data-field="owner" value="${escapeHtml(u.user_id)}"><span>${escapeHtml(u.full_name || u.email || "Usuário")}</span></label>
           `).join("")
         : `<div class="sa3-empty">Nenhum usuário encontrado.</div>`;
       return `
@@ -1298,7 +1321,7 @@
           </div>
           <div>
             <label>Responsáveis (opcional)</label>
-            <div class="sa3-kpi-check-list">${ownersHtml}</div>
+            <div class="sa3-owner-list">${ownersHtml}</div>
           </div>
           <div>
             <label>Anexo (opcional)</label>

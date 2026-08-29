@@ -39,6 +39,21 @@
 *::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.55); border-radius: 999px; }
 *::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
 
+/* Remove o seletor nativo de incremento (setinhas ▲▼) de TODO input
+   numérico do app — regra do usuário (2026-08-29): nunca usar esse
+   controle em campo nenhum, a menos que peça explicitamente. Antes só
+   existia scoped em .sa3-entry-row (Tela 3 do A3); agora é global, cobre
+   qualquer input[type="number"] novo ou existente sem precisar repetir
+   isso em cada módulo. */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .icon-sprite {
   position: absolute;
 }
