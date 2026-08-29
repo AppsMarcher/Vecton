@@ -75,8 +75,10 @@
       organizationId: null,
       cycleId: null,
       overview: null,          // { northGoals, areas }
-      a3Id: null,
-      a3Detail: null,          // { a3, kpis }
+      a3RootId: null,          // A3 clicado na Tela 1 (sempre uma mãe, filhos não aparecem lá)
+      a3Children: [],          // filhos do a3RootId — vira aba "Consolidado + filhos"
+      a3Id: null,              // aba ativa da Tela 2 (pode ser o próprio a3RootId ou um filho)
+      a3Detail: null,          // { a3, children, kpis } — dados da aba ativa
       monthlyEntry: null,      // { a3, period, kpis }
       actions: [],             // ações do A3 atual (todas, filtro é feito na leitura)
       dirtyDrafts: {}          // { [kpiId]: { resultValue, drivers: {code: value} } } — edição em andamento, não salva
@@ -130,6 +132,9 @@
         .sa3-area-icon { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; font-weight:700; font-size:.72rem; background:rgba(255,255,255,.05); }
         .sa3-area-name { font-size:.82rem; font-weight:700; }
         .sa3-area-sub { font-size:.68rem; color:var(--sa3-faint); margin-top:1px; }
+        .sa3-subtabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+        .sa3-subtab { border:1px solid var(--sa3-line); background:rgba(255,255,255,.02); color:var(--sa3-soft); padding:6px 12px; border-radius:9px; font-size:.74rem; font-weight:600; cursor:pointer; }
+        .sa3-subtab.active { background:rgba(79,124,255,.14); border-color:rgba(79,124,255,.4); color:#8fb0ff; }
         .sa3-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.66rem; font-weight:700; white-space:nowrap; }
         .sa3-pill.pos { background:rgba(74,222,128,.12); color:var(--sa3-pos); }
         .sa3-pill.neg { background:rgba(248,113,113,.12); color:var(--sa3-neg); }
@@ -214,14 +219,20 @@
       }
     }
 
-    async function loadA3Detail(a3Id) {
-      state.loading = true; state.error = ""; state.a3Id = a3Id; state.screen = "detail"; renderShell();
+    // isRoot=true quando vem da Tela 1 (sempre uma A3 mãe) — reseta as abas.
+    // isRoot=false é clique numa aba (Consolidado/filho) dentro da própria
+    // Tela 2 — mantém as abas já carregadas, só troca o KPI exibido.
+    async function loadA3Detail(a3Id, isRoot = true) {
+      state.loading = true; state.error = ""; state.a3Id = a3Id; state.screen = "detail";
+      if (isRoot) { state.a3RootId = a3Id; state.a3Children = []; }
+      renderShell();
       try {
         await ensureContext();
         const { year, month } = currentPeriod();
         state.a3Detail = await callSupabaseRpc("strategic_get_a3_detail", {
           p_organization_id: state.organizationId, p_a3_id: a3Id, p_year: year, p_month: month
         });
+        if (isRoot) state.a3Children = state.a3Detail?.children || [];
         await loadActionsForA3(a3Id);
       } catch (err) {
         state.error = friendlyError(err);
@@ -321,7 +332,7 @@
             <div class="sa3-area-icon" style="color:${escapeHtml(a.color || "#4f7cff")}">${escapeHtml((a.name || "?").slice(0, 1))}</div>
             <div>
               <div class="sa3-area-name">${escapeHtml(a.name)}</div>
-              <div class="sa3-area-sub">${total} indicador${total === 1 ? "" : "es"}</div>
+              <div class="sa3-area-sub">${total} indicador${total === 1 ? "" : "es"}${a.childrenCount ? ` &middot; ${a.childrenCount} sub-área${a.childrenCount === 1 ? "" : "s"}` : ""}</div>
             </div>
             <span class="sa3-pill ${pillTone}">${onTarget}/${total} dentro da meta</span>
             <svg class="sa3-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg>
@@ -353,6 +364,16 @@
 
       const kpiBlocks = kpis.map((k) => renderKpiBlock(k)).join("");
 
+      const hasChildren = state.a3Children.length > 0;
+      const tabsHtml = hasChildren ? `
+        <div class="sa3-subtabs">
+          <button class="sa3-subtab ${state.a3Id === state.a3RootId ? "active" : ""}" data-action="switch-tab" data-a3-id="${escapeHtml(state.a3RootId)}">Consolidado</button>
+          ${state.a3Children.map((c) => `
+            <button class="sa3-subtab ${state.a3Id === c.id ? "active" : ""}" data-action="switch-tab" data-a3-id="${escapeHtml(c.id)}">${escapeHtml(c.name)}</button>
+          `).join("")}
+        </div>
+      ` : "";
+
       root.innerHTML = `
         <button class="sa3-back" data-action="back-overview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>Voltar</button>
         <div class="sa3-card">
@@ -360,6 +381,7 @@
             <div><h2 style="color:${escapeHtml(a3.color || "#4f7cff")}">${escapeHtml(a3.name)}</h2><p>${escapeHtml(a3.objective || `${kpis.length} indicador${kpis.length === 1 ? "" : "es"}`)}</p></div>
             <button class="sa3-btn primary" data-action="open-entry">Preenchimento mensal</button>
           </div>
+          ${tabsHtml}
         </div>
         ${kpiBlocks}
       `;
@@ -368,6 +390,9 @@
         state.screen = "overview"; renderShell();
       });
       root.querySelector('[data-action="open-entry"]')?.addEventListener("click", () => loadMonthlyEntry(state.a3Id));
+      root.querySelectorAll('[data-action="switch-tab"]').forEach((btn) => {
+        btn.addEventListener("click", () => loadA3Detail(btn.dataset.a3Id, false));
+      });
 
       kpis.forEach((k) => bindActionForm(k.id));
     }
@@ -531,7 +556,7 @@
         </div>
       `;
 
-      root.querySelector('[data-action="back-detail"]')?.addEventListener("click", () => loadA3Detail(state.a3Id));
+      root.querySelector('[data-action="back-detail"]')?.addEventListener("click", () => loadA3Detail(state.a3Id, false));
       root.querySelector('[data-action="sync-computed"]')?.addEventListener("click", async () => {
         try {
           await callSupabaseRpc("strategic_sync_computed_kpi_records", {

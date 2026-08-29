@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "vecton-static-";
-const CACHE_NAME = `${CACHE_PREFIX}20260828c`;
+const CACHE_NAME = `${CACHE_PREFIX}20260828d`;
 const APP_SHELL = [
   "./",
   "./index.html",
