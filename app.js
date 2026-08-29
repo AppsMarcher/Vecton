@@ -1136,6 +1136,7 @@ const strategicModule = createStrategicModule
   : { render: () => {}, destroy: () => {} };
 
 const renderStrategic = () => strategicModule.render();
+const resetStrategicView = () => strategicModule.resetToOverview();
 
 const shellEventsModule = createShellEventsModule({
   appLayout,
@@ -1185,6 +1186,7 @@ const shellEventsModule = createShellEventsModule({
   renderPlanningView,
   renderRps,
   renderStrategic,
+  resetStrategicView,
   resetPlanningState,
   getPlanningContainer: () => document.querySelector("#planning-view"),
 });

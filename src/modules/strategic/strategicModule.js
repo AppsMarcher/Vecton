@@ -2027,7 +2027,18 @@
       state.screen = "overview";
     }
 
-    return { render, destroy };
+    // Clicar no item "A3 Estratégicos" do menu lateral enquanto já está
+    // dentro de um A3 (Tela 2/3) não fazia nada — render() só olha se o
+    // período mudou, não se o usuário quis voltar pra lista. Achado do
+    // usuário (2026-08-29): esse clique tem que se comportar igual o botão
+    // "Voltar". app.js chama isto ANTES de render() quando o clique vem do
+    // menu lateral (não de dentro do próprio módulo).
+    function resetToOverview() {
+      state.screen = "overview";
+      state.a3Id = null;
+    }
+
+    return { render, destroy, resetToOverview };
   }
 
   window.VECTON_STRATEGIC = { createStrategicModule };

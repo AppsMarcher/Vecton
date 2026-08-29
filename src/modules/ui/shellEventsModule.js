@@ -10,6 +10,7 @@
       menuButtons,
       submenuButtons,
       renderStrategic,
+      resetStrategicView,
       periodTrigger,
       periodPopover,
       closePeriodPicker,
@@ -98,6 +99,13 @@
           }
           if (button.dataset.view !== "planning") {
             resetPlanningState();
+          }
+          // Clicar no menu lateral tem que voltar sempre pra Tela 1 do A3,
+          // mesmo já estando dentro de um A3 específico (Tela 2/3) — achado
+          // do usuário (2026-08-29): sem isso, clicar de novo no menu não
+          // fazia nada, só "Voltar" dentro da própria tela funcionava.
+          if (button.dataset.view === "strategic") {
+            resetStrategicView();
           }
           setActiveView(button.dataset.view);
           renderNavigation();
