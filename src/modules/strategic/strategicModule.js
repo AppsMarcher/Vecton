@@ -192,6 +192,9 @@
         .sa3-entry-meta-row { display:flex; gap:4px; }
         .sa3-entry-meta-row input, .sa3-entry-real > input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; text-align:right; }
         .sa3-entry-meta-row input:disabled, .sa3-entry-real > input:disabled { opacity:.55; }
+        .sa3-entry-row input[type="number"] { -moz-appearance:textfield; }
+        .sa3-entry-row input[type="number"]::-webkit-inner-spin-button,
+        .sa3-entry-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
         .sa3-entry-real .sa3-entry-target { margin-top:0; padding-top:8px; }
         .sa3-entry-driver-row { display:flex; align-items:center; gap:6px; margin-top:2px; }
         .sa3-entry-driver-row label { font-size:.62rem; color:var(--sa3-faint); flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -806,7 +809,7 @@
           <div class="sa3-entry-meta">
             <span class="k">Meta &plusmn; tolerância</span>
             <div class="sa3-entry-meta-row">
-              <input type="number" step="any" data-target-field="target_value" value="${t.value ?? ""}" placeholder="meta" ${dis}>
+              <input type="number" step="any" data-target-field="target_value" value="${t.value ?? ""}" ${dis}>
               <input type="number" step="any" data-target-field="tolerance" value="${t.tolerance ?? ""}" placeholder="±" ${dis}>
             </div>
           </div>
@@ -816,7 +819,7 @@
         <div class="sa3-entry-meta">
           <span class="k">Meta</span>
           <div class="sa3-entry-meta-row">
-            <input type="number" step="any" data-target-field="target_value" value="${t.value ?? ""}" placeholder="meta" ${dis}>
+            <input type="number" step="any" data-target-field="target_value" value="${t.value ?? ""}" ${dis}>
           </div>
         </div>
       `;
