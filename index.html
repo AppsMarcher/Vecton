@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260828c">
+  <link rel="stylesheet" href="styles.css?v=20260829a">
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -1204,6 +1204,7 @@
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--yes">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">Todos os relatórios e drill-down</li>
+                <li class="ap-perm ap-perm--yes">A3 Estratégicos — visão e edição de todas as áreas</li>
                 <li class="ap-perm ap-perm--yes">Parâmetros e carga de dados</li>
                 <li class="ap-perm ap-perm--yes">Gerenciar usuários e perfis</li>
                 <li class="ap-perm ap-perm--yes">Promover / rebaixar Super Admin</li>
@@ -1226,6 +1227,7 @@
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--yes">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">Todos os relatórios e drill-down</li>
+                <li class="ap-perm ap-perm--yes">A3 Estratégicos — visão e edição de todas as áreas</li>
                 <li class="ap-perm ap-perm--yes">Parâmetros e carga de dados</li>
                 <li class="ap-perm ap-perm--yes">Gerenciar usuários e perfis</li>
                 <li class="ap-perm ap-perm--no">Alterar Super Admins</li>
@@ -1244,12 +1246,13 @@
                 </div>
                 <span class="ap-user-count" id="ap-count-manager">— usuários</span>
               </div>
-              <p class="ap-description">Visão consolidada no Dashboard, DRE e relatórios comerciais. OPEX e Headcount restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil.</p>
+              <p class="ap-description">Visão consolidada no Dashboard, DRE e relatórios comerciais. OPEX e Headcount restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil. No A3 Estratégicos, enxerga todas as áreas mas só edita a(s) A3 da própria gestão (mais concessão extra pontual, se configurada).</p>
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--yes">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">DRE consolidado (somente leitura)</li>
                 <li class="ap-perm ap-perm--yes">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças (consolidado + drill-down)</li>
                 <li class="ap-perm ap-perm--partial">OPEX e Headcount — restrito à gestão própria</li>
+                <li class="ap-perm ap-perm--partial">A3 Estratégicos — vê todas as áreas, edita só a da própria gestão (+ extras configuráveis)</li>
                 <li class="ap-perm ap-perm--partial">Gestões e CCs adicionais configuráveis</li>
                 <li class="ap-perm ap-perm--partial">Contas matriciais configuráveis</li>
                 <li class="ap-perm ap-perm--yes">RPS Gestão — preencher semanas e metas de todas as áreas</li>
@@ -1257,6 +1260,29 @@
               </ul>
               <div class="ap-card-footer">
                 <button class="ap-users-btn" type="button" data-profile="manager">Ver usuários →</button>
+              </div>
+            </div>
+
+            <!-- A3 Estratégicos -->
+            <div class="ap-card ap-card--strategic">
+              <div class="ap-card-top">
+                <div class="ap-badge ap-badge--strategic">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+                  A3 Estratégicos
+                </div>
+                <span class="ap-user-count" id="ap-count-gestao_estrategica">— usuários</span>
+              </div>
+              <p class="ap-description">Perfil configurável pessoa a pessoa: quais A3 acessa (Norte Verdadeiro, KPIs, causas/contramedidas, plano de ação) e em que modo — só leitura ou leitura e gravação. Sem nenhum A3 concedido, o módulo aparece vazio pra essa pessoa.</p>
+              <ul class="ap-perms">
+                <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
+                <li class="ap-perm ap-perm--partial">A3 Estratégicos — só os A3 concedidos, configurável por pessoa</li>
+                <li class="ap-perm ap-perm--partial">Modo leitura ou leitura e gravação, configurável por pessoa</li>
+                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, OPEX, Headcount, Comercial)</li>
+                <li class="ap-perm ap-perm--no">RPS Gestão</li>
+                <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
+              </ul>
+              <div class="ap-card-footer">
+                <button class="ap-users-btn" type="button" data-profile="gestao_estrategica">Ver usuários →</button>
               </div>
             </div>
 
@@ -1277,6 +1303,7 @@
                 <li class="ap-perm ap-perm--partial">OPEX e Headcount — restrito à gestão própria</li>
                 <li class="ap-perm ap-perm--partial">Gestões e CCs adicionais configuráveis</li>
                 <li class="ap-perm ap-perm--partial">Contas matriciais configuráveis</li>
+                <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
                 <li class="ap-perm ap-perm--no">RPS Gestão</li>
                 <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
               </ul>
@@ -1300,6 +1327,7 @@
                 <li class="ap-perm ap-perm--yes">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças (consolidado + drill-down)</li>
                 <li class="ap-perm ap-perm--no">Demais relatórios (DRE, OPEX, Headcount)</li>
                 <li class="ap-perm ap-perm--no">Planejamento</li>
+                <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
                 <li class="ap-perm ap-perm--no">RPS Gestão</li>
                 <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
               </ul>
@@ -1324,6 +1352,7 @@
                 <li class="ap-perm ap-perm--no">Renomear indicador, unidade ou modo de cálculo do Mês</li>
                 <li class="ap-perm ap-perm--no">Demais relatórios (DRE, OPEX, Headcount, Comercial)</li>
                 <li class="ap-perm ap-perm--no">Planejamento</li>
+                <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
                 <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
               </ul>
               <div class="ap-card-footer">
@@ -1463,7 +1492,7 @@
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsBuilderModule.js?v=20260828b"></script>
   <script src="src/modules/reports/reportsSectionsModule.js?v=20260828b"></script>
-  <script src="src/modules/users/usersModule.js?v=20260829b"></script>
+  <script src="src/modules/users/usersModule.js?v=20260829c"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
   <script src="src/modules/messages/messagesModule.js?v=20260805d"></script>
   <script src="src/modules/notifications/notificationsModule.js?v=20260828b"></script>

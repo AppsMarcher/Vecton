@@ -34,7 +34,7 @@
       analyst:     "#8b5cf6",
       comercial:   "#14b8a6",
       rps_gestao:  "#f472b6",
-      gestao_estrategica: "#4f7cff"
+      gestao_estrategica: "#0ea5e9"
     };
 
     // Perfis de acesso se combinam (ex: Comercial + RPS Gestão numa mesma
