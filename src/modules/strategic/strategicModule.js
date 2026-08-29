@@ -530,12 +530,13 @@
           <div style="margin-top:12px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
               <label style="font-size:.64rem;font-weight:700;text-transform:uppercase;color:var(--sa3-faint)">Objetivo estratégico</label>
-              <button class="sa3-btn" data-action="toggle-objective-edit">Editar</button>
+              <button type="button" class="sa3-icon-btn" data-action="toggle-objective-edit" title="Editar">${ICON_EDIT}</button>
             </div>
             <p class="sa3-objective-text" data-objective-display>${hasObjective ? escapeHtml(a3.objective) : '<span style="color:var(--sa3-faint)">Objetivo estratégico ainda não cadastrado.</span>'}</p>
             <div class="sa3-objective-editor hidden" data-objective-form>
               <textarea class="sa3-objective-textarea" data-field="objective-text" placeholder="Objetivo estratégico deste A3...">${escapeHtml(a3.objective || "")}</textarea>
               <div class="sa3-form-foot">
+                <button class="sa3-btn" data-action="cancel-objective-edit">Cancelar</button>
                 <button class="sa3-btn primary" data-action="save-objective">Salvar objetivo</button>
               </div>
             </div>
@@ -553,9 +554,9 @@
       });
 
       // Edição in-place: o texto SOME e vira o textarea no lugar dele (nunca
-      // os dois juntos) — o botão "Editar" no cabeçalho vira "Cancelar"
-      // enquanto edita.
-      const objectiveToggleBtn = root.querySelector('[data-action="toggle-objective-edit"]');
+      // os dois juntos). Ícone de editar igual ao de causas/contramedidas e
+      // plano de ação (padrão único no módulo); Cancelar/Salvar ficam no
+      // rodapé do editor, mesmo formato das outras mini-formas do módulo.
       const objectiveDisplay = root.querySelector('[data-objective-display]');
       const objectiveForm = root.querySelector('[data-objective-form]');
       const objectiveTextarea = root.querySelector('[data-field="objective-text"]');
@@ -563,14 +564,14 @@
       const setObjectiveEditing = (editing) => {
         objectiveDisplay?.classList.toggle("hidden", editing);
         objectiveForm?.classList.toggle("hidden", !editing);
-        objectiveToggleBtn.textContent = editing ? "Cancelar" : "Editar";
         if (editing) {
           objectiveTextarea.value = a3.objective || "";
           objectiveTextarea.focus();
           objectiveTextarea.setSelectionRange(objectiveTextarea.value.length, objectiveTextarea.value.length);
         }
       };
-      objectiveToggleBtn?.addEventListener("click", () => setObjectiveEditing(objectiveForm?.classList.contains("hidden")));
+      root.querySelector('[data-action="toggle-objective-edit"]')?.addEventListener("click", () => setObjectiveEditing(true));
+      root.querySelector('[data-action="cancel-objective-edit"]')?.addEventListener("click", () => setObjectiveEditing(false));
       root.querySelector('[data-action="save-objective"]')?.addEventListener("click", async (e) => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
         const btn = e.currentTarget;
