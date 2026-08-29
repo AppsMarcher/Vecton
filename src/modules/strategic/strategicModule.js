@@ -133,6 +133,16 @@
     // regra em JS.
     const canManage = () => !!(state.screen === "entry" ? state.monthlyEntry?.canEdit : state.a3Detail?.canEdit);
 
+    // Edição de CATÁLOGO (nome/subtítulo do indicador) é diferente de
+    // editar o A3 em si — pedido do usuário (2026-08-29): só super_admin/
+    // admin, nunca Gestor nem A3 Estratégicos, mesmo que eles tenham
+    // canManage()=true pra esse A3. Checagem de papel direto (não depende
+    // de qual A3 está em tela).
+    const isSuperAdminOrAdmin = () => {
+      const roles = getAllAccessRoles ? getAllAccessRoles() : [];
+      return roles.includes("super_admin") || roles.includes("admin");
+    };
+
     const currentPeriod = () => {
       const p = getPeriod ? getPeriod() : { year: 2026, month: 1 };
       return { year: Number(p.year) || 2026, month: Number(p.month) || 1 };
@@ -251,6 +261,14 @@
         }
         .sa3-owner-row input[type="checkbox"]:checked { background:rgba(79,124,255,.18); border-color:rgba(79,124,255,.55); }
         .sa3-owner-row input[type="checkbox"]:checked::after { opacity:1; }
+        /* Editar/excluir indicador (catálogo) — só super_admin/admin, ver
+           isSuperAdminOrAdmin(). Ícones no canto do card, edição troca o
+           título/subtítulo por 2 inputs no lugar (mesmo padrão do Objetivo
+           Estratégico). */
+        .sa3-kpi-head-actions { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+        .sa3-kpi-title-edit.hidden { display:none; }
+        .sa3-kpi-title-edit input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; margin-bottom:6px; }
+        .sa3-kpi-title-edit input:last-of-type { margin-bottom:10px; }
         .sa3-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.66rem; font-weight:700; white-space:nowrap; }
         .sa3-pill.pos { background:rgba(74,222,128,.12); color:var(--sa3-pos); }
         .sa3-pill.neg { background:rgba(248,113,113,.12); color:var(--sa3-neg); }
@@ -756,7 +774,7 @@
         }
       });
 
-      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); });
+      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); bindKpiCatalogActions(k.id); });
       bindKpiChartTooltips();
       bindAnalysisRemoveButtons();
       bindActionItemButtons();
@@ -1033,13 +1051,32 @@
 
       const isAuto = k.entryMode === "computed";
 
+      const canEditCatalog = isSuperAdminOrAdmin();
       return `
         <div class="sa3-card">
           <div class="sa3-kpi-block-head">
-            <div>
-              <div class="sa3-kpi-title">${escapeHtml(k.name)}${isAuto ? '<span class="sa3-badge-auto">Auto</span>' : ""}</div>
-              <div class="sa3-kpi-sub">Realizado vs. meta mensal</div>
+            <div style="flex:1 1 auto; min-width:0;">
+              <div data-kpi-title-display="${escapeHtml(k.id)}">
+                <div class="sa3-kpi-title">${escapeHtml(k.name)}${isAuto ? '<span class="sa3-badge-auto">Auto</span>' : ""}</div>
+                <div class="sa3-kpi-sub">${escapeHtml(k.description || "Realizado vs. meta mensal")}</div>
+              </div>
+              ${canEditCatalog ? `
+                <div class="sa3-kpi-title-edit hidden" data-kpi-title-edit="${escapeHtml(k.id)}">
+                  <input type="text" data-field="kpi-name" value="${escapeHtml(k.name)}" placeholder="Nome do indicador">
+                  <input type="text" data-field="kpi-description" value="${escapeHtml(k.description || "")}" placeholder="Subtítulo (opcional)">
+                  <div class="sa3-form-foot">
+                    <button class="sa3-btn" data-action="cancel-kpi-edit" data-kpi-id="${escapeHtml(k.id)}">Cancelar</button>
+                    <button class="sa3-btn primary" data-action="save-kpi-edit" data-kpi-id="${escapeHtml(k.id)}">Salvar</button>
+                  </div>
+                </div>
+              ` : ""}
             </div>
+            ${canEditCatalog ? `
+              <div class="sa3-kpi-head-actions">
+                <button type="button" class="sa3-icon-btn" data-action="toggle-kpi-edit" data-kpi-id="${escapeHtml(k.id)}" title="Editar indicador">${ICON_EDIT}</button>
+                <button type="button" class="sa3-icon-btn" data-action="delete-kpi" data-kpi-id="${escapeHtml(k.id)}" data-kpi-name="${escapeHtml(k.name)}" title="Excluir indicador">${ICON_TRASH}</button>
+              </div>
+            ` : ""}
           </div>
           <div class="sa3-combo-chart" role="img" aria-label="Gráfico combinado de realizado mensal em colunas e meta mensal em linha">
             <div class="sa3-chart-plot">
@@ -1066,6 +1103,61 @@
           </div>
         </div>
       `;
+    }
+
+    // Editar nome/subtítulo (achado #catálogo, 2026-08-29) e excluir
+    // (soft-delete, is_active=false) — só renderizado quando
+    // isSuperAdminOrAdmin(), mas o próprio backend (strategic_rename_kpi/
+    // strategic_deactivate_kpi) já rejeita qualquer outro papel de
+    // qualquer forma, então esse early-return aqui é só pra não ligar
+    // listener em botão que nem existe no DOM.
+    function bindKpiCatalogActions(kpiId) {
+      if (!isSuperAdminOrAdmin()) return;
+      const displayEl = root.querySelector(`[data-kpi-title-display="${cssEscape(kpiId)}"]`);
+      const editEl = root.querySelector(`[data-kpi-title-edit="${cssEscape(kpiId)}"]`);
+      const toggleBtn = root.querySelector(`[data-action="toggle-kpi-edit"][data-kpi-id="${cssEscape(kpiId)}"]`);
+      const cancelBtn = root.querySelector(`[data-action="cancel-kpi-edit"][data-kpi-id="${cssEscape(kpiId)}"]`);
+      const saveBtn = root.querySelector(`[data-action="save-kpi-edit"][data-kpi-id="${cssEscape(kpiId)}"]`);
+      const deleteBtn = root.querySelector(`[data-action="delete-kpi"][data-kpi-id="${cssEscape(kpiId)}"]`);
+      if (!displayEl || !editEl) return;
+
+      const setEditing = (editing) => {
+        displayEl.classList.toggle("hidden", editing);
+        editEl.classList.toggle("hidden", !editing);
+      };
+      toggleBtn?.addEventListener("click", () => setEditing(true));
+      cancelBtn?.addEventListener("click", () => setEditing(false));
+      saveBtn?.addEventListener("click", async () => {
+        const name = editEl.querySelector('[data-field="kpi-name"]').value.trim();
+        if (!name) { appAlert?.("Nome do indicador é obrigatório.", "warn"); return; }
+        const description = editEl.querySelector('[data-field="kpi-description"]').value.trim();
+        saveBtn.disabled = true;
+        try {
+          await callSupabaseRpc("strategic_rename_kpi", {
+            p_kpi_id: kpiId, p_name: name, p_description: description || null
+          });
+          await loadA3Detail(state.a3Id, state.a3Id === state.a3RootId);
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          saveBtn.disabled = false;
+        }
+      });
+      deleteBtn?.addEventListener("click", async () => {
+        const name = deleteBtn.dataset.kpiName || "este indicador";
+        const ok = await appConfirm?.(
+          `Excluir "${name}"? Ele deixa de aparecer em qualquer tela do módulo, mas o histórico já lançado (metas e realizados) é mantido no banco.`,
+          "danger"
+        );
+        if (!ok) return;
+        deleteBtn.disabled = true;
+        try {
+          await callSupabaseRpc("strategic_deactivate_kpi", { p_kpi_id: kpiId });
+          await loadA3Detail(state.a3Id, state.a3Id === state.a3RootId);
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          deleteBtn.disabled = false;
+        }
+      });
     }
 
     function bindKpiChartTooltips() {
