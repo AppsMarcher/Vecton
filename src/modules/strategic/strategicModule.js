@@ -458,6 +458,8 @@
         </div>
       ` : "";
 
+      const summary = state.periodAnalysis?.summary || "";
+
       root.innerHTML = `
         <button class="sa3-back" data-action="back-overview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>Voltar</button>
         <div class="sa3-card">
@@ -466,8 +468,12 @@
             <button class="sa3-btn primary" data-action="open-entry">Preenchimento mensal</button>
           </div>
           ${tabsHtml}
+          <div style="margin-top:12px">
+            <label style="display:block;font-size:.64rem;font-weight:700;text-transform:uppercase;color:var(--sa3-faint);margin-bottom:4px">Resumo do período (opcional)</label>
+            <textarea class="sa3-analysis-summary" data-field="analysis-summary" placeholder="Como foi o mês pra esta área, em 1 parágrafo...">${escapeHtml(summary)}</textarea>
+            <div style="text-align:right"><button class="sa3-btn" data-action="save-analysis-summary">Salvar resumo</button></div>
+          </div>
         </div>
-        ${renderPeriodAnalysisCard(kpis)}
         ${kpiBlocks}
       `;
 
@@ -478,105 +484,96 @@
       root.querySelectorAll('[data-action="switch-tab"]').forEach((btn) => {
         btn.addEventListener("click", () => loadA3Detail(btn.dataset.a3Id, false));
       });
+      root.querySelector('[data-action="save-analysis-summary"]')?.addEventListener("click", async (e) => {
+        if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
+        const btn = e.currentTarget;
+        const value = root.querySelector('[data-field="analysis-summary"]').value.trim();
+        btn.disabled = true;
+        try {
+          await saveAnalysis(state.a3Id, value, (items) => items);
+          renderShell();
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error"); btn.disabled = false;
+        }
+      });
 
-      bindPeriodAnalysisCard(kpis);
-      kpis.forEach((k) => bindActionForm(k.id));
+      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); });
+      bindAnalysisRemoveButtons();
     }
 
-    // -------------------------------------------------------- Análise (causas/contramedidas)
-    function renderPeriodAnalysisCard(kpis) {
-      const summary = state.periodAnalysis?.summary || "";
-      const items = state.periodAnalysis?.strategic_analysis_items || [];
-      const itemsSorted = [...items].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+    // -------------------------------------------------------- Causas/contramedidas por KPI
+    // Fica logo abaixo do gráfico de CADA indicador (não num card único no
+    // topo da página) — usuário pediu explicitamente pra ficar junto do
+    // gráfico a que se refere. O dado continua no mesmo lugar do banco
+    // (strategic_analysis_items ligado ao A3+mês via strategic_period_
+    // analyses), só a exibição é agrupada por KPI usando o vínculo N:N
+    // (strategic_analysis_item_kpis) — um item pode em tese aparecer sob
+    // mais de 1 KPI se for linkado a vários, mas o formulário daqui só
+    // cria vínculo com o KPI de onde foi aberto.
+    function renderKpiAnalysisSection(k) {
+      const items = (state.periodAnalysis?.strategic_analysis_items || [])
+        .filter((it) => (it.strategic_analysis_item_kpis || []).some((l) => l.kpi_id === k.id))
+        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
 
-      const itemsHtml = itemsSorted.length ? itemsSorted.map((it) => {
-        const tagLabel = it.item_type === "cause" ? "Causa" : "Contramedida";
-        const kpiChips = (it.strategic_analysis_item_kpis || [])
-          .map((l) => kpis.find((k) => k.id === l.kpi_id)?.name)
-          .filter(Boolean)
-          .map((name) => `<span class="sa3-analysis-kpi-chip">${escapeHtml(name)}</span>`).join("");
-        return `
-          <div class="sa3-analysis-item">
-            <span class="sa3-analysis-tag ${it.item_type}">${tagLabel}</span>
-            <div>
-              ${escapeHtml(it.description)}
-              ${kpiChips ? `<div class="sa3-analysis-kpis">${kpiChips}</div>` : ""}
-            </div>
-            <button class="sa3-analysis-remove" data-action="remove-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Remover">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-        `;
-      }).join("") : `<div class="sa3-empty">Nenhuma causa ou contramedida registrada ainda.</div>`;
-
-      const kpiChecks = kpis.map((k) => `
-        <label><input type="checkbox" data-item-kpi="${escapeHtml(k.id)}"> ${escapeHtml(k.name)}</label>
-      `).join("");
+      const itemsHtml = items.length ? items.map((it) => `
+        <div class="sa3-analysis-item">
+          <span class="sa3-analysis-tag ${it.item_type}">${it.item_type === "cause" ? "Causa" : "Contramedida"}</span>
+          <div>${escapeHtml(it.description)}</div>
+          <button class="sa3-analysis-remove" data-action="remove-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Remover">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      `).join("") : `<div class="sa3-empty">Nenhuma causa ou contramedida registrada.</div>`;
 
       return `
-        <div class="sa3-card">
-          <div class="sa3-head">
-            <div><h3>Análise do período</h3><p>Causas e contramedidas identificadas — nunca texto livre solto, cada item é estruturado e pode ligar a um ou mais indicadores.</p></div>
-            <button class="sa3-btn" data-action="toggle-analysis-form">+ Novo item</button>
+        <div class="sa3-action-plan">
+          <div class="sa3-head" style="margin-bottom:8px">
+            <h3 style="font-size:.76rem;text-transform:uppercase;color:var(--sa3-soft)">Causas e contramedidas</h3>
+            <button class="sa3-btn" data-action="toggle-analysis-form" data-kpi-id="${escapeHtml(k.id)}">+ Novo item</button>
           </div>
-          <textarea class="sa3-analysis-summary" data-field="analysis-summary" placeholder="Resumo geral do período (opcional)">${escapeHtml(summary)}</textarea>
-          <div style="text-align:right;margin:-4px 0 12px">
-            <button class="sa3-btn" data-action="save-analysis-summary">Salvar resumo</button>
-          </div>
-          <div class="sa3-analysis-list">${itemsHtml}</div>
-          <div class="sa3-form hidden" data-analysis-form>
+          ${itemsHtml}
+          <div class="sa3-form hidden" data-analysis-form="${escapeHtml(k.id)}">
             <div class="sa3-form-grid" style="grid-template-columns:150px 1fr">
               <div><label>Tipo</label><select data-field="item_type"><option value="cause">Causa</option><option value="countermeasure">Contramedida</option></select></div>
               <div><label>Descrição</label><input type="text" data-field="description" placeholder="O que aconteceu / o que fazer?"></div>
             </div>
-            <div><label>Indicadores relacionados (opcional)</label><div class="sa3-kpi-check-list">${kpiChecks || '<span style="color:var(--sa3-faint);font-size:.74rem">Sem indicadores nesta área.</span>'}</div></div>
             <div class="sa3-form-foot">
-              <button class="sa3-btn" data-action="cancel-analysis-form">Cancelar</button>
-              <button class="sa3-btn primary" data-action="add-analysis-item">Adicionar</button>
+              <button class="sa3-btn" data-action="cancel-analysis-form" data-kpi-id="${escapeHtml(k.id)}">Cancelar</button>
+              <button class="sa3-btn primary" data-action="add-analysis-item" data-kpi-id="${escapeHtml(k.id)}">Adicionar</button>
             </div>
           </div>
         </div>
       `;
     }
 
-    function bindPeriodAnalysisCard() {
-      const toggleBtn = root.querySelector('[data-action="toggle-analysis-form"]');
-      const form = root.querySelector('[data-analysis-form]');
+    function bindKpiAnalysisForm(kpiId) {
+      const toggleBtn = root.querySelector(`[data-action="toggle-analysis-form"][data-kpi-id="${cssEscape(kpiId)}"]`);
+      const form = root.querySelector(`[data-analysis-form="${cssEscape(kpiId)}"]`);
+      const cancelBtn = root.querySelector(`[data-action="cancel-analysis-form"][data-kpi-id="${cssEscape(kpiId)}"]`);
+      const addBtn = root.querySelector(`[data-action="add-analysis-item"][data-kpi-id="${cssEscape(kpiId)}"]`);
+
       toggleBtn?.addEventListener("click", () => form?.classList.toggle("hidden"));
-      root.querySelector('[data-action="cancel-analysis-form"]')?.addEventListener("click", () => form?.classList.add("hidden"));
-
-      root.querySelector('[data-action="save-analysis-summary"]')?.addEventListener("click", async (e) => {
+      cancelBtn?.addEventListener("click", () => form?.classList.add("hidden"));
+      addBtn?.addEventListener("click", async () => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
-        const btn = e.currentTarget;
-        const summary = root.querySelector('[data-field="analysis-summary"]').value.trim();
-        btn.disabled = true;
-        try {
-          await saveAnalysis(state.a3Id, summary, (items) => items);
-          renderShell();
-        } catch (err) {
-          appAlert?.(friendlyError(err), "error"); btn.disabled = false;
-        }
-      });
-
-      root.querySelector('[data-action="add-analysis-item"]')?.addEventListener("click", async (e) => {
-        if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
-        const btn = e.currentTarget;
         const itemType = form.querySelector('[data-field="item_type"]').value;
         const description = form.querySelector('[data-field="description"]').value.trim();
         if (!description) { appAlert?.("Descreva a causa ou contramedida antes de salvar.", "warn"); return; }
-        const kpiIds = Array.from(form.querySelectorAll("[data-item-kpi]:checked")).map((el) => el.dataset.itemKpi);
-        btn.disabled = true;
+        addBtn.disabled = true;
         try {
           await saveAnalysis(state.a3Id, undefined, (items) => [
             ...items,
-            { item_type: itemType, description, display_order: items.length, kpi_ids: kpiIds }
+            { item_type: itemType, description, display_order: items.length, kpi_ids: [kpiId] }
           ]);
           renderShell();
         } catch (err) {
-          appAlert?.(friendlyError(err), "error"); btn.disabled = false;
+          appAlert?.(friendlyError(err), "error");
+          addBtn.disabled = false;
         }
       });
+    }
 
+    function bindAnalysisRemoveButtons() {
       root.querySelectorAll('[data-action="remove-analysis-item"]').forEach((btn) => {
         btn.addEventListener("click", async () => {
           if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
@@ -640,6 +637,7 @@
             </div>
           </div>
           <div class="sa3-bars">${bars}</div>
+          ${renderKpiAnalysisSection(k)}
           <div class="sa3-action-plan">
             <div class="sa3-head" style="margin-bottom:8px">
               <h3 style="font-size:.76rem;text-transform:uppercase;color:var(--sa3-soft)">Plano de ação</h3>
