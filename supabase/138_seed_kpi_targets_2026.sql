@@ -53,6 +53,7 @@ target_scenario as (
   limit 1
 ),
 seed_rows (kpi_code, month, target_value) as (
+  values
     ('ebitda_pct', 1, -0.007023),
     ('ebitda_pct', 2, 0.159),
     ('ebitda_pct', 3, 0.11),
