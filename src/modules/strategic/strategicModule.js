@@ -59,6 +59,16 @@
     return `${n.toLocaleString("pt-BR", { minimumFractionDigits: dp, maximumFractionDigits: dp })}${suffix}`;
   }
 
+  function formatTargetVariation(actual, target) {
+    const actualValue = Number(actual);
+    const targetValue = Number(target);
+    if (!Number.isFinite(actualValue) || !Number.isFinite(targetValue)) return "—";
+    if (targetValue === 0) return actualValue === 0 ? "0,0%" : "—";
+    const variation = ((actualValue - targetValue) / Math.abs(targetValue)) * 100;
+    const sign = variation > 0 ? "+" : "";
+    return `${sign}${variation.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+  }
+
   function createStrategicModule(deps) {
     const {
       root,
@@ -82,6 +92,9 @@
       screen: "overview",      // "overview" | "detail" | "entry"
       organizationId: null,
       cycleId: null,
+      loadedPeriod: null,      // { year, month } do período já carregado na tela atual — usado
+                                // pra detectar troca de período no seletor do topo e recarregar
+                                // (achado #1 do review: render() não recarregava ao trocar mês/ano).
       overview: null,          // { northGoals, areas }
       a3RootId: null,          // A3 clicado na Tela 1 (sempre uma mãe, filhos não aparecem lá)
       a3Children: [],          // filhos do a3RootId — vira aba "Consolidado + filhos"
@@ -183,17 +196,28 @@
         .sa3-kpi-block-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
         .sa3-kpi-title { font-size:.9rem; font-weight:700; }
         .sa3-kpi-sub { font-size:.72rem; color:var(--sa3-faint); margin-top:2px; }
-        .sa3-kpi-nums { text-align:right; }
-        .sa3-kpi-nums .v { font-size:1.05rem; font-weight:800; }
-        .sa3-kpi-nums .t { font-size:.68rem; color:var(--sa3-faint); margin-top:1px; }
-        .sa3-bars { display:flex; align-items:flex-end; gap:6px; height:140px; padding:0 2px; margin-top:8px; }
-        .sa3-bar-col { flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px; height:100%; min-width:0; }
-        .sa3-bar-stack { position:relative; width:100%; max-width:24px; height:100%; display:flex; align-items:flex-end; justify-content:center; }
-        .sa3-bar-ghost { position:absolute; bottom:0; width:100%; border-radius:4px 4px 0 0; border:1.5px dashed rgba(255,255,255,.22); background:rgba(255,255,255,.02); }
-        .sa3-bar-real { position:relative; width:65%; border-radius:4px 4px 0 0; z-index:1; }
-        .sa3-bar-real.pos { background:linear-gradient(180deg,#4ade80,#16a34a); }
-        .sa3-bar-real.neg { background:linear-gradient(180deg,#f87171,#dc2626); }
+        .sa3-combo-chart { margin-top:8px; }
+        .sa3-chart-plot { position:relative; height:116px; }
+        .sa3-bars { position:absolute; inset:0; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:6px; padding:0 2px; z-index:1; }
+        .sa3-bar-col { position:relative; height:100%; min-width:0; }
+        .sa3-bar-real { position:absolute; left:50%; transform:translateX(-50%); width:min(27px,86%); border-radius:5px 5px 1px 1px; background:linear-gradient(180deg,#b6c2d2 0%,#78889d 24%,#374151 100%); box-shadow:0 8px 12px rgba(15,23,42,.24); overflow:hidden; }
+        .sa3-bar-real::after { content:""; position:absolute; top:1px; left:1px; right:1px; height:28%; min-height:2px; border-radius:4px 4px 2px 2px; background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.06)); pointer-events:none; }
+        .sa3-bar-real.pos { background:linear-gradient(180deg,#74e89b 0%,#2dcc6b 24%,#0d6b38 100%); box-shadow:0 8px 12px rgba(34,197,94,.20); }
+        .sa3-bar-real.neg { background:linear-gradient(180deg,#f58a8a 0%,#ef5050 24%,#8b202b 100%); box-shadow:0 8px 12px rgba(239,68,68,.20); }
+        .sa3-chart-zero { position:absolute; left:2px; right:2px; height:1px; background:rgba(255,255,255,.08); z-index:0; }
+        .sa3-target-svg { position:absolute; inset:0 2px; width:calc(100% - 4px); height:100%; overflow:visible; pointer-events:none; z-index:2; }
+        .sa3-target-line { fill:none; stroke:#4f7cff; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; filter:drop-shadow(0 2px 4px rgba(79,124,255,.34)); }
+        .sa3-target-point { fill:#4f7cff; stroke:#111318; stroke-width:1.5; vector-effect:non-scaling-stroke; }
+        .sa3-chart-months { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:6px; padding:6px 2px 0; text-align:center; }
         .sa3-bar-month { font-size:.58rem; color:var(--sa3-faint); text-transform:uppercase; }
+        .sa3-chart-legend { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:7px; color:var(--sa3-faint); font-size:.62rem; }
+        .sa3-chart-legend span { display:inline-flex; align-items:center; gap:5px; }
+        .sa3-legend-bar { width:10px; height:10px; border-radius:2px 2px 0 0; background:linear-gradient(90deg,#22c55e 0 50%,#ef4444 50% 100%); }
+        .sa3-legend-line { width:16px; height:0; border-top:2px solid #4f7cff; }
+        .sa3-chart-tooltip { position:fixed; z-index:9999; display:none; min-width:138px; padding:9px 11px; border-radius:8px; background:#0c0e12; border:1px solid var(--sa3-line); box-shadow:0 12px 30px rgba(0,0,0,.42); pointer-events:none; }
+        .sa3-chart-tooltip-month { padding-bottom:6px; margin-bottom:5px; border-bottom:1px solid var(--sa3-line-soft); color:var(--sa3-text); font-size:.68rem; font-weight:800; text-transform:lowercase; }
+        .sa3-chart-tooltip-row { display:flex; align-items:center; justify-content:space-between; gap:14px; color:var(--sa3-soft); font-size:.68rem; line-height:1.55; }
+        .sa3-chart-tooltip-row strong { color:var(--sa3-text); font-weight:700; text-align:right; white-space:nowrap; }
         .sa3-action-plan { margin-top:14px; padding-top:12px; border-top:1px solid var(--sa3-line-soft); }
         .sa3-action-item { display:grid; grid-template-columns:1fr 130px 90px 110px 56px; gap:10px; align-items:center; padding:9px 12px; border-radius:9px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); font-size:.75rem; margin-bottom:6px; }
         .sa3-action-desc { color:var(--sa3-text); }
@@ -224,6 +248,16 @@
         .sa3-entry-driver-row label { font-size:.62rem; color:var(--sa3-faint); flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .sa3-entry-driver-row input { width:76px; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.74rem; padding:5px 6px; text-align:right; }
         .sa3-entry-save { padding-top:22px; display:flex; justify-content:flex-end; }
+        /* Painel de composição (entry_mode='breakdown') — full-width, logo
+           abaixo da linha compacta (não cabe nos 190px da coluna Real). */
+        .sa3-breakdown-panel { padding:10px 14px 14px; margin:-2px 0 8px; border-radius:0 0 10px 10px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); border-top:none; }
+        .sa3-breakdown-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+        .sa3-breakdown-head .k { font-size:.6rem; text-transform:uppercase; letter-spacing:.04em; color:var(--sa3-faint); font-weight:700; }
+        .sa3-breakdown-rows { display:flex; flex-direction:column; gap:6px; }
+        .sa3-breakdown-row { display:grid; grid-template-columns:1fr 120px 120px 100px 26px; gap:8px; align-items:center; }
+        .sa3-breakdown-row.no-weight { grid-template-columns:1fr 120px 120px 26px; }
+        .sa3-breakdown-row input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.76rem; padding:6px 8px; }
+        .sa3-breakdown-row input[type="number"] { text-align:right; }
         .sa3-badge-auto { display:inline-flex; align-items:center; gap:4px; margin-left:8px; padding:2px 8px; border-radius:999px; background:rgba(79,124,255,.12); color:#8fb0ff; border:1px solid rgba(79,124,255,.28); font-size:.62rem; font-weight:700; vertical-align:middle; }
         .sa3-period-status { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
         .sa3-loading, .sa3-error { padding:40px 20px; text-align:center; color:var(--sa3-faint); font-size:.84rem; }
@@ -290,9 +324,10 @@
       state.loading = true; state.error = ""; renderShell();
       try {
         await ensureContext();
-        const { year, month } = currentPeriod();
+        const period = currentPeriod();
+        state.loadedPeriod = period;
         state.overview = await callSupabaseRpc("strategic_get_overview", {
-          p_organization_id: state.organizationId, p_year: year, p_month: month
+          p_organization_id: state.organizationId, p_year: period.year, p_month: period.month
         });
       } catch (err) {
         state.error = friendlyError(err);
@@ -303,20 +338,22 @@
 
     // isRoot=true quando vem da Tela 1 (sempre uma A3 mãe) — reseta as abas.
     // isRoot=false é clique numa aba (Consolidado/filho) dentro da própria
-    // Tela 2 — mantém as abas já carregadas, só troca o KPI exibido.
+    // Tela 2, OU recarga por troca de período mantendo a aba ativa — mantém
+    // as abas já carregadas, só troca o KPI exibido.
     async function loadA3Detail(a3Id, isRoot = true) {
       state.loading = true; state.error = ""; state.a3Id = a3Id; state.screen = "detail";
       if (isRoot) { state.a3RootId = a3Id; state.a3Children = []; }
       renderShell();
       try {
         await ensureContext();
-        const { year, month } = currentPeriod();
+        const period = currentPeriod();
+        state.loadedPeriod = period;
         state.a3Detail = await callSupabaseRpc("strategic_get_a3_detail", {
-          p_organization_id: state.organizationId, p_a3_id: a3Id, p_year: year, p_month: month
+          p_organization_id: state.organizationId, p_a3_id: a3Id, p_year: period.year, p_month: period.month
         });
         if (isRoot) state.a3Children = state.a3Detail?.children || [];
         await loadActionsForA3(a3Id);
-        await loadPeriodAnalysis(a3Id, year, month);
+        await loadPeriodAnalysis(a3Id, period.year, period.month);
         await loadAttachments();
       } catch (err) {
         state.error = friendlyError(err);
@@ -329,9 +366,10 @@
       state.loading = true; state.error = ""; state.a3Id = a3Id; state.screen = "entry"; renderShell();
       try {
         await ensureContext();
-        const { year, month } = currentPeriod();
+        const period = currentPeriod();
+        state.loadedPeriod = period;
         state.monthlyEntry = await callSupabaseRpc("strategic_get_monthly_entry", {
-          p_organization_id: state.organizationId, p_a3_id: a3Id, p_year: year, p_month: month
+          p_organization_id: state.organizationId, p_a3_id: a3Id, p_year: period.year, p_month: period.month
         });
         state.dirtyDrafts = {};
       } catch (err) {
@@ -593,6 +631,7 @@
       });
 
       kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); });
+      bindKpiChartTooltips();
       bindAnalysisRemoveButtons();
       bindActionItemButtons();
       bindAttachmentWidgets();
@@ -777,31 +816,80 @@
     }
 
     function renderKpiBlock(k) {
-      const status = STATUS_META[k.status] || STATUS_META.not_available;
       const monthly = k.monthlyValues || [];
       const targets = k.monthlyTargets || [];
-      const maxVal = Math.max(1, ...monthly.map((m) => Math.abs(m.value || 0)), ...targets.map((t) => Math.abs(t.value || 0)));
+      const values = [
+        ...monthly.map((m) => m?.value),
+        ...targets.map((t) => t?.value)
+      ].filter((value) => value !== null && value !== undefined && Number.isFinite(Number(value))).map(Number);
+      const rawMin = Math.min(0, ...values);
+      const rawMax = Math.max(0, ...values);
+      const rawSpan = rawMax - rawMin || Math.max(Math.abs(rawMax), Math.abs(rawMin), 1);
+      const chartMin = rawMin < 0 ? rawMin - rawSpan * 0.08 : 0;
+      const chartMax = rawMax > 0 ? rawMax + rawSpan * 0.08 : rawSpan;
+      const chartSpan = chartMax - chartMin || 1;
+      const yPct = (value) => ((chartMax - Number(value)) / chartSpan) * 100;
+      const zeroY = yPct(0);
 
-      const bars = monthly.map((m, i) => {
+      const bars = Array.from({ length: 12 }, (_, i) => {
+        const m = monthly[i] || {};
         const tVal = targets[i]?.value;
-        const hasReal = m.value !== null && m.value !== undefined;
-        const ghostH = tVal !== null && tVal !== undefined ? Math.min(100, (Math.abs(tVal) / maxVal) * 100) : 0;
-        const realH = hasReal ? Math.min(100, (Math.abs(m.value) / maxVal) * 100) : 0;
+        const hasReal = m.value !== null && m.value !== undefined && Number.isFinite(Number(m.value));
+        const hasTarget = tVal !== null && tVal !== undefined && Number.isFinite(Number(tVal));
+        const realY = hasReal ? yPct(m.value) : zeroY;
+        let realTop = Math.min(realY, zeroY);
+        let realH = Math.abs(realY - zeroY);
+        if (hasReal && realH < 1.7) {
+          realH = 1.7;
+          realTop = Number(m.value) < 0 ? Math.min(98.3, zeroY) : Math.max(0, zeroY - realH);
+        }
         let tone = "";
-        if (hasReal && tVal !== null && tVal !== undefined) {
+        if (hasReal && hasTarget) {
           const hit = k.comparisonMode === "lower" ? m.value <= tVal : m.value >= tVal;
           tone = hit ? "pos" : "neg";
         }
+        const variation = formatTargetVariation(m.value, tVal);
+        const tooltip = `${MONTH_LABELS_SHORT[i]} — Realizado: ${formatByUnit(m.value, k.unit, k.decimalPlaces)} · Meta: ${formatByUnit(tVal, k.unit, k.decimalPlaces)} · Var: ${variation}`;
         return `
-          <div class="sa3-bar-col">
-            <div class="sa3-bar-stack">
-              ${ghostH ? `<div class="sa3-bar-ghost" style="height:${ghostH}%"></div>` : ""}
-              ${hasReal ? `<div class="sa3-bar-real ${tone}" style="height:${realH}%"></div>` : ""}
-            </div>
-            <span class="sa3-bar-month">${MONTH_LABELS_SHORT[i]}</span>
+          <div class="sa3-bar-col" data-chart-has-real="${hasReal}" data-chart-month="${MONTH_LABELS_SHORT[i].toLowerCase()}" data-chart-real="${escapeHtml(formatByUnit(m.value, k.unit, k.decimalPlaces))}" data-chart-meta="${escapeHtml(formatByUnit(tVal, k.unit, k.decimalPlaces))}" data-chart-variation="${escapeHtml(variation)}">
+            ${hasReal ? `<div class="sa3-bar-real ${tone}" style="top:${realTop}%;height:${realH}%" aria-label="${escapeHtml(tooltip)}"></div>` : ""}
           </div>
         `;
       }).join("");
+
+      const lineSegments = [];
+      let currentSegment = [];
+      const targetDots = [];
+      for (let i = 0; i < 12; i += 1) {
+        const targetValue = targets[i]?.value;
+        const actualValue = monthly[i]?.value;
+        const hasActual = actualValue !== null && actualValue !== undefined && Number.isFinite(Number(actualValue));
+        if (!hasActual || targetValue === null || targetValue === undefined || !Number.isFinite(Number(targetValue))) {
+          if (currentSegment.length) lineSegments.push(currentSegment);
+          currentSegment = [];
+          continue;
+        }
+        const point = { x: ((i + 0.5) / 12) * 1200, y: yPct(targetValue) };
+        currentSegment.push(point);
+        targetDots.push(`<circle class="sa3-target-point" cx="${point.x}" cy="${point.y}" r="3"></circle>`);
+      }
+      if (currentSegment.length) lineSegments.push(currentSegment);
+      const smoothPath = (points) => {
+        if (points.length < 2) return "";
+        let path = `M ${points[0].x} ${points[0].y}`;
+        for (let i = 1; i < points.length; i += 1) {
+          const previous = points[i - 1];
+          const current = points[i];
+          const controlX = (previous.x + current.x) / 2;
+          path += ` C ${controlX} ${previous.y}, ${controlX} ${current.y}, ${current.x} ${current.y}`;
+        }
+        return path;
+      };
+      const targetLine = lineSegments.map((points) => {
+        const path = smoothPath(points);
+        return path ? `<path class="sa3-target-line" d="${path}"></path>` : "";
+      }).join("");
+      const months = MONTH_LABELS_SHORT.map((label) => `<span class="sa3-bar-month">${label}</span>`).join("");
 
       const kpiActions = state.actions.filter((a) => (a.strategic_action_kpis || []).some((l) => l.kpi_id === k.id));
       const actionsHtml = kpiActions.length
@@ -817,13 +905,21 @@
               <div class="sa3-kpi-title">${escapeHtml(k.name)}${isAuto ? '<span class="sa3-badge-auto">Auto</span>' : ""}</div>
               <div class="sa3-kpi-sub">Realizado vs. meta mensal</div>
             </div>
-            <div class="sa3-kpi-nums">
-              <div class="v">${formatByUnit(k.accumulatedResult, k.unit, k.decimalPlaces)}</div>
-              <div class="t">Meta acum.: ${formatByUnit(k.accumulatedTarget, k.unit, k.decimalPlaces)}</div>
-              <span class="sa3-pill ${status.tone}">${status.label}</span>
+          </div>
+          <div class="sa3-combo-chart" role="img" aria-label="Gráfico combinado de realizado mensal em colunas e meta mensal em linha">
+            <div class="sa3-chart-plot">
+              <div class="sa3-chart-zero" style="top:${zeroY}%"></div>
+              <div class="sa3-bars">${bars}</div>
+              <svg class="sa3-target-svg" viewBox="0 0 1200 100" preserveAspectRatio="none" aria-hidden="true">
+                ${targetLine}${targetDots.join("")}
+              </svg>
+            </div>
+            <div class="sa3-chart-months">${months}</div>
+            <div class="sa3-chart-legend" aria-hidden="true">
+              <span><i class="sa3-legend-bar"></i>Realizado</span>
+              <span><i class="sa3-legend-line"></i>Meta mensal</span>
             </div>
           </div>
-          <div class="sa3-bars">${bars}</div>
           ${renderKpiAnalysisSection(k)}
           <div class="sa3-action-plan">
             <div class="sa3-head" style="margin-bottom:8px">
@@ -835,6 +931,40 @@
           </div>
         </div>
       `;
+    }
+
+    function bindKpiChartTooltips() {
+      const columns = root.querySelectorAll('.sa3-bar-col[data-chart-has-real="true"]');
+      if (!columns.length) return;
+
+      const tooltip = document.createElement("div");
+      tooltip.className = "sa3-chart-tooltip";
+      root.appendChild(tooltip);
+
+      const positionTooltip = (event) => {
+        const gap = 12;
+        let left = event.clientX + gap;
+        let top = event.clientY - tooltip.offsetHeight - gap;
+        if (left + tooltip.offsetWidth > window.innerWidth - 8) left = event.clientX - tooltip.offsetWidth - gap;
+        if (top < 8) top = event.clientY + gap;
+        tooltip.style.left = `${Math.max(8, left)}px`;
+        tooltip.style.top = `${Math.max(8, top)}px`;
+      };
+
+      columns.forEach((column) => {
+        column.addEventListener("mouseenter", (event) => {
+          tooltip.innerHTML = `
+            <div class="sa3-chart-tooltip-month">${escapeHtml(column.dataset.chartMonth)}</div>
+            <div class="sa3-chart-tooltip-row"><span>real</span><strong>${escapeHtml(column.dataset.chartReal)}</strong></div>
+            <div class="sa3-chart-tooltip-row"><span>meta</span><strong>${escapeHtml(column.dataset.chartMeta)}</strong></div>
+            <div class="sa3-chart-tooltip-row"><span>var</span><strong>${escapeHtml(column.dataset.chartVariation)}</strong></div>
+          `;
+          tooltip.style.display = "block";
+          positionTooltip(event);
+        });
+        column.addEventListener("mousemove", positionTooltip);
+        column.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
+      });
     }
 
     // -------------------------------------------------------- Anexos
@@ -1165,6 +1295,21 @@
         if (file && file.size > MAX_ATTACHMENT_BYTES) { appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB.`, "warn"); return; }
         const editingId = form.dataset.editingId || null;
         saveBtn.disabled = true;
+        // strategic_save_action substitui a lista INTEIRA de vínculos a cada
+        // chamada (mesmo contrato de strategic_save_period_analysis). Editar
+        // a partir de um card específico só dá o a3/kpi DESSE card — se a
+        // ação já estava ligada a outros, mandar só esse par apagava os
+        // demais em silêncio (achado #4 do review). Fix: ao editar, parte
+        // dos vínculos que a ação já tem (já carregados em state.actions via
+        // o embed de loadActionsForA3) e garante que o card atual entra no
+        // conjunto, em vez de truncar pra 1 A3 + 1 KPI.
+        const existingAction = editingId ? state.actions.find((a) => a.id === editingId) : null;
+        const a3Ids = existingAction
+          ? Array.from(new Set([...(existingAction.strategic_action_a3 || []).map((l) => l.a3_id), state.a3Id]))
+          : [state.a3Id];
+        const kpiIds = existingAction
+          ? Array.from(new Set([...(existingAction.strategic_action_kpis || []).map((l) => l.kpi_id), kpiId]))
+          : [kpiId];
         try {
           const action = await callSupabaseRpc("strategic_save_action", {
             p_organization_id: state.organizationId,
@@ -1174,8 +1319,8 @@
             p_description: description || null,
             p_status: status,
             p_due_date: dueDate,
-            p_a3_ids: [state.a3Id],
-            p_kpi_ids: [kpiId]
+            p_a3_ids: a3Ids,
+            p_kpi_ids: kpiIds
           });
           if (file && action?.id) await uploadAttachment("action", action.id, file);
           await loadA3Detail(state.a3Id);
@@ -1345,8 +1490,13 @@
     //    quem trava o valor é o botão Salvar da linha.
     //  - drivers: os direcionadores (ex.: admissões/desligamentos/quadro),
     //    compactos, empilhados na mesma célula.
-    //  - breakdown: nota "editor ainda não disponível" (composição por linha
-    //    ainda não tem editor — só a meta é salva aqui por enquanto).
+    //  - breakdown: célula "Real" só resume a contagem de linhas; o editor
+    //    de composição em si fica num painel full-width logo abaixo da
+    //    linha (não cabe nos 190px da coluna) — ver renderBreakdownPanel.
+    //    O botão Salvar único da linha manda meta + composição juntos
+    //    (achado #2 do review: 8 KPIs breakdown ativos não aceitavam
+    //    realizado nenhum — RPC já suportava p_breakdown_rows, só faltava
+    //    o editor no frontend).
     function renderEntryRow(k, isClosed) {
       const targetInputs = renderTargetInputs(k, isClosed);
       const saveBtn = !isClosed
@@ -1357,6 +1507,7 @@
         : "";
 
       let realCell;
+      let breakdownPanel = "";
       if (k.entryMode === "drivers") {
         const driverRows = (k.drivers || []).map((d) => `
           <div class="sa3-entry-driver-row">
@@ -1366,7 +1517,9 @@
         `).join("");
         realCell = `<div class="sa3-entry-real"><span class="k">Real</span>${driverRows}</div>`;
       } else if (k.entryMode === "breakdown") {
-        realCell = `<div class="sa3-entry-real"><span class="k">Real</span><div class="sa3-entry-target">Editor de composição ainda não disponível</div></div>`;
+        const rowCount = (k.breakdownRows || []).length;
+        realCell = `<div class="sa3-entry-real"><span class="k">Real (composição)</span><div class="sa3-entry-target">${rowCount} linha${rowCount === 1 ? "" : "s"} — editar abaixo</div></div>`;
+        breakdownPanel = renderBreakdownPanel(k, isClosed);
       } else {
         // direct ou computed
         realCell = `
@@ -1387,7 +1540,80 @@
           ${realCell}
           <div class="sa3-entry-save">${saveBtn}</div>
         </div>
+        ${breakdownPanel}
       `;
+    }
+
+    // Painel full-width (não cabe na coluna "Real" de 190px) com as linhas de
+    // composição do KPI breakdown: descrição livre + planejado + real (+ peso,
+    // só quando monthly_calculation='weighted_average' — 'ratio' soma
+    // actual/planned direto, sem peso). dimension_key é só um slug de
+    // identificação da linha (a RPC substitui a lista inteira a cada save,
+    // igual strategic_save_period_analysis — não há FK externa nele).
+    function renderBreakdownPanel(k, isClosed) {
+      const rows = k.breakdownRows || [];
+      const showWeight = k.monthlyCalculation === "weighted_average";
+      const rowsHtml = rows.length
+        ? rows.map((r, i) => renderBreakdownRow(r, i, showWeight, isClosed)).join("")
+        : `<div class="sa3-empty">Nenhuma linha cadastrada.</div>`;
+      return `
+        <div class="sa3-breakdown-panel" data-breakdown-panel="${escapeHtml(k.id)}">
+          <div class="sa3-breakdown-head">
+            <span class="k">Composição por linha</span>
+            ${!isClosed ? `<button type="button" class="sa3-btn" data-action="add-breakdown-row">+ Linha</button>` : ""}
+          </div>
+          <div class="sa3-breakdown-rows" data-breakdown-rows="${escapeHtml(k.id)}">${rowsHtml}</div>
+        </div>
+      `;
+    }
+
+    function renderBreakdownRow(r, index, showWeight, isClosed) {
+      const dis = isClosed ? "disabled" : "";
+      return `
+        <div class="sa3-breakdown-row${showWeight ? "" : " no-weight"}" data-breakdown-row data-dimension-key="${escapeHtml(r.dimensionKey || "")}">
+          <input type="text" data-field="dimension_label" value="${escapeHtml(r.dimensionLabel || "")}" placeholder="Descrição da linha" ${dis}>
+          <input type="number" step="any" data-field="planned_value" value="${r.plannedValue ?? ""}" placeholder="Planejado" ${dis}>
+          <input type="number" step="any" data-field="actual_value" value="${r.actualValue ?? ""}" placeholder="Real" ${dis}>
+          ${showWeight ? `<input type="number" step="any" data-field="weight_value" value="${r.weightValue ?? ""}" placeholder="Peso" ${dis}>` : ""}
+          <button type="button" class="sa3-icon-btn" data-action="remove-breakdown-row" title="Remover"${isClosed ? ' style="visibility:hidden"' : ""}>${ICON_TRASH}</button>
+        </div>
+      `;
+    }
+
+    // Slug de exibição só — sem função de chave estrangeira em outra tabela,
+    // então não precisa de estabilidade rígida entre saves, só evitar campo
+    // vazio (a RPC recebe dimension_key como texto livre).
+    function slugifyDimensionKey(label, index) {
+      const base = String(label || "")
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+      return base || `linha_${index + 1}`;
+    }
+
+    // Add/remove de linha do painel de composição — puramente client-side
+    // até o Salvar da linha (mesmo padrão do form de driver, que também só
+    // lê o DOM na hora de salvar, sem draft em state).
+    function bindBreakdownPanel(k) {
+      const panel = root.querySelector(`[data-breakdown-panel="${cssEscape(k.id)}"]`);
+      if (!panel) return;
+      const showWeight = k.monthlyCalculation === "weighted_average";
+      const rowsWrap = panel.querySelector(`[data-breakdown-rows="${cssEscape(k.id)}"]`);
+
+      const bindRemove = (rowEl) => {
+        rowEl.querySelector('[data-action="remove-breakdown-row"]')?.addEventListener("click", () => rowEl.remove());
+      };
+      rowsWrap?.querySelectorAll("[data-breakdown-row]").forEach(bindRemove);
+
+      panel.querySelector('[data-action="add-breakdown-row"]')?.addEventListener("click", () => {
+        rowsWrap.querySelector(".sa3-empty")?.remove();
+        const wrap = document.createElement("div");
+        wrap.innerHTML = renderBreakdownRow({}, rowsWrap.children.length, showWeight, false).trim();
+        const rowEl = wrap.firstElementChild;
+        rowsWrap.appendChild(rowEl);
+        bindRemove(rowEl);
+      });
     }
 
     // Um Salvar só: manda a meta (sempre) e o realizado (conforme o modo) na
@@ -1397,6 +1623,9 @@
       if (isClosed) return;
       const rowEl = root.querySelector(`[data-kpi-row="${cssEscape(k.id)}"]`);
       const btn = root.querySelector(`[data-action="save-row"][data-kpi-id="${cssEscape(k.id)}"]`);
+
+      if (k.entryMode === "breakdown") bindBreakdownPanel(k);
+
       btn?.addEventListener("click", async () => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
         btn.disabled = true;
@@ -1415,7 +1644,30 @@
               p_kpi_id: k.id, p_year: year, p_month: month, p_expected_version: version, p_driver_inputs: driverInputs
             });
           } else if (k.entryMode === "breakdown") {
-            // sem editor de composição ainda — só a meta é persistida aqui.
+            const panelEl = root.querySelector(`[data-breakdown-panel="${cssEscape(k.id)}"]`);
+            const rowEls = panelEl ? panelEl.querySelectorAll("[data-breakdown-row]") : [];
+            const numVal = (el, sel) => {
+              const inp = el.querySelector(sel);
+              if (!inp) return null;
+              return inp.value === "" ? null : Number(inp.value);
+            };
+            const breakdownRows = Array.from(rowEls)
+              .map((el, i) => {
+                const label = el.querySelector('[data-field="dimension_label"]').value.trim();
+                return {
+                  dimension_key: el.dataset.dimensionKey || slugifyDimensionKey(label, i),
+                  dimension_label: label,
+                  planned_value: numVal(el, '[data-field="planned_value"]'),
+                  actual_value: numVal(el, '[data-field="actual_value"]'),
+                  weight_value: numVal(el, '[data-field="weight_value"]'),
+                  display_order: i
+                };
+              })
+              .filter((r) => r.dimension_label); // ignora linha em branco adicionada e não preenchida
+            const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
+            await callSupabaseRpc("strategic_save_kpi_record", {
+              p_kpi_id: k.id, p_year: year, p_month: month, p_expected_version: version, p_breakdown_rows: breakdownRows
+            });
           } else {
             // direct, ou sobrescrita manual de 'computed'
             const input = rowEl.querySelector('[data-field="result"]');
@@ -1434,11 +1686,29 @@
     }
 
     // ---------------------------------------------------------------- public API
+    // Chamado pelo app.js tanto na entrada do módulo quanto a cada troca do
+    // período do topo (mesmo padrão de renderComercialVendasView) — por
+    // isso precisa comparar contra loadedPeriod, não só checar se já existe
+    // dado carregado (achado #1 do review: trocar o mês/ano não recarregava
+    // a tela, e Salvar acabava gravando o período novo com os campos ainda
+    // do período antigo na tela).
     function render() {
       if (!root) return;
-      if (!state.overview && state.screen === "overview" && !state.loading) {
-        loadOverview();
-        return;
+      if (state.loading) { renderShell(); return; }
+
+      const period = currentPeriod();
+      const periodChanged = !!state.loadedPeriod &&
+        (state.loadedPeriod.year !== period.year || state.loadedPeriod.month !== period.month);
+
+      if (state.screen === "overview") {
+        if (!state.overview || periodChanged) { loadOverview(); return; }
+      } else if (state.screen === "detail") {
+        if (!state.a3Detail || periodChanged) {
+          loadA3Detail(state.a3Id, state.a3Id === state.a3RootId);
+          return;
+        }
+      } else if (state.screen === "entry") {
+        if (!state.monthlyEntry || periodChanged) { loadMonthlyEntry(state.a3Id); return; }
       }
       renderShell();
     }
@@ -1447,6 +1717,7 @@
       state.overview = null;
       state.a3Detail = null;
       state.monthlyEntry = null;
+      state.loadedPeriod = null;
       state.screen = "overview";
     }
 
