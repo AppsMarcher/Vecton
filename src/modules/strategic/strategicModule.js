@@ -591,6 +591,7 @@
               <div><label>Tipo</label><select data-field="item_type"><option value="cause">Causa</option><option value="countermeasure">Contramedida</option></select></div>
               <div><label>Descrição</label><input type="text" data-field="description" placeholder="O que aconteceu / o que fazer?"></div>
             </div>
+            <div><label>Anexo (opcional)</label><input type="file" data-field="attachment"></div>
             <div class="sa3-form-foot">
               <button class="sa3-btn" data-action="cancel-analysis-form" data-kpi-id="${escapeHtml(k.id)}">Cancelar</button>
               <button class="sa3-btn primary" data-action="add-analysis-item" data-kpi-id="${escapeHtml(k.id)}">Adicionar</button>
@@ -613,12 +614,26 @@
         const itemType = form.querySelector('[data-field="item_type"]').value;
         const description = form.querySelector('[data-field="description"]').value.trim();
         if (!description) { appAlert?.("Descreva a causa ou contramedida antes de salvar.", "warn"); return; }
+        const file = form.querySelector('[data-field="attachment"]')?.files?.[0] || null;
+        if (file && file.size > MAX_ATTACHMENT_BYTES) { appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB.`, "warn"); return; }
         addBtn.disabled = true;
         try {
           await saveAnalysis(state.a3Id, undefined, (items) => [
             ...items,
             { item_type: itemType, description, display_order: items.length, kpi_ids: [kpiId] }
           ]);
+          if (file) {
+            // Novo item é sempre o de maior display_order (acabou de ser
+            // anexado no fim da lista) — não tem outro jeito de saber o id
+            // dele, a RPC de análise devolve só a linha-pai (período).
+            const newItem = (state.periodAnalysis?.strategic_analysis_items || [])
+              .slice()
+              .sort((a, b) => (b.display_order || 0) - (a.display_order || 0))[0];
+            if (newItem?.id) {
+              await uploadAttachment("analysis_item", newItem.id, file);
+              await loadAttachments();
+            }
+          }
           renderShell();
         } catch (err) {
           appAlert?.(friendlyError(err), "error");
@@ -713,6 +728,31 @@
       return s.length > max ? `${s.slice(0, max - 1)}…` : s;
     }
 
+    // Sobe o arquivo pro storage + grava a linha em strategic_attachments.
+    // Usado tanto pelo widget de anexo de item já salvo quanto pelos
+    // formulários de criação (anexa junto com o "Salvar", sem passo extra).
+    async function uploadAttachment(ownerType, ownerId, file) {
+      const { year, month } = currentPeriod();
+      const fileId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const safeName = String(file.name || "arquivo").replace(/[^\w.\-]+/g, "_");
+      const path = `${state.organizationId}/${year}/${month}/${ownerType}/${ownerId}/${fileId}_${safeName}`;
+      await uploadToStorage(ATTACHMENT_BUCKET, path, file);
+      const body = {
+        organization_id: state.organizationId,
+        storage_path: path,
+        file_name: file.name,
+        mime_type: file.type || null,
+        file_size: file.size || null,
+        [ownerType === "action" ? "action_id" : "analysis_item_id"]: ownerId
+      };
+      const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/strategic_attachments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Prefer": "return=minimal" },
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) throw new Error(await response.text());
+    }
+
     function renderAttachmentsStrip(ownerType, ownerId) {
       const list = (state.attachments?.[ownerType]?.[ownerId]) || [];
       const chips = list.map((att) => `
@@ -745,25 +785,7 @@
           const ownerId = input.dataset.ownerId;
           input.disabled = true;
           try {
-            const { year, month } = currentPeriod();
-            const fileId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-            const safeName = String(file.name || "arquivo").replace(/[^\w.\-]+/g, "_");
-            const path = `${state.organizationId}/${year}/${month}/${ownerType}/${ownerId}/${fileId}_${safeName}`;
-            await uploadToStorage(ATTACHMENT_BUCKET, path, file);
-            const body = {
-              organization_id: state.organizationId,
-              storage_path: path,
-              file_name: file.name,
-              mime_type: file.type || null,
-              file_size: file.size || null,
-              [ownerType === "action" ? "action_id" : "analysis_item_id"]: ownerId
-            };
-            const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/strategic_attachments`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Prefer": "return=minimal" },
-              body: JSON.stringify(body)
-            });
-            if (!response.ok) throw new Error(await response.text());
+            await uploadAttachment(ownerType, ownerId, file);
             await loadAttachments();
             renderShell();
           } catch (err) {
@@ -834,6 +856,7 @@
             <div><label>Prazo</label><input type="date" data-field="due_date"></div>
             <div><label>Status</label><select data-field="status">${statusOptions}</select></div>
           </div>
+          <div><label>Anexo (opcional)</label><input type="file" data-field="attachment"></div>
           <div class="sa3-form-foot">
             <button class="sa3-btn" data-action="cancel-action-form" data-kpi-id="${escapeHtml(kpiId)}">Cancelar</button>
             <button class="sa3-btn primary" data-action="save-action" data-kpi-id="${escapeHtml(kpiId)}">Salvar ação</button>
@@ -857,9 +880,11 @@
         const description = form.querySelector('[data-field="description"]').value.trim();
         const dueDate = form.querySelector('[data-field="due_date"]').value || null;
         const status = form.querySelector('[data-field="status"]').value;
+        const file = form.querySelector('[data-field="attachment"]')?.files?.[0] || null;
+        if (file && file.size > MAX_ATTACHMENT_BYTES) { appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB.`, "warn"); return; }
         saveBtn.disabled = true;
         try {
-          await callSupabaseRpc("strategic_save_action", {
+          const action = await callSupabaseRpc("strategic_save_action", {
             p_organization_id: state.organizationId,
             p_cycle_id: state.cycleId,
             p_title: title,
@@ -869,6 +894,7 @@
             p_a3_ids: [state.a3Id],
             p_kpi_ids: [kpiId]
           });
+          if (file && action?.id) await uploadAttachment("action", action.id, file);
           await loadA3Detail(state.a3Id);
         } catch (err) {
           appAlert?.(friendlyError(err), "error");
