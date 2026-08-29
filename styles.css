@@ -6475,7 +6475,7 @@ body.auth-only .content-view {
 }
 
 .users-name-text { font-weight: 500; color: var(--text); white-space: nowrap; }
-.users-email-text { font-size: 0.78rem; color: var(--text-soft); }
+.users-email-text { font-size: 0.68rem; color: var(--text-soft); }
 
 .users-badge {
   display: inline-block;
