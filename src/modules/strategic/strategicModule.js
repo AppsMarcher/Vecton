@@ -114,10 +114,13 @@
       dirtyDrafts: {},         // { [kpiId]: { resultValue, drivers: {code: value} } } — edição em andamento, não salva
       attachments: { action: {}, analysis_item: {} }, // { [ownerType]: { [ownerId]: strategic_attachments[] } }
       orgUsers: null,          // usuários da org (picker de Responsáveis do plano de ação) — carregado 1x, cacheado
-      editingAction: null      // { kpiId, actionId } — form de ação atualmente aberto (actionId null = criando).
-                                // Anexo agora é gerenciado DENTRO do form (upload dispara renderShell(), que
-                                // reconstrói a tela inteira — sem isso o form fechava sozinho a cada anexo
-                                // adicionado). bindActionForm reabre + repreenche usando isto a cada render.
+      editingAction: null      // { kpiId, actionId, stagedFiles } — form de ação atualmente aberto.
+                                // actionId null = criando (ainda sem id pra anexar de verdade — stagedFiles
+                                // guarda os File[] escolhidos localmente, sobem todos juntos no Salvar).
+                                // actionId preenchido = editando (anexo já sobe na hora, reusa
+                                // renderAttachmentsStrip). Upload dispara renderShell(), que reconstrói a
+                                // tela inteira — sem isso o form fechava sozinho a cada anexo adicionado;
+                                // bindActionForm reabre + repreenche usando isto a cada render.
     };
 
     // RBAC granular por A3 (2026-08-29, migrations 142-145): não dá mais
@@ -1362,7 +1365,7 @@
           </div>
           <div>
             <label>Anexos (opcional)</label>
-            <div data-action-attachments><div class="sa3-empty">Anexos ficam disponíveis depois de salvar a ação pela primeira vez.</div></div>
+            <div data-action-attachments></div>
           </div>
           <div class="sa3-form-foot">
             <button class="sa3-btn" data-action="cancel-action-form" data-kpi-id="${escapeHtml(kpiId)}">Cancelar</button>
@@ -1385,6 +1388,57 @@
         : "Nenhum selecionado";
     }
 
+    // Anexo de ação NOVA (sem id ainda pra gravar em strategic_attachments):
+    // fica staged localmente (File[] em state.editingAction.stagedFiles) até
+    // o Salvar, que sobe todos de uma vez — só assim dá pra anexar VÁRIOS
+    // ainda durante a criação, não só depois do 1º save (pedido explícito
+    // do usuário, 2026-08-29: a leva anterior só liberava anexo depois de
+    // salvar a ação, e não era isso que foi pedido).
+    function renderStagedAttachments(files) {
+      const chips = (files || []).map((file, index) => `
+        <span class="sa3-attachment-chip" title="${escapeHtml(file.name)}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v2"/></svg>
+          <span class="sa3-attachment-name">${escapeHtml(truncateFileName(file.name))}</span>
+          <button type="button" class="sa3-attachment-remove" data-action="unstage-attachment" data-index="${index}" title="Remover">&times;</button>
+        </span>
+      `).join("");
+      return `
+        <div class="sa3-attachments">
+          ${chips}
+          <label class="sa3-attachment-add">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+            Anexar
+            <input type="file" data-action="stage-attachment" hidden>
+          </label>
+        </div>
+      `;
+    }
+
+    // Liga add/remove do staging — precisa ser rechamada toda vez que o
+    // innerHTML do container é reescrito (troca de innerHTML mata os
+    // listeners antigos).
+    function bindStagedAttachments(form) {
+      const container = form?.querySelector("[data-action-attachments]");
+      if (!container) return;
+      container.querySelector('[data-action="stage-attachment"]')?.addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (!file || !state.editingAction) return;
+        if (file.size > MAX_ATTACHMENT_BYTES) { appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB.`, "warn"); return; }
+        state.editingAction.stagedFiles = [...(state.editingAction.stagedFiles || []), file];
+        container.innerHTML = renderStagedAttachments(state.editingAction.stagedFiles);
+        bindStagedAttachments(form);
+      });
+      container.querySelectorAll('[data-action="unstage-attachment"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (!state.editingAction) return;
+          const idx = Number(btn.dataset.index);
+          state.editingAction.stagedFiles = (state.editingAction.stagedFiles || []).filter((_, i) => i !== idx);
+          container.innerHTML = renderStagedAttachments(state.editingAction.stagedFiles);
+          bindStagedAttachments(form);
+        });
+      });
+    }
+
     // Reaproveita o mesmo form pra criar E editar — action=null limpa
     // (modo criação), action preenchido carrega os valores (modo edição).
     // Responsável/prioridade/progresso: campos recomendados, não obrigatórios
@@ -1403,15 +1457,18 @@
       updateOwnerSummary(form);
       form.querySelector("[data-owner-list]")?.classList.add("hidden");
       form.querySelector('[data-action="toggle-owners"]')?.setAttribute("aria-expanded", "false");
-      // Anexos: gerenciados AQUI dentro do form (não mais um input avulso
-      // staged pro Salvar) — precisa do id real da ação, então só existe
-      // depois do primeiro save. Cada anexo some pra plano "encerrado"
-      // (concluída/cancelada, ver ACTION_CLOSED_STATUSES).
+      // Anexos: ação já salva (tem id) usa o widget de upload direto (mesmo
+      // do card, trava quando "encerrada" — done/cancelled); ação nova usa
+      // o staging local (renderStagedAttachments), sempre disponível durante
+      // a edição, mesmo antes do 1º save.
       const attachEl = form.querySelector("[data-action-attachments]");
       if (attachEl) {
-        attachEl.innerHTML = action?.id
-          ? renderAttachmentsStrip("action", action.id, action.title, ACTION_CLOSED_STATUSES.includes(action.status))
-          : `<div class="sa3-empty">Anexos ficam disponíveis depois de salvar a ação pela primeira vez.</div>`;
+        if (action?.id) {
+          attachEl.innerHTML = renderAttachmentsStrip("action", action.id, action.title, ACTION_CLOSED_STATUSES.includes(action.status));
+        } else {
+          attachEl.innerHTML = renderStagedAttachments(state.editingAction?.stagedFiles || []);
+          bindStagedAttachments(form);
+        }
       }
       form.dataset.editingId = action?.id || "";
       const saveBtn = form.querySelector('[data-action="save-action"]');
@@ -1426,8 +1483,15 @@
 
       toggleBtn?.addEventListener("click", () => {
         const opening = form?.classList.contains("hidden");
-        if (opening) { fillActionForm(form, null); state.editingAction = { kpiId, actionId: null }; }
-        else { state.editingAction = null; }
+        if (opening) {
+          // Seta editingAction (com stagedFiles zerado) ANTES de preencher —
+          // fillActionForm lê state.editingAction.stagedFiles pro widget de
+          // anexo staged, precisa existir antes de renderizar.
+          state.editingAction = { kpiId, actionId: null, stagedFiles: [] };
+          fillActionForm(form, null);
+        } else {
+          state.editingAction = null;
+        }
         form?.classList.toggle("hidden");
       });
       cancelBtn?.addEventListener("click", () => {
@@ -1492,6 +1556,15 @@
             p_kpi_ids: kpiIds,
             p_owner_user_ids: ownerIds
           });
+          // Trava o id assim que a ação existe — se o upload de algum anexo
+          // staged falhar logo abaixo, um retry do Salvar cai no caminho de
+          // EDIÇÃO (evita criar uma ação duplicada tentando de novo com
+          // p_id null).
+          form.dataset.editingId = action.id;
+          const stagedFiles = state.editingAction?.stagedFiles || [];
+          for (const file of stagedFiles) {
+            await uploadAttachment("action", action.id, file);
+          }
           state.editingAction = null; // Salvar fecha o form de vez (diferente de anexar, que mantém aberto)
           await loadA3Detail(state.a3Id);
         } catch (err) {
