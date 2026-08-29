@@ -67,7 +67,7 @@ const ROOT_CC_NODE = {
 
 const VIEW_HEADER_METADATA = {
   rps:       { kicker: "GESTÃO",         title: "Reunião de Performance Semanal" },
-  strategic: { kicker: "GESTÃO ESTRATÉGICA", title: "A3 - Gestão Estratégica" },
+  strategic: { kicker: "GESTÃO ESTRATÉGICA", title: "A3 Estratégicos" },
   dashboard: { kicker: "DASHBOARD",     title: "Cockpit Executivo" },
   planning:  { kicker: "PLANEJAMENTO",  title: "Repositório de Cenários" },
   reports:   { kicker: "RELATÓRIOS",    title: "Central de relatórios" },
