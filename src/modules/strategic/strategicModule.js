@@ -420,8 +420,8 @@
           <button class="sa3-area-row" style="--row-accent:${escapeHtml(a.color || "#4f7cff")}" data-action="open-detail" data-a3-id="${escapeHtml(a.id)}">
             <div class="sa3-area-icon" style="color:${escapeHtml(a.color || "#4f7cff")}">${escapeHtml((a.name || "?").slice(0, 1))}</div>
             <div>
-              <div class="sa3-area-name">${escapeHtml(a.name)}</div>
-              <div class="sa3-area-sub">${total} indicador${total === 1 ? "" : "es"}${a.childrenCount ? ` &middot; ${a.childrenCount} sub-área${a.childrenCount === 1 ? "" : "s"}` : ""}</div>
+              <div class="sa3-area-name">A3 ${escapeHtml(a.name)}</div>
+              <div class="sa3-area-sub">${total} indicador${total === 1 ? "" : "es"}${a.childrenCount ? ` &middot; ${a.childrenCount} A3 filho${a.childrenCount === 1 ? "" : "s"}` : ""}</div>
             </div>
             <span class="sa3-pill ${pillTone}">${onTarget}/${total} dentro da meta</span>
             <svg class="sa3-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg>
@@ -435,7 +435,7 @@
           <div class="sa3-north-grid">${northHtml || '<div class="sa3-empty">Nenhuma meta cadastrada.</div>'}</div>
         </div>
         <div class="sa3-card">
-          <div class="sa3-head"><div><h3>Áreas</h3><p>Abrir uma área leva ao A3 digital dela: metas x realizado, acumulado e plano de ação.</p></div></div>
+          <div class="sa3-head"><div><h3>Áreas</h3><p>Abrir uma área leva ao A3 digital dela: metas x realizado, acumulado e plano de&nbsp;ação.</p></div></div>
           <div class="sa3-area-list">${areaRows || '<div class="sa3-empty">Nenhuma área cadastrada pra este ciclo.</div>'}</div>
         </div>
       `;
