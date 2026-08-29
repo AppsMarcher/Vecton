@@ -1812,12 +1812,21 @@ async function hydrateFromSupabase() {
 
     // Perfis sem acesso ao Dashboard não podem cair nele ao logar; manda
     // direto para a primeira tela que o perfil efetivamente enxerga —
-    // cascata Dashboard > Relatórios > RPS Gestão. Com perfis combináveis
-    // (ex: Comercial + RPS Gestão), quem tem Relatórios por qualquer um dos
-    // perfis marcados cai lá; só cai direto na RPS Gestão quem NÃO tem
-    // nenhum outro perfil que dê Relatórios (rps_gestao "puro").
+    // cascata Dashboard > Relatórios > RPS Gestão > Estratégica (A3). Com
+    // perfis combináveis (ex: Comercial + RPS Gestão), quem tem Relatórios
+    // por qualquer um dos perfis marcados cai lá; só cai na RPS Gestão quem
+    // NÃO tem Relatórios mas tem RPS (rps_gestao "puro"); só cai na
+    // Estratégica quem não tem nenhum dos dois anteriores (gestao_estrategica
+    // "puro" — achado #7 do review: antes caía direto em "rps" mesmo sem
+    // canAccessRps(), numa tela que a RLS bloqueava e o menu nem mostrava).
     if (!canAccessDashboard()) {
-      activeView = canAccessReportsMenu() ? "reports" : "rps";
+      activeView = canAccessReportsMenu()
+        ? "reports"
+        : canAccessRps()
+          ? "rps"
+          : canAccessStrategic()
+            ? "strategic"
+            : "rps";
     }
 
     if (branches.length) {

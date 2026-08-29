@@ -766,10 +766,19 @@
       root.querySelectorAll('[data-action="remove-analysis-item"]').forEach((btn) => {
         btn.addEventListener("click", async () => {
           if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
-          const ok = await appConfirm?.("Remover este item da análise?", "warn");
+          const ok = await appConfirm?.("Remover este item da análise? Os anexos dele também são removidos.", "warn");
           if (!ok) return;
+          const itemId = btn.dataset.itemId;
+          // Guarda a lista ANTES de mandar a RPC — depois do save, o item já
+          // some de state.periodAnalysis e o anexo dele fica inalcançável
+          // (achado #6 do review: exclusão em cascata apagava só o metadado
+          // no banco, o arquivo físico ficava órfão no bucket pra sempre).
+          const orphanedAttachments = state.attachments?.analysis_item?.[itemId] || [];
           try {
-            await saveAnalysis(state.a3Id, undefined, (items) => items.filter((it) => it.id !== btn.dataset.itemId));
+            await saveAnalysis(state.a3Id, undefined, (items) => items.filter((it) => it.id !== itemId));
+            await Promise.all(orphanedAttachments.map((att) =>
+              deleteFromStorage(ATTACHMENT_BUCKET, att.storage_path).catch(() => {})
+            ));
             renderShell();
           } catch (err) {
             appAlert?.(friendlyError(err), "error");
@@ -1351,13 +1360,22 @@
           if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
           const ok = await appConfirm?.("Excluir esta ação? Os anexos dela também são removidos.", "danger");
           if (!ok) return;
+          const actionId = btn.dataset.actionId;
+          // Idem ao remove-analysis-item: a confirmação já promete "os anexos
+          // também são removidos", mas até aqui isso só apagava o metadado
+          // via cascata no banco — o arquivo físico ficava órfão no bucket
+          // (achado #6 do review). Guarda a lista antes do DELETE.
+          const orphanedAttachments = state.attachments?.action?.[actionId] || [];
           btn.disabled = true;
           try {
             const response = await authenticatedFetch(
-              `${supabaseApiUrl}/rest/v1/strategic_actions?id=eq.${btn.dataset.actionId}`,
+              `${supabaseApiUrl}/rest/v1/strategic_actions?id=eq.${actionId}`,
               { method: "DELETE" }
             );
             if (!response.ok) throw new Error(await response.text());
+            await Promise.all(orphanedAttachments.map((att) =>
+              deleteFromStorage(ATTACHMENT_BUCKET, att.storage_path).catch(() => {})
+            ));
             await loadA3Detail(state.a3Id);
           } catch (err) {
             appAlert?.(friendlyError(err), "error");
