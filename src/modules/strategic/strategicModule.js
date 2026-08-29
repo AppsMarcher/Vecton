@@ -50,6 +50,45 @@
   // TEM CHECK e por isso precisa do código em inglês).
   const ACTION_PRIORITY_OPTIONS = ["Baixa", "Média", "Alta"];
 
+  // Opções do fluxo de criação de A3/indicador (pedido do usuário,
+  // 2026-08-29 — ver migration 155_strategic_create_a3_and_kpi.sql).
+  // Enum idêntico ao check constraint de strategic_a3.management
+  // (migration 142) — mesma lista que cost_centers.cost_center_management.
+  const MANAGEMENT_OPTIONS = [
+    "Diretoria", "Controladoria", "Recursos Humanos", "Supply Chain",
+    "Industrial", "Engenharia", "Marketing", "Produto", "Qualidade", "Comercial"
+  ];
+  // Unidades já em uso no catálogo real (todas as migrations de seed/ajuste
+  // de KPI) — "Outra…" cobre qualquer unidade fora dessa lista sem travar
+  // a criação.
+  const UNIT_OPTIONS = [
+    { value: "BRL",     label: "R$ (Reais)" },
+    { value: "percent", label: "% (Percentual)" },
+    { value: "un",      label: "un. (Unidades)" },
+    { value: "h",       label: "h (Horas)" },
+    { value: "dias",    label: "dias" },
+    { value: "x",       label: "x (múltiplo)" },
+    { value: "pts",     label: "pts (Pontos)" },
+    { value: "nps",     label: "NPS" }
+  ];
+  // Mesmo enum de strategic_kpis.comparison_mode (migration 128).
+  const COMPARISON_MODE_OPTIONS = [
+    { value: "higher",                label: "Maior é melhor" },
+    { value: "lower",                 label: "Menor é melhor" },
+    { value: "range",                 label: "Dentro de uma faixa (mín/máx)" },
+    { value: "exact",                 label: "Exato (bate com a meta)" },
+    { value: "exact_with_tolerance",  label: "Exato, com tolerância" }
+  ];
+  // Subconjunto de strategic_kpis.accumulation_method (migration 128) —
+  // 'ratio_of_sums'/'weighted_average' só fazem sentido pra KPI calculado
+  // (entry_mode='drivers'/'computed'), fora do escopo desta criação manual.
+  const ACCUMULATION_METHOD_OPTIONS = [
+    { value: "sum",         label: "Soma" },
+    { value: "average",     label: "Média" },
+    { value: "last_closed", label: "Último mês fechado" },
+    { value: "none",        label: "Não acumula" }
+  ];
+
   const ATTACHMENT_BUCKET = "strategic-a3-attachments";
   const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // mesmo limite do bucket (migration 133)
 
@@ -359,6 +398,31 @@
         .sa3-period-status { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
         .sa3-loading, .sa3-error { padding:40px 20px; text-align:center; color:var(--sa3-faint); font-size:.84rem; }
         .sa3-error { color:var(--sa3-neg); }
+        /* Modais de criação (A3 nova / indicador novo) — só super_admin/
+           admin, ver isSuperAdminOrAdmin(). Overlay simples, sem depender
+           de nenhuma classe global do app (módulo autocontido). */
+        .sa3-modal-overlay { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; padding:20px; }
+        .sa3-modal-card { background:var(--sa3-panel); border:1px solid var(--sa3-line); border-radius:16px; box-shadow:0 24px 60px rgba(0,0,0,.5); padding:22px 24px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; }
+        .sa3-modal-title { font-size:1rem; font-weight:700; margin:0 0 4px; }
+        .sa3-modal-subtitle { font-size:.76rem; color:var(--sa3-soft); margin:0 0 16px; }
+        .sa3-modal-field { margin-bottom:12px; }
+        .sa3-modal-field label { display:block; font-size:.64rem; font-weight:700; text-transform:uppercase; color:var(--sa3-faint); margin-bottom:4px; }
+        .sa3-modal-field input, .sa3-modal-field select {
+          width:100%; height:38px; box-sizing:border-box; background:rgba(255,255,255,.03);
+          border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:0 10px;
+        }
+        .sa3-modal-field select {
+          color-scheme:dark; appearance:none; -webkit-appearance:none; -moz-appearance:none;
+          background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+          background-repeat:no-repeat; background-position:right 10px center; background-size:13px; padding-right:28px;
+        }
+        .sa3-modal-field select option { background:#121317; color:#fff; }
+        .sa3-modal-hint { font-size:.68rem; color:var(--sa3-faint); margin-top:4px; }
+        .sa3-modal-foot { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+        .sa3-modal-radio-group { display:flex; gap:8px; }
+        .sa3-modal-radio { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:1px solid var(--sa3-line); border-radius:8px; cursor:pointer; font-size:.78rem; color:var(--sa3-soft); text-align:center; }
+        .sa3-modal-radio.active { border-color:rgba(79,124,255,.55); background:rgba(79,124,255,.1); color:#8fb0ff; }
+        .sa3-modal-hidden { display:none; }
       `;
       document.head.append(s);
     }
@@ -671,7 +735,10 @@
           <div class="sa3-north-grid">${northHtml || '<div class="sa3-empty">Nenhuma meta cadastrada.</div>'}</div>
         </div>
         <div class="sa3-card">
-          <div class="sa3-head"><div><h3>Áreas</h3><p>Abrir uma área leva ao A3 digital dela: metas x realizado, acumulado e plano de&nbsp;ação.</p></div></div>
+          <div class="sa3-head">
+            <div><h3>Áreas</h3><p>Abrir uma área leva ao A3 digital dela: metas x realizado, acumulado e plano de&nbsp;ação.</p></div>
+            ${isSuperAdminOrAdmin() ? '<button type="button" class="sa3-btn" data-action="open-create-a3">+ Criar A3</button>' : ""}
+          </div>
           <div class="sa3-area-list">${areaRows || '<div class="sa3-empty">Nenhuma área cadastrada pra este ciclo.</div>'}</div>
         </div>
       `;
@@ -679,6 +746,7 @@
       root.querySelectorAll('[data-action="open-detail"]').forEach((btn) => {
         btn.addEventListener("click", () => loadA3Detail(btn.dataset.a3Id));
       });
+      root.querySelector('[data-action="open-create-a3"]')?.addEventListener("click", () => openCreateA3Modal());
     }
 
     // ---------------------------------------------------------------- render: Tela 2
@@ -706,7 +774,10 @@
         <div class="sa3-card">
           <div class="sa3-head">
             <div><h2 style="color:${escapeHtml(a3.color || "#4f7cff")}">${escapeHtml(a3.name)}</h2><p>${kpis.length} indicador${kpis.length === 1 ? "" : "es"}</p></div>
-            <button class="sa3-btn primary" data-action="open-entry">Preenchimento mensal</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${isSuperAdminOrAdmin() ? '<button type="button" class="sa3-btn" data-action="open-create-kpi">+ Criar indicador</button>' : ""}
+              <button class="sa3-btn primary" data-action="open-entry">Preenchimento mensal</button>
+            </div>
           </div>
           ${tabsHtml}
           <div style="margin-top:12px">
@@ -731,6 +802,7 @@
         state.screen = "overview"; renderShell();
       });
       root.querySelector('[data-action="open-entry"]')?.addEventListener("click", () => loadMonthlyEntry(state.a3Id));
+      root.querySelector('[data-action="open-create-kpi"]')?.addEventListener("click", () => openCreateKpiModal(state.a3Id));
       root.querySelectorAll('[data-action="switch-tab"]').forEach((btn) => {
         btn.addEventListener("click", () => loadA3Detail(btn.dataset.a3Id, false));
       });
@@ -1156,6 +1228,198 @@
         } catch (err) {
           appAlert?.(friendlyError(err), "error");
           deleteBtn.disabled = false;
+        }
+      });
+    }
+
+    // -------------------------------------------------------- Criar A3 / criar indicador
+    // Fluxo pedido pelo usuário (2026-08-29): botão "+ Criar A3" na Tela 1
+    // e "+ Criar indicador" na Tela 2, só super_admin/admin (mesma checagem
+    // de bindKpiCatalogActions — edição de CATÁLOGO, não do A3 em si).
+    // Modal solto, anexado direto em document.body (mesmo padrão de
+    // openAttachmentCarousel) — sobrevive a qualquer renderShell() disparado
+    // enquanto está aberto.
+    function closeSa3Modal() {
+      document.querySelector(".sa3-modal-overlay")?.remove();
+    }
+
+    function openSa3Modal(innerHtml) {
+      closeSa3Modal();
+      const overlay = document.createElement("div");
+      overlay.className = "sa3-modal-overlay";
+      overlay.innerHTML = `<div class="sa3-modal-card" role="dialog" aria-modal="true">${innerHtml}</div>`;
+      overlay.addEventListener("click", (event) => { if (event.target === overlay) closeSa3Modal(); });
+      overlay.addEventListener("keydown", (event) => { if (event.key === "Escape") closeSa3Modal(); });
+      document.body.appendChild(overlay);
+      overlay.tabIndex = -1;
+      overlay.focus();
+      return overlay;
+    }
+
+    // Tipo Pai/Filha (pedido do usuário: "na parte 1, tem que perguntar se
+    // ele é Pai (novo) ou filho, se filho, de qual A3 Pai"). Filha herda
+    // Gestão e cor do pai automaticamente (resolvido no banco, strategic_
+    // create_a3) — por isso não pergunta Gestão nem cor quando é filha.
+    function openCreateA3Modal() {
+      const areas = state.overview?.areas || [];
+      const managementOptions = MANAGEMENT_OPTIONS.map((m) => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join("");
+      const parentOptions = areas.map((a) => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)}</option>`).join("");
+
+      const overlay = openSa3Modal(`
+        <h3 class="sa3-modal-title">Criar A3</h3>
+        <p class="sa3-modal-subtitle">Cria uma nova área estratégica no catálogo. Indicadores são adicionados depois, de dentro da área.</p>
+        <div class="sa3-modal-field">
+          <label>Tipo</label>
+          <div class="sa3-modal-radio-group">
+            <button type="button" class="sa3-modal-radio active" data-a3-type="parent">A3-mãe<br>(nova área)</button>
+            <button type="button" class="sa3-modal-radio" data-a3-type="child">A3-filha<br>(dentro de uma área)</button>
+          </div>
+        </div>
+        <div class="sa3-modal-field" data-field-group="parent-management">
+          <label>Gestão responsável</label>
+          <select data-field="a3-management">
+            <option value="">— nenhuma —</option>
+            ${managementOptions}
+          </select>
+          <div class="sa3-modal-hint">Define quem (Gestor) edita esta A3. Deixe em branco pra métrica consolidada sem Gestor único (ex.: EBITDA).</div>
+        </div>
+        <div class="sa3-modal-field sa3-modal-hidden" data-field-group="child-parent">
+          <label>A3-mãe</label>
+          <select data-field="a3-parent-id">
+            ${areas.length ? parentOptions : '<option value="">Nenhuma A3-mãe cadastrada</option>'}
+          </select>
+          <div class="sa3-modal-hint">A A3-filha herda automaticamente a Gestão e a cor da A3-mãe.</div>
+        </div>
+        <div class="sa3-modal-field">
+          <label>Nome</label>
+          <input type="text" data-field="a3-name" placeholder="Ex.: Logística" maxlength="120">
+        </div>
+        <div class="sa3-modal-foot">
+          <button type="button" class="sa3-btn" data-action="close-modal">Cancelar</button>
+          <button type="button" class="sa3-btn primary" data-action="save-create-a3">Criar A3</button>
+        </div>
+      `);
+
+      let a3Type = "parent";
+      const typeButtons = overlay.querySelectorAll("[data-a3-type]");
+      const parentGroup = overlay.querySelector('[data-field-group="parent-management"]');
+      const childGroup = overlay.querySelector('[data-field-group="child-parent"]');
+      typeButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          a3Type = btn.dataset.a3Type;
+          typeButtons.forEach((b) => b.classList.toggle("active", b === btn));
+          parentGroup.classList.toggle("sa3-modal-hidden", a3Type !== "parent");
+          childGroup.classList.toggle("sa3-modal-hidden", a3Type !== "child");
+        });
+      });
+
+      overlay.querySelector('[data-action="close-modal"]').addEventListener("click", closeSa3Modal);
+      const saveBtn = overlay.querySelector('[data-action="save-create-a3"]');
+      saveBtn.addEventListener("click", async () => {
+        const name = overlay.querySelector('[data-field="a3-name"]').value.trim();
+        if (!name) { appAlert?.("Nome da A3 é obrigatório.", "warn"); return; }
+        if (a3Type === "child" && !areas.length) { appAlert?.("Crie uma A3-mãe antes de criar uma A3-filha.", "warn"); return; }
+        const parentId = a3Type === "child" ? (overlay.querySelector('[data-field="a3-parent-id"]').value || null) : null;
+        const management = a3Type === "parent" ? (overlay.querySelector('[data-field="a3-management"]').value || null) : null;
+        saveBtn.disabled = true;
+        try {
+          await callSupabaseRpc("strategic_create_a3", {
+            p_organization_id: state.organizationId,
+            p_year: currentPeriod().year,
+            p_name: name,
+            p_parent_id: parentId,
+            p_management: management
+          });
+          closeSa3Modal();
+          await loadOverview();
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          saveBtn.disabled = false;
+        }
+      });
+    }
+
+    // Indicador criado por aqui é sempre entry_mode='direct' — meta e
+    // realizado sempre digitados manualmente, sem exceção (pedido explícito
+    // do usuário) — só pergunta unidade/casas decimais/direção da
+    // meta/acumulado, o resto (formula_config etc.) fica com o default da
+    // RPC strategic_create_kpi.
+    function openCreateKpiModal(a3Id) {
+      const unitOptions = UNIT_OPTIONS.map((u) => `<option value="${escapeHtml(u.value)}">${escapeHtml(u.label)}</option>`).join("");
+      const comparisonOptions = COMPARISON_MODE_OPTIONS.map((c) => `<option value="${escapeHtml(c.value)}" ${c.value === "higher" ? "selected" : ""}>${escapeHtml(c.label)}</option>`).join("");
+      const accumulationOptions = ACCUMULATION_METHOD_OPTIONS.map((c) => `<option value="${escapeHtml(c.value)}" ${c.value === "sum" ? "selected" : ""}>${escapeHtml(c.label)}</option>`).join("");
+
+      const overlay = openSa3Modal(`
+        <h3 class="sa3-modal-title">Criar indicador</h3>
+        <p class="sa3-modal-subtitle">Meta e realizado deste indicador são sempre digitados manualmente, mês a mês.</p>
+        <div class="sa3-modal-field">
+          <label>Nome</label>
+          <input type="text" data-field="kpi-name" placeholder="Ex.: Custo por tonelada" maxlength="160">
+        </div>
+        <div class="sa3-modal-field">
+          <label>Subtítulo (opcional)</label>
+          <input type="text" data-field="kpi-description" placeholder="Ex.: Realizado vs. meta mensal" maxlength="200">
+        </div>
+        <div class="sa3-modal-field">
+          <label>Unidade de medida</label>
+          <select data-field="kpi-unit">${unitOptions}<option value="__other__">Outra…</option></select>
+        </div>
+        <div class="sa3-modal-field sa3-modal-hidden" data-field-group="unit-other">
+          <label>Qual?</label>
+          <input type="text" data-field="kpi-unit-other" placeholder="Ex.: kg" maxlength="20">
+        </div>
+        <div class="sa3-modal-field">
+          <label>Casas decimais</label>
+          <input type="number" data-field="kpi-decimal-places" value="0" min="0" max="4" step="1">
+        </div>
+        <div class="sa3-modal-field">
+          <label>Direção da meta</label>
+          <select data-field="kpi-comparison-mode">${comparisonOptions}</select>
+        </div>
+        <div class="sa3-modal-field">
+          <label>Acumulado no ano</label>
+          <select data-field="kpi-accumulation-method">${accumulationOptions}</select>
+        </div>
+        <div class="sa3-modal-foot">
+          <button type="button" class="sa3-btn" data-action="close-modal">Cancelar</button>
+          <button type="button" class="sa3-btn primary" data-action="save-create-kpi">Criar indicador</button>
+        </div>
+      `);
+
+      const unitSelect = overlay.querySelector('[data-field="kpi-unit"]');
+      const unitOtherGroup = overlay.querySelector('[data-field-group="unit-other"]');
+      unitSelect.addEventListener("change", () => {
+        unitOtherGroup.classList.toggle("sa3-modal-hidden", unitSelect.value !== "__other__");
+      });
+
+      overlay.querySelector('[data-action="close-modal"]').addEventListener("click", closeSa3Modal);
+      const saveBtn = overlay.querySelector('[data-action="save-create-kpi"]');
+      saveBtn.addEventListener("click", async () => {
+        const name = overlay.querySelector('[data-field="kpi-name"]').value.trim();
+        if (!name) { appAlert?.("Nome do indicador é obrigatório.", "warn"); return; }
+        const description = overlay.querySelector('[data-field="kpi-description"]').value.trim();
+        const unitRaw = unitSelect.value;
+        const unit = unitRaw === "__other__" ? overlay.querySelector('[data-field="kpi-unit-other"]').value.trim() : unitRaw;
+        const decimalPlaces = Number(overlay.querySelector('[data-field="kpi-decimal-places"]').value) || 0;
+        const comparisonMode = overlay.querySelector('[data-field="kpi-comparison-mode"]').value;
+        const accumulationMethod = overlay.querySelector('[data-field="kpi-accumulation-method"]').value;
+        saveBtn.disabled = true;
+        try {
+          await callSupabaseRpc("strategic_create_kpi", {
+            p_organization_id: state.organizationId,
+            p_a3_id: a3Id,
+            p_name: name,
+            p_description: description || null,
+            p_unit: unit || null,
+            p_decimal_places: decimalPlaces,
+            p_comparison_mode: comparisonMode,
+            p_accumulation_method: accumulationMethod
+          });
+          closeSa3Modal();
+          await loadA3Detail(state.a3Id, state.a3Id === state.a3RootId);
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          saveBtn.disabled = false;
         }
       });
     }
