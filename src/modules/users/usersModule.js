@@ -118,17 +118,20 @@
     let sortKey = "full_name";
     let sortDir = 1;
 
-    // A3-mãe do módulo Estratégico, pro picker de "Acessos adicionais" —
-    // carregada 1x (só existem 9 hoje, mudam raramente) e cacheada, mesmo
-    // padrão de ensureOrgUsers() do strategicModule.js. openEditPanel()
-    // aguarda essa promise antes de montar o corpo do painel.
+    // A3-mãe + A3-filha do módulo Estratégico, pro picker de "Acessos
+    // adicionais" — carregada 1x (poucas dezenas, mudam raramente) e
+    // cacheada, mesmo padrão de ensureOrgUsers() do strategicModule.js.
+    // openEditPanel() aguarda essa promise antes de montar o corpo do
+    // painel. Traz mãe E filha (não só parent_id is null) — dá pra
+    // conceder acesso a 1 filha isolada (ex.: só Exportação, não o
+    // Comercial inteiro), ver renderStrategicTree.
     let strategicAreasCache = null;
     async function ensureStrategicAreas() {
       if (strategicAreasCache) return strategicAreasCache;
       const orgId = await resolveOrganizationId();
       const rows = await fetchSupabaseRowsSafe(
         "strategic_a3",
-        `organization_id=eq.${orgId}&parent_id=is.null&is_active=eq.true&select=id,name,management&order=display_order`
+        `organization_id=eq.${orgId}&is_active=eq.true&select=id,name,management,parent_id&order=display_order`
       );
       strategicAreasCache = rows || [];
       return strategicAreasCache;
@@ -577,19 +580,44 @@
     // existe (super_admin/admin já têm tudo; analyst/comercial/rps_gestao
     // nem enxergam o módulo, canAccessStrategic() em app.js). roles = lista
     // COMPLETA (não só primário) — vem de getSelectedRoles(panel).
+    //
+    // Agrupado por A3-mãe (igual Centros de Custo agrupados por Gestão):
+    // marcar a mãe concede a área inteira (cascateia pras filhas
+    // automaticamente no banco, strategic_can_edit_a3/view_a3); marcar só
+    // 1 filha concede só ela, sem tocar nas irmãs nem no consolidado da
+    // mãe — pedido explícito do usuário (2026-08-29), pra gente que só
+    // deve enxergar 1 desdobramento (ex.: só Exportação, não o Comercial
+    // inteiro).
     function renderStrategicTree(user, roles, areas) {
       if (!roles.includes("manager") && !roles.includes("gestao_estrategica")) return null;
       const icon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
-      return makeTree("strategic", icon, "A3 Estratégicos", () =>
-        (areas || []).map((area) => {
-          const isDefault = isDefaultStrategicA3(user, area);
-          const isExtra = isExtraStrategicA3(user, area.id);
-          const label = area.management ? `${area.name} (${area.management})` : area.name;
-          const row = buildAccessRow(String(area.id), label, isDefault || isExtra, isDefault);
-          row.dataset.tree = "strategic";
-          return row;
-        })
-      );
+      return makeTree("strategic", icon, "A3 Estratégicos", () => {
+        const rows = [];
+        const roots = (areas || []).filter((a) => !a.parent_id);
+        roots.forEach((root) => {
+          const children = (areas || []).filter((c) => c.parent_id && String(c.parent_id) === String(root.id));
+          const rootIsDefault = isDefaultStrategicA3(user, root);
+          const rootIsExtra = isExtraStrategicA3(user, root.id);
+          const rootLabelBase = root.management ? `${root.name} (${root.management})` : root.name;
+          const rootLabel = children.length ? `${rootLabelBase} — toda a área` : rootLabelBase;
+          const rootRow = buildAccessRow(String(root.id), rootLabel, rootIsDefault || rootIsExtra, rootIsDefault);
+          rootRow.dataset.tree = "strategic";
+          rows.push(rootRow);
+
+          children.forEach((child) => {
+            // Filha herda o "default" da mãe (Gestor cuja Gestão bate já
+            // enxerga/edita todas as filhas automaticamente, sem precisar
+            // marcar cada uma) — marcar só ELA é a concessão granular extra.
+            const childIsDefault = rootIsDefault;
+            const childIsExtra = isExtraStrategicA3(user, child.id);
+            const childRow = buildAccessRow(String(child.id), child.name, childIsDefault || childIsExtra, childIsDefault);
+            childRow.dataset.tree = "strategic";
+            childRow.style.paddingLeft = "20px";
+            rows.push(childRow);
+          });
+        });
+        return rows;
+      });
     }
 
     // ── Salvar edição ─────────────────────────────────────────────────────────
