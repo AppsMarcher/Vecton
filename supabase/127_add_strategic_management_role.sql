@@ -1,0 +1,16 @@
+-- Novo perfil "Gestão Estratégica": acesso total ao módulo A3 - Gestão
+-- Estratégica (regra inicial da decisão #15/10.2 da especificação — matriz
+-- fina fica pra depois). Super Admin e Admin também têm acesso total;
+-- qualquer outro perfil não vê o módulo nem acessa as tabelas dele — não é
+-- só esconder no menu, é bloqueado no RLS (ver can_manage_strategic_a3 na
+-- migration 128).
+--
+-- Combinável com outros perfis via additional_access_roles (mesmo padrão de
+-- 'rps_gestao' e 'comercial' — ver migration 109), não precisa ser o
+-- access_role primário da pessoa.
+--
+-- ALTER TYPE ... ADD VALUE não pode ser usado na mesma transação em que o
+-- valor novo é referenciado, então roda sozinho, sem BEGIN/COMMIT (mesmo
+-- padrão das migrations 054 e 107, que criaram os perfis 'comercial' e
+-- 'rps_gestao').
+alter type public.access_profile_role add value if not exists 'gestao_estrategica';

@@ -1,0 +1,267 @@
+{
+  "_readme": "Catálogo canônico do módulo A3 - Gestão Estratégica, ciclo 2026. Gerado a partir da análise direta de '#INDICADORES# 2026.xlsx' cruzada com o código real do VectonPlan (DRE Gerencial, módulo Comercial, Headcount). NÃO é o seed em si — é o documento de revisão da Etapa 1 (ver supabase/132_seed_strategic_catalog_2026.sql para o que efetivamente entra no banco). KPIs com \"pending\": true não têm fórmula validada e entram no seed como is_active=false (aparecem no cadastro, não aparecem nos relatórios até alguém confirmar a fórmula).",
+  "cycle": { "year": 2026, "name": "Ciclo 2026" },
+
+  "northGoals": [
+    { "code": "net_revenue", "title": "Receita Líquida", "targetLabel": "R$ 200 milhões", "kind": "numeric" },
+    { "code": "livestock_revenue", "title": "Pecuária", "targetLabel": "R$ 40 milhões", "kind": "numeric" },
+    { "code": "export_revenue", "title": "Exportação", "targetLabel": "R$ 10 milhões", "kind": "numeric" },
+    { "code": "ebitda_target", "title": "EBITDA", "targetLabel": "Superior a 20%", "kind": "numeric" },
+    { "code": "career_growth", "title": "Trilha de Carreira", "targetLabel": "Oportunidade de crescimento de carreira para todos", "kind": "qualitative" },
+    { "code": "factory_scale", "title": "Capacidade Fabril", "targetLabel": "Fábrica adequada ao tamanho do mercado", "kind": "qualitative" }
+  ],
+
+  "a3": [
+    { "code": "ebitda",         "name": "EBITDA",          "parent": null,        "color": "#4f7cff" },
+    { "code": "comercial",      "name": "Comercial",       "parent": null,        "color": "#14b8a6" },
+    { "code": "supply_chain",   "name": "Supply Chain",    "parent": null,        "color": "#f59e0b" },
+    { "code": "fabril",         "name": "Fabril",          "parent": null,        "color": "#8b5cf6" },
+    { "code": "produto",        "name": "Produto",         "parent": null,        "color": "#f472b6", "note": "era 'A3 PEP' na planilha (decisão obrigatória #6)" },
+    { "code": "areas_tecnicas", "name": "Áreas Técnicas",  "parent": null,        "color": "#6366f1", "note": "era 'A3 Formação Área Técnica'" },
+    { "code": "engenharia",     "name": "Engenharia",      "parent": null,        "color": "#4f7cff" },
+    { "code": "marketing",      "name": "Marketing",       "parent": null,        "color": "#fb923c" },
+    { "code": "pessoas",        "name": "Pessoas",         "parent": null,        "color": "#a78bfa" },
+    { "code": "exportacao",     "name": "Exportação",      "parent": "comercial", "color": "#14b8a6" },
+    { "code": "pecuaria",       "name": "Pecuária",        "parent": "comercial", "color": "#14b8a6" },
+    { "code": "pecas",          "name": "Peças",           "parent": "comercial", "color": "#14b8a6" },
+    { "code": "estoques",       "name": "Estoques",        "parent": "supply_chain", "color": "#f59e0b" },
+    { "code": "compras",        "name": "Compras",         "parent": "supply_chain", "color": "#f59e0b" }
+  ],
+
+  "kpis": [
+    { "code": "ebitda_pct", "name": "EBITDA %", "primaryA3": "ebitda", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher",
+      "formulaConfig": { "source": "dre_gerencial", "report": "gerencial_real", "line": "ebitdaPct", "numeratorLine": "ebitda", "denominatorLine": "receitaLiquida" },
+      "note": "Já calculado hoje em app.js/buildDreGerRealReport; reaproveitado sem tabela nova." },
+
+    { "code": "mc1_pct", "name": "MC1 %", "primaryA3": "ebitda", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher",
+      "formulaConfig": { "source": "dre_gerencial", "report": "gerencial_real", "line": "lbPct", "numeratorLine": "lucroBruto", "denominatorLine": "receitaLiquida" },
+      "note": "MC1 = Lucro Bruto (linha 'lbPct' já existe). Confirmado pelo usuário: MC1% = 1 − CPV%." },
+
+    { "code": "commercial_revenue", "name": "Faturamento", "primaryA3": "comercial", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher",
+      "formulaConfig": { "source": "comercial_ledger", "table": "comercial_realizado_ledger_entries", "origem": "FAT", "field": "valor" } },
+
+    { "code": "commercial_volume", "name": "Volume", "primaryA3": "comercial", "linkedA3s": [], "unit": "un", "decimalPlaces": 0,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher",
+      "formulaConfig": { "source": "comercial_ledger", "table": "comercial_realizado_ledger_entries", "origem": "FAT", "field": "quantidade" } },
+
+    { "code": "forecast_accuracy_general", "name": "Acurácia de Forecast Geral", "primaryA3": "comercial", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "forecast_accuracy", "accumulationMethod": "average", "comparisonMode": "higher",
+      "pending": true, "note": "Fórmula de agregação não confirmada — ver §5 da especificação. Inativo no seed até validar." },
+    { "code": "forecast_accuracy_grains", "name": "Acurácia de Forecast Grãos", "primaryA3": "comercial", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "forecast_accuracy", "accumulationMethod": "average", "comparisonMode": "higher",
+      "pending": true },
+    { "code": "forecast_accuracy_livestock", "name": "Acurácia de Forecast Pecuária", "primaryA3": "comercial", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "forecast_accuracy", "accumulationMethod": "average", "comparisonMode": "higher",
+      "pending": true },
+    { "code": "mix_assertiveness", "name": "Assertividade do Mix", "primaryA3": "comercial", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "mix_accuracy", "accumulationMethod": "average", "comparisonMode": "higher",
+      "pending": true, "drivers": [{ "code": "machine_model", "role": "dimension" }] },
+
+    { "code": "cogs_pct", "name": "CPV %", "primaryA3": "supply_chain", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "ratio_of_sums", "comparisonMode": "lower",
+      "formulaConfig": { "source": "dre_gerencial", "numeratorLines": ["materiais", "custosPessoal", "demaisGGF", "custoAbsorcao"], "denominatorLine": "receitaLiquida" } },
+
+    { "code": "inventory_turnover", "name": "Giro de Estoque", "primaryA3": "supply_chain", "linkedA3s": [], "unit": "x", "decimalPlaces": 2,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher",
+      "drivers": [
+        { "code": "cogs_ggf", "name": "CPV + GGF", "role": "numerator" },
+        { "code": "avg_inventory", "name": "Estoque médio do mês", "role": "denominator" }
+      ] },
+
+    { "code": "stockout_hours", "name": "Paradas por Falta de Material", "primaryA3": "supply_chain", "linkedA3s": ["estoques"], "unit": "h", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "lower",
+      "note": "Duplicado real na planilha (Supply Chain e Filho Estoques idênticos) — virou 1 KPI só, linkado nos dois A3." },
+
+    { "code": "payment_term_days", "name": "Prazo de Pagamento", "primaryA3": "supply_chain", "linkedA3s": [], "unit": "dias", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher",
+      "pending": true, "note": "Direção (mais dias = melhor?) não confirmada com Compras/Supply Chain — default 'higher', revisar." },
+
+    { "code": "oee_pct", "name": "OEE", "primaryA3": "fabril", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher" },
+
+    { "code": "ggf_general_pct", "name": "GGF Geral %", "primaryA3": "fabril", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "ratio_of_sums", "comparisonMode": "lower",
+      "formulaConfig": { "source": "dre_gerencial", "numeratorLines": ["custosPessoal", "demaisGGF"], "denominatorLine": "receitaLiquida" },
+      "note": "Correção do usuário (28/08): NÃO inclui custoAbsorcao — diferente da linha ggfPct pronta da DRE." },
+
+    { "code": "ggf_production_pct", "name": "GGF Produção %", "primaryA3": "fabril", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "ratio_of_sums", "comparisonMode": "lower",
+      "formulaConfig": { "source": "dre_gerencial", "numeratorLines": ["custosPessoal", "demaisGGF"], "denominatorLine": "receitaLiquida", "ccManagementFilter": "Industrial" },
+      "note": "Mesma fórmula do GGF Geral, restrita a CCs com cost_center_management='Industrial'." },
+
+    { "code": "five_s_score", "name": "5S", "primaryA3": "fabril", "linkedA3s": [], "unit": "pts", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher" },
+
+    { "code": "warranty_index_general", "name": "Índice de Garantia Geral", "primaryA3": "areas_tecnicas", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "ratio_of_sums", "comparisonMode": "lower",
+      "drivers": [
+        { "code": "warranty_claims", "name": "Total de garantias do mês", "role": "numerator" },
+        { "code": "machines_sold", "name": "Total de máquinas vendidas / com TG", "role": "denominator" }
+      ] },
+    { "code": "warranty_index_new_products", "name": "Índice de Garantia Produtos Novos", "primaryA3": "areas_tecnicas", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "ratio_of_sums", "comparisonMode": "lower",
+      "drivers": [
+        { "code": "warranty_claims_new", "name": "Total de garantias mês", "role": "numerator" },
+        { "code": "new_machines_sold", "name": "Total máquinas novas vendidas", "role": "denominator" }
+      ] },
+    { "code": "downtime_technical_areas", "name": "Tempo de Parada por Área Técnica", "primaryA3": "areas_tecnicas", "linkedA3s": [], "unit": "h", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "lower" },
+    { "code": "customer_satisfaction_new_product_technical", "name": "Satisfação do Cliente no Produto Novo (Áreas Técnicas)", "primaryA3": "areas_tecnicas", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher",
+      "note": "Mantido SEPARADO do KPI homônimo de Produto — mesmo nome na planilha em 2 abas, mas mesclar é irreversível se forem pesquisas diferentes; ficam 2 KPIs até confirmar." },
+    { "code": "pilot_batch_downtime", "name": "Tempo de Parada por Máquina no Lote Piloto", "primaryA3": "areas_tecnicas", "linkedA3s": [], "unit": "h", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "weighted_average", "accumulationMethod": "weighted_average", "comparisonMode": "lower",
+      "drivers": [{ "code": "product_model", "role": "dimension" }] },
+
+    { "code": "customer_satisfaction_new_product", "name": "Satisfação do Cliente no Produto Novo (Produto)", "primaryA3": "produto", "linkedA3s": [], "unit": "nps", "decimalPlaces": 0,
+      "entryMode": "breakdown", "monthlyCalculation": "weighted_average", "accumulationMethod": "average", "comparisonMode": "higher",
+      "drivers": [{ "code": "product_model", "role": "dimension" }] },
+    { "code": "critical_machines_revenue_pct", "name": "% Máquinas Críticas sobre Faturamento", "primaryA3": "produto", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "ratio", "accumulationMethod": "ratio_of_sums", "comparisonMode": "lower",
+      "drivers": [{ "code": "product_model", "role": "dimension" }] },
+    { "code": "new_products_revenue_pct", "name": "% Produtos Novos sobre Faturamento", "primaryA3": "produto", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "ratio", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher",
+      "drivers": [{ "code": "product_model", "role": "dimension" }] },
+
+    { "code": "direct_channel_pct", "name": "% de Revendas com Canal Direto", "primaryA3": "marketing", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "ratio", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher",
+      "drivers": [{ "code": "region", "role": "dimension" }] },
+    { "code": "market_intelligence_structuring_pct", "name": "% Estruturação Inteligência de Mercado", "primaryA3": "marketing", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "weighted_average", "accumulationMethod": "last_closed", "comparisonMode": "higher",
+      "drivers": [{ "code": "stage", "name": "Etapa do roadmap", "role": "dimension" }],
+      "note": "Roadmap de etapas com peso% vira breakdown_rows (dimension=etapa, weight=peso%, actual=0/1 concluída) — mesmo mecanismo genérico, sem precisar de um tipo 'tracker' à parte." },
+    { "code": "customer_knowledge_pct", "name": "% Conhecimento do Cliente Final", "primaryA3": "marketing", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher",
+      "drivers": [
+        { "code": "nf_dealer_to_customer", "name": "NF emitidas revenda→cliente final", "role": "numerator" },
+        { "code": "machines_from_marcher", "name": "Máquinas que saem da Marcher", "role": "denominator" }
+      ] },
+    { "code": "sales_funnel_standardization_pct", "name": "Processo Padronizado para Funil de Vendas", "primaryA3": "marketing", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "weighted_average", "accumulationMethod": "last_closed", "comparisonMode": "higher",
+      "drivers": [{ "code": "stage_region", "name": "Etapa × Região", "role": "dimension" }] },
+
+    { "code": "project_deadline_adherence_pct", "name": "Aderência aos Prazos dos Projetos", "primaryA3": "engenharia", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "breakdown", "monthlyCalculation": "weighted_average", "accumulationMethod": "average", "comparisonMode": "higher",
+      "drivers": [{ "code": "project_milestone", "name": "Marco de projeto (5 projetos × 4 marcos)", "role": "dimension" }],
+      "note": "Modelagem minha: cada marco vira 1 breakdown_row (planned=prazo, actual=1/0 dentro do prazo); % = média. Cada marco fora do prazo também deve gerar uma strategic_action — não modelar como tracker próprio." },
+    { "code": "project_error_downtime", "name": "Paradas de Produção por Erro de Projeto", "primaryA3": "engenharia", "linkedA3s": [], "unit": "h", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "lower" },
+    { "code": "project_error_warranty", "name": "Garantia por Erro de Projeto", "primaryA3": "engenharia", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "lower" },
+    { "code": "item_variety_reduction_pct", "name": "Redução de Variedade de Itens (Comunização)", "primaryA3": "engenharia", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "last_closed", "comparisonMode": "higher" },
+    { "code": "sku_value_reduction", "name": "Redução de SKU em Valores", "primaryA3": "engenharia", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher" },
+    { "code": "project_agreed_value", "name": "Atingir Valor Acordado para o Projeto", "primaryA3": "engenharia", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "last_closed", "comparisonMode": "exact_with_tolerance" },
+
+    { "code": "labor_cost", "name": "Custo MO", "primaryA3": "pessoas", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "lower",
+      "formulaConfig": { "source": "headcount_real", "mode": "custo", "scope": "total", "fn": "buildHcRealReport" },
+      "note": "Correção do usuário: pega do relatório Headcount Real (aba Custo/colab), linha 'Marcher (total)' — não é a DRE. Fórmula do dentro/fora da meta herdada da planilha original estava com o sinal invertido (comparava como receita); comparisonMode aqui já sai correto: 'lower'." },
+    { "code": "turnover_pct", "name": "Turnover", "primaryA3": "pessoas", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "average", "comparisonMode": "lower",
+      "drivers": [
+        { "code": "admissions", "name": "Admissões", "role": "numerator" },
+        { "code": "terminations", "name": "Demissões", "role": "numerator" },
+        { "code": "headcount_total", "name": "Total colaboradores no período", "role": "denominator" }
+      ] },
+    { "code": "absenteeism_pct", "name": "Absenteísmo", "primaryA3": "pessoas", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "average", "comparisonMode": "lower",
+      "drivers": [
+        { "code": "absence_hours", "name": "Horas de ausência", "role": "numerator" },
+        { "code": "expected_hours", "name": "Horas totais previstas", "role": "denominator" }
+      ] },
+    { "code": "career_track_pct", "name": "Trilha de Carreira", "primaryA3": "pessoas", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "average", "comparisonMode": "higher",
+      "drivers": [
+        { "code": "roles_with_track", "name": "Nº de cargos com trilha", "role": "numerator" },
+        { "code": "roles_expected", "name": "Cargos previstos", "role": "denominator" }
+      ] },
+    { "code": "onboarding_pct", "name": "Onboarding", "primaryA3": "pessoas", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "average", "comparisonMode": "higher",
+      "drivers": [
+        { "code": "onboarded", "name": "Funcionários novos que completaram onboarding", "role": "numerator" },
+        { "code": "new_hires", "name": "Total de funcionários novos", "role": "denominator" }
+      ] },
+    { "code": "feedback_pct", "name": "Feedback", "primaryA3": "pessoas", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "average", "comparisonMode": "higher",
+      "drivers": [
+        { "code": "feedback_given", "name": "Funcionários que receberam feedback", "role": "numerator" },
+        { "code": "feedback_planned", "name": "Feedbacks planejados para o mês", "role": "denominator" }
+      ] },
+    { "code": "training_hours_management", "name": "Horas de Treinamento para Gestão", "primaryA3": "pessoas", "linkedA3s": [], "unit": "h", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher" },
+    { "code": "training_hours_general", "name": "Horas de Treinamento Geral", "primaryA3": "pessoas", "linkedA3s": [], "unit": "h", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher" },
+    { "code": "accidents_count", "name": "Acidentes", "primaryA3": "pessoas", "linkedA3s": [], "unit": "un", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "lower" },
+    { "code": "employee_satisfaction", "name": "Satisfação dos Colaboradores", "primaryA3": "pessoas", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "last_closed", "comparisonMode": "higher",
+      "note": "Periodicidade anual (pesquisa 1x/ano) — convenção: só o mês de dezembro recebe lançamento, os outros 11 ficam NULL por design. Sem mudança de schema." },
+
+    { "code": "export_revenue", "name": "Faturamento Exportação", "primaryA3": "exportacao", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher",
+      "formulaConfig": { "source": "comercial_painel_vendas", "coordenacao": "Exportação", "field": "fat_val" } },
+    { "code": "export_volume", "name": "Volume Exportação", "primaryA3": "exportacao", "linkedA3s": [], "unit": "un", "decimalPlaces": 0,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher",
+      "formulaConfig": { "source": "comercial_painel_vendas", "coordenacao": "Exportação", "field": "fat_qtd" } },
+    { "code": "new_dealers_count", "name": "Novas Revendas", "primaryA3": "exportacao", "linkedA3s": [], "unit": "un", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher" },
+    { "code": "export_share_pct", "name": "% Exportação sobre Faturamento Total", "primaryA3": "exportacao", "linkedA3s": ["comercial"], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher",
+      "note": "Planilha original digitava os 2 lados (Fat. Exportação e Fat. Total) manualmente, sem link de fórmula — mantido igual por ora; podia virar computed depois usando commercial_revenue como denominador." },
+
+    { "code": "livestock_revenue", "name": "Faturamento Pecuária Nacional", "primaryA3": "pecuaria", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher",
+      "formulaConfig": { "source": "comercial_painel_vendas", "coordenacao": "Pecuária", "field": "fat_val" } },
+    { "code": "livestock_volume", "name": "Volume 900/910", "primaryA3": "pecuaria", "linkedA3s": [], "unit": "un", "decimalPlaces": 0,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher",
+      "formulaConfig": { "source": "comercial_painel_vendas", "coordenacao": "Pecuária", "field": "fat_qtd" } },
+    { "code": "livestock_warranty_index", "name": "Índice de Garantia Pecuária", "primaryA3": "pecuaria", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "drivers", "monthlyCalculation": "ratio", "accumulationMethod": "ratio_of_sums", "comparisonMode": "lower",
+      "drivers": [
+        { "code": "warranty_claims_livestock", "name": "Garantias do mês em Pecuária", "role": "numerator" },
+        { "code": "livestock_machines_sold", "name": "Máquinas vendidas em Pecuária / com TG", "role": "denominator" }
+      ] },
+
+    { "code": "parts_revenue", "name": "Faturamento Peças Nacional", "primaryA3": "pecas", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher",
+      "formulaConfig": { "source": "comercial_painel_vendas", "coordenacao": "Peças", "field": "fat_val" } },
+    { "code": "parts_share_pct", "name": "% Peças sobre Faturamento Total", "primaryA3": "pecas", "linkedA3s": ["comercial"], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher" },
+
+    { "code": "safety_stock_compliance_pct", "name": "Cumprimento de Estoque de Segurança", "primaryA3": "estoques", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher" },
+    { "code": "cyclic_inventory_accuracy_value_pct", "name": "Acurácia Inventário Cíclico (Valor)", "primaryA3": "estoques", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher" },
+    { "code": "cyclic_inventory_accuracy_items_pct", "name": "Acurácia Inventário Cíclico (Itens)", "primaryA3": "estoques", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher" },
+    { "code": "obsolete_stock", "name": "Obsoletos", "primaryA3": "estoques", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "last_closed", "comparisonMode": "lower" },
+    { "code": "general_inventory_accuracy_pct", "name": "Acurácia Inventário Geral", "primaryA3": "estoques", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "last_closed", "comparisonMode": "higher",
+      "note": "Periodicidade anual na planilha original — mesma convenção do 'employee_satisfaction' (só dezembro)." },
+
+    { "code": "supplier_a_payment_term", "name": "Prazo Médio de Pagamento — Fornecedores A", "primaryA3": "compras", "linkedA3s": [], "unit": "dias", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher",
+      "pending": true, "note": "Mesma ressalva de direção do payment_term_days do Supply Chain — confirmar." },
+    { "code": "supplier_a_iqf", "name": "IQF Fornecedores A", "primaryA3": "compras", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher" },
+    { "code": "general_iqf", "name": "IQF Geral", "primaryA3": "compras", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher" },
+    { "code": "raw_material_saving", "name": "Saving Matéria-Prima", "primaryA3": "compras", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher" },
+    { "code": "curve_a_contract_pct", "name": "% de Fornecedores com Contrato Curva A", "primaryA3": "compras", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "higher" },
+    { "code": "emergency_purchases_pct", "name": "% do Valor de Compras Emergenciais", "primaryA3": "compras", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "lower" },
+    { "code": "overprice_index_pct", "name": "% do Índice de Sobrepreço", "primaryA3": "compras", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "lower" },
+    { "code": "overprice_of_total_purchases_pct", "name": "% do Índice de Sobrepreço sobre Total de Compras", "primaryA3": "compras", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "direct", "monthlyCalculation": "direct", "accumulationMethod": "average", "comparisonMode": "lower" }
+  ]
+}
