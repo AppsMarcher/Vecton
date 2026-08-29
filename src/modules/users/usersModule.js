@@ -137,6 +137,76 @@
       return strategicAreasCache;
     }
 
+    // ── Tela "Perfis de Acesso" (accessProfiles-view) ─────────────────────────
+    // Cards estáticos no index.html (sem lógica própria antes) — aqui só
+    // pluga contagem real + "Ver usuários" filtrado, reaproveitando o mesmo
+    // allUsers/ROLE_LABELS já usados na tela de Usuários.
+    let roleFilter = null; // { role, label } | null — aplicado em renderUsersTable
+
+    function visibleUsers(users) {
+      if (!roleFilter) return users;
+      return users.filter((u) =>
+        [u.access_role, ...(u.additional_access_roles || [])].filter(Boolean).includes(roleFilter.role)
+      );
+    }
+
+    function updateUsersFilterBanner() {
+      const titleWrap = document.querySelector(".users-header > div:first-child");
+      if (!titleWrap) return;
+      let banner = titleWrap.querySelector("#users-role-filter-banner");
+      if (!roleFilter) { banner?.remove(); return; }
+      if (!banner) {
+        banner = document.createElement("div");
+        banner.id = "users-role-filter-banner";
+        banner.className = "users-role-filter-banner";
+        titleWrap.appendChild(banner);
+      }
+      banner.innerHTML = `Filtrando por perfil: <strong>${escapeHtml(roleFilter.label)}</strong> <button type="button" id="users-role-filter-clear">✕</button>`;
+      banner.querySelector("#users-role-filter-clear")?.addEventListener("click", () => {
+        roleFilter = null;
+        updateUsersFilterBanner();
+        renderUsersTable(document.querySelector("#users-table-body"), allUsers);
+      });
+    }
+
+    function updateAccessProfileCounts() {
+      const counts = {};
+      allUsers.forEach((u) => {
+        [u.access_role, ...(u.additional_access_roles || [])].filter(Boolean).forEach((r) => {
+          counts[r] = (counts[r] || 0) + 1;
+        });
+      });
+      Object.keys(ROLE_LABELS).forEach((role) => {
+        const el = document.querySelector(`#ap-count-${role}`);
+        if (!el) return;
+        const n = counts[role] || 0;
+        el.textContent = `${n} usuário${n === 1 ? "" : "s"}`;
+      });
+    }
+
+    function bindAccessProfilesButtons() {
+      document.querySelectorAll(".ap-users-btn[data-profile]").forEach((btn) => {
+        if (btn.dataset.bound) return;
+        btn.dataset.bound = "1";
+        btn.addEventListener("click", () => {
+          const role = btn.dataset.profile;
+          roleFilter = { role, label: ROLE_LABELS[role] || role };
+          // Mesmo botão de menu real (.submenu-button[data-view="users"]) já
+          // tem o listener completo (setActiveView + renderNavigation +
+          // loadAndRenderUsers) ligado em shellEventsModule — reaproveita em
+          // vez de duplicar a navegação aqui.
+          document.querySelector('.submenu-button[data-view="users"]')?.click();
+          updateUsersFilterBanner();
+        });
+      });
+    }
+
+    async function renderAccessProfilesView() {
+      await loadAndRenderUsers();
+      updateAccessProfileCounts();
+      bindAccessProfilesButtons();
+    }
+
     // ── Ordenação da tabela (mesmo padrão de Actuals/Budget: thead com
     // data-sort, seta ↑↓, clique alterna direção) ─────────────────────────────
     function renderUsersThead() {
@@ -733,7 +803,13 @@
         const theadRow = tbody.closest("table")?.querySelector("thead tr");
         if (theadRow) theadRow.innerHTML = renderUsersThead();
 
-        tbody.innerHTML = sortedUsers(users).map((user) => {
+        const filtered = sortedUsers(visibleUsers(users));
+        if (roleFilter && filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" class="users-empty">Nenhum usuário com o perfil "${escapeHtml(roleFilter.label)}".</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map((user) => {
           const role     = user.access_role || "analyst";
           const allRoles = [role, ...(user.additional_access_roles || [])].filter(Boolean);
           const badges   = allRoles.map((r) => {
@@ -1036,7 +1112,7 @@
       }
     }
 
-    return { loadAndRenderUsers, bindUsersInviteButton: bindInviteButton, bindUsersSort };
+    return { loadAndRenderUsers, bindUsersInviteButton: bindInviteButton, bindUsersSort, renderAccessProfilesView };
   }
 
   window.VECTON_USERS_MODULE = { createUsersModule };

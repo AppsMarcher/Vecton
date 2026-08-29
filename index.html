@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260829a">
+  <link rel="stylesheet" href="styles.css?v=20260829b">
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -1263,29 +1263,6 @@
               </div>
             </div>
 
-            <!-- A3 Estratégicos -->
-            <div class="ap-card ap-card--strategic">
-              <div class="ap-card-top">
-                <div class="ap-badge ap-badge--strategic">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
-                  A3 Estratégicos
-                </div>
-                <span class="ap-user-count" id="ap-count-gestao_estrategica">— usuários</span>
-              </div>
-              <p class="ap-description">Perfil configurável pessoa a pessoa: quais A3 acessa (Norte Verdadeiro, KPIs, causas/contramedidas, plano de ação) e em que modo — só leitura ou leitura e gravação. Sem nenhum A3 concedido, o módulo aparece vazio pra essa pessoa.</p>
-              <ul class="ap-perms">
-                <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
-                <li class="ap-perm ap-perm--partial">A3 Estratégicos — só os A3 concedidos, configurável por pessoa</li>
-                <li class="ap-perm ap-perm--partial">Modo leitura ou leitura e gravação, configurável por pessoa</li>
-                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, OPEX, Headcount, Comercial)</li>
-                <li class="ap-perm ap-perm--no">RPS Gestão</li>
-                <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
-              </ul>
-              <div class="ap-card-footer">
-                <button class="ap-users-btn" type="button" data-profile="gestao_estrategica">Ver usuários →</button>
-              </div>
-            </div>
-
             <!-- Analista -->
             <div class="ap-card ap-card--analyst">
               <div class="ap-card-top">
@@ -1309,6 +1286,30 @@
               </ul>
               <div class="ap-card-footer">
                 <button class="ap-users-btn" type="button" data-profile="analyst">Ver usuários →</button>
+              </div>
+            </div>
+
+            <!-- RPS Gestão -->
+            <div class="ap-card ap-card--rps-gestao">
+              <div class="ap-card-top">
+                <div class="ap-badge ap-badge--rps-gestao">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg>
+                  RPS Gestão
+                </div>
+                <span class="ap-user-count" id="ap-count-rps_gestao">— usuários</span>
+              </div>
+              <p class="ap-description">Login direto na tela RPS Gestão. Preenche semanas e metas de todas as áreas. Não renomeia indicador, não troca unidade nem o modo de cálculo do Mês. Sem Dashboard, Planejamento, Relatórios, Parâmetros ou cargas.</p>
+              <ul class="ap-perms">
+                <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
+                <li class="ap-perm ap-perm--yes">RPS Gestão — preencher semanas e metas de todas as áreas</li>
+                <li class="ap-perm ap-perm--no">Renomear indicador, unidade ou modo de cálculo do Mês</li>
+                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, OPEX, Headcount, Comercial)</li>
+                <li class="ap-perm ap-perm--no">Planejamento</li>
+                <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
+                <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
+              </ul>
+              <div class="ap-card-footer">
+                <button class="ap-users-btn" type="button" data-profile="rps_gestao">Ver usuários →</button>
               </div>
             </div>
 
@@ -1336,27 +1337,26 @@
               </div>
             </div>
 
-            <!-- RPS Gestão -->
-            <div class="ap-card ap-card--rps-gestao">
+            <!-- A3 Estratégicos -->
+            <div class="ap-card ap-card--strategic">
               <div class="ap-card-top">
-                <div class="ap-badge ap-badge--rps-gestao">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg>
-                  RPS Gestão
+                <div class="ap-badge ap-badge--strategic">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+                  A3 Estratégicos
                 </div>
-                <span class="ap-user-count" id="ap-count-rps_gestao">— usuários</span>
+                <span class="ap-user-count" id="ap-count-gestao_estrategica">— usuários</span>
               </div>
-              <p class="ap-description">Login direto na tela RPS Gestão. Preenche semanas e metas de todas as áreas. Não renomeia indicador, não troca unidade nem o modo de cálculo do Mês. Sem Dashboard, Planejamento, Relatórios, Parâmetros ou cargas.</p>
+              <p class="ap-description">Perfil configurável pessoa a pessoa: quais A3 acessa (Norte Verdadeiro, KPIs, causas/contramedidas, plano de ação) e em que modo — só leitura ou leitura e gravação. Sem nenhum A3 concedido, o módulo aparece vazio pra essa pessoa.</p>
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
-                <li class="ap-perm ap-perm--yes">RPS Gestão — preencher semanas e metas de todas as áreas</li>
-                <li class="ap-perm ap-perm--no">Renomear indicador, unidade ou modo de cálculo do Mês</li>
+                <li class="ap-perm ap-perm--partial">A3 Estratégicos — só os A3 concedidos, configurável por pessoa</li>
+                <li class="ap-perm ap-perm--partial">Modo leitura ou leitura e gravação, configurável por pessoa</li>
                 <li class="ap-perm ap-perm--no">Demais relatórios (DRE, OPEX, Headcount, Comercial)</li>
-                <li class="ap-perm ap-perm--no">Planejamento</li>
-                <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
+                <li class="ap-perm ap-perm--no">RPS Gestão</li>
                 <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
               </ul>
               <div class="ap-card-footer">
-                <button class="ap-users-btn" type="button" data-profile="rps_gestao">Ver usuários →</button>
+                <button class="ap-users-btn" type="button" data-profile="gestao_estrategica">Ver usuários →</button>
               </div>
             </div>
 
@@ -1486,13 +1486,13 @@
   <script src="src/modules/strategic/strategicModule.js?v=20260829i"></script>
   <script src="src/modules/reports/reportsHeadcountModule.js?v=20260719r"></script>
   <script src="src/modules/headcount/headcountRenderModule.js?v=20260719r"></script>
-  <script src="src/modules/ui/shellEventsModule.js?v=20260828a"></script>
+  <script src="src/modules/ui/shellEventsModule.js?v=20260829a"></script>
   <script src="src/modules/ui/editorEventsModule.js?v=20260731a"></script>
   <script src="src/modules/ui/dialogs.js?v=20260828b"></script>
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsBuilderModule.js?v=20260828b"></script>
   <script src="src/modules/reports/reportsSectionsModule.js?v=20260828b"></script>
-  <script src="src/modules/users/usersModule.js?v=20260829d"></script>
+  <script src="src/modules/users/usersModule.js?v=20260829e"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
   <script src="src/modules/messages/messagesModule.js?v=20260805d"></script>
   <script src="src/modules/notifications/notificationsModule.js?v=20260828b"></script>
@@ -1509,6 +1509,6 @@
   <script src="src/modules/dashboard/dashboardModule.js?v=20260720e"></script>
   <script src="src/modules/dashboard/dashboardVisuals.js?v=20260720e"></script>
   <script src="src/modules/dashboard/marketTicker.js?v=20260826c"></script>
-  <script src="app.js?v=20260829b"></script>
+  <script src="app.js?v=20260829c"></script>
 </body>
 </html>

@@ -41,6 +41,7 @@
       setSelectedBudgetLoadType,
       setSelectedActualsLoadType,
       loadAndRenderUsers,
+      renderAccessProfilesView,
       loadAndRenderManagements,
       bindManagementsAddButton,
       loadAndRenderNotificationSettings,
@@ -148,6 +149,10 @@
           renderNavigation();
           if (getActiveView() === "users") {
             loadAndRenderUsers();
+            return;
+          }
+          if (getActiveView() === "accessProfiles") {
+            renderAccessProfilesView();
             return;
           }
           if (getActiveView() === "managements") {

@@ -644,7 +644,7 @@ const headerModule = createHeaderModule({
   setHeadcountReturnView: (value) => { headcountReturnView = value; },
   setSelectedHeadcountBatchId: (value) => { selectedHeadcountBatchId = value; }
 });
-const { loadAndRenderUsers, bindUsersInviteButton, bindUsersSort } = createUsersModule({
+const { loadAndRenderUsers, bindUsersInviteButton, bindUsersSort, renderAccessProfilesView } = createUsersModule({
   escapeHtml,
   state,
   resolveOrganizationId,
@@ -1177,6 +1177,7 @@ const shellEventsModule = createShellEventsModule({
   setSelectedBudgetLoadType,
   setSelectedActualsLoadType,
   loadAndRenderUsers,
+  renderAccessProfilesView,
   loadAndRenderManagements,
   bindManagementsAddButton,
   loadAndRenderNotificationSettings,
