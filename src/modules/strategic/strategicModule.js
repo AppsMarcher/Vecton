@@ -199,13 +199,22 @@
         .sa3-icon-btn { background:none; border:none; color:var(--sa3-faint); cursor:pointer; padding:2px; }
         .sa3-icon-btn:hover { color:var(--sa3-text); }
         .sa3-attachments { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px; }
-        .sa3-attachment-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 6px 4px 8px; border-radius:999px; background:rgba(255,255,255,.04); border:1px solid var(--sa3-line-soft); font-size:.68rem; color:var(--sa3-soft); cursor:pointer; max-width:220px; }
+        .sa3-attachment-chip, .sa3-attachments .sa3-attachment-add {
+          display:inline-flex; align-items:center; height:24px; box-sizing:border-box;
+          font-size:.68rem; line-height:1; border-radius:999px; cursor:pointer;
+          text-transform:none; font-weight:600; margin-bottom:0;
+        }
+        .sa3-attachment-chip { gap:5px; padding:0 6px 0 8px; background:rgba(255,255,255,.04); border:1px solid var(--sa3-line-soft); color:var(--sa3-soft); max-width:220px; }
         .sa3-attachment-chip:hover { border-color:rgba(79,124,255,.4); }
         .sa3-attachment-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .sa3-attachment-remove { background:none; border:none; color:var(--sa3-faint); cursor:pointer; font-size:.9rem; line-height:1; padding:0 0 0 2px; }
         .sa3-attachment-remove:hover { color:var(--sa3-neg); }
-        .sa3-attachment-add { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:999px; border:1px dashed var(--sa3-line); color:var(--sa3-faint); font-size:.68rem; font-weight:600; cursor:pointer; }
-        .sa3-attachment-add:hover { border-color:rgba(79,124,255,.4); color:#8fb0ff; }
+        /* .sa3-attachments .sa3-attachment-add (2 classes) — precisa vencer
+           .sa3-form label (1 classe + elemento) quando a faixa de anexos é
+           renderizada dentro do form, senão "+Anexar" vira um <label>
+           genérico (uppercase, display:block), desalinhado dos chips do lado. */
+        .sa3-attachments .sa3-attachment-add { gap:4px; padding:0 10px; border:1px dashed var(--sa3-line); color:var(--sa3-faint); }
+        .sa3-attachments .sa3-attachment-add:hover { border-color:rgba(79,124,255,.4); color:#8fb0ff; }
         /* Picker de Responsáveis — fechado por padrão (só um botão-flag com
            a contagem); clicar abre a lista em popover ancorado embaixo do
            botão, largura travada na soma de Prioridade+Progresso (150+150+
@@ -1112,26 +1121,28 @@
       if (!response.ok) throw new Error(await response.text());
     }
 
-    // readOnly = true trava add E remove (ação encerrada — status done/
-    // cancelled, ver ACTION_CLOSED_STATUSES): só lista os anexos já
-    // existentes, sem nenhum controle de edição.
-    function renderAttachmentsStrip(ownerType, ownerId, title, readOnly) {
+    // canAdd/canRemove são independentes — achado do usuário (2026-08-29):
+    // "Anexar" só pode existir DENTRO do form aberto (canAdd:false no card,
+    // sempre, mesmo com a ação aberta/ativa); remover continua liberado no
+    // card também. Ação "encerrada" (done/cancelled, ACTION_CLOSED_STATUSES)
+    // trava os dois em qualquer lugar (card ou form).
+    function renderAttachmentsStrip(ownerType, ownerId, title, { canAdd = true, canRemove = true } = {}) {
       const list = (state.attachments?.[ownerType]?.[ownerId]) || [];
       const chips = list.map((att, index) => `
         <span class="sa3-attachment-chip" data-attachment-open data-owner-type="${ownerType}" data-owner-id="${escapeHtml(ownerId)}" data-index="${index}" data-title="${escapeHtml(title || "")}" title="${escapeHtml(att.file_name)}">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v2"/></svg>
           <span class="sa3-attachment-name">${escapeHtml(truncateFileName(att.file_name))}</span>
-          ${readOnly ? "" : `<button type="button" class="sa3-attachment-remove" data-action="remove-attachment" data-attachment-id="${escapeHtml(att.id)}" data-attachment-path="${escapeHtml(att.storage_path)}" title="Remover anexo">&times;</button>`}
+          ${canRemove ? `<button type="button" class="sa3-attachment-remove" data-action="remove-attachment" data-attachment-id="${escapeHtml(att.id)}" data-attachment-path="${escapeHtml(att.storage_path)}" title="Remover anexo">&times;</button>` : ""}
         </span>
       `).join("");
-      const addControl = readOnly ? "" : `
+      const addControl = canAdd ? `
         <label class="sa3-attachment-add">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
           Anexar
           <input type="file" data-action="upload-attachment" data-owner-type="${ownerType}" data-owner-id="${escapeHtml(ownerId)}" hidden>
         </label>
-      `;
-      if (!list.length && readOnly) return `<div class="sa3-empty">Nenhum anexo.</div>`;
+      ` : "";
+      if (!list.length && !canAdd) return `<div class="sa3-empty">Nenhum anexo.</div>`;
       return `<div class="sa3-attachments">${chips}${addControl}</div>`;
     }
 
@@ -1330,7 +1341,7 @@
             <button type="button" class="sa3-icon-btn" data-action="edit-action-item" data-action-id="${escapeHtml(a.id)}" title="Editar">${ICON_EDIT}</button>
             <button type="button" class="sa3-icon-btn" data-action="delete-action-item" data-action-id="${escapeHtml(a.id)}" title="Excluir">${ICON_TRASH}</button>
           </div>
-          <div style="grid-column:1/-1">${renderAttachmentsStrip("action", a.id, a.title, ACTION_CLOSED_STATUSES.includes(a.status))}</div>
+          <div style="grid-column:1/-1">${renderAttachmentsStrip("action", a.id, a.title, { canAdd: false, canRemove: !ACTION_CLOSED_STATUSES.includes(a.status) })}</div>
         </div>
       `;
     }
@@ -1464,7 +1475,10 @@
       const attachEl = form.querySelector("[data-action-attachments]");
       if (attachEl) {
         if (action?.id) {
-          attachEl.innerHTML = renderAttachmentsStrip("action", action.id, action.title, ACTION_CLOSED_STATUSES.includes(action.status));
+          attachEl.innerHTML = renderAttachmentsStrip("action", action.id, action.title, {
+            canAdd: !ACTION_CLOSED_STATUSES.includes(action.status),
+            canRemove: !ACTION_CLOSED_STATUSES.includes(action.status)
+          });
         } else {
           attachEl.innerHTML = renderStagedAttachments(state.editingAction?.stagedFiles || []);
           bindStagedAttachments(form);
