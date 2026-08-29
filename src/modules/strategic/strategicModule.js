@@ -139,6 +139,10 @@
       screen: "overview",      // "overview" | "detail" | "entry"
       organizationId: null,
       cycleId: null,
+      scenarioId: null,
+      contextYear: null,      // ano pro qual cycleId/scenarioId foram resolvidos — ver ensureContext()
+                                // (achado #5 do review: trocar o ano no seletor do topo mantinha o
+                                // ciclo/cenário do ano anterior, podia salvar meta/ação no ciclo errado).
       loadedPeriod: null,      // { year, month } do período já carregado na tela atual — usado
                                 // pra detectar troca de período no seletor do topo e recarregar
                                 // (achado #1 do review: render() não recarregava ao trocar mês/ano).
@@ -432,8 +436,17 @@
       if (!state.organizationId) {
         state.organizationId = await resolveOrganizationId();
       }
+      const { year } = currentPeriod();
+      // Ciclo/cenário são resolvidos POR ANO — trocar o ano no seletor do
+      // topo (ex.: 2026 -> 2027) tinha que limpar cycleId/scenarioId do ano
+      // anterior antes de decidir se precisa buscar de novo, senão a tela
+      // continuava salvando meta/ação no ciclo velho (achado #5 do review).
+      if (state.contextYear !== year) {
+        state.cycleId = null;
+        state.scenarioId = null;
+        state.contextYear = year;
+      }
       if (!state.cycleId) {
-        const { year } = currentPeriod();
         const rows = await fetchRest(
           "strategic_cycles",
           `organization_id=eq.${state.organizationId}&year=eq.${year}&select=id&limit=1`
@@ -2409,6 +2422,13 @@
       state.monthlyEntry = null;
       state.loadedPeriod = null;
       state.screen = "overview";
+      // Ciclo/cenário também zeram ao sair do módulo — ensureContext() já
+      // se resolve sozinho por ano (ver achado #5 do review), mas isso
+      // evita reentrar num ano diferente do que a pessoa deixou e herdar
+      // cycleId/scenarioId de sessão anterior por 1 render antes do fetch.
+      state.cycleId = null;
+      state.scenarioId = null;
+      state.contextYear = null;
     }
 
     // Clicar no item "A3 Estratégicos" do menu lateral enquanto já está
