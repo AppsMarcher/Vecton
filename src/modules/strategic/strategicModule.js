@@ -773,7 +773,13 @@
         <button class="sa3-back" data-action="back-overview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>Voltar</button>
         <div class="sa3-card">
           <div class="sa3-head">
-            <div><h2 style="color:${escapeHtml(a3.color || "#4f7cff")}">${escapeHtml(a3.name)}</h2><p>${kpis.length} indicador${kpis.length === 1 ? "" : "es"}</p></div>
+            <div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <h2 style="color:${escapeHtml(a3.color || "#4f7cff")}">${escapeHtml(a3.name)}</h2>
+                ${isSuperAdminOrAdmin() ? `<button type="button" class="sa3-icon-btn" data-action="delete-a3" title="Excluir A3">${ICON_TRASH}</button>` : ""}
+              </div>
+              <p>${kpis.length} indicador${kpis.length === 1 ? "" : "es"}</p>
+            </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               ${isSuperAdminOrAdmin() ? '<button type="button" class="sa3-btn" data-action="open-create-kpi">+ Criar indicador</button>' : ""}
               <button class="sa3-btn primary" data-action="open-entry">Preenchimento mensal</button>
@@ -803,6 +809,28 @@
       });
       root.querySelector('[data-action="open-entry"]')?.addEventListener("click", () => loadMonthlyEntry(state.a3Id));
       root.querySelector('[data-action="open-create-kpi"]')?.addEventListener("click", () => openCreateKpiModal(state.a3Id));
+      root.querySelector('[data-action="delete-a3"]')?.addEventListener("click", async (event) => {
+        const btn = event.currentTarget;
+        const isRootA3 = state.a3Id === state.a3RootId;
+        const ok = await appConfirm?.(
+          `Excluir a A3 "${a3.name}"? Ela deixa de aparecer em qualquer tela do módulo, mas o histórico já lançado é mantido no banco. Só é possível excluir se ela não tiver A3-filha nem indicador ativos — exclua-os antes, se houver.`,
+          "danger"
+        );
+        if (!ok) return;
+        btn.disabled = true;
+        try {
+          await callSupabaseRpc("strategic_deactivate_a3", { p_a3_id: state.a3Id });
+          if (isRootA3) {
+            state.screen = "overview"; state.a3Id = null; state.a3RootId = null; state.a3Detail = null;
+            await loadOverview();
+          } else {
+            await loadA3Detail(state.a3RootId, true);
+          }
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          btn.disabled = false;
+        }
+      });
       root.querySelectorAll('[data-action="switch-tab"]').forEach((btn) => {
         btn.addEventListener("click", () => loadA3Detail(btn.dataset.a3Id, false));
       });
