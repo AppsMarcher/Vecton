@@ -168,10 +168,14 @@
         .sa3-form input, .sa3-form select, .sa3-form textarea { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.78rem; padding:8px 10px; }
         .sa3-form-grid { display:grid; grid-template-columns:1fr 130px 150px; gap:10px; }
         .sa3-form-foot { display:flex; justify-content:flex-end; gap:8px; }
-        .sa3-entry-row { display:grid; grid-template-columns:1fr 160px 100px; align-items:center; gap:12px; padding:12px 14px; border-radius:10px; background:var(--sa3-panel); border:1px solid var(--sa3-line-soft); margin-bottom:8px; }
+        .sa3-entry-row { display:grid; grid-template-columns:1fr 160px 160px 90px; align-items:center; gap:12px; padding:12px 14px; border-radius:10px; background:var(--sa3-panel); border:1px solid var(--sa3-line-soft); margin-bottom:8px; }
         .sa3-entry-name { font-size:.82rem; font-weight:700; }
         .sa3-entry-target { font-size:.68rem; color:var(--sa3-faint); margin-top:2px; }
         .sa3-entry-input input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; text-align:right; }
+        .sa3-entry-meta { display:flex; flex-direction:column; gap:4px; }
+        .sa3-entry-meta .k { font-size:.6rem; text-transform:uppercase; letter-spacing:.04em; color:var(--sa3-faint); }
+        .sa3-entry-meta-row { display:flex; gap:4px; }
+        .sa3-entry-meta-row input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.78rem; padding:7px 8px; text-align:right; }
         .sa3-entry-driver-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
         .sa3-entry-driver-row label { font-size:.68rem; color:var(--sa3-faint); flex:1 1 auto; }
         .sa3-entry-driver-row input { width:120px; }
@@ -196,6 +200,39 @@
         );
         state.cycleId = rows[0]?.id || null;
       }
+      if (!state.scenarioId && state.cycleId) {
+        const rows = await fetchRest(
+          "strategic_scenarios",
+          `cycle_id=eq.${state.cycleId}&is_current=eq.true&select=id&limit=1`
+        );
+        state.scenarioId = rows[0]?.id || null;
+      }
+    }
+
+    // Upsert direto na tabela (RLS já garante can_manage_strategic_a3 —
+    // não precisa de RPC pra isso, mesmo padrão de upsertSupabaseRows do
+    // resto do Vecton). Sempre manda a linha inteira (não é update
+    // parcial), então não cai no gotcha de upsert documentado no projeto.
+    async function saveKpiTarget(kpiId, payload) {
+      const body = {
+        kpi_id: kpiId,
+        scenario_id: state.scenarioId,
+        year: payload.year,
+        month: payload.month,
+        target_value: payload.target_value ?? null,
+        target_min: payload.target_min ?? null,
+        target_max: payload.target_max ?? null,
+        tolerance: payload.tolerance ?? null
+      };
+      const response = await authenticatedFetch(
+        `${supabaseApiUrl}/rest/v1/strategic_kpi_targets?on_conflict=kpi_id,scenario_id,year,month`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates" },
+          body: JSON.stringify(body)
+        }
+      );
+      if (!response.ok) throw new Error(await response.text());
     }
 
     async function fetchRest(table, query) {
@@ -585,25 +622,80 @@
       kpis.forEach((k) => bindEntryRow(k, isClosed));
     }
 
+    // Meta editável em TODO entry_mode (inclusive 'computed' e 'breakdown' —
+    // sem meta, nenhum KPI classifica status). Campos variam por
+    // comparisonMode: higher/lower/exact usam target_value só; range usa
+    // min+max; exact_with_tolerance usa value+tolerance.
+    function renderTargetInputs(k, isClosed) {
+      const t = k.target || {};
+      const dis = isClosed ? "disabled" : "";
+      if (k.comparisonMode === "range") {
+        return `
+          <div class="sa3-entry-meta">
+            <span class="k">Meta (mín–máx)</span>
+            <div class="sa3-entry-meta-row">
+              <input type="number" step="any" data-target-field="target_min" value="${t.min ?? ""}" placeholder="mín" ${dis}>
+              <input type="number" step="any" data-target-field="target_max" value="${t.max ?? ""}" placeholder="máx" ${dis}>
+            </div>
+          </div>
+        `;
+      }
+      if (k.comparisonMode === "exact_with_tolerance") {
+        return `
+          <div class="sa3-entry-meta">
+            <span class="k">Meta &plusmn; tolerância</span>
+            <div class="sa3-entry-meta-row">
+              <input type="number" step="any" data-target-field="target_value" value="${t.value ?? ""}" placeholder="meta" ${dis}>
+              <input type="number" step="any" data-target-field="tolerance" value="${t.tolerance ?? ""}" placeholder="±" ${dis}>
+            </div>
+          </div>
+        `;
+      }
+      return `
+        <div class="sa3-entry-meta">
+          <span class="k">Meta</span>
+          <div class="sa3-entry-meta-row">
+            <input type="number" step="any" data-target-field="target_value" value="${t.value ?? ""}" placeholder="meta" ${dis}>
+          </div>
+        </div>
+      `;
+    }
+
+    function readTargetPayload(rowEl) {
+      const val = (sel) => {
+        const el = rowEl.querySelector(sel);
+        return el && el.value !== "" ? Number(el.value) : null;
+      };
+      return {
+        target_value: val('[data-target-field="target_value"]'),
+        target_min: val('[data-target-field="target_min"]'),
+        target_max: val('[data-target-field="target_max"]'),
+        tolerance: val('[data-target-field="tolerance"]')
+      };
+    }
+
     function renderEntryRow(k, isClosed) {
-      const targetTxt = formatByUnit(k.target?.value, k.unit, k.decimalPlaces);
+      const targetInputs = renderTargetInputs(k, isClosed);
+      const saveMetaBtn = !isClosed ? `<button class="sa3-btn" data-action="save-target" data-kpi-id="${escapeHtml(k.id)}">Salvar meta</button>` : "";
 
       if (k.entryMode === "computed") {
         return `
-          <div class="sa3-entry-row">
-            <div><div class="sa3-entry-name">${escapeHtml(k.name)}<span class="sa3-badge-auto">Auto</span></div><div class="sa3-entry-target">Meta: ${targetTxt}</div></div>
+          <div class="sa3-entry-row" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="computed">
+            <div><div class="sa3-entry-name">${escapeHtml(k.name)}<span class="sa3-badge-auto">Auto</span></div></div>
+            ${targetInputs}
             <div style="text-align:right;font-weight:800">${formatByUnit(k.resultValue, k.unit, k.decimalPlaces)}</div>
-            <div></div>
+            <div style="text-align:right">${saveMetaBtn}</div>
           </div>
         `;
       }
 
       if (k.entryMode === "breakdown") {
         return `
-          <div class="sa3-entry-row">
-            <div><div class="sa3-entry-name">${escapeHtml(k.name)}</div><div class="sa3-entry-target">Meta: ${targetTxt}</div></div>
-            <div style="text-align:right;color:var(--sa3-faint);font-size:.72rem">Editor de composição ainda não disponível</div>
+          <div class="sa3-entry-row" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="breakdown">
+            <div><div class="sa3-entry-name">${escapeHtml(k.name)}</div><div class="sa3-entry-target">Editor de composição ainda não disponível</div></div>
+            ${targetInputs}
             <div></div>
+            <div style="text-align:right">${saveMetaBtn}</div>
           </div>
         `;
       }
@@ -619,9 +711,10 @@
           <div class="sa3-entry-row" style="grid-template-columns:1fr" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="drivers" data-version="${k.version ?? ""}">
             <div>
               <div class="sa3-entry-name">${escapeHtml(k.name)}</div>
-              <div class="sa3-entry-target">Meta: ${targetTxt} &middot; Resultado atual: ${formatByUnit(k.resultValue, k.unit, k.decimalPlaces)}</div>
+              <div class="sa3-entry-target">Resultado atual: ${formatByUnit(k.resultValue, k.unit, k.decimalPlaces)}</div>
+              ${targetInputs}
               ${driverRows}
-              ${!isClosed ? `<div style="margin-top:8px;text-align:right"><button class="sa3-btn primary" data-action="save-drivers" data-kpi-id="${escapeHtml(k.id)}">Salvar</button></div>` : ""}
+              ${!isClosed ? `<div style="margin-top:8px;text-align:right;display:flex;gap:8px;justify-content:flex-end"><button class="sa3-btn" data-action="save-target" data-kpi-id="${escapeHtml(k.id)}">Salvar meta</button><button class="sa3-btn primary" data-action="save-drivers" data-kpi-id="${escapeHtml(k.id)}">Salvar resultado</button></div>` : ""}
             </div>
           </div>
         `;
@@ -630,18 +723,34 @@
       // direct
       return `
         <div class="sa3-entry-row" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="direct" data-version="${k.version ?? ""}">
-          <div><div class="sa3-entry-name">${escapeHtml(k.name)}</div><div class="sa3-entry-target">Meta: ${targetTxt}</div></div>
+          <div><div class="sa3-entry-name">${escapeHtml(k.name)}</div></div>
+          ${targetInputs}
           <div class="sa3-entry-input"><input type="number" step="any" data-field="result" value="${k.resultValue ?? ""}" ${isClosed ? "disabled" : ""}></div>
-          <div style="text-align:right">${!isClosed ? `<button class="sa3-btn primary" data-action="save-direct" data-kpi-id="${escapeHtml(k.id)}">Salvar</button>` : ""}</div>
+          <div style="text-align:right;display:flex;flex-direction:column;gap:6px">${saveMetaBtn}${!isClosed ? `<button class="sa3-btn primary" data-action="save-direct" data-kpi-id="${escapeHtml(k.id)}">Salvar</button>` : ""}</div>
         </div>
       `;
     }
 
     function bindEntryRow(k, isClosed) {
+      const rowEl = root.querySelector(`[data-kpi-row="${cssEscape(k.id)}"]`);
+
+      const saveTargetBtn = root.querySelector(`[data-action="save-target"][data-kpi-id="${cssEscape(k.id)}"]`);
+      saveTargetBtn?.addEventListener("click", async () => {
+        if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
+        saveTargetBtn.disabled = true;
+        try {
+          const { year, month } = currentPeriod();
+          await saveKpiTarget(k.id, { year, month, ...readTargetPayload(rowEl) });
+          await loadMonthlyEntry(state.a3Id);
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          saveTargetBtn.disabled = false;
+        }
+      });
+
       if (isClosed) return;
 
       if (k.entryMode === "direct") {
-        const rowEl = root.querySelector(`[data-kpi-row="${cssEscape(k.id)}"]`);
         const btn = root.querySelector(`[data-action="save-direct"][data-kpi-id="${cssEscape(k.id)}"]`);
         btn?.addEventListener("click", async () => {
           if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
@@ -663,7 +772,6 @@
       }
 
       if (k.entryMode === "drivers") {
-        const rowEl = root.querySelector(`[data-kpi-row="${cssEscape(k.id)}"]`);
         const btn = root.querySelector(`[data-action="save-drivers"][data-kpi-id="${cssEscape(k.id)}"]`);
         btn?.addEventListener("click", async () => {
           if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
