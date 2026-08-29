@@ -474,12 +474,17 @@
     }
 
     // Gestor: a A3-mãe cuja Gestão bate com a dele já vem marcada por
-    // padrão (mesma regra do banco, strategic_can_edit_a3 — migration 143).
-    // A3 Estratégicos (gestao_estrategica): NADA vem por padrão — é o
-    // perfil "escolha quais A3", tudo é opt-in via extra_strategic_a3_ids.
+    // padrão (mesma regra do banco, strategic_can_edit_a3). Gestor SEM
+    // nenhuma Gestão marcada edita TUDO, igual Admin — mesma paridade que
+    // já existe em OPEX/Headcount (getAllowedManagements, app.js) — decisão
+    // do usuário (2026-08-29), migration 147. A3 Estratégicos
+    // (gestao_estrategica): NADA vem por padrão — é o perfil "escolha
+    // quais A3", tudo é opt-in via extra_strategic_a3_ids.
     function isDefaultStrategicA3(user, area) {
       if (user.access_role !== "manager") return false;
-      return !!area.management && area.management === (user.management || "").trim();
+      const mgmt = (user.management || "").trim();
+      if (!mgmt) return true;
+      return !!area.management && area.management === mgmt;
     }
 
     function buildAccessRow(id, label, checked, isDefault) {
