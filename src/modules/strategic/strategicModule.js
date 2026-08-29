@@ -422,6 +422,9 @@
     async function loadA3Detail(a3Id, isRoot = true) {
       state.loading = true; state.error = ""; state.a3Id = a3Id; state.screen = "detail";
       if (isRoot) { state.a3RootId = a3Id; state.a3Children = []; }
+      // Só zera se for OUTRA A3 (não a mesma recarregando por troca de
+      // período) — mantém a tela suave nesse caso, sem flash de loading.
+      if (state.a3Detail?.a3?.id !== a3Id) state.a3Detail = null;
       renderShell();
       try {
         await ensureContext();
@@ -443,7 +446,9 @@
     }
 
     async function loadMonthlyEntry(a3Id) {
-      state.loading = true; state.error = ""; state.a3Id = a3Id; state.screen = "entry"; renderShell();
+      state.loading = true; state.error = ""; state.a3Id = a3Id; state.screen = "entry";
+      if (state.monthlyEntry?.a3?.id !== a3Id) state.monthlyEntry = null;
+      renderShell();
       try {
         await ensureContext();
         const period = currentPeriod();
@@ -568,9 +573,29 @@
       ensureStyle();
       root.className = "sa3";
 
-      if (state.loading && !state.overview && state.screen === "overview") {
-        root.innerHTML = `<div class="sa3-loading">Carregando…</div>`;
-        return;
+      // Achado do usuário (2026-08-29): clicar num A3 pela 1ª vez (ou
+      // trocar de A3) mostrava "Área não encontrada" por um instante antes
+      // de carregar — renderDetailScreen/renderEntryScreen rodavam com
+      // state.a3Detail/monthlyEntry ainda nulo (ou da A3 anterior) enquanto
+      // a RPC ainda estava em voo, porque esse guard só cobria a tela
+      // "overview". Mensagem de erro falsa, sem erro nenhum de verdade
+      // rolando — só a RPC não tinha voltado ainda. Corrigido cobrindo as
+      // 3 telas; troca de período (mesma A3 já carregada) continua sem
+      // flash, porque loadA3Detail/loadMonthlyEntry só zeram o dado quando
+      // a A3 alvo é DIFERENTE da que já estava carregada.
+      if (state.loading) {
+        if (state.screen === "overview" && !state.overview) {
+          root.innerHTML = `<div class="sa3-loading">Carregando…</div>`;
+          return;
+        }
+        if (state.screen === "detail" && !state.a3Detail) {
+          root.innerHTML = `<div class="sa3-loading">Carregando…</div>`;
+          return;
+        }
+        if (state.screen === "entry" && !state.monthlyEntry) {
+          root.innerHTML = `<div class="sa3-loading">Carregando…</div>`;
+          return;
+        }
       }
       if (state.error) {
         root.innerHTML = `<div class="sa3-error">${escapeHtml(state.error)}</div><button class="sa3-btn" data-action="retry">Tentar de novo</button>`;
