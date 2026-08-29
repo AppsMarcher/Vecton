@@ -390,10 +390,15 @@
         .sa3-bar-real::after { content:""; position:absolute; top:1px; left:1px; right:1px; height:28%; min-height:2px; border-radius:4px 4px 2px 2px; background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.06)); pointer-events:none; }
         .sa3-bar-real.pos { background:linear-gradient(180deg,#74e89b 0%,#2dcc6b 24%,#0d6b38 100%); box-shadow:0 8px 12px rgba(34,197,94,.20); }
         .sa3-bar-real.neg { background:linear-gradient(180deg,#f58a8a 0%,#ef5050 24%,#8b202b 100%); box-shadow:0 8px 12px rgba(239,68,68,.20); }
+        .sa3-bar-real.warn { background:linear-gradient(180deg,#ffd479 0%,#f5a623 24%,#8a5a0d 100%); box-shadow:0 8px 12px rgba(245,158,11,.20); }
         .sa3-chart-zero { position:absolute; left:2px; right:2px; height:1px; background:rgba(255,255,255,.08); z-index:0; }
         .sa3-target-svg { position:absolute; inset:0 2px; width:calc(100% - 4px); height:100%; overflow:visible; pointer-events:none; z-index:2; }
         .sa3-target-line { fill:none; stroke:#4f7cff; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; filter:drop-shadow(0 2px 4px rgba(79,124,255,.34)); }
         .sa3-target-point { fill:#4f7cff; stroke:#111318; stroke-width:1.5; vector-effect:non-scaling-stroke; }
+        /* KPI comparisonMode='range' não tem 1 meta só — desenha mín/máx como
+           2 linhas pontilhadas mais discretas em vez de 1 linha cheia. */
+        .sa3-target-line.band { stroke-width:1.6; stroke-dasharray:5 4; opacity:.62; filter:none; }
+        .sa3-target-point.band { opacity:.62; }
         .sa3-chart-months { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:6px; padding:6px 2px 0; text-align:center; }
         .sa3-bar-month { font-size:.58rem; color:var(--sa3-faint); text-transform:uppercase; }
         .sa3-chart-legend { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:7px; color:var(--sa3-faint); font-size:.62rem; }
@@ -1230,9 +1235,16 @@
     function renderKpiBlock(k) {
       const monthly = k.monthlyValues || [];
       const targets = k.monthlyTargets || [];
+      const isRange = k.comparisonMode === "range";
+      // status já vem calculado do banco (strategic_kpi_status, snapshot-aware
+      // pra período fechado) — o frontend só mapeia pra cor, nunca reimplementa
+      // a regra (achado do usuário, 2026-08-29: 'range'/'exact'/
+      // 'exact_with_tolerance' ficavam com cor errada porque o JS só sabia
+      // tratar 'higher'/'lower').
+      const STATUS_TONE = { on_target: "pos", attention: "warn", off_target: "neg" };
       const values = [
         ...monthly.map((m) => m?.value),
-        ...targets.map((t) => t?.value)
+        ...targets.flatMap((t) => [t?.value, t?.min, t?.max])
       ].filter((value) => value !== null && value !== undefined && Number.isFinite(Number(value))).map(Number);
       const rawMin = Math.min(0, ...values);
       const rawMax = Math.max(0, ...values);
@@ -1243,11 +1255,14 @@
       const yPct = (value) => ((chartMax - Number(value)) / chartSpan) * 100;
       const zeroY = yPct(0);
 
+      const metaLabel = (t) => isRange
+        ? `${formatByUnit(t?.min, k.unit, k.decimalPlaces)}–${formatByUnit(t?.max, k.unit, k.decimalPlaces)}`
+        : formatByUnit(t?.value, k.unit, k.decimalPlaces);
+
       const bars = Array.from({ length: 12 }, (_, i) => {
         const m = monthly[i] || {};
-        const tVal = targets[i]?.value;
+        const t = targets[i] || {};
         const hasReal = m.value !== null && m.value !== undefined && Number.isFinite(Number(m.value));
-        const hasTarget = tVal !== null && tVal !== undefined && Number.isFinite(Number(tVal));
         const realY = hasReal ? yPct(m.value) : zeroY;
         let realTop = Math.min(realY, zeroY);
         let realH = Math.abs(realY - zeroY);
@@ -1255,37 +1270,16 @@
           realH = 1.7;
           realTop = Number(m.value) < 0 ? Math.min(98.3, zeroY) : Math.max(0, zeroY - realH);
         }
-        let tone = "";
-        if (hasReal && hasTarget) {
-          const hit = k.comparisonMode === "lower" ? m.value <= tVal : m.value >= tVal;
-          tone = hit ? "pos" : "neg";
-        }
-        const variation = formatTargetVariation(m.value, tVal, { unit: k.unit, comparisonMode: k.comparisonMode });
-        const tooltip = `${MONTH_LABELS_SHORT[i]} — Realizado: ${formatByUnit(m.value, k.unit, k.decimalPlaces)} · Meta: ${formatByUnit(tVal, k.unit, k.decimalPlaces)} · Var: ${variation}`;
+        const tone = STATUS_TONE[m.status] || "";
+        const variation = isRange ? "—" : formatTargetVariation(m.value, t.value, { unit: k.unit, comparisonMode: k.comparisonMode });
+        const tooltip = `${MONTH_LABELS_SHORT[i]} — Realizado: ${formatByUnit(m.value, k.unit, k.decimalPlaces)} · Meta: ${metaLabel(t)} · Var: ${variation}`;
         return `
-          <div class="sa3-bar-col" data-chart-has-real="${hasReal}" data-chart-month="${MONTH_LABELS_SHORT[i].toLowerCase()}" data-chart-real="${escapeHtml(formatByUnit(m.value, k.unit, k.decimalPlaces))}" data-chart-meta="${escapeHtml(formatByUnit(tVal, k.unit, k.decimalPlaces))}" data-chart-variation="${escapeHtml(variation)}">
+          <div class="sa3-bar-col" data-chart-has-real="${hasReal}" data-chart-month="${MONTH_LABELS_SHORT[i].toLowerCase()}" data-chart-real="${escapeHtml(formatByUnit(m.value, k.unit, k.decimalPlaces))}" data-chart-meta="${escapeHtml(metaLabel(t))}" data-chart-variation="${escapeHtml(variation)}">
             ${hasReal ? `<div class="sa3-bar-real ${tone}" style="top:${realTop}%;height:${realH}%" aria-label="${escapeHtml(tooltip)}"></div>` : ""}
           </div>
         `;
       }).join("");
 
-      const lineSegments = [];
-      let currentSegment = [];
-      const targetDots = [];
-      for (let i = 0; i < 12; i += 1) {
-        const targetValue = targets[i]?.value;
-        const actualValue = monthly[i]?.value;
-        const hasActual = actualValue !== null && actualValue !== undefined && Number.isFinite(Number(actualValue));
-        if (!hasActual || targetValue === null || targetValue === undefined || !Number.isFinite(Number(targetValue))) {
-          if (currentSegment.length) lineSegments.push(currentSegment);
-          currentSegment = [];
-          continue;
-        }
-        const point = { x: ((i + 0.5) / 12) * 1200, y: yPct(targetValue) };
-        currentSegment.push(point);
-        targetDots.push(`<circle class="sa3-target-point" cx="${point.x}" cy="${point.y}" r="3"></circle>`);
-      }
-      if (currentSegment.length) lineSegments.push(currentSegment);
       const smoothPath = (points) => {
         if (points.length < 2) return "";
         let path = `M ${points[0].x} ${points[0].y}`;
@@ -1297,10 +1291,41 @@
         }
         return path;
       };
-      const targetLine = lineSegments.map((points) => {
-        const path = smoothPath(points);
-        return path ? `<path class="sa3-target-line" d="${path}"></path>` : "";
-      }).join("");
+      // getValue(i) devolve o valor da meta no mês i (target_value, ou
+      // target_min/target_max quando comparisonMode='range' — sem essa
+      // separação, 'range' nunca desenhava linha nenhuma, sempre null).
+      // extraClass diferencia visualmente a banda (2 linhas pontilhadas) do
+      // caso normal (1 linha cheia).
+      const buildTargetLine = (getValue, extraClass = "") => {
+        const lineSegments = [];
+        let currentSegment = [];
+        const dots = [];
+        for (let i = 0; i < 12; i += 1) {
+          const targetValue = getValue(i);
+          const actualValue = monthly[i]?.value;
+          const hasActual = actualValue !== null && actualValue !== undefined && Number.isFinite(Number(actualValue));
+          if (!hasActual || targetValue === null || targetValue === undefined || !Number.isFinite(Number(targetValue))) {
+            if (currentSegment.length) lineSegments.push(currentSegment);
+            currentSegment = [];
+            continue;
+          }
+          const point = { x: ((i + 0.5) / 12) * 1200, y: yPct(targetValue) };
+          currentSegment.push(point);
+          dots.push(`<circle class="sa3-target-point ${extraClass}" cx="${point.x}" cy="${point.y}" r="3"></circle>`);
+        }
+        if (currentSegment.length) lineSegments.push(currentSegment);
+        const path = lineSegments.map((points) => {
+          const d = smoothPath(points);
+          return d ? `<path class="sa3-target-line ${extraClass}" d="${d}"></path>` : "";
+        }).join("");
+        return path + dots.join("");
+      };
+      // buildTargetLine já devolve linha+pontos concatenados — nada mais pra
+      // juntar depois (diferente da versão antiga, que tinha targetLine e
+      // targetDots separados).
+      const targetLine = isRange
+        ? buildTargetLine((i) => targets[i]?.min, "band") + buildTargetLine((i) => targets[i]?.max, "band")
+        : buildTargetLine((i) => targets[i]?.value);
       const months = MONTH_LABELS_SHORT.map((label) => `<span class="sa3-bar-month">${label}</span>`).join("");
 
       const kpiActions = state.actions.filter((a) => (a.strategic_action_kpis || []).some((l) => l.kpi_id === k.id));
@@ -1342,7 +1367,7 @@
               <div class="sa3-chart-zero" style="top:${zeroY}%"></div>
               <div class="sa3-bars">${bars}</div>
               <svg class="sa3-target-svg" viewBox="0 0 1200 100" preserveAspectRatio="none" aria-hidden="true">
-                ${targetLine}${targetDots.join("")}
+                ${targetLine}
               </svg>
             </div>
             <div class="sa3-chart-months">${months}</div>
