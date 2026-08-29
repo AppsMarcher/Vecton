@@ -6495,9 +6495,13 @@ function ensureHeadcountViewShell() {
           <a href="https://jwjnvxshtdekzcprmsyl.supabase.co/storage/v1/object/public/Vecton_Templates/modelo-carga-headcount.xlsx" download="modelo-carga-headcount.xlsx" title="Baixar modelo de carga" style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-alt);color:var(--text-faint);font-size:0.72rem;text-decoration:none;flex-shrink:0;transition:color .15s,border-color .15s" onmouseover="this.style.color='var(--blue)';this.style.borderColor='var(--blue)'" onmouseout="this.style.color='var(--text-faint)';this.style.borderColor='var(--line)'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Modelo</a>
         </div>
         <form id="hc-upload-form" class="form-grid actuals-upload-form">
-          <label class="full-span">
+          <label class="full-span vecton-file-field">
             Arquivo
-            <input id="hc-file-input" name="file" type="file" accept=".xlsx,.xls,.csv">
+            <span class="vecton-file-trigger">
+              <span class="vecton-file-btn">Selecionar arquivo</span>
+              <span class="vecton-file-name" data-file-name>Nenhum arquivo selecionado</span>
+            </span>
+            <input id="hc-file-input" name="file" type="file" accept=".xlsx,.xls,.csv" class="vecton-file-native">
           </label>
           <div class="editor-actions full-span">
             <button id="hc-import-button" class="primary-button" type="button">Importar arquivo</button>
@@ -6640,6 +6644,11 @@ function bindHeadcountEvents() {
   // Período
   document.querySelector("#hc-period-button")?.addEventListener("click", () => {
     periodTrigger?.click();
+  });
+
+  document.querySelector("#hc-file-input")?.addEventListener("change", (event) => {
+    const nameEl = event.target.closest(".vecton-file-field")?.querySelector("[data-file-name]");
+    if (nameEl) nameEl.textContent = event.target.files?.[0]?.name || "Nenhum arquivo selecionado";
   });
 
   // Import

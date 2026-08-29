@@ -4268,6 +4268,49 @@ textarea[disabled] {
   background: #121418;
 }
 
+/* Input de arquivo nativo mostra "Escolher ficheiro"/"Nenhum ficheiro
+   selecionado" (pt-PT) ou "Escolher arquivo"/"Nenhum arquivo selecionado"
+   (pt-BR) dependendo do IDIOMA DO NAVEGADOR do usuário — texto que o app
+   não controla via HTML/CSS. Solução: input nativo fica invisível por cima
+   de um botão + nome de arquivo com texto nosso, sempre pt-BR, em
+   qualquer navegador. */
+.vecton-file-field {
+  position: relative;
+}
+.vecton-file-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+}
+.vecton-file-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel-alt);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.vecton-file-name {
+  color: var(--text-faint);
+  font-size: 0.76rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vecton-file-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  padding: 0;
+  border: none;
+}
+
 .primary-button {
   height: 38px;
   padding: 0 14px;

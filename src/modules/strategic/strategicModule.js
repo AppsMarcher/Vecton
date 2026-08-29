@@ -591,7 +591,16 @@
               <div><label>Tipo</label><select data-field="item_type"><option value="cause">Causa</option><option value="countermeasure">Contramedida</option></select></div>
               <div><label>Descrição</label><input type="text" data-field="description" placeholder="O que aconteceu / o que fazer?"></div>
             </div>
-            <div><label>Anexo (opcional)</label><input type="file" data-field="attachment"></div>
+            <div>
+              <label>Anexo (opcional)</label>
+              <div class="vecton-file-field">
+                <span class="vecton-file-trigger">
+                  <span class="vecton-file-btn">Selecionar arquivo</span>
+                  <span class="vecton-file-name" data-file-name>Nenhum arquivo selecionado</span>
+                </span>
+                <input type="file" data-field="attachment" class="vecton-file-native">
+              </div>
+            </div>
             <div class="sa3-form-foot">
               <button class="sa3-btn" data-action="cancel-analysis-form" data-kpi-id="${escapeHtml(k.id)}">Cancelar</button>
               <button class="sa3-btn primary" data-action="add-analysis-item" data-kpi-id="${escapeHtml(k.id)}">Adicionar</button>
@@ -609,6 +618,7 @@
 
       toggleBtn?.addEventListener("click", () => form?.classList.toggle("hidden"));
       cancelBtn?.addEventListener("click", () => form?.classList.add("hidden"));
+      bindFileNameDisplay(form);
       addBtn?.addEventListener("click", async () => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
         const itemType = form.querySelector('[data-field="item_type"]').value;
@@ -726,6 +736,16 @@
     function truncateFileName(name, max = 22) {
       const s = String(name || "arquivo");
       return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+    }
+
+    // Atualiza o nome exibido no campo de anexo dos formulários de criação
+    // (o input nativo fica invisível — ver .vecton-file-native no styles.css).
+    function bindFileNameDisplay(formEl) {
+      const input = formEl?.querySelector('[data-field="attachment"]');
+      input?.addEventListener("change", () => {
+        const nameEl = input.closest(".vecton-file-field")?.querySelector("[data-file-name]");
+        if (nameEl) nameEl.textContent = input.files?.[0]?.name || "Nenhum arquivo selecionado";
+      });
     }
 
     // Sobe o arquivo pro storage + grava a linha em strategic_attachments.
@@ -856,7 +876,16 @@
             <div><label>Prazo</label><input type="date" data-field="due_date"></div>
             <div><label>Status</label><select data-field="status">${statusOptions}</select></div>
           </div>
-          <div><label>Anexo (opcional)</label><input type="file" data-field="attachment"></div>
+          <div>
+            <label>Anexo (opcional)</label>
+            <div class="vecton-file-field">
+              <span class="vecton-file-trigger">
+                <span class="vecton-file-btn">Selecionar arquivo</span>
+                <span class="vecton-file-name" data-file-name>Nenhum arquivo selecionado</span>
+              </span>
+              <input type="file" data-field="attachment" class="vecton-file-native">
+            </div>
+          </div>
           <div class="sa3-form-foot">
             <button class="sa3-btn" data-action="cancel-action-form" data-kpi-id="${escapeHtml(kpiId)}">Cancelar</button>
             <button class="sa3-btn primary" data-action="save-action" data-kpi-id="${escapeHtml(kpiId)}">Salvar ação</button>
@@ -873,6 +902,7 @@
 
       toggleBtn?.addEventListener("click", () => form?.classList.toggle("hidden"));
       cancelBtn?.addEventListener("click", () => form?.classList.add("hidden"));
+      bindFileNameDisplay(form);
       saveBtn?.addEventListener("click", async () => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
         const title = form.querySelector('[data-field="title"]').value.trim();
