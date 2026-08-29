@@ -196,11 +196,21 @@
         .sa3-attachment-remove:hover { color:var(--sa3-neg); }
         .sa3-attachment-add { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:999px; border:1px dashed var(--sa3-line); color:var(--sa3-faint); font-size:.68rem; font-weight:600; cursor:pointer; }
         .sa3-attachment-add:hover { border-color:rgba(79,124,255,.4); color:#8fb0ff; }
-        /* Picker de Responsáveis — linhas compactas com checkbox estilizado
-           (checkmark próprio, sem a caixinha nativa do navegador — mesmo
-           visual do seletor de acessos da tela de Usuários), caixa curta
-           (não precisa ocupar a tela toda pra 2-3 nomes). */
-        .sa3-owner-list { display:flex; flex-direction:column; max-height:104px; overflow-y:auto; border:1px solid var(--sa3-line); border-radius:8px; padding:4px 6px; }
+        /* Picker de Responsáveis — fechado por padrão (só um botão-flag com
+           a contagem); clicar abre a lista em popover ancorado embaixo do
+           botão, largura travada na soma de Prioridade+Progresso (150+150+
+           gap 10 = 310px) — não é pra esticar até a borda do formulário. */
+        .sa3-owner-picker { position:relative; max-width:310px; }
+        .sa3-owner-toggle { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; height:36px; }
+        .sa3-owner-toggle .sa3-chevron { flex-shrink:0; transition:transform 150ms; }
+        .sa3-owner-toggle[aria-expanded="true"] .sa3-chevron { transform:rotate(180deg); }
+        .sa3-owner-list {
+          display:flex; flex-direction:column; max-height:160px; overflow-y:auto;
+          position:absolute; top:calc(100% + 4px); left:0; width:100%; z-index:6;
+          border:1px solid var(--sa3-line); border-radius:8px; padding:4px 6px;
+          background:var(--sa3-panel); box-shadow:0 14px 32px rgba(0,0,0,.4);
+        }
+        .sa3-owner-list.hidden { display:none; }
         /* .sa3-owner-row é um <label> — precisa de 2 classes na especificidade
            pra vencer a regra genérica ".sa3-form label" (uppercase/bold/
            display:block), senão a linha quebra o layout em flex. */
@@ -264,6 +274,20 @@
         .sa3-form.hidden { display:none; }
         .sa3-form label { display:block; font-size:.64rem; font-weight:700; text-transform:uppercase; color:var(--sa3-faint); margin-bottom:4px; }
         .sa3-form input, .sa3-form select, .sa3-form textarea { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.78rem; padding:8px 10px; }
+        /* input e select têm altura intrínseca diferente por padrão do
+           navegador (select "cresce" mais) — trava os dois na mesma altura
+           pra Prioridade/Progresso ficarem visualmente idênticos. */
+        .sa3-form input:not([type="checkbox"]), .sa3-form select { height:36px; }
+        /* Select nativo: remove o chrome do navegador (senão a lista de
+           opções abre com fundo branco do SO, ilegível no tema escuro) e
+           desenha a setinha própria; color-scheme:dark força o popup nativo
+           pro tema escuro nos browsers que respeitam isso no elemento. */
+        .sa3-form select {
+          color-scheme:dark; appearance:none; -webkit-appearance:none; -moz-appearance:none;
+          background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+          background-repeat:no-repeat; background-position:right 10px center; background-size:13px; padding-right:28px;
+        }
+        .sa3-form select option { background:#121317; color:#ffffff; }
         .sa3-form-grid { display:grid; grid-template-columns:1fr 130px 150px; gap:10px; }
         .sa3-form-foot { display:flex; justify-content:flex-end; gap:8px; }
         /* Tela 3 (lançamento mensal) — layout ÚNICO pra 100% dos indicadores,
@@ -1319,9 +1343,13 @@
             <div><label>Prioridade</label><select data-field="priority"><option value="">—</option>${priorityOptions}</select></div>
             <div><label>Progresso</label><input type="number" step="1" min="0" max="100" data-field="progress" placeholder="%"></div>
           </div>
-          <div>
+          <div class="sa3-owner-picker">
             <label>Responsáveis (opcional)</label>
-            <div class="sa3-owner-list">${ownersHtml}</div>
+            <button type="button" class="sa3-btn sa3-owner-toggle" data-action="toggle-owners" aria-expanded="false">
+              <span data-owner-summary>Nenhum selecionado</span>
+              <svg class="sa3-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="sa3-owner-list hidden" data-owner-list>${ownersHtml}</div>
           </div>
           <div>
             <label>Anexo (opcional)</label>
@@ -1341,6 +1369,19 @@
       `;
     }
 
+    // Botão-flag dos Responsáveis mostra só a contagem ("2 selecionados"),
+    // nunca a lista de nomes — a lista só aparece dentro do popover, ao
+    // abrir. Chamado tanto ao preencher o form (fillActionForm) quanto a
+    // cada clique num checkbox (bindActionForm) pra manter o resumo em dia.
+    function updateOwnerSummary(form) {
+      const summaryEl = form?.querySelector("[data-owner-summary]");
+      if (!summaryEl) return;
+      const checked = form.querySelectorAll('[data-field="owner"]:checked');
+      summaryEl.textContent = checked.length
+        ? `${checked.length} selecionado${checked.length === 1 ? "" : "s"}`
+        : "Nenhum selecionado";
+    }
+
     // Reaproveita o mesmo form pra criar E editar — action=null limpa
     // (modo criação), action preenchido carrega os valores (modo edição).
     // Responsável/prioridade/progresso: campos recomendados, não obrigatórios
@@ -1356,6 +1397,9 @@
       form.querySelector('[data-field="progress"]').value = action?.progress ?? "";
       const ownerIds = new Set((action?.strategic_action_owners || []).map((o) => o.user_id));
       form.querySelectorAll('[data-field="owner"]').forEach((cb) => { cb.checked = ownerIds.has(cb.value); });
+      updateOwnerSummary(form);
+      form.querySelector("[data-owner-list]")?.classList.add("hidden");
+      form.querySelector('[data-action="toggle-owners"]')?.setAttribute("aria-expanded", "false");
       const fileInput = form.querySelector('[data-field="attachment"]');
       if (fileInput) fileInput.value = "";
       const fileNameEl = form.querySelector("[data-file-name]");
@@ -1377,6 +1421,17 @@
       });
       cancelBtn?.addEventListener("click", () => form?.classList.add("hidden"));
       bindFileNameDisplay(form);
+
+      // Popover de Responsáveis: fechado por padrão, só abre no clique do
+      // botão-flag; qualquer marcação/desmarcação atualiza o resumo na hora.
+      const ownerToggleBtn = form?.querySelector('[data-action="toggle-owners"]');
+      const ownerListEl = form?.querySelector("[data-owner-list]");
+      ownerToggleBtn?.addEventListener("click", () => {
+        const willOpen = ownerListEl?.classList.contains("hidden");
+        ownerListEl?.classList.toggle("hidden", !willOpen);
+        ownerToggleBtn.setAttribute("aria-expanded", String(!!willOpen));
+      });
+      ownerListEl?.addEventListener("change", () => updateOwnerSummary(form));
       saveBtn?.addEventListener("click", async () => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
         const title = form.querySelector('[data-field="title"]').value.trim();
