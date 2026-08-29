@@ -1129,6 +1129,8 @@ const strategicModule = createStrategicModule
       appConfirm,
       appPrompt,
       uploadToStorage,
+      createStorageSignedUrl,
+      deleteFromStorage,
       escapeHtml
     })
   : { render: () => {}, destroy: () => {} };

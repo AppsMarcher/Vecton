@@ -15,9 +15,11 @@
   //     mostra o que a RPC devolve.
   //   - SEM editor de composição (entry_mode='breakdown') nesta leva — KPI
   //     desse tipo aparece como somente-leitura com uma nota.
-  //   - SEM upload de anexo nesta leva (bucket já existe, migration 133,
-  //     mas a UI de anexar fica pra depois).
-  //   - SEM edição de meta/cenário — meta aparece só como leitura.
+  //   - Anexos: implementado pra ação e item de causas/contramedidas (chip
+  //     list + upload direto pro bucket strategic-a3-attachments, migration
+  //     133). Anexo em cima do registro mensal do KPI (kpi_record_id) fica
+  //     pra uma leva futura — exige garantir que o registro do mês já
+  //     existe antes de anexar.
   // ==========================================================================
 
   const MONTH_LABELS_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -39,6 +41,9 @@
   const ACTION_STATUS_TONE = {
     not_started: "muted", in_progress: "warn", on_hold: "pause", done: "pos", cancelled: "cancel"
   };
+
+  const ATTACHMENT_BUCKET = "strategic-a3-attachments";
+  const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // mesmo limite do bucket (migration 133)
 
   function formatByUnit(value, unit, decimalPlaces) {
     if (value === null || value === undefined || value === "" || Number.isNaN(Number(value))) return "—";
@@ -65,6 +70,9 @@
       getAllAccessRoles,
       appAlert,
       appConfirm,
+      uploadToStorage,
+      createStorageSignedUrl,
+      deleteFromStorage,
       escapeHtml
     } = deps;
 
@@ -82,7 +90,8 @@
       monthlyEntry: null,      // { a3, period, kpis }
       actions: [],             // ações do A3 atual (todas, filtro é feito na leitura)
       periodAnalysis: null,    // { id, summary, strategic_analysis_items: [...] } do A3+mês ativo, ou null se nunca salvo
-      dirtyDrafts: {}          // { [kpiId]: { resultValue, drivers: {code: value} } } — edição em andamento, não salva
+      dirtyDrafts: {},         // { [kpiId]: { resultValue, drivers: {code: value} } } — edição em andamento, não salva
+      attachments: { action: {}, analysis_item: {} } // { [ownerType]: { [ownerId]: strategic_attachments[] } }
     };
 
     const myRoles = () => (getAllAccessRoles ? getAllAccessRoles() : []);
@@ -145,6 +154,14 @@
         .sa3-analysis-kpis { margin-top:5px; display:flex; gap:5px; flex-wrap:wrap; }
         .sa3-analysis-kpi-chip { font-size:.62rem; color:var(--sa3-faint); background:rgba(255,255,255,.04); border-radius:999px; padding:2px 7px; }
         .sa3-analysis-remove { background:none; border:none; color:var(--sa3-faint); cursor:pointer; padding:2px; }
+        .sa3-attachments { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px; }
+        .sa3-attachment-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 6px 4px 8px; border-radius:999px; background:rgba(255,255,255,.04); border:1px solid var(--sa3-line-soft); font-size:.68rem; color:var(--sa3-soft); cursor:pointer; max-width:220px; }
+        .sa3-attachment-chip:hover { border-color:rgba(79,124,255,.4); }
+        .sa3-attachment-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .sa3-attachment-remove { background:none; border:none; color:var(--sa3-faint); cursor:pointer; font-size:.9rem; line-height:1; padding:0 0 0 2px; }
+        .sa3-attachment-remove:hover { color:var(--sa3-neg); }
+        .sa3-attachment-add { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:999px; border:1px dashed var(--sa3-line); color:var(--sa3-faint); font-size:.68rem; font-weight:600; cursor:pointer; }
+        .sa3-attachment-add:hover { border-color:rgba(79,124,255,.4); color:#8fb0ff; }
         .sa3-analysis-remove:hover { color:var(--sa3-neg); }
         .sa3-kpi-check-list { display:flex; flex-direction:column; gap:4px; max-height:120px; overflow-y:auto; border:1px solid var(--sa3-line); border-radius:8px; padding:8px 10px; }
         .sa3-kpi-check-list label { display:flex; align-items:center; gap:7px; font-size:.76rem; text-transform:none; font-weight:400; color:var(--sa3-soft); }
@@ -293,6 +310,7 @@
         if (isRoot) state.a3Children = state.a3Detail?.children || [];
         await loadActionsForA3(a3Id);
         await loadPeriodAnalysis(a3Id, year, month);
+        await loadAttachments();
       } catch (err) {
         state.error = friendlyError(err);
       } finally {
@@ -327,6 +345,32 @@
         (a.strategic_action_a3 || []).some((l) => l.a3_id === a3Id) ||
         (a.strategic_action_kpis || []).some((l) => kpiIds.includes(l.kpi_id))
       );
+    }
+
+    // Anexos de todas as ações + itens de análise já carregados na tela,
+    // numa tacada só por dono (2 requests no total, não 1 por item/ação).
+    // kpi_record_id fica pra uma leva futura (exige garantir que o registro
+    // do mês já existe antes de anexar).
+    async function loadAttachments() {
+      const actionIds = (state.actions || []).map((a) => a.id);
+      const itemIds = (state.periodAnalysis?.strategic_analysis_items || []).map((it) => it.id);
+      const byAction = {};
+      const byItem = {};
+      if (actionIds.length) {
+        const rows = await fetchRest(
+          "strategic_attachments",
+          `action_id=in.(${actionIds.join(",")})&select=*&order=created_at.asc`
+        );
+        (rows || []).forEach((r) => { (byAction[r.action_id] ||= []).push(r); });
+      }
+      if (itemIds.length) {
+        const rows = await fetchRest(
+          "strategic_attachments",
+          `analysis_item_id=in.(${itemIds.join(",")})&select=*&order=created_at.asc`
+        );
+        (rows || []).forEach((r) => { (byItem[r.analysis_item_id] ||= []).push(r); });
+      }
+      state.attachments = { action: byAction, analysis_item: byItem };
     }
 
     // Leitura simples (SELECT direto, RLS já protege) — mesma decisão de
@@ -507,6 +551,7 @@
 
       kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); });
       bindAnalysisRemoveButtons();
+      bindAttachmentWidgets();
     }
 
     // -------------------------------------------------------- Causas/contramedidas por KPI
@@ -530,6 +575,7 @@
           <button class="sa3-analysis-remove" data-action="remove-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Remover">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
+          <div style="grid-column:1/-1">${renderAttachmentsStrip("analysis_item", it.id)}</div>
         </div>
       `).join("") : `<div class="sa3-empty">Nenhuma causa ou contramedida registrada.</div>`;
 
@@ -658,6 +704,112 @@
       `;
     }
 
+    // -------------------------------------------------------- Anexos
+    // Mesmo widget pra ação e item de análise (strategic_attachments só
+    // aceita exatamente 1 dono — kpi_record_id fica pra depois). Upload
+    // dispara na hora, sem botão "enviar" separado (1 arquivo por vez).
+    function truncateFileName(name, max = 22) {
+      const s = String(name || "arquivo");
+      return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+    }
+
+    function renderAttachmentsStrip(ownerType, ownerId) {
+      const list = (state.attachments?.[ownerType]?.[ownerId]) || [];
+      const chips = list.map((att) => `
+        <span class="sa3-attachment-chip" data-attachment-open data-attachment-path="${escapeHtml(att.storage_path)}" title="${escapeHtml(att.file_name)}">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v2"/></svg>
+          <span class="sa3-attachment-name">${escapeHtml(truncateFileName(att.file_name))}</span>
+          <button type="button" class="sa3-attachment-remove" data-action="remove-attachment" data-attachment-id="${escapeHtml(att.id)}" data-attachment-path="${escapeHtml(att.storage_path)}" title="Remover anexo">&times;</button>
+        </span>
+      `).join("");
+      return `
+        <div class="sa3-attachments">
+          ${chips}
+          <label class="sa3-attachment-add">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+            Anexar
+            <input type="file" data-action="upload-attachment" data-owner-type="${ownerType}" data-owner-id="${escapeHtml(ownerId)}" hidden>
+          </label>
+        </div>
+      `;
+    }
+
+    function bindAttachmentWidgets() {
+      root.querySelectorAll('[data-action="upload-attachment"]').forEach((input) => {
+        input.addEventListener("change", async () => {
+          const file = input.files?.[0];
+          if (!file) return;
+          if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); input.value = ""; return; }
+          if (file.size > MAX_ATTACHMENT_BYTES) { appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB.`, "warn"); input.value = ""; return; }
+          const ownerType = input.dataset.ownerType;
+          const ownerId = input.dataset.ownerId;
+          input.disabled = true;
+          try {
+            const { year, month } = currentPeriod();
+            const fileId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            const safeName = String(file.name || "arquivo").replace(/[^\w.\-]+/g, "_");
+            const path = `${state.organizationId}/${year}/${month}/${ownerType}/${ownerId}/${fileId}_${safeName}`;
+            await uploadToStorage(ATTACHMENT_BUCKET, path, file);
+            const body = {
+              organization_id: state.organizationId,
+              storage_path: path,
+              file_name: file.name,
+              mime_type: file.type || null,
+              file_size: file.size || null,
+              [ownerType === "action" ? "action_id" : "analysis_item_id"]: ownerId
+            };
+            const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/strategic_attachments`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Prefer": "return=minimal" },
+              body: JSON.stringify(body)
+            });
+            if (!response.ok) throw new Error(await response.text());
+            await loadAttachments();
+            renderShell();
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+            input.disabled = false;
+          }
+        });
+      });
+
+      root.querySelectorAll("[data-attachment-open]").forEach((chip) => {
+        chip.addEventListener("click", async (e) => {
+          if (e.target.closest('[data-action="remove-attachment"]')) return;
+          try {
+            const url = await createStorageSignedUrl(ATTACHMENT_BUCKET, chip.dataset.attachmentPath, 300);
+            const w = window.open("about:blank", "_blank");
+            if (w) { w.opener = null; w.location.replace(url); } else { window.location.href = url; }
+          } catch (err) {
+            appAlert?.("Não foi possível abrir este arquivo.", "error");
+          }
+        });
+      });
+
+      root.querySelectorAll('[data-action="remove-attachment"]').forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
+          const ok = await appConfirm?.("Remover este anexo?", "warn");
+          if (!ok) return;
+          btn.disabled = true;
+          try {
+            const response = await authenticatedFetch(
+              `${supabaseApiUrl}/rest/v1/strategic_attachments?id=eq.${btn.dataset.attachmentId}`,
+              { method: "DELETE" }
+            );
+            if (!response.ok) throw new Error(await response.text());
+            await deleteFromStorage(ATTACHMENT_BUCKET, btn.dataset.attachmentPath);
+            await loadAttachments();
+            renderShell();
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
     function renderActionItem(a) {
       const tone = ACTION_STATUS_TONE[a.status] || "muted";
       const label = (ACTION_STATUS_OPTIONS.find((o) => o.value === a.status) || {}).label || a.status;
@@ -667,6 +819,7 @@
           <div class="sa3-action-meta">${a.priority ? escapeHtml(a.priority) : "—"}</div>
           <div class="sa3-action-meta">${a.due_date ? escapeHtml(a.due_date) : "—"}</div>
           <span class="sa3-pill ${tone}">${escapeHtml(label)}</span>
+          <div style="grid-column:1/-1">${renderAttachmentsStrip("action", a.id)}</div>
         </div>
       `;
     }
