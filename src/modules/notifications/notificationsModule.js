@@ -47,7 +47,10 @@
       headcount_batch_applied: "vp-icon-users",
       comercial_realizado_batch_applied: "vp-icon-briefcase",
       comercial_planejado_batch_applied: "vp-icon-target",
-      rps_gestao_reminder: "vp-icon-activity"
+      rps_gestao_reminder: "vp-icon-activity",
+      strategic_kpi_off_target: "vp-icon-target",
+      strategic_action_due: "vp-icon-activity",
+      strategic_action_assigned: "vp-icon-users"
     };
 
     // 0=domingo..6=sábado — mesma convenção do extract(dow) do Postgres,
@@ -443,6 +446,10 @@
       const cfg = { ...DEFAULT_CFG, ..._settings.get(type.kind) };
       const list = Array.isArray(cfg.email_recipients) ? cfg.email_recipients : [];
       const isScheduled = type.trigger_mode === "scheduled";
+      // "assignee": não tem lista de destinatários pra escolher — vai
+      // direto pra quem é o Responsável/atribuído daquele item (calculado
+      // no banco, não configurável). Mostra um aviso no lugar do seletor.
+      const isAssignee = type.target_mode === "assignee";
       return `
         <div class="notif-cfg-row" data-kind="${escapeHtml(type.kind)}">
           <div class="notif-cfg-info">
@@ -458,11 +465,13 @@
               <input type="checkbox" data-field="email"${cfg.email ? " checked" : ""} aria-label="E-mail">
               <span>E-mail</span>
             </label>
-            <button type="button" class="notif-rcpt-trigger${list.length ? " has-value" : ""}"
+            ${isAssignee
+              ? `<span class="notif-cfg-desc" style="font-style:italic">Vai direto pro responsável — sem lista de destinatários.</span>`
+              : `<button type="button" class="notif-rcpt-trigger${list.length ? " has-value" : ""}"
               data-kind="${escapeHtml(type.kind)}"${cfg.email ? "" : " disabled"}>
               <span class="notif-rcpt-label">${escapeHtml(recipientsLabel(list))}</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
-            </button>
+            </button>`}
             ${isScheduled ? scheduleRowMarkup(cfg) : ""}
             <label class="notif-cfg-toggle notif-cfg-toggle-active">
               <input type="checkbox" data-field="is_active"${cfg.is_active !== false ? " checked" : ""} aria-label="Ativo">
