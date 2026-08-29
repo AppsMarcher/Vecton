@@ -146,6 +146,7 @@
         .sa3-subtab { border:1px solid var(--sa3-line); background:rgba(255,255,255,.02); color:var(--sa3-soft); padding:6px 12px; border-radius:9px; font-size:.74rem; font-weight:600; cursor:pointer; }
         .sa3-subtab.active { background:rgba(79,124,255,.14); border-color:rgba(79,124,255,.4); color:#8fb0ff; }
         .sa3-analysis-summary { width:100%; min-height:56px; resize:vertical; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.8rem; padding:9px 11px; margin-bottom:10px; }
+        .sa3-objective-text { white-space:pre-wrap; font-size:.82rem; line-height:1.5; color:var(--sa3-text); }
         .sa3-analysis-list { display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
         .sa3-analysis-item { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:start; padding:10px 12px; border-radius:9px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); font-size:.78rem; }
         .sa3-analysis-tag { padding:3px 9px; border-radius:999px; font-size:.64rem; font-weight:700; white-space:nowrap; }
@@ -510,20 +511,29 @@
         </div>
       ` : "";
 
-      const summary = state.periodAnalysis?.summary || "";
+      const hasObjective = !!(a3.objective && a3.objective.trim());
 
       root.innerHTML = `
         <button class="sa3-back" data-action="back-overview"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>Voltar</button>
         <div class="sa3-card">
           <div class="sa3-head">
-            <div><h2 style="color:${escapeHtml(a3.color || "#4f7cff")}">${escapeHtml(a3.name)}</h2><p>${escapeHtml(a3.objective || `${kpis.length} indicador${kpis.length === 1 ? "" : "es"}`)}</p></div>
+            <div><h2 style="color:${escapeHtml(a3.color || "#4f7cff")}">${escapeHtml(a3.name)}</h2><p>${kpis.length} indicador${kpis.length === 1 ? "" : "es"}</p></div>
             <button class="sa3-btn primary" data-action="open-entry">Preenchimento mensal</button>
           </div>
           ${tabsHtml}
           <div style="margin-top:12px">
-            <label style="display:block;font-size:.64rem;font-weight:700;text-transform:uppercase;color:var(--sa3-faint);margin-bottom:4px">Resumo do período (opcional)</label>
-            <textarea class="sa3-analysis-summary" data-field="analysis-summary" placeholder="Como foi o mês pra esta área, em 1 parágrafo...">${escapeHtml(summary)}</textarea>
-            <div style="text-align:right"><button class="sa3-btn" data-action="save-analysis-summary">Salvar resumo</button></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <label style="font-size:.64rem;font-weight:700;text-transform:uppercase;color:var(--sa3-faint)">Objetivo estratégico</label>
+              <button class="sa3-btn" data-action="toggle-objective-edit">Editar</button>
+            </div>
+            <p class="sa3-objective-text" data-objective-display>${hasObjective ? escapeHtml(a3.objective) : '<span style="color:var(--sa3-faint)">Objetivo estratégico ainda não cadastrado.</span>'}</p>
+            <div class="sa3-form hidden" data-objective-form>
+              <textarea class="sa3-analysis-summary" data-field="objective-text" placeholder="Objetivo estratégico deste A3...">${escapeHtml(a3.objective || "")}</textarea>
+              <div class="sa3-form-foot">
+                <button class="sa3-btn" data-action="cancel-objective-edit">Cancelar</button>
+                <button class="sa3-btn primary" data-action="save-objective">Salvar objetivo</button>
+              </div>
+            </div>
           </div>
         </div>
         ${kpiBlocks}
@@ -536,16 +546,27 @@
       root.querySelectorAll('[data-action="switch-tab"]').forEach((btn) => {
         btn.addEventListener("click", () => loadA3Detail(btn.dataset.a3Id, false));
       });
-      root.querySelector('[data-action="save-analysis-summary"]')?.addEventListener("click", async (e) => {
+
+      const objectiveForm = root.querySelector('[data-objective-form]');
+      root.querySelector('[data-action="toggle-objective-edit"]')?.addEventListener("click", () => objectiveForm?.classList.toggle("hidden"));
+      root.querySelector('[data-action="cancel-objective-edit"]')?.addEventListener("click", () => objectiveForm?.classList.add("hidden"));
+      root.querySelector('[data-action="save-objective"]')?.addEventListener("click", async (e) => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
         const btn = e.currentTarget;
-        const value = root.querySelector('[data-field="analysis-summary"]').value.trim();
+        const value = root.querySelector('[data-field="objective-text"]').value.trim();
         btn.disabled = true;
         try {
-          await saveAnalysis(state.a3Id, value, (items) => items);
+          const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/strategic_a3?id=eq.${state.a3Id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Prefer": "return=minimal" },
+            body: JSON.stringify({ objective: value || null })
+          });
+          if (!response.ok) throw new Error(await response.text());
+          if (state.a3Detail?.a3) state.a3Detail.a3.objective = value || null;
           renderShell();
         } catch (err) {
-          appAlert?.(friendlyError(err), "error"); btn.disabled = false;
+          appAlert?.(friendlyError(err), "error");
+          btn.disabled = false;
         }
       });
 
