@@ -182,6 +182,8 @@
       dirtyDrafts: {},         // { [kpiId]: { resultValue, drivers: {code: value} } } — edição em andamento, não salva
       attachments: { action: {}, analysis_item: {} }, // { [ownerType]: { [ownerId]: strategic_attachments[] } }
       orgUsers: null,          // usuários da org (picker de Responsáveis do plano de ação) — carregado 1x, cacheado
+      archivedA3: null,        // A3 desativadas (is_active=false) — carregado só ao abrir a tela "Itens arquivados"
+      archivedKpis: null,      // KPIs desativados — idem
       editingAction: null      // { kpiId, actionId, stagedFiles } — form de ação atualmente aberto.
                                 // actionId null = criando (ainda sem id pra anexar de verdade — stagedFiles
                                 // guarda os File[] escolhidos localmente, sobem todos juntos no Salvar).
@@ -200,6 +202,31 @@
     // só lê esse campo do estado já carregado da tela ativa, sem duplicar a
     // regra em JS.
     const canManage = () => !!(state.screen === "entry" ? state.monthlyEntry?.canEdit : state.a3Detail?.canEdit);
+
+    // Rascunho não salvo (melhoria #5 do review): state.dirtyDrafts existia
+    // declarado desde sempre mas nunca era escrito — Tela 3 deixava trocar
+    // de linha, sair ou recarregar a tela sem avisar que a edição em
+    // andamento ia se perder. markDirty só marca a linha (não guarda o
+    // valor em si — o DOM já é a fonte de verdade enquanto a tela não
+    // recarrega) e liga a classe visual; hasDirtyDrafts/clearDirtyDrafts dão
+    // os pontos de checagem usados nos guards de navegação abaixo.
+    const markDirty = (kpiId) => {
+      state.dirtyDrafts[kpiId] = true;
+      root.querySelector(`[data-kpi-row="${cssEscape(kpiId)}"]`)?.classList.add("dirty");
+    };
+    const hasDirtyDrafts = (exceptKpiId = null) =>
+      Object.keys(state.dirtyDrafts).some((id) => id !== exceptKpiId);
+    const clearDirtyDrafts = () => { state.dirtyDrafts = {}; };
+
+    // Fechar a aba/recarregar com rascunho pendente também avisa — só entra
+    // em jogo com a Tela 3 aberta e algo dirty (removido em destroy()).
+    const handleBeforeUnload = (e) => {
+      if (state.screen === "entry" && hasDirtyDrafts()) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     // Edição de CATÁLOGO (nome/subtítulo do indicador) é diferente de
     // editar o A3 em si — pedido do usuário (2026-08-29): só super_admin/
@@ -256,6 +283,13 @@
         .sa3-area-icon { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; font-weight:700; font-size:.72rem; background:rgba(255,255,255,.05); }
         .sa3-area-name { font-size:.82rem; font-weight:700; }
         .sa3-area-sub { font-size:.68rem; color:var(--sa3-faint); margin-top:1px; }
+        /* Tela "Itens arquivados" (melhoria #8 do review) — mesmo padrão
+           visual de sa3-area-row, sem o ícone/chevron (não navega). */
+        .sa3-archived-list { display:flex; flex-direction:column; gap:8px; }
+        .sa3-archived-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 15px; border-radius:12px; background:var(--sa3-panel); border:1px solid var(--sa3-line-soft); }
+        .sa3-archived-name { font-size:.82rem; font-weight:700; }
+        .sa3-archived-meta { font-size:.68rem; color:var(--sa3-faint); margin-top:1px; }
+        .sa3-archived-tag { font-size:.6rem; font-weight:700; text-transform:uppercase; color:var(--sa3-faint); border:1px solid var(--sa3-line); border-radius:999px; padding:1px 6px; margin-left:4px; vertical-align:middle; }
         .sa3-subtabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
         .sa3-subtab { border:1px solid var(--sa3-line); background:rgba(255,255,255,.02); color:var(--sa3-soft); padding:6px 12px; border-radius:9px; font-size:.74rem; font-weight:600; cursor:pointer; }
         .sa3-subtab.active { background:rgba(79,124,255,.14); border-color:rgba(79,124,255,.4); color:#8fb0ff; }
@@ -412,7 +446,12 @@
         .sa3-entry-driver-row { display:flex; align-items:center; gap:6px; margin-top:2px; }
         .sa3-entry-driver-row label { font-size:.62rem; color:var(--sa3-faint); flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .sa3-entry-driver-row input { width:76px; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.74rem; padding:5px 6px; text-align:right; }
-        .sa3-entry-save { padding-top:22px; display:flex; justify-content:flex-end; }
+        .sa3-entry-save { padding-top:22px; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+        /* Aviso de rascunho não salvo (melhoria #5 do review) — some por
+           padrão, .sa3-entry-row.dirty é quem revela (JS toggla a classe no
+           1º input tocado, sem re-renderizar a linha inteira). */
+        .sa3-dirty-badge { display:none; font-size:.64rem; font-weight:700; color:var(--sa3-amber); }
+        .sa3-entry-row.dirty .sa3-dirty-badge { display:inline; }
         /* Painel de composição (entry_mode='breakdown') — full-width, logo
            abaixo da linha compacta (não cabe nos 190px da coluna Real). */
         .sa3-breakdown-panel { padding:10px 14px 14px; margin:-2px 0 8px; border-radius:0 0 10px 10px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); border-top:none; }
@@ -502,6 +541,27 @@
         state.overview = await callSupabaseRpc("strategic_get_overview", {
           p_organization_id: state.organizationId, p_year: period.year, p_month: period.month
         });
+      } catch (err) {
+        state.error = friendlyError(err);
+      } finally {
+        state.loading = false; renderShell();
+      }
+    }
+
+    // Melhoria #8 do review: tela de itens arquivados (A3 + KPI
+    // is_active=false), só super_admin/admin (mesmo gate das RPCs de
+    // catálogo). Não depende do período do topo — sem reload em
+    // periodChanged, diferente de overview/detail/entry.
+    async function loadArchived() {
+      state.loading = true; state.error = ""; state.screen = "archived"; renderShell();
+      try {
+        await ensureContext();
+        const [a3s, kpis] = await Promise.all([
+          callSupabaseRpc("strategic_list_archived_a3", { p_organization_id: state.organizationId }),
+          callSupabaseRpc("strategic_list_archived_kpi", { p_organization_id: state.organizationId })
+        ]);
+        state.archivedA3 = a3s || [];
+        state.archivedKpis = kpis || [];
       } catch (err) {
         state.error = friendlyError(err);
       } finally {
@@ -690,6 +750,10 @@
           root.innerHTML = `<div class="sa3-loading">Carregando…</div>`;
           return;
         }
+        if (state.screen === "archived" && !state.archivedA3) {
+          root.innerHTML = `<div class="sa3-loading">Carregando…</div>`;
+          return;
+        }
       }
       if (state.error) {
         root.innerHTML = `<div class="sa3-error">${escapeHtml(state.error)}</div><button class="sa3-btn" data-action="retry">Tentar de novo</button>`;
@@ -700,6 +764,7 @@
       if (state.screen === "overview") renderOverviewScreen();
       else if (state.screen === "detail") renderDetailScreen();
       else if (state.screen === "entry") renderEntryScreen();
+      else if (state.screen === "archived") renderArchivedScreen();
     }
 
     function bindGlobal() {
@@ -753,7 +818,12 @@
         <div class="sa3-card">
           <div class="sa3-head">
             <div><h3>Áreas</h3><p>Abrir uma área leva ao A3 digital dela: metas x realizado, acumulado e plano de&nbsp;ação.</p></div>
-            ${isSuperAdminOrAdmin() ? '<button type="button" class="sa3-btn" data-action="open-create-a3">+ Criar A3</button>' : ""}
+            ${isSuperAdminOrAdmin() ? `
+              <div style="display:flex;gap:8px">
+                <button type="button" class="sa3-btn" data-action="open-archived">Itens arquivados</button>
+                <button type="button" class="sa3-btn" data-action="open-create-a3">+ Criar A3</button>
+              </div>
+            ` : ""}
           </div>
           <div class="sa3-area-list">${areaRows || '<div class="sa3-empty">Nenhuma área cadastrada pra este ciclo.</div>'}</div>
         </div>
@@ -763,6 +833,77 @@
         btn.addEventListener("click", () => loadA3Detail(btn.dataset.a3Id));
       });
       root.querySelector('[data-action="open-create-a3"]')?.addEventListener("click", () => openCreateA3Modal());
+      root.querySelector('[data-action="open-archived"]')?.addEventListener("click", () => loadArchived());
+    }
+
+    // -------------------------------------------------------- render: Itens arquivados
+    // Melhoria #8 do review: só listar não bastava — sem esta tela, restaurar
+    // um A3/KPI desativado exigia editar o banco na mão.
+    function renderArchivedScreen() {
+      const a3s = state.archivedA3 || [];
+      const kpis = state.archivedKpis || [];
+
+      const fmtDate = (d) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
+
+      const a3Rows = a3s.length ? a3s.map((a) => `
+        <div class="sa3-archived-row">
+          <div>
+            <div class="sa3-archived-name">${escapeHtml(a.name)}${a.parent_id ? ' <span class="sa3-archived-tag">A3-filha</span>' : ""}</div>
+            <div class="sa3-archived-meta">${escapeHtml(a.management || "Sem gestão")} · desativada em ${fmtDate(a.updated_at)}</div>
+          </div>
+          <button type="button" class="sa3-btn primary" data-action="restore-a3" data-a3-id="${escapeHtml(a.id)}">Restaurar</button>
+        </div>
+      `).join("") : `<div class="sa3-empty">Nenhuma A3 arquivada.</div>`;
+
+      const kpiRows = kpis.length ? kpis.map((k) => `
+        <div class="sa3-archived-row">
+          <div>
+            <div class="sa3-archived-name">${escapeHtml(k.name)}</div>
+            <div class="sa3-archived-meta">${escapeHtml(k.code)} · desativado em ${fmtDate(k.updated_at)}</div>
+          </div>
+          <button type="button" class="sa3-btn primary" data-action="restore-kpi" data-kpi-id="${escapeHtml(k.id)}">Restaurar</button>
+        </div>
+      `).join("") : `<div class="sa3-empty">Nenhum indicador arquivado.</div>`;
+
+      root.innerHTML = `
+        <button class="sa3-back" data-action="back-overview-archived"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>Voltar</button>
+        <div class="sa3-card">
+          <div class="sa3-head"><div><h2>A3 arquivadas</h2><p>Restaurar volta a A3 pra Tela 1. Se ela for filha, a A3-mãe precisa estar ativa antes.</p></div></div>
+          <div class="sa3-archived-list">${a3Rows}</div>
+        </div>
+        <div class="sa3-card">
+          <div class="sa3-head"><div><h2>Indicadores arquivados</h2><p>Restaurar volta o indicador pra A3 dona dele.</p></div></div>
+          <div class="sa3-archived-list">${kpiRows}</div>
+        </div>
+      `;
+
+      root.querySelector('[data-action="back-overview-archived"]')?.addEventListener("click", () => {
+        state.screen = "overview"; renderShell();
+      });
+      root.querySelectorAll('[data-action="restore-a3"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          btn.disabled = true;
+          try {
+            await callSupabaseRpc("strategic_restore_a3", { p_a3_id: btn.dataset.a3Id });
+            await loadArchived();
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+            btn.disabled = false;
+          }
+        });
+      });
+      root.querySelectorAll('[data-action="restore-kpi"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          btn.disabled = true;
+          try {
+            await callSupabaseRpc("strategic_restore_kpi", { p_kpi_id: btn.dataset.kpiId });
+            await loadArchived();
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+            btn.disabled = false;
+          }
+        });
+      });
     }
 
     // ---------------------------------------------------------------- render: Tela 2
@@ -1540,12 +1681,21 @@
         file_size: file.size || null,
         [ownerType === "action" ? "action_id" : "analysis_item_id"]: ownerId
       };
-      const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/strategic_attachments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Prefer": "return=minimal" },
-        body: JSON.stringify(body)
-      });
-      if (!response.ok) throw new Error(await response.text());
+      try {
+        const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/strategic_attachments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Prefer": "return=minimal" },
+          body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error(await response.text());
+      } catch (err) {
+        // Compensação (melhoria #6 do review): o arquivo já subiu pro
+        // Storage acima — se o metadado não gravar, não deixa órfão pra
+        // trás. Best-effort: se a exclusão também falhar, segue o erro
+        // original mesmo assim (usuário já vê a falha do upload).
+        await deleteFromStorage(ATTACHMENT_BUCKET, path).catch(() => {});
+        throw err;
+      }
     }
 
     // canAdd/canRemove são independentes — achado do usuário (2026-08-29):
@@ -2004,9 +2154,15 @@
           // EDIÇÃO (evita criar uma ação duplicada tentando de novo com
           // p_id null).
           form.dataset.editingId = action.id;
-          const stagedFiles = state.editingAction?.stagedFiles || [];
-          for (const file of stagedFiles) {
+          // Consome a fila por POP progressivo — se o upload de 1 arquivo
+          // falhar, os que já subiram já saíram de stagedFiles, então um
+          // retry do Salvar (cai no caminho de edição, action.id já travado
+          // acima) só tenta de novo os que faltaram, nunca duplica os que
+          // já subiram (melhoria #6 do review).
+          while (state.editingAction?.stagedFiles?.length) {
+            const file = state.editingAction.stagedFiles[0];
             await uploadAttachment("action", action.id, file);
+            state.editingAction.stagedFiles = state.editingAction.stagedFiles.slice(1);
           }
           state.editingAction = null; // Salvar fecha o form de vez (diferente de anexar, que mantém aberto)
           await loadA3Detail(state.a3Id);
@@ -2115,7 +2271,14 @@
         </div>
       `;
 
-      root.querySelector('[data-action="back-detail"]')?.addEventListener("click", () => loadA3Detail(state.a3Id, false));
+      root.querySelector('[data-action="back-detail"]')?.addEventListener("click", async () => {
+        if (hasDirtyDrafts()) {
+          const ok = await appConfirm?.("Você tem alterações não salvas nesta tela. Sair mesmo assim?", "warn");
+          if (!ok) return;
+          clearDirtyDrafts();
+        }
+        loadA3Detail(state.a3Id, false);
+      });
       root.querySelector('[data-action="sync-computed"]')?.addEventListener("click", async () => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
         try {
@@ -2254,7 +2417,7 @@
           </div>
           ${targetInputs}
           ${realCell}
-          <div class="sa3-entry-save">${saveBtn}</div>
+          <div class="sa3-entry-save"><span class="sa3-dirty-badge">Não salvo</span>${saveBtn}</div>
         </div>
         ${breakdownPanel}
       `;
@@ -2308,19 +2471,27 @@
       return base || `linha_${index + 1}`;
     }
 
-    // Add/remove de linha do painel de composição — puramente client-side
-    // até o Salvar da linha (mesmo padrão do form de driver, que também só
-    // lê o DOM na hora de salvar, sem draft em state).
+    // Add/remove de linha do painel de composição — client-side até o
+    // Salvar da linha, mas agora marca dirty (melhoria #5 do review: antes
+    // era "sem draft em state" de propósito, só que isso incluía não
+    // avisar quando a pessoa tinha composição inteira montada e saía sem
+    // salvar).
     function bindBreakdownPanel(k) {
       const panel = root.querySelector(`[data-breakdown-panel="${cssEscape(k.id)}"]`);
       if (!panel) return;
       const showWeight = k.monthlyCalculation === "weighted_average";
       const rowsWrap = panel.querySelector(`[data-breakdown-rows="${cssEscape(k.id)}"]`);
 
-      const bindRemove = (rowEl) => {
-        rowEl.querySelector('[data-action="remove-breakdown-row"]')?.addEventListener("click", () => rowEl.remove());
+      const bindRow = (rowEl) => {
+        rowEl.querySelectorAll("input").forEach((inp) => {
+          inp.addEventListener("input", () => markDirty(k.id));
+        });
+        rowEl.querySelector('[data-action="remove-breakdown-row"]')?.addEventListener("click", () => {
+          rowEl.remove();
+          markDirty(k.id);
+        });
       };
-      rowsWrap?.querySelectorAll("[data-breakdown-row]").forEach(bindRemove);
+      rowsWrap?.querySelectorAll("[data-breakdown-row]").forEach(bindRow);
 
       panel.querySelector('[data-action="add-breakdown-row"]')?.addEventListener("click", () => {
         rowsWrap.querySelector(".sa3-empty")?.remove();
@@ -2328,7 +2499,8 @@
         wrap.innerHTML = renderBreakdownRow({}, rowsWrap.children.length, showWeight, false).trim();
         const rowEl = wrap.firstElementChild;
         rowsWrap.appendChild(rowEl);
-        bindRemove(rowEl);
+        bindRow(rowEl);
+        markDirty(k.id);
       });
     }
 
@@ -2343,10 +2515,25 @@
       const rowEl = root.querySelector(`[data-kpi-row="${cssEscape(k.id)}"]`);
       const btn = root.querySelector(`[data-action="save-row"][data-kpi-id="${cssEscape(k.id)}"]`);
 
+      // Rascunho não salvo: qualquer input tocado nesta linha (meta, real,
+      // direcionador) marca dirty — mesmo listener serve pra qualquer
+      // entry_mode, já cobre tudo que está DENTRO de rowEl (breakdown fica
+      // num painel separado, bindBreakdownPanel cuida da parte dele).
+      rowEl?.querySelectorAll("input").forEach((inp) => {
+        inp.addEventListener("input", () => markDirty(k.id));
+      });
+
       if (k.entryMode === "breakdown") bindBreakdownPanel(k);
 
       btn?.addEventListener("click", async () => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
+        if (hasDirtyDrafts(k.id)) {
+          const ok = await appConfirm?.(
+            "Você tem alterações não salvas em outro(s) indicador(es) desta tela — elas serão perdidas ao salvar este. Continuar?",
+            "warn"
+          );
+          if (!ok) return;
+        }
         btn.disabled = true;
         try {
           const { year, month } = currentPeriod();
@@ -2454,6 +2641,10 @@
       state.cycleId = null;
       state.scenarioId = null;
       state.contextYear = null;
+      state.dirtyDrafts = {};
+      state.archivedA3 = null;
+      state.archivedKpis = null;
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     }
 
     // Clicar no item "A3 Estratégicos" do menu lateral enquanto já está
