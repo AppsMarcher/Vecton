@@ -23,7 +23,8 @@
       manager:     "Gestor",
       analyst:     "Analista",
       comercial:   "Comercial",
-      rps_gestao:  "RPS Gestão"
+      rps_gestao:  "RPS Gestão",
+      gestao_estrategica: "A3 Estratégicos"
     };
 
     const ROLE_COLORS = {
@@ -32,7 +33,8 @@
       manager:     "#22c55e",
       analyst:     "#8b5cf6",
       comercial:   "#14b8a6",
-      rps_gestao:  "#f472b6"
+      rps_gestao:  "#f472b6",
+      gestao_estrategica: "#4f7cff"
     };
 
     // Perfis de acesso se combinam (ex: Comercial + RPS Gestão numa mesma

@@ -113,8 +113,15 @@
       orgUsers: null           // usuários da org (picker de Responsáveis do plano de ação) — carregado 1x, cacheado
     };
 
-    const myRoles = () => (getAllAccessRoles ? getAllAccessRoles() : []);
-    const canManage = () => myRoles().some((r) => ["super_admin", "admin", "gestao_estrategica"].includes(r));
+    // RBAC granular por A3 (2026-08-29, migrations 142-145): não dá mais
+    // pra decidir "pode editar" só olhando o papel da pessoa — depende de
+    // QUAL A3 está em tela (Gestor edita só a Gestão dele; A3 Estratégicos
+    // só o que foi concedido). O banco já resolve isso corretamente
+    // (strategic_can_edit_a3) e devolve o resultado pronto em "canEdit" nas
+    // RPCs strategic_get_a3_detail/strategic_get_monthly_entry — canManage()
+    // só lê esse campo do estado já carregado da tela ativa, sem duplicar a
+    // regra em JS.
+    const canManage = () => !!(state.screen === "entry" ? state.monthlyEntry?.canEdit : state.a3Detail?.canEdit);
 
     const currentPeriod = () => {
       const p = getPeriod ? getPeriod() : { year: 2026, month: 1 };

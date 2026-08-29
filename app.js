@@ -2042,12 +2042,17 @@ function canAccessReportsMenu() { return isSuperAdmin() || isAdmin() || isManage
 // Mesmo conjunto de canFillValues() na RPS (rpsModule.js) — quem não preenche
 // valores também não precisa ver o menu. Comercial/Analista "puros" ficam de fora.
 function canAccessRps() { return isSuperAdmin() || isAdmin() || isManager() || isRpsGestao(); }
-// Módulo isolado (decisão #15/#22 da especificação): sem leitura ampla —
-// só super_admin/admin/gestao_estrategica, nunca manager/analyst/comercial
-// "puros" como no RPS Gestão acima. A RLS do banco já bloqueia de verdade
-// (can_manage_strategic_a3, migration 128); isto aqui só evita mostrar o
-// menu pra quem de qualquer forma tomaria 403 nas RPCs.
-function canAccessStrategic() { return isSuperAdmin() || isAdmin() || isGestaoEstrategica(); }
+// RBAC granular por A3 desde 2026-08-29 (migrations 142-145): manager
+// (Gestor) ganhou visão TOTAL do módulo (edição continua restrita à Gestão
+// dele, ou ao que foi concedido em extra_strategic_a3_ids — validado no
+// banco, strategic_can_view_a3/strategic_can_edit_a3). gestao_estrategica
+// virou o perfil "A3 Estratégicos": só enxerga o que estiver em
+// extra_strategic_a3_ids (pode ser nada, se ninguém configurou ainda) — o
+// próprio strategic_get_overview já filtra as áreas por permissão, então
+// não precisa filtrar aqui, só decidir se mostra o item de menu. A RLS/RPCs
+// do banco já bloqueiam de verdade (migrations 143-145); isto aqui só evita
+// mostrar o menu pra quem de qualquer forma tomaria "sem permissão".
+function canAccessStrategic() { return isSuperAdmin() || isAdmin() || isManager() || isGestaoEstrategica(); }
 function canAccessParams()    { return isAdmin(); }
 function canManageUsers()     { return isAdmin(); }
 function getUserManagement()  { return state.profile?.management || null; }
