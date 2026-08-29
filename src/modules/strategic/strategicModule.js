@@ -41,6 +41,9 @@
   const ACTION_STATUS_TONE = {
     not_started: "muted", in_progress: "warn", on_hold: "pause", done: "pos", cancelled: "cancel"
   };
+  // Ação "encerrada" (pedido do usuário, 2026-08-29): concluída ou cancelada
+  // trava a inclusão (e remoção) de anexos — só lista o que já existe.
+  const ACTION_CLOSED_STATUSES = ["done", "cancelled"];
 
   // priority é coluna livre (sem CHECK no banco, migration 128) — armazena o
   // rótulo em pt-BR direto, sem tabela de tradução (diferente de status, que
@@ -110,7 +113,11 @@
       periodAnalysis: null,    // { id, summary, strategic_analysis_items: [...] } do A3+mês ativo, ou null se nunca salvo
       dirtyDrafts: {},         // { [kpiId]: { resultValue, drivers: {code: value} } } — edição em andamento, não salva
       attachments: { action: {}, analysis_item: {} }, // { [ownerType]: { [ownerId]: strategic_attachments[] } }
-      orgUsers: null           // usuários da org (picker de Responsáveis do plano de ação) — carregado 1x, cacheado
+      orgUsers: null,          // usuários da org (picker de Responsáveis do plano de ação) — carregado 1x, cacheado
+      editingAction: null      // { kpiId, actionId } — form de ação atualmente aberto (actionId null = criando).
+                                // Anexo agora é gerenciado DENTRO do form (upload dispara renderShell(), que
+                                // reconstrói a tela inteira — sem isso o form fechava sozinho a cada anexo
+                                // adicionado). bindActionForm reabre + repreenche usando isto a cada render.
     };
 
     // RBAC granular por A3 (2026-08-29, migrations 142-145): não dá mais
@@ -1102,25 +1109,27 @@
       if (!response.ok) throw new Error(await response.text());
     }
 
-    function renderAttachmentsStrip(ownerType, ownerId, title) {
+    // readOnly = true trava add E remove (ação encerrada — status done/
+    // cancelled, ver ACTION_CLOSED_STATUSES): só lista os anexos já
+    // existentes, sem nenhum controle de edição.
+    function renderAttachmentsStrip(ownerType, ownerId, title, readOnly) {
       const list = (state.attachments?.[ownerType]?.[ownerId]) || [];
       const chips = list.map((att, index) => `
         <span class="sa3-attachment-chip" data-attachment-open data-owner-type="${ownerType}" data-owner-id="${escapeHtml(ownerId)}" data-index="${index}" data-title="${escapeHtml(title || "")}" title="${escapeHtml(att.file_name)}">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v2"/></svg>
           <span class="sa3-attachment-name">${escapeHtml(truncateFileName(att.file_name))}</span>
-          <button type="button" class="sa3-attachment-remove" data-action="remove-attachment" data-attachment-id="${escapeHtml(att.id)}" data-attachment-path="${escapeHtml(att.storage_path)}" title="Remover anexo">&times;</button>
+          ${readOnly ? "" : `<button type="button" class="sa3-attachment-remove" data-action="remove-attachment" data-attachment-id="${escapeHtml(att.id)}" data-attachment-path="${escapeHtml(att.storage_path)}" title="Remover anexo">&times;</button>`}
         </span>
       `).join("");
-      return `
-        <div class="sa3-attachments">
-          ${chips}
-          <label class="sa3-attachment-add">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
-            Anexar
-            <input type="file" data-action="upload-attachment" data-owner-type="${ownerType}" data-owner-id="${escapeHtml(ownerId)}" hidden>
-          </label>
-        </div>
+      const addControl = readOnly ? "" : `
+        <label class="sa3-attachment-add">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+          Anexar
+          <input type="file" data-action="upload-attachment" data-owner-type="${ownerType}" data-owner-id="${escapeHtml(ownerId)}" hidden>
+        </label>
       `;
+      if (!list.length && readOnly) return `<div class="sa3-empty">Nenhum anexo.</div>`;
+      return `<div class="sa3-attachments">${chips}${addControl}</div>`;
     }
 
     // -------------------------------------------------------- Carrossel de anexos
@@ -1318,7 +1327,7 @@
             <button type="button" class="sa3-icon-btn" data-action="edit-action-item" data-action-id="${escapeHtml(a.id)}" title="Editar">${ICON_EDIT}</button>
             <button type="button" class="sa3-icon-btn" data-action="delete-action-item" data-action-id="${escapeHtml(a.id)}" title="Excluir">${ICON_TRASH}</button>
           </div>
-          <div style="grid-column:1/-1">${renderAttachmentsStrip("action", a.id, a.title)}</div>
+          <div style="grid-column:1/-1">${renderAttachmentsStrip("action", a.id, a.title, ACTION_CLOSED_STATUSES.includes(a.status))}</div>
         </div>
       `;
     }
@@ -1352,14 +1361,8 @@
             <div class="sa3-owner-list hidden" data-owner-list>${ownersHtml}</div>
           </div>
           <div>
-            <label>Anexo (opcional)</label>
-            <div class="vecton-file-field">
-              <span class="vecton-file-trigger">
-                <span class="vecton-file-btn">Selecionar arquivo</span>
-                <span class="vecton-file-name" data-file-name>Nenhum arquivo selecionado</span>
-              </span>
-              <input type="file" data-field="attachment" class="vecton-file-native">
-            </div>
+            <label>Anexos (opcional)</label>
+            <div data-action-attachments><div class="sa3-empty">Anexos ficam disponíveis depois de salvar a ação pela primeira vez.</div></div>
           </div>
           <div class="sa3-form-foot">
             <button class="sa3-btn" data-action="cancel-action-form" data-kpi-id="${escapeHtml(kpiId)}">Cancelar</button>
@@ -1400,10 +1403,16 @@
       updateOwnerSummary(form);
       form.querySelector("[data-owner-list]")?.classList.add("hidden");
       form.querySelector('[data-action="toggle-owners"]')?.setAttribute("aria-expanded", "false");
-      const fileInput = form.querySelector('[data-field="attachment"]');
-      if (fileInput) fileInput.value = "";
-      const fileNameEl = form.querySelector("[data-file-name]");
-      if (fileNameEl) fileNameEl.textContent = "Nenhum arquivo selecionado";
+      // Anexos: gerenciados AQUI dentro do form (não mais um input avulso
+      // staged pro Salvar) — precisa do id real da ação, então só existe
+      // depois do primeiro save. Cada anexo some pra plano "encerrado"
+      // (concluída/cancelada, ver ACTION_CLOSED_STATUSES).
+      const attachEl = form.querySelector("[data-action-attachments]");
+      if (attachEl) {
+        attachEl.innerHTML = action?.id
+          ? renderAttachmentsStrip("action", action.id, action.title, ACTION_CLOSED_STATUSES.includes(action.status))
+          : `<div class="sa3-empty">Anexos ficam disponíveis depois de salvar a ação pela primeira vez.</div>`;
+      }
       form.dataset.editingId = action?.id || "";
       const saveBtn = form.querySelector('[data-action="save-action"]');
       if (saveBtn) saveBtn.textContent = action ? "Salvar alterações" : "Salvar ação";
@@ -1416,11 +1425,15 @@
       const saveBtn = root.querySelector(`[data-action="save-action"][data-kpi-id="${cssEscape(kpiId)}"]`);
 
       toggleBtn?.addEventListener("click", () => {
-        if (form?.classList.contains("hidden")) fillActionForm(form, null);
+        const opening = form?.classList.contains("hidden");
+        if (opening) { fillActionForm(form, null); state.editingAction = { kpiId, actionId: null }; }
+        else { state.editingAction = null; }
         form?.classList.toggle("hidden");
       });
-      cancelBtn?.addEventListener("click", () => form?.classList.add("hidden"));
-      bindFileNameDisplay(form);
+      cancelBtn?.addEventListener("click", () => {
+        form?.classList.add("hidden");
+        state.editingAction = null;
+      });
 
       // Popover de Responsáveis: fechado por padrão, só abre no clique do
       // botão-flag; qualquer marcação/desmarcação atualiza o resumo na hora.
@@ -1447,8 +1460,6 @@
           return;
         }
         const ownerIds = Array.from(form.querySelectorAll('[data-field="owner"]:checked')).map((cb) => cb.value);
-        const file = form.querySelector('[data-field="attachment"]')?.files?.[0] || null;
-        if (file && file.size > MAX_ATTACHMENT_BYTES) { appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB.`, "warn"); return; }
         const editingId = form.dataset.editingId || null;
         saveBtn.disabled = true;
         // strategic_save_action substitui a lista INTEIRA de vínculos a cada
@@ -1481,13 +1492,27 @@
             p_kpi_ids: kpiIds,
             p_owner_user_ids: ownerIds
           });
-          if (file && action?.id) await uploadAttachment("action", action.id, file);
+          state.editingAction = null; // Salvar fecha o form de vez (diferente de anexar, que mantém aberto)
           await loadA3Detail(state.a3Id);
         } catch (err) {
           appAlert?.(friendlyError(err), "error");
           saveBtn.disabled = false;
         }
       });
+
+      // Restaura o form aberto+preenchido depois de QUALQUER re-render da
+      // tela (loadA3Detail roda de novo a cada anexo incluído/removido no
+      // form, achado do usuário 2026-08-29: sem isso o form fechava sozinho
+      // a cada anexo, "os anexos somem" ao reabrir editar era o mesmo
+      // sintoma — a lista de anexos existentes nunca aparecia dentro do
+      // form, só no card por trás dele).
+      if (state.editingAction && state.editingAction.kpiId === kpiId) {
+        const restoredAction = state.editingAction.actionId
+          ? state.actions.find((a) => a.id === state.editingAction.actionId)
+          : null;
+        fillActionForm(form, restoredAction);
+        form?.classList.remove("hidden");
+      }
     }
 
     // Editar/excluir ação — ligado uma vez só (não por KPI, como as ações
@@ -1501,6 +1526,7 @@
           if (!action || !form) return;
           fillActionForm(form, action);
           form.classList.remove("hidden");
+          state.editingAction = { kpiId: form.dataset.actionForm, actionId: action.id };
           form.scrollIntoView({ behavior: "smooth", block: "nearest" });
         });
       });
