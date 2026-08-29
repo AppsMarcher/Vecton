@@ -462,32 +462,6 @@
       }
     }
 
-    // Upsert direto na tabela (RLS já garante can_manage_strategic_a3 —
-    // não precisa de RPC pra isso, mesmo padrão de upsertSupabaseRows do
-    // resto do Vecton). Sempre manda a linha inteira (não é update
-    // parcial), então não cai no gotcha de upsert documentado no projeto.
-    async function saveKpiTarget(kpiId, payload) {
-      const body = {
-        kpi_id: kpiId,
-        scenario_id: state.scenarioId,
-        year: payload.year,
-        month: payload.month,
-        target_value: payload.target_value ?? null,
-        target_min: payload.target_min ?? null,
-        target_max: payload.target_max ?? null,
-        tolerance: payload.tolerance ?? null
-      };
-      const response = await authenticatedFetch(
-        `${supabaseApiUrl}/rest/v1/strategic_kpi_targets?on_conflict=kpi_id,scenario_id,year,month`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates" },
-          body: JSON.stringify(body)
-        }
-      );
-      if (!response.ok) throw new Error(await response.text());
-    }
-
     async function fetchRest(table, query) {
       const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/${table}?${query}`);
       if (!response.ok) throw new Error(await response.text());
@@ -2107,7 +2081,7 @@
       root.querySelector('[data-action="sync-computed"]')?.addEventListener("click", async () => {
         try {
           await callSupabaseRpc("strategic_sync_computed_kpi_records", {
-            p_organization_id: state.organizationId, p_year: period.year, p_month: period.month
+            p_organization_id: state.organizationId, p_year: period.year, p_month: period.month, p_a3_id: state.a3Id
           });
           await loadMonthlyEntry(state.a3Id);
         } catch (err) { appAlert?.(friendlyError(err), "error"); }
@@ -2234,7 +2208,7 @@
       }
 
       return `
-        <div class="sa3-entry-row" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="${escapeHtml(k.entryMode)}" data-version="${k.version ?? ""}">
+        <div class="sa3-entry-row" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="${escapeHtml(k.entryMode)}" data-version="${k.version ?? ""}" data-target-version="${k.target?.version ?? ""}">
           <div>
             <div class="sa3-entry-name">${escapeHtml(k.name)}${k.entryMode === "computed" ? '<span class="sa3-badge-auto">Auto</span>' : ""}</div>
             ${nameNote}
@@ -2319,9 +2293,12 @@
       });
     }
 
-    // Um Salvar só: manda a meta (sempre) e o realizado (conforme o modo) na
-    // mesma ação. Em 'computed', salvar aqui é a sobrescrita manual da
-    // sugestão automática — strategic_save_kpi_record já aceita isso.
+    // Um Salvar só: manda a meta e o realizado (conforme o modo) NUMA ÚNICA
+    // chamada de RPC transacional — strategic_save_kpi_record ganhou os
+    // parâmetros de meta na migration 163 (achado #7 do review: antes eram
+    // 2 gravações separadas, se o realizado falhasse a meta já tinha ido).
+    // Em 'computed', salvar aqui é a sobrescrita manual da sugestão
+    // automática — strategic_save_kpi_record já aceita isso.
     function bindEntryRow(k, isClosed) {
       if (isClosed) return;
       const rowEl = root.querySelector(`[data-kpi-row="${cssEscape(k.id)}"]`);
@@ -2334,7 +2311,16 @@
         btn.disabled = true;
         try {
           const { year, month } = currentPeriod();
-          await saveKpiTarget(k.id, { year, month, ...readTargetPayload(rowEl) });
+          const targetPayload = readTargetPayload(rowEl);
+          const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
+          const targetVersion = rowEl.dataset.targetVersion ? Number(rowEl.dataset.targetVersion) : null;
+          const targetParams = {
+            p_target_value: targetPayload.target_value,
+            p_target_min: targetPayload.target_min,
+            p_target_max: targetPayload.target_max,
+            p_tolerance: targetPayload.tolerance,
+            p_expected_target_version: targetVersion
+          };
 
           if (k.entryMode === "drivers") {
             const inputs = rowEl.querySelectorAll("[data-driver-code]");
@@ -2342,9 +2328,9 @@
               driver_code: inp.dataset.driverCode,
               numeric_value: inp.value === "" ? null : Number(inp.value)
             }));
-            const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
             await callSupabaseRpc("strategic_save_kpi_record", {
-              p_kpi_id: k.id, p_year: year, p_month: month, p_expected_version: version, p_driver_inputs: driverInputs
+              p_kpi_id: k.id, p_year: year, p_month: month, p_expected_version: version, p_driver_inputs: driverInputs,
+              ...targetParams
             });
           } else if (k.entryMode === "breakdown") {
             const panelEl = root.querySelector(`[data-breakdown-panel="${cssEscape(k.id)}"]`);
@@ -2367,17 +2353,17 @@
                 };
               })
               .filter((r) => r.dimension_label); // ignora linha em branco adicionada e não preenchida
-            const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
             await callSupabaseRpc("strategic_save_kpi_record", {
-              p_kpi_id: k.id, p_year: year, p_month: month, p_expected_version: version, p_breakdown_rows: breakdownRows
+              p_kpi_id: k.id, p_year: year, p_month: month, p_expected_version: version, p_breakdown_rows: breakdownRows,
+              ...targetParams
             });
           } else {
             // direct, ou sobrescrita manual de 'computed'
             const input = rowEl.querySelector('[data-field="result"]');
             const value = input && input.value !== "" ? Number(input.value) : null;
-            const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
             await callSupabaseRpc("strategic_save_kpi_record", {
-              p_kpi_id: k.id, p_year: year, p_month: month, p_result_value: value, p_expected_version: version
+              p_kpi_id: k.id, p_year: year, p_month: month, p_result_value: value, p_expected_version: version,
+              ...targetParams
             });
           }
           await loadMonthlyEntry(state.a3Id);
