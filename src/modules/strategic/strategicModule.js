@@ -148,13 +148,17 @@
         .sa3-analysis-summary { width:100%; min-height:56px; resize:vertical; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.8rem; padding:9px 11px; margin-bottom:10px; }
         .sa3-objective-text { white-space:pre-wrap; font-size:.82rem; line-height:1.5; color:var(--sa3-text); }
         .sa3-analysis-list { display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
-        .sa3-analysis-item { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:start; padding:10px 12px; border-radius:9px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); font-size:.78rem; }
+        .sa3-analysis-item { padding:10px 12px; border-radius:9px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); font-size:.78rem; }
+        .sa3-analysis-item-row { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:start; }
+        .sa3-analysis-item-row.hidden { display:none; }
         .sa3-analysis-tag { padding:3px 9px; border-radius:999px; font-size:.64rem; font-weight:700; white-space:nowrap; }
         .sa3-analysis-tag.cause { background:rgba(245,158,11,.12); color:var(--sa3-amber); }
         .sa3-analysis-tag.countermeasure { background:rgba(74,222,128,.12); color:var(--sa3-pos); }
         .sa3-analysis-kpis { margin-top:5px; display:flex; gap:5px; flex-wrap:wrap; }
         .sa3-analysis-kpi-chip { font-size:.62rem; color:var(--sa3-faint); background:rgba(255,255,255,.04); border-radius:999px; padding:2px 7px; }
-        .sa3-analysis-remove { background:none; border:none; color:var(--sa3-faint); cursor:pointer; padding:2px; }
+        .sa3-item-actions { display:flex; gap:4px; }
+        .sa3-icon-btn { background:none; border:none; color:var(--sa3-faint); cursor:pointer; padding:2px; }
+        .sa3-icon-btn:hover { color:var(--sa3-text); }
         .sa3-attachments { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:8px; }
         .sa3-attachment-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 6px 4px 8px; border-radius:999px; background:rgba(255,255,255,.04); border:1px solid var(--sa3-line-soft); font-size:.68rem; color:var(--sa3-soft); cursor:pointer; max-width:220px; }
         .sa3-attachment-chip:hover { border-color:rgba(79,124,255,.4); }
@@ -163,7 +167,6 @@
         .sa3-attachment-remove:hover { color:var(--sa3-neg); }
         .sa3-attachment-add { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:999px; border:1px dashed var(--sa3-line); color:var(--sa3-faint); font-size:.68rem; font-weight:600; cursor:pointer; }
         .sa3-attachment-add:hover { border-color:rgba(79,124,255,.4); color:#8fb0ff; }
-        .sa3-analysis-remove:hover { color:var(--sa3-neg); }
         .sa3-kpi-check-list { display:flex; flex-direction:column; gap:4px; max-height:120px; overflow-y:auto; border:1px solid var(--sa3-line); border-radius:8px; padding:8px 10px; }
         .sa3-kpi-check-list label { display:flex; align-items:center; gap:7px; font-size:.76rem; text-transform:none; font-weight:400; color:var(--sa3-soft); }
         .sa3-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.66rem; font-weight:700; white-space:nowrap; }
@@ -189,7 +192,7 @@
         .sa3-bar-real.neg { background:linear-gradient(180deg,#f87171,#dc2626); }
         .sa3-bar-month { font-size:.58rem; color:var(--sa3-faint); text-transform:uppercase; }
         .sa3-action-plan { margin-top:14px; padding-top:12px; border-top:1px solid var(--sa3-line-soft); }
-        .sa3-action-item { display:grid; grid-template-columns:1fr 130px 90px 110px; gap:10px; align-items:center; padding:9px 12px; border-radius:9px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); font-size:.75rem; margin-bottom:6px; }
+        .sa3-action-item { display:grid; grid-template-columns:1fr 130px 90px 110px 56px; gap:10px; align-items:center; padding:9px 12px; border-radius:9px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); font-size:.75rem; margin-bottom:6px; }
         .sa3-action-desc { color:var(--sa3-text); }
         .sa3-action-meta { color:var(--sa3-faint); font-size:.68rem; }
         .sa3-empty { display:flex; align-items:center; gap:8px; padding:12px; border-radius:10px; border:1px dashed var(--sa3-line-soft); color:var(--sa3-faint); font-size:.76rem; }
@@ -572,6 +575,7 @@
 
       kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); });
       bindAnalysisRemoveButtons();
+      bindActionItemButtons();
       bindAttachmentWidgets();
     }
 
@@ -584,21 +588,48 @@
     // (strategic_analysis_item_kpis) — um item pode em tese aparecer sob
     // mais de 1 KPI se for linkado a vários, mas o formulário daqui só
     // cria vínculo com o KPI de onde foi aberto.
+    // Ícones compactos reaproveitados em causas/contramedidas e plano de ação.
+    const ICON_EDIT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`;
+    const ICON_TRASH = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>`;
+
+    // Cada item tem sua própria mini-forma de edição escondida (não reaproveita
+    // a forma de "novo item" — evita ter que rastrear "criando vs editando"
+    // no mesmo form compartilhado por todos os itens do KPI).
+    function renderAnalysisItem(it) {
+      return `
+        <div class="sa3-analysis-item" data-analysis-item-id="${escapeHtml(it.id)}">
+          <div class="sa3-analysis-item-row" data-item-view>
+            <span class="sa3-analysis-tag ${it.item_type}">${it.item_type === "cause" ? "Causa" : "Contramedida"}</span>
+            <div>${escapeHtml(it.description)}</div>
+            <div class="sa3-item-actions">
+              <button type="button" class="sa3-icon-btn" data-action="edit-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Editar">${ICON_EDIT}</button>
+              <button type="button" class="sa3-icon-btn" data-action="remove-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Excluir">${ICON_TRASH}</button>
+            </div>
+            <div style="grid-column:1/-1">${renderAttachmentsStrip("analysis_item", it.id, it.description)}</div>
+          </div>
+          <div class="sa3-form hidden" data-item-edit-form="${escapeHtml(it.id)}">
+            <div class="sa3-form-grid" style="grid-template-columns:150px 1fr">
+              <div><label>Tipo</label><select data-field="item_type">
+                <option value="cause" ${it.item_type === "cause" ? "selected" : ""}>Causa</option>
+                <option value="countermeasure" ${it.item_type === "countermeasure" ? "selected" : ""}>Contramedida</option>
+              </select></div>
+              <div><label>Descrição</label><input type="text" data-field="description" value="${escapeHtml(it.description)}"></div>
+            </div>
+            <div class="sa3-form-foot">
+              <button class="sa3-btn" data-action="cancel-item-edit" data-item-id="${escapeHtml(it.id)}">Cancelar</button>
+              <button class="sa3-btn primary" data-action="save-item-edit" data-item-id="${escapeHtml(it.id)}">Salvar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     function renderKpiAnalysisSection(k) {
       const items = (state.periodAnalysis?.strategic_analysis_items || [])
         .filter((it) => (it.strategic_analysis_item_kpis || []).some((l) => l.kpi_id === k.id))
         .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
 
-      const itemsHtml = items.length ? items.map((it) => `
-        <div class="sa3-analysis-item">
-          <span class="sa3-analysis-tag ${it.item_type}">${it.item_type === "cause" ? "Causa" : "Contramedida"}</span>
-          <div>${escapeHtml(it.description)}</div>
-          <button class="sa3-analysis-remove" data-action="remove-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Remover">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-          <div style="grid-column:1/-1">${renderAttachmentsStrip("analysis_item", it.id)}</div>
-        </div>
-      `).join("") : `<div class="sa3-empty">Nenhuma causa ou contramedida registrada.</div>`;
+      const itemsHtml = items.length ? items.map((it) => renderAnalysisItem(it)).join("") : `<div class="sa3-empty">Nenhuma causa ou contramedida registrada.</div>`;
 
       return `
         <div class="sa3-action-plan">
@@ -684,6 +715,43 @@
             renderShell();
           } catch (err) {
             appAlert?.(friendlyError(err), "error");
+          }
+        });
+      });
+
+      root.querySelectorAll('[data-action="edit-analysis-item"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const wrap = root.querySelector(`[data-analysis-item-id="${cssEscape(btn.dataset.itemId)}"]`);
+          wrap?.querySelector("[data-item-view]")?.classList.add("hidden");
+          wrap?.querySelector(`[data-item-edit-form="${cssEscape(btn.dataset.itemId)}"]`)?.classList.remove("hidden");
+        });
+      });
+
+      root.querySelectorAll('[data-action="cancel-item-edit"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const wrap = root.querySelector(`[data-analysis-item-id="${cssEscape(btn.dataset.itemId)}"]`);
+          wrap?.querySelector(`[data-item-edit-form="${cssEscape(btn.dataset.itemId)}"]`)?.classList.add("hidden");
+          wrap?.querySelector("[data-item-view]")?.classList.remove("hidden");
+        });
+      });
+
+      root.querySelectorAll('[data-action="save-item-edit"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
+          const itemId = btn.dataset.itemId;
+          const form = root.querySelector(`[data-item-edit-form="${cssEscape(itemId)}"]`);
+          const itemType = form.querySelector('[data-field="item_type"]').value;
+          const description = form.querySelector('[data-field="description"]').value.trim();
+          if (!description) { appAlert?.("Descreva a causa ou contramedida antes de salvar.", "warn"); return; }
+          btn.disabled = true;
+          try {
+            await saveAnalysis(state.a3Id, undefined, (items) => items.map((it) =>
+              it.id === itemId ? { ...it, item_type: itemType, description } : it
+            ));
+            renderShell();
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+            btn.disabled = false;
           }
         });
       });
@@ -794,10 +862,10 @@
       if (!response.ok) throw new Error(await response.text());
     }
 
-    function renderAttachmentsStrip(ownerType, ownerId) {
+    function renderAttachmentsStrip(ownerType, ownerId, title) {
       const list = (state.attachments?.[ownerType]?.[ownerId]) || [];
-      const chips = list.map((att) => `
-        <span class="sa3-attachment-chip" data-attachment-open data-attachment-path="${escapeHtml(att.storage_path)}" title="${escapeHtml(att.file_name)}">
+      const chips = list.map((att, index) => `
+        <span class="sa3-attachment-chip" data-attachment-open data-owner-type="${ownerType}" data-owner-id="${escapeHtml(ownerId)}" data-index="${index}" data-title="${escapeHtml(title || "")}" title="${escapeHtml(att.file_name)}">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v2"/></svg>
           <span class="sa3-attachment-name">${escapeHtml(truncateFileName(att.file_name))}</span>
           <button type="button" class="sa3-attachment-remove" data-action="remove-attachment" data-attachment-id="${escapeHtml(att.id)}" data-attachment-path="${escapeHtml(att.storage_path)}" title="Remover anexo">&times;</button>
@@ -813,6 +881,131 @@
           </label>
         </div>
       `;
+    }
+
+    // -------------------------------------------------------- Carrossel de anexos
+    // Mesmo padrão visual do módulo RPS (mesmas classes .rps-carousel-* já
+    // definidas no styles.css global — não duplica CSS): imagem/PDF/vídeo/
+    // áudio com pré-visualização, setas/miniaturas quando tem mais de 1
+    // arquivo. Reaproveita ATTACHMENT_BUCKET + createStorageSignedUrl.
+    function attachmentMediaKind(att) {
+      const type = String(att?.mime_type || "").toLowerCase();
+      const name = String(att?.file_name || "").toLowerCase();
+      if (type.startsWith("image/") || /\.(avif|bmp|gif|jpe?g|png|svg|webp)$/.test(name)) return "image";
+      if (type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
+      if (type.startsWith("video/") || /\.(m4v|mov|mp4|webm)$/.test(name)) return "video";
+      if (type.startsWith("audio/") || /\.(aac|m4a|mp3|ogg|wav)$/.test(name)) return "audio";
+      return "file";
+    }
+
+    function formatAttachmentSize(bytes) {
+      const size = Number(bytes || 0);
+      if (size < 1024) return `${size} B`;
+      if (size < 1024 * 1024) return `${(size / 1024).toFixed(1).replace(".0", "")} KB`;
+      return `${(size / (1024 * 1024)).toFixed(1).replace(".0", "")} MB`;
+    }
+
+    function closeAttachmentCarousel() {
+      document.querySelector(".rps-attachment-carousel")?.remove();
+      document.body.classList.remove("rps-carousel-open");
+    }
+
+    function openAttachmentCarousel(ownerType, ownerId, startIndex, title) {
+      closeAttachmentCarousel();
+      const attachments = (state.attachments?.[ownerType]?.[ownerId]) || [];
+      if (!attachments.length) return;
+
+      let activeIndex = startIndex || 0;
+      let renderGeneration = 0;
+      const signedUrls = new Map();
+      const carousel = document.createElement("div");
+      carousel.className = "rps-attachment-carousel";
+      carousel.tabIndex = -1;
+      carousel.innerHTML = `
+        <section class="rps-carousel-stage" role="dialog" aria-modal="true" aria-labelledby="sa3-carousel-title">
+          <header class="rps-carousel-header">
+            <div class="rps-carousel-heading">
+              <span>Anexos</span>
+              <h3 id="sa3-carousel-title">${escapeHtml(title || "")}</h3>
+            </div>
+            <div class="rps-carousel-actions">
+              <span class="rps-carousel-counter" data-carousel-counter></span>
+              <a class="rps-carousel-external" data-carousel-external target="_blank" rel="noopener noreferrer">Abrir arquivo ↗</a>
+              <button type="button" class="rps-carousel-close" data-carousel-close aria-label="Fechar apresentação">×</button>
+            </div>
+          </header>
+          <main class="rps-carousel-viewport" data-carousel-viewport aria-live="polite"></main>
+          ${attachments.length > 1 ? `<button type="button" class="rps-carousel-arrow is-previous" data-carousel-previous aria-label="Anexo anterior">‹</button>
+          <button type="button" class="rps-carousel-arrow is-next" data-carousel-next aria-label="Próximo anexo">›</button>` : ""}
+          <footer class="rps-carousel-footer">
+            <div class="rps-carousel-caption"><strong data-carousel-name></strong><span data-carousel-meta></span></div>
+            <nav class="rps-carousel-strip" aria-label="Arquivos anexados">${attachments.map((att, index) => `<button type="button" data-carousel-index="${index}" title="${escapeHtml(att.file_name || `Arquivo ${index + 1}`)}"><span>${index + 1}</span><small>${escapeHtml(att.file_name || "Arquivo")}</small></button>`).join("")}</nav>
+          </footer>
+        </section>`;
+      document.body.appendChild(carousel);
+      document.body.classList.add("rps-carousel-open");
+
+      const viewport = carousel.querySelector("[data-carousel-viewport]");
+      const counter = carousel.querySelector("[data-carousel-counter]");
+      const nameEl = carousel.querySelector("[data-carousel-name]");
+      const metaEl = carousel.querySelector("[data-carousel-meta]");
+      const external = carousel.querySelector("[data-carousel-external]");
+
+      const mediaMarkup = (att, url) => {
+        const safeUrl = escapeHtml(url);
+        const safeName = escapeHtml(att.file_name || "Arquivo");
+        const kind = attachmentMediaKind(att);
+        if (kind === "image") return `<img class="rps-carousel-image" src="${safeUrl}" alt="${safeName}">`;
+        if (kind === "pdf") return `<iframe class="rps-carousel-pdf" src="${safeUrl}#view=FitH" title="${safeName}"></iframe>`;
+        if (kind === "video") return `<video class="rps-carousel-video" src="${safeUrl}" controls playsinline></video>`;
+        if (kind === "audio") return `<div class="rps-carousel-file-card"><span class="rps-carousel-file-symbol">♫</span><strong>${safeName}</strong><audio src="${safeUrl}" controls></audio></div>`;
+        return `<div class="rps-carousel-file-card"><span class="rps-carousel-file-symbol">▧</span><strong>${safeName}</strong><p>Este tipo de arquivo não possui pré-visualização no navegador.</p><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">Abrir arquivo</a></div>`;
+      };
+
+      const renderActive = async () => {
+        const generation = ++renderGeneration;
+        const att = attachments[activeIndex];
+        counter.textContent = `${activeIndex + 1} / ${attachments.length}`;
+        nameEl.textContent = att.file_name || "Arquivo";
+        metaEl.textContent = `${formatAttachmentSize(att.file_size)}${att.created_at ? ` · ${new Date(att.created_at).toLocaleString("pt-BR")}` : ""}`;
+        external.removeAttribute("href");
+        external.classList.add("is-loading");
+        carousel.querySelectorAll("[data-carousel-index]").forEach((button, index) => button.classList.toggle("is-active", index === activeIndex));
+        viewport.innerHTML = `<div class="rps-carousel-loading"><span></span><p>Preparando visualização...</p></div>`;
+        try {
+          let url = signedUrls.get(att.id);
+          if (!url) {
+            url = await createStorageSignedUrl(ATTACHMENT_BUCKET, att.storage_path, 3600);
+            signedUrls.set(att.id, url);
+          }
+          if (generation !== renderGeneration || !carousel.isConnected) return;
+          external.href = url;
+          external.classList.remove("is-loading");
+          viewport.innerHTML = mediaMarkup(att, url);
+        } catch (err) {
+          if (generation !== renderGeneration || !carousel.isConnected) return;
+          external.classList.remove("is-loading");
+          viewport.innerHTML = `<div class="rps-carousel-error"><strong>Não foi possível carregar este arquivo.</strong><span>Tente novamente ou feche a apresentação.</span><button type="button" data-carousel-retry>Tentar novamente</button></div>`;
+        }
+      };
+
+      const show = (index) => { activeIndex = (index + attachments.length) % attachments.length; void renderActive(); };
+      const close = () => closeAttachmentCarousel();
+      carousel.addEventListener("click", (event) => {
+        if (event.target === carousel || event.target.closest("[data-carousel-close]")) return close();
+        if (event.target.closest("[data-carousel-previous]")) return show(activeIndex - 1);
+        if (event.target.closest("[data-carousel-next]")) return show(activeIndex + 1);
+        if (event.target.closest("[data-carousel-retry]")) { signedUrls.delete(attachments[activeIndex].id); return void renderActive(); }
+        const indexed = event.target.closest("[data-carousel-index]");
+        if (indexed) show(Number(indexed.dataset.carouselIndex));
+      });
+      carousel.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") close();
+        else if (event.key === "ArrowLeft") show(activeIndex - 1);
+        else if (event.key === "ArrowRight") show(activeIndex + 1);
+      });
+      carousel.focus();
+      void renderActive();
     }
 
     function bindAttachmentWidgets() {
@@ -837,15 +1030,9 @@
       });
 
       root.querySelectorAll("[data-attachment-open]").forEach((chip) => {
-        chip.addEventListener("click", async (e) => {
+        chip.addEventListener("click", (e) => {
           if (e.target.closest('[data-action="remove-attachment"]')) return;
-          try {
-            const url = await createStorageSignedUrl(ATTACHMENT_BUCKET, chip.dataset.attachmentPath, 300);
-            const w = window.open("about:blank", "_blank");
-            if (w) { w.opener = null; w.location.replace(url); } else { window.location.href = url; }
-          } catch (err) {
-            appAlert?.("Não foi possível abrir este arquivo.", "error");
-          }
+          openAttachmentCarousel(chip.dataset.ownerType, chip.dataset.ownerId, Number(chip.dataset.index || 0), chip.dataset.title);
         });
       });
 
@@ -882,7 +1069,11 @@
           <div class="sa3-action-meta">${a.priority ? escapeHtml(a.priority) : "—"}</div>
           <div class="sa3-action-meta">${a.due_date ? escapeHtml(a.due_date) : "—"}</div>
           <span class="sa3-pill ${tone}">${escapeHtml(label)}</span>
-          <div style="grid-column:1/-1">${renderAttachmentsStrip("action", a.id)}</div>
+          <div class="sa3-item-actions">
+            <button type="button" class="sa3-icon-btn" data-action="edit-action-item" data-action-id="${escapeHtml(a.id)}" title="Editar">${ICON_EDIT}</button>
+            <button type="button" class="sa3-icon-btn" data-action="delete-action-item" data-action-id="${escapeHtml(a.id)}" title="Excluir">${ICON_TRASH}</button>
+          </div>
+          <div style="grid-column:1/-1">${renderAttachmentsStrip("action", a.id, a.title)}</div>
         </div>
       `;
     }
@@ -890,7 +1081,7 @@
     function renderActionForm(kpiId) {
       const statusOptions = ACTION_STATUS_OPTIONS.map((o) => `<option value="${o.value}">${o.label}</option>`).join("");
       return `
-        <div class="sa3-form hidden" data-action-form="${escapeHtml(kpiId)}">
+        <div class="sa3-form hidden" data-action-form="${escapeHtml(kpiId)}" data-editing-id="">
           <div><label>Descrição da ação</label><textarea rows="2" data-field="title" placeholder="O que precisa ser feito?"></textarea></div>
           <div class="sa3-form-grid">
             <div><label>Detalhe (opcional)</label><input type="text" data-field="description"></div>
@@ -915,13 +1106,33 @@
       `;
     }
 
+    // Reaproveita o mesmo form pra criar E editar — action=null limpa
+    // (modo criação), action preenchido carrega os valores (modo edição).
+    function fillActionForm(form, action) {
+      if (!form) return;
+      form.querySelector('[data-field="title"]').value = action?.title || "";
+      form.querySelector('[data-field="description"]').value = action?.description || "";
+      form.querySelector('[data-field="due_date"]').value = action?.due_date || "";
+      form.querySelector('[data-field="status"]').value = action?.status || "not_started";
+      const fileInput = form.querySelector('[data-field="attachment"]');
+      if (fileInput) fileInput.value = "";
+      const fileNameEl = form.querySelector("[data-file-name]");
+      if (fileNameEl) fileNameEl.textContent = "Nenhum arquivo selecionado";
+      form.dataset.editingId = action?.id || "";
+      const saveBtn = form.querySelector('[data-action="save-action"]');
+      if (saveBtn) saveBtn.textContent = action ? "Salvar alterações" : "Salvar ação";
+    }
+
     function bindActionForm(kpiId) {
       const toggleBtn = root.querySelector(`[data-action="toggle-action-form"][data-kpi-id="${cssEscape(kpiId)}"]`);
       const form = root.querySelector(`[data-action-form="${cssEscape(kpiId)}"]`);
       const cancelBtn = root.querySelector(`[data-action="cancel-action-form"][data-kpi-id="${cssEscape(kpiId)}"]`);
       const saveBtn = root.querySelector(`[data-action="save-action"][data-kpi-id="${cssEscape(kpiId)}"]`);
 
-      toggleBtn?.addEventListener("click", () => form?.classList.toggle("hidden"));
+      toggleBtn?.addEventListener("click", () => {
+        if (form?.classList.contains("hidden")) fillActionForm(form, null);
+        form?.classList.toggle("hidden");
+      });
       cancelBtn?.addEventListener("click", () => form?.classList.add("hidden"));
       bindFileNameDisplay(form);
       saveBtn?.addEventListener("click", async () => {
@@ -933,11 +1144,13 @@
         const status = form.querySelector('[data-field="status"]').value;
         const file = form.querySelector('[data-field="attachment"]')?.files?.[0] || null;
         if (file && file.size > MAX_ATTACHMENT_BYTES) { appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB.`, "warn"); return; }
+        const editingId = form.dataset.editingId || null;
         saveBtn.disabled = true;
         try {
           const action = await callSupabaseRpc("strategic_save_action", {
             p_organization_id: state.organizationId,
             p_cycle_id: state.cycleId,
+            p_id: editingId,
             p_title: title,
             p_description: description || null,
             p_status: status,
@@ -951,6 +1164,42 @@
           appAlert?.(friendlyError(err), "error");
           saveBtn.disabled = false;
         }
+      });
+    }
+
+    // Editar/excluir ação — ligado uma vez só (não por KPI, como as ações
+    // já vêm listadas dentro de cada bloco/card do KPI dono, achar o form
+    // certo é só subir até o .sa3-card mais próximo).
+    function bindActionItemButtons() {
+      root.querySelectorAll('[data-action="edit-action-item"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const action = state.actions.find((a) => a.id === btn.dataset.actionId);
+          const form = btn.closest(".sa3-card")?.querySelector("[data-action-form]");
+          if (!action || !form) return;
+          fillActionForm(form, action);
+          form.classList.remove("hidden");
+          form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+      });
+
+      root.querySelectorAll('[data-action="delete-action-item"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
+          const ok = await appConfirm?.("Excluir esta ação? Os anexos dela também são removidos.", "danger");
+          if (!ok) return;
+          btn.disabled = true;
+          try {
+            const response = await authenticatedFetch(
+              `${supabaseApiUrl}/rest/v1/strategic_actions?id=eq.${btn.dataset.actionId}`,
+              { method: "DELETE" }
+            );
+            if (!response.ok) throw new Error(await response.text());
+            await loadA3Detail(state.a3Id);
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+            btn.disabled = false;
+          }
+        });
       });
     }
 
