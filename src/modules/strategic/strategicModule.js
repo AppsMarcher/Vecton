@@ -81,6 +81,7 @@
       a3Detail: null,          // { a3, children, kpis } — dados da aba ativa
       monthlyEntry: null,      // { a3, period, kpis }
       actions: [],             // ações do A3 atual (todas, filtro é feito na leitura)
+      periodAnalysis: null,    // { id, summary, strategic_analysis_items: [...] } do A3+mês ativo, ou null se nunca salvo
       dirtyDrafts: {}          // { [kpiId]: { resultValue, drivers: {code: value} } } — edição em andamento, não salva
     };
 
@@ -135,6 +136,18 @@
         .sa3-subtabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
         .sa3-subtab { border:1px solid var(--sa3-line); background:rgba(255,255,255,.02); color:var(--sa3-soft); padding:6px 12px; border-radius:9px; font-size:.74rem; font-weight:600; cursor:pointer; }
         .sa3-subtab.active { background:rgba(79,124,255,.14); border-color:rgba(79,124,255,.4); color:#8fb0ff; }
+        .sa3-analysis-summary { width:100%; min-height:56px; resize:vertical; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.8rem; padding:9px 11px; margin-bottom:10px; }
+        .sa3-analysis-list { display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
+        .sa3-analysis-item { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:start; padding:10px 12px; border-radius:9px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); font-size:.78rem; }
+        .sa3-analysis-tag { padding:3px 9px; border-radius:999px; font-size:.64rem; font-weight:700; white-space:nowrap; }
+        .sa3-analysis-tag.cause { background:rgba(245,158,11,.12); color:var(--sa3-amber); }
+        .sa3-analysis-tag.countermeasure { background:rgba(74,222,128,.12); color:var(--sa3-pos); }
+        .sa3-analysis-kpis { margin-top:5px; display:flex; gap:5px; flex-wrap:wrap; }
+        .sa3-analysis-kpi-chip { font-size:.62rem; color:var(--sa3-faint); background:rgba(255,255,255,.04); border-radius:999px; padding:2px 7px; }
+        .sa3-analysis-remove { background:none; border:none; color:var(--sa3-faint); cursor:pointer; padding:2px; }
+        .sa3-analysis-remove:hover { color:var(--sa3-neg); }
+        .sa3-kpi-check-list { display:flex; flex-direction:column; gap:4px; max-height:120px; overflow-y:auto; border:1px solid var(--sa3-line); border-radius:8px; padding:8px 10px; }
+        .sa3-kpi-check-list label { display:flex; align-items:center; gap:7px; font-size:.76rem; text-transform:none; font-weight:400; color:var(--sa3-soft); }
         .sa3-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.66rem; font-weight:700; white-space:nowrap; }
         .sa3-pill.pos { background:rgba(74,222,128,.12); color:var(--sa3-pos); }
         .sa3-pill.neg { background:rgba(248,113,113,.12); color:var(--sa3-neg); }
@@ -271,6 +284,7 @@
         });
         if (isRoot) state.a3Children = state.a3Detail?.children || [];
         await loadActionsForA3(a3Id);
+        await loadPeriodAnalysis(a3Id, year, month);
       } catch (err) {
         state.error = friendlyError(err);
       } finally {
@@ -305,6 +319,39 @@
         (a.strategic_action_a3 || []).some((l) => l.a3_id === a3Id) ||
         (a.strategic_action_kpis || []).some((l) => kpiIds.includes(l.kpi_id))
       );
+    }
+
+    // Leitura simples (SELECT direto, RLS já protege) — mesma decisão de
+    // não criar RPC só pra listar. Embed do PostgREST traz os itens e os
+    // KPIs vinculados de cada item numa chamada só.
+    async function loadPeriodAnalysis(a3Id, year, month) {
+      const rows = await fetchRest(
+        "strategic_period_analyses",
+        `a3_id=eq.${a3Id}&year=eq.${year}&month=eq.${month}&select=id,summary,strategic_analysis_items(id,item_type,description,impact_level,display_order,strategic_analysis_item_kpis(kpi_id))`
+      );
+      state.periodAnalysis = rows?.[0] || null;
+    }
+
+    // Reenvia a lista INTEIRA de itens (contrato de strategic_save_period_analysis
+    // é "lista completa da tela" — item que não vier é removido). patch()
+    // recebe a lista atual e devolve a lista já com a alteração aplicada.
+    async function saveAnalysis(a3Id, summary, patch) {
+      const currentItems = (state.periodAnalysis?.strategic_analysis_items || []).map((it) => ({
+        id: it.id,
+        item_type: it.item_type,
+        description: it.description,
+        impact_level: it.impact_level,
+        display_order: it.display_order,
+        kpi_ids: (it.strategic_analysis_item_kpis || []).map((l) => l.kpi_id)
+      }));
+      const items = patch(currentItems);
+      const { year, month } = currentPeriod();
+      await callSupabaseRpc("strategic_save_period_analysis", {
+        p_a3_id: a3Id, p_year: year, p_month: month,
+        p_summary: summary !== undefined ? summary : (state.periodAnalysis?.summary ?? null),
+        p_items: items
+      });
+      await loadPeriodAnalysis(a3Id, year, month);
     }
 
     function friendlyError(err) {
@@ -420,6 +467,7 @@
           </div>
           ${tabsHtml}
         </div>
+        ${renderPeriodAnalysisCard(kpis)}
         ${kpiBlocks}
       `;
 
@@ -431,7 +479,117 @@
         btn.addEventListener("click", () => loadA3Detail(btn.dataset.a3Id, false));
       });
 
+      bindPeriodAnalysisCard(kpis);
       kpis.forEach((k) => bindActionForm(k.id));
+    }
+
+    // -------------------------------------------------------- Análise (causas/contramedidas)
+    function renderPeriodAnalysisCard(kpis) {
+      const summary = state.periodAnalysis?.summary || "";
+      const items = state.periodAnalysis?.strategic_analysis_items || [];
+      const itemsSorted = [...items].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+
+      const itemsHtml = itemsSorted.length ? itemsSorted.map((it) => {
+        const tagLabel = it.item_type === "cause" ? "Causa" : "Contramedida";
+        const kpiChips = (it.strategic_analysis_item_kpis || [])
+          .map((l) => kpis.find((k) => k.id === l.kpi_id)?.name)
+          .filter(Boolean)
+          .map((name) => `<span class="sa3-analysis-kpi-chip">${escapeHtml(name)}</span>`).join("");
+        return `
+          <div class="sa3-analysis-item">
+            <span class="sa3-analysis-tag ${it.item_type}">${tagLabel}</span>
+            <div>
+              ${escapeHtml(it.description)}
+              ${kpiChips ? `<div class="sa3-analysis-kpis">${kpiChips}</div>` : ""}
+            </div>
+            <button class="sa3-analysis-remove" data-action="remove-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Remover">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        `;
+      }).join("") : `<div class="sa3-empty">Nenhuma causa ou contramedida registrada ainda.</div>`;
+
+      const kpiChecks = kpis.map((k) => `
+        <label><input type="checkbox" data-item-kpi="${escapeHtml(k.id)}"> ${escapeHtml(k.name)}</label>
+      `).join("");
+
+      return `
+        <div class="sa3-card">
+          <div class="sa3-head">
+            <div><h3>Análise do período</h3><p>Causas e contramedidas identificadas — nunca texto livre solto, cada item é estruturado e pode ligar a um ou mais indicadores.</p></div>
+            <button class="sa3-btn" data-action="toggle-analysis-form">+ Novo item</button>
+          </div>
+          <textarea class="sa3-analysis-summary" data-field="analysis-summary" placeholder="Resumo geral do período (opcional)">${escapeHtml(summary)}</textarea>
+          <div style="text-align:right;margin:-4px 0 12px">
+            <button class="sa3-btn" data-action="save-analysis-summary">Salvar resumo</button>
+          </div>
+          <div class="sa3-analysis-list">${itemsHtml}</div>
+          <div class="sa3-form hidden" data-analysis-form>
+            <div class="sa3-form-grid" style="grid-template-columns:150px 1fr">
+              <div><label>Tipo</label><select data-field="item_type"><option value="cause">Causa</option><option value="countermeasure">Contramedida</option></select></div>
+              <div><label>Descrição</label><input type="text" data-field="description" placeholder="O que aconteceu / o que fazer?"></div>
+            </div>
+            <div><label>Indicadores relacionados (opcional)</label><div class="sa3-kpi-check-list">${kpiChecks || '<span style="color:var(--sa3-faint);font-size:.74rem">Sem indicadores nesta área.</span>'}</div></div>
+            <div class="sa3-form-foot">
+              <button class="sa3-btn" data-action="cancel-analysis-form">Cancelar</button>
+              <button class="sa3-btn primary" data-action="add-analysis-item">Adicionar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function bindPeriodAnalysisCard() {
+      const toggleBtn = root.querySelector('[data-action="toggle-analysis-form"]');
+      const form = root.querySelector('[data-analysis-form]');
+      toggleBtn?.addEventListener("click", () => form?.classList.toggle("hidden"));
+      root.querySelector('[data-action="cancel-analysis-form"]')?.addEventListener("click", () => form?.classList.add("hidden"));
+
+      root.querySelector('[data-action="save-analysis-summary"]')?.addEventListener("click", async (e) => {
+        if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
+        const btn = e.currentTarget;
+        const summary = root.querySelector('[data-field="analysis-summary"]').value.trim();
+        btn.disabled = true;
+        try {
+          await saveAnalysis(state.a3Id, summary, (items) => items);
+          renderShell();
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error"); btn.disabled = false;
+        }
+      });
+
+      root.querySelector('[data-action="add-analysis-item"]')?.addEventListener("click", async (e) => {
+        if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
+        const btn = e.currentTarget;
+        const itemType = form.querySelector('[data-field="item_type"]').value;
+        const description = form.querySelector('[data-field="description"]').value.trim();
+        if (!description) { appAlert?.("Descreva a causa ou contramedida antes de salvar.", "warn"); return; }
+        const kpiIds = Array.from(form.querySelectorAll("[data-item-kpi]:checked")).map((el) => el.dataset.itemKpi);
+        btn.disabled = true;
+        try {
+          await saveAnalysis(state.a3Id, undefined, (items) => [
+            ...items,
+            { item_type: itemType, description, display_order: items.length, kpi_ids: kpiIds }
+          ]);
+          renderShell();
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error"); btn.disabled = false;
+        }
+      });
+
+      root.querySelectorAll('[data-action="remove-analysis-item"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
+          const ok = await appConfirm?.("Remover este item da análise?", "warn");
+          if (!ok) return;
+          try {
+            await saveAnalysis(state.a3Id, undefined, (items) => items.filter((it) => it.id !== btn.dataset.itemId));
+            renderShell();
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+          }
+        });
+      });
     }
 
     function renderKpiBlock(k) {
