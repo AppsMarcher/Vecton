@@ -42,6 +42,11 @@
     not_started: "muted", in_progress: "warn", on_hold: "pause", done: "pos", cancelled: "cancel"
   };
 
+  // priority é coluna livre (sem CHECK no banco, migration 128) — armazena o
+  // rótulo em pt-BR direto, sem tabela de tradução (diferente de status, que
+  // TEM CHECK e por isso precisa do código em inglês).
+  const ACTION_PRIORITY_OPTIONS = ["Baixa", "Média", "Alta"];
+
   const ATTACHMENT_BUCKET = "strategic-a3-attachments";
   const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // mesmo limite do bucket (migration 133)
 
@@ -104,7 +109,8 @@
       actions: [],             // ações do A3 atual (todas, filtro é feito na leitura)
       periodAnalysis: null,    // { id, summary, strategic_analysis_items: [...] } do A3+mês ativo, ou null se nunca salvo
       dirtyDrafts: {},         // { [kpiId]: { resultValue, drivers: {code: value} } } — edição em andamento, não salva
-      attachments: { action: {}, analysis_item: {} } // { [ownerType]: { [ownerId]: strategic_attachments[] } }
+      attachments: { action: {}, analysis_item: {} }, // { [ownerType]: { [ownerId]: strategic_attachments[] } }
+      orgUsers: null           // usuários da org (picker de Responsáveis do plano de ação) — carregado 1x, cacheado
     };
 
     const myRoles = () => (getAllAccessRoles ? getAllAccessRoles() : []);
@@ -355,6 +361,7 @@
         await loadActionsForA3(a3Id);
         await loadPeriodAnalysis(a3Id, period.year, period.month);
         await loadAttachments();
+        await ensureOrgUsers();
       } catch (err) {
         state.error = friendlyError(err);
       } finally {
@@ -384,12 +391,33 @@
       if (!kpiIds.length) { state.actions = []; return; }
       const rows = await fetchRest(
         "strategic_actions",
-        `organization_id=eq.${state.organizationId}&select=*,strategic_action_kpis(kpi_id),strategic_action_a3(a3_id)&order=due_date.asc.nullslast`
+        `organization_id=eq.${state.organizationId}&select=*,strategic_action_kpis(kpi_id),strategic_action_a3(a3_id),strategic_action_owners(user_id)&order=due_date.asc.nullslast`
       );
       state.actions = (rows || []).filter((a) =>
         (a.strategic_action_a3 || []).some((l) => l.a3_id === a3Id) ||
         (a.strategic_action_kpis || []).some((l) => kpiIds.includes(l.kpi_id))
       );
+    }
+
+    // Lista de usuários da org pro picker de Responsáveis do plano de ação.
+    // Carregada uma vez só (RLS de user_profiles já libera SELECT pra
+    // qualquer membro da org, não só admin — 117_user_profiles_is_active.sql)
+    // e cacheada em state.orgUsers pro resto da sessão do módulo.
+    async function ensureOrgUsers() {
+      if (state.orgUsers) return;
+      try {
+        state.orgUsers = await fetchRest(
+          "user_profiles",
+          `organization_id=eq.${state.organizationId}&is_active=eq.true&select=user_id,full_name,email&order=full_name.asc`
+        );
+      } catch (_) {
+        state.orgUsers = []; // não trava o módulo — Responsáveis só fica sem opções
+      }
+    }
+
+    function ownerNameById(userId) {
+      const u = (state.orgUsers || []).find((x) => x.user_id === userId);
+      return u ? (u.full_name || u.email || "Usuário") : null;
     }
 
     // Anexos de todas as ações + itens de análise já carregados na tela,
@@ -1221,9 +1249,14 @@
     function renderActionItem(a) {
       const tone = ACTION_STATUS_TONE[a.status] || "muted";
       const label = (ACTION_STATUS_OPTIONS.find((o) => o.value === a.status) || {}).label || a.status;
+      const ownerNames = (a.strategic_action_owners || []).map((o) => ownerNameById(o.user_id)).filter(Boolean);
+      const extraMeta = [];
+      if (ownerNames.length) extraMeta.push(`Responsável: ${ownerNames.join(", ")}`);
+      if (a.progress !== null && a.progress !== undefined) extraMeta.push(`Progresso: ${a.progress}%`);
+      const extraMetaHtml = extraMeta.length ? `<div class="sa3-action-meta">${escapeHtml(extraMeta.join(" · "))}</div>` : "";
       return `
         <div class="sa3-action-item">
-          <div class="sa3-action-desc">${escapeHtml(a.title)}${a.description ? `<div class="sa3-action-meta">${escapeHtml(a.description)}</div>` : ""}</div>
+          <div class="sa3-action-desc">${escapeHtml(a.title)}${a.description ? `<div class="sa3-action-meta">${escapeHtml(a.description)}</div>` : ""}${extraMetaHtml}</div>
           <div class="sa3-action-meta">${a.priority ? escapeHtml(a.priority) : "—"}</div>
           <div class="sa3-action-meta">${a.due_date ? escapeHtml(a.due_date) : "—"}</div>
           <span class="sa3-pill ${tone}">${escapeHtml(label)}</span>
@@ -1238,6 +1271,12 @@
 
     function renderActionForm(kpiId) {
       const statusOptions = ACTION_STATUS_OPTIONS.map((o) => `<option value="${o.value}">${o.label}</option>`).join("");
+      const priorityOptions = ACTION_PRIORITY_OPTIONS.map((p) => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+      const ownersHtml = (state.orgUsers || []).length
+        ? state.orgUsers.map((u) => `
+            <label><input type="checkbox" data-field="owner" value="${escapeHtml(u.user_id)}"> ${escapeHtml(u.full_name || u.email || "Usuário")}</label>
+          `).join("")
+        : `<div class="sa3-empty">Nenhum usuário encontrado.</div>`;
       return `
         <div class="sa3-form hidden" data-action-form="${escapeHtml(kpiId)}" data-editing-id="">
           <div><label>Descrição da ação</label><textarea rows="2" data-field="title" placeholder="O que precisa ser feito?"></textarea></div>
@@ -1245,6 +1284,14 @@
             <div><label>Detalhe (opcional)</label><input type="text" data-field="description"></div>
             <div><label>Prazo</label><input type="date" data-field="due_date"></div>
             <div><label>Status</label><select data-field="status">${statusOptions}</select></div>
+          </div>
+          <div class="sa3-form-grid" style="grid-template-columns:150px 150px">
+            <div><label>Prioridade</label><select data-field="priority"><option value="">—</option>${priorityOptions}</select></div>
+            <div><label>Progresso</label><input type="number" step="1" min="0" max="100" data-field="progress" placeholder="%"></div>
+          </div>
+          <div>
+            <label>Responsáveis (opcional)</label>
+            <div class="sa3-kpi-check-list">${ownersHtml}</div>
           </div>
           <div>
             <label>Anexo (opcional)</label>
@@ -1266,12 +1313,19 @@
 
     // Reaproveita o mesmo form pra criar E editar — action=null limpa
     // (modo criação), action preenchido carrega os valores (modo edição).
+    // Responsável/prioridade/progresso: campos recomendados, não obrigatórios
+    // (decisão #24 da especificação) — banco e RPC já aceitavam, só faltava
+    // o formulário expor.
     function fillActionForm(form, action) {
       if (!form) return;
       form.querySelector('[data-field="title"]').value = action?.title || "";
       form.querySelector('[data-field="description"]').value = action?.description || "";
       form.querySelector('[data-field="due_date"]').value = action?.due_date || "";
       form.querySelector('[data-field="status"]').value = action?.status || "not_started";
+      form.querySelector('[data-field="priority"]').value = action?.priority || "";
+      form.querySelector('[data-field="progress"]').value = action?.progress ?? "";
+      const ownerIds = new Set((action?.strategic_action_owners || []).map((o) => o.user_id));
+      form.querySelectorAll('[data-field="owner"]').forEach((cb) => { cb.checked = ownerIds.has(cb.value); });
       const fileInput = form.querySelector('[data-field="attachment"]');
       if (fileInput) fileInput.value = "";
       const fileNameEl = form.querySelector("[data-file-name]");
@@ -1300,6 +1354,14 @@
         const description = form.querySelector('[data-field="description"]').value.trim();
         const dueDate = form.querySelector('[data-field="due_date"]').value || null;
         const status = form.querySelector('[data-field="status"]').value;
+        const priority = form.querySelector('[data-field="priority"]').value || null;
+        const progressRaw = form.querySelector('[data-field="progress"]').value;
+        const progress = progressRaw === "" ? null : Number(progressRaw);
+        if (progress !== null && (Number.isNaN(progress) || progress < 0 || progress > 100)) {
+          appAlert?.("Progresso precisa ser um número entre 0 e 100.", "warn");
+          return;
+        }
+        const ownerIds = Array.from(form.querySelectorAll('[data-field="owner"]:checked')).map((cb) => cb.value);
         const file = form.querySelector('[data-field="attachment"]')?.files?.[0] || null;
         if (file && file.size > MAX_ATTACHMENT_BYTES) { appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB.`, "warn"); return; }
         const editingId = form.dataset.editingId || null;
@@ -1327,9 +1389,12 @@
             p_title: title,
             p_description: description || null,
             p_status: status,
+            p_priority: priority,
             p_due_date: dueDate,
+            p_progress: progress,
             p_a3_ids: a3Ids,
-            p_kpi_ids: kpiIds
+            p_kpi_ids: kpiIds,
+            p_owner_user_ids: ownerIds
           });
           if (file && action?.id) await uploadAttachment("action", action.id, file);
           await loadA3Detail(state.a3Id);
