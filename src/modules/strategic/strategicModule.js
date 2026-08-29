@@ -181,17 +181,22 @@
         .sa3-form input, .sa3-form select, .sa3-form textarea { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.78rem; padding:8px 10px; }
         .sa3-form-grid { display:grid; grid-template-columns:1fr 130px 150px; gap:10px; }
         .sa3-form-foot { display:flex; justify-content:flex-end; gap:8px; }
-        .sa3-entry-row { display:grid; grid-template-columns:1fr 160px 160px 90px; align-items:center; gap:12px; padding:12px 14px; border-radius:10px; background:var(--sa3-panel); border:1px solid var(--sa3-line-soft); margin-bottom:8px; }
-        .sa3-entry-name { font-size:.82rem; font-weight:700; }
+        /* Tela 3 (lançamento mensal) — layout ÚNICO pra 100% dos indicadores,
+           qualquer entry_mode: Nome | Meta | Real | 1 botão Salvar, sempre
+           nas mesmas 4 colunas, botões sempre alinhados na mesma borda. */
+        .sa3-entry-row { display:grid; grid-template-columns:1fr 190px 190px 100px; align-items:start; gap:14px; padding:14px; border-radius:10px; background:var(--sa3-panel); border:1px solid var(--sa3-line-soft); margin-bottom:8px; }
+        .sa3-entry-name { font-size:.82rem; font-weight:700; padding-top:22px; }
         .sa3-entry-target { font-size:.68rem; color:var(--sa3-faint); margin-top:2px; }
-        .sa3-entry-input input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; text-align:right; }
-        .sa3-entry-meta { display:flex; flex-direction:column; gap:4px; }
-        .sa3-entry-meta .k { font-size:.6rem; text-transform:uppercase; letter-spacing:.04em; color:var(--sa3-faint); }
+        .sa3-entry-meta, .sa3-entry-real { display:flex; flex-direction:column; gap:4px; }
+        .sa3-entry-meta .k, .sa3-entry-real .k { font-size:.6rem; text-transform:uppercase; letter-spacing:.04em; color:var(--sa3-faint); font-weight:700; }
         .sa3-entry-meta-row { display:flex; gap:4px; }
-        .sa3-entry-meta-row input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.78rem; padding:7px 8px; text-align:right; }
-        .sa3-entry-driver-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
-        .sa3-entry-driver-row label { font-size:.68rem; color:var(--sa3-faint); flex:1 1 auto; }
-        .sa3-entry-driver-row input { width:120px; }
+        .sa3-entry-meta-row input, .sa3-entry-real > input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; text-align:right; }
+        .sa3-entry-meta-row input:disabled, .sa3-entry-real > input:disabled { opacity:.55; }
+        .sa3-entry-real .sa3-entry-target { margin-top:0; padding-top:8px; }
+        .sa3-entry-driver-row { display:flex; align-items:center; gap:6px; margin-top:2px; }
+        .sa3-entry-driver-row label { font-size:.62rem; color:var(--sa3-faint); flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .sa3-entry-driver-row input { width:76px; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.74rem; padding:5px 6px; text-align:right; }
+        .sa3-entry-save { padding-top:22px; display:flex; justify-content:flex-end; }
         .sa3-badge-auto { display:inline-flex; align-items:center; gap:4px; margin-left:8px; padding:2px 8px; border-radius:999px; background:rgba(79,124,255,.12); color:#8fb0ff; border:1px solid rgba(79,124,255,.28); font-size:.62rem; font-weight:700; vertical-align:middle; }
         .sa3-period-status { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
         .sa3-loading, .sa3-error { padding:40px 20px; text-align:center; color:var(--sa3-faint); font-size:.84rem; }
@@ -830,126 +835,101 @@
       };
     }
 
+    // Layout ÚNICO pra 100% dos indicadores, qualquer entry_mode: Nome | Meta
+    // | Real | 1 botão Salvar. O que muda de um modo pro outro é só o
+    // CONTEÚDO da célula "Real":
+    //  - direct / computed: um input numérico editável. Em 'computed' ele
+    //    vem preenchido com o valor calculado (sugestão), mas continua
+    //    editável — "Sincronizar automáticos" só ATUALIZA essa sugestão,
+    //    quem trava o valor é o botão Salvar da linha.
+    //  - drivers: os direcionadores (ex.: admissões/desligamentos/quadro),
+    //    compactos, empilhados na mesma célula.
+    //  - breakdown: nota "editor ainda não disponível" (composição por linha
+    //    ainda não tem editor — só a meta é salva aqui por enquanto).
     function renderEntryRow(k, isClosed) {
       const targetInputs = renderTargetInputs(k, isClosed);
-      const saveMetaBtn = !isClosed ? `<button class="sa3-btn" data-action="save-target" data-kpi-id="${escapeHtml(k.id)}">Salvar meta</button>` : "";
+      const saveBtn = !isClosed
+        ? `<button class="sa3-btn primary" data-action="save-row" data-kpi-id="${escapeHtml(k.id)}">Salvar</button>`
+        : "";
+      const nameNote = k.entryMode === "drivers"
+        ? `<div class="sa3-entry-target">Resultado atual: ${formatByUnit(k.resultValue, k.unit, k.decimalPlaces)}</div>`
+        : "";
 
-      if (k.entryMode === "computed") {
-        return `
-          <div class="sa3-entry-row" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="computed">
-            <div><div class="sa3-entry-name">${escapeHtml(k.name)}<span class="sa3-badge-auto">Auto</span></div></div>
-            ${targetInputs}
-            <div style="text-align:right;font-weight:800">${formatByUnit(k.resultValue, k.unit, k.decimalPlaces)}</div>
-            <div style="text-align:right">${saveMetaBtn}</div>
-          </div>
-        `;
-      }
-
-      if (k.entryMode === "breakdown") {
-        return `
-          <div class="sa3-entry-row" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="breakdown">
-            <div><div class="sa3-entry-name">${escapeHtml(k.name)}</div><div class="sa3-entry-target">Editor de composição ainda não disponível</div></div>
-            ${targetInputs}
-            <div></div>
-            <div style="text-align:right">${saveMetaBtn}</div>
-          </div>
-        `;
-      }
-
+      let realCell;
       if (k.entryMode === "drivers") {
         const driverRows = (k.drivers || []).map((d) => `
           <div class="sa3-entry-driver-row">
-            <label>${escapeHtml(d.name)} (${escapeHtml(d.role)})</label>
+            <label title="${escapeHtml(d.name)} (${escapeHtml(d.role)})">${escapeHtml(d.name)}</label>
             <input type="number" step="any" data-driver-code="${escapeHtml(d.code)}" value="${d.value ?? ""}" ${isClosed ? "disabled" : ""}>
           </div>
         `).join("");
-        return `
-          <div class="sa3-entry-row" style="grid-template-columns:1fr" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="drivers" data-version="${k.version ?? ""}">
-            <div>
-              <div class="sa3-entry-name">${escapeHtml(k.name)}</div>
-              <div class="sa3-entry-target">Resultado atual: ${formatByUnit(k.resultValue, k.unit, k.decimalPlaces)}</div>
-              ${targetInputs}
-              ${driverRows}
-              ${!isClosed ? `<div style="margin-top:8px;text-align:right;display:flex;gap:8px;justify-content:flex-end"><button class="sa3-btn" data-action="save-target" data-kpi-id="${escapeHtml(k.id)}">Salvar meta</button><button class="sa3-btn primary" data-action="save-drivers" data-kpi-id="${escapeHtml(k.id)}">Salvar resultado</button></div>` : ""}
-            </div>
+        realCell = `<div class="sa3-entry-real"><span class="k">Real</span>${driverRows}</div>`;
+      } else if (k.entryMode === "breakdown") {
+        realCell = `<div class="sa3-entry-real"><span class="k">Real</span><div class="sa3-entry-target">Editor de composição ainda não disponível</div></div>`;
+      } else {
+        // direct ou computed
+        realCell = `
+          <div class="sa3-entry-real">
+            <span class="k">Real</span>
+            <input type="number" step="any" data-field="result" value="${k.resultValue ?? ""}" ${isClosed ? "disabled" : ""}>
           </div>
         `;
       }
 
-      // direct
       return `
-        <div class="sa3-entry-row" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="direct" data-version="${k.version ?? ""}">
-          <div><div class="sa3-entry-name">${escapeHtml(k.name)}</div></div>
+        <div class="sa3-entry-row" data-kpi-row="${escapeHtml(k.id)}" data-entry-mode="${escapeHtml(k.entryMode)}" data-version="${k.version ?? ""}">
+          <div>
+            <div class="sa3-entry-name">${escapeHtml(k.name)}${k.entryMode === "computed" ? '<span class="sa3-badge-auto">Auto</span>' : ""}</div>
+            ${nameNote}
+          </div>
           ${targetInputs}
-          <div class="sa3-entry-input"><input type="number" step="any" data-field="result" value="${k.resultValue ?? ""}" ${isClosed ? "disabled" : ""}></div>
-          <div style="text-align:right;display:flex;flex-direction:column;gap:6px">${saveMetaBtn}${!isClosed ? `<button class="sa3-btn primary" data-action="save-direct" data-kpi-id="${escapeHtml(k.id)}">Salvar</button>` : ""}</div>
+          ${realCell}
+          <div class="sa3-entry-save">${saveBtn}</div>
         </div>
       `;
     }
 
+    // Um Salvar só: manda a meta (sempre) e o realizado (conforme o modo) na
+    // mesma ação. Em 'computed', salvar aqui é a sobrescrita manual da
+    // sugestão automática — strategic_save_kpi_record já aceita isso.
     function bindEntryRow(k, isClosed) {
+      if (isClosed) return;
       const rowEl = root.querySelector(`[data-kpi-row="${cssEscape(k.id)}"]`);
-
-      const saveTargetBtn = root.querySelector(`[data-action="save-target"][data-kpi-id="${cssEscape(k.id)}"]`);
-      saveTargetBtn?.addEventListener("click", async () => {
+      const btn = root.querySelector(`[data-action="save-row"][data-kpi-id="${cssEscape(k.id)}"]`);
+      btn?.addEventListener("click", async () => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
-        saveTargetBtn.disabled = true;
+        btn.disabled = true;
         try {
           const { year, month } = currentPeriod();
           await saveKpiTarget(k.id, { year, month, ...readTargetPayload(rowEl) });
-          await loadMonthlyEntry(state.a3Id);
-        } catch (err) {
-          appAlert?.(friendlyError(err), "error");
-          saveTargetBtn.disabled = false;
-        }
-      });
 
-      if (isClosed) return;
-
-      if (k.entryMode === "direct") {
-        const btn = root.querySelector(`[data-action="save-direct"][data-kpi-id="${cssEscape(k.id)}"]`);
-        btn?.addEventListener("click", async () => {
-          if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
-          const input = rowEl.querySelector('[data-field="result"]');
-          const value = input.value === "" ? null : Number(input.value);
-          const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
-          btn.disabled = true;
-          try {
-            const { year, month } = currentPeriod();
-            await callSupabaseRpc("strategic_save_kpi_record", {
-              p_kpi_id: k.id, p_year: year, p_month: month, p_result_value: value, p_expected_version: version
-            });
-            await loadMonthlyEntry(state.a3Id);
-          } catch (err) {
-            appAlert?.(friendlyError(err), "error");
-            btn.disabled = false;
-          }
-        });
-      }
-
-      if (k.entryMode === "drivers") {
-        const btn = root.querySelector(`[data-action="save-drivers"][data-kpi-id="${cssEscape(k.id)}"]`);
-        btn?.addEventListener("click", async () => {
-          if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
-          const inputs = rowEl.querySelectorAll("[data-driver-code]");
-          const driverInputs = Array.from(inputs).map((inp) => ({
-            driver_code: inp.dataset.driverCode,
-            numeric_value: inp.value === "" ? null : Number(inp.value)
-          }));
-          const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
-          btn.disabled = true;
-          try {
-            const { year, month } = currentPeriod();
+          if (k.entryMode === "drivers") {
+            const inputs = rowEl.querySelectorAll("[data-driver-code]");
+            const driverInputs = Array.from(inputs).map((inp) => ({
+              driver_code: inp.dataset.driverCode,
+              numeric_value: inp.value === "" ? null : Number(inp.value)
+            }));
+            const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
             await callSupabaseRpc("strategic_save_kpi_record", {
               p_kpi_id: k.id, p_year: year, p_month: month, p_expected_version: version, p_driver_inputs: driverInputs
             });
-            await loadMonthlyEntry(state.a3Id);
-          } catch (err) {
-            appAlert?.(friendlyError(err), "error");
-            btn.disabled = false;
+          } else if (k.entryMode === "breakdown") {
+            // sem editor de composição ainda — só a meta é persistida aqui.
+          } else {
+            // direct, ou sobrescrita manual de 'computed'
+            const input = rowEl.querySelector('[data-field="result"]');
+            const value = input && input.value !== "" ? Number(input.value) : null;
+            const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
+            await callSupabaseRpc("strategic_save_kpi_record", {
+              p_kpi_id: k.id, p_year: year, p_month: month, p_result_value: value, p_expected_version: version
+            });
           }
-        });
-      }
+          await loadMonthlyEntry(state.a3Id);
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          btn.disabled = false;
+        }
+      });
     }
 
     // ---------------------------------------------------------------- public API
