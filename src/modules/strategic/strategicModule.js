@@ -145,8 +145,11 @@
         .sa3-subtabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
         .sa3-subtab { border:1px solid var(--sa3-line); background:rgba(255,255,255,.02); color:var(--sa3-soft); padding:6px 12px; border-radius:9px; font-size:.74rem; font-weight:600; cursor:pointer; }
         .sa3-subtab.active { background:rgba(79,124,255,.14); border-color:rgba(79,124,255,.4); color:#8fb0ff; }
-        .sa3-analysis-summary { width:100%; min-height:56px; resize:vertical; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.8rem; padding:9px 11px; margin-bottom:10px; }
         .sa3-objective-text { white-space:pre-wrap; font-size:.82rem; line-height:1.5; color:var(--sa3-text); }
+        .sa3-objective-text.hidden { display:none; }
+        .sa3-objective-editor.hidden { display:none; }
+        .sa3-objective-textarea { width:100%; min-height:220px; resize:vertical; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:10px; color:var(--sa3-text); font:inherit; font-size:.82rem; line-height:1.5; padding:12px 14px; margin-bottom:10px; }
+        .sa3-objective-textarea:focus { border-color:rgba(79,124,255,.6); outline:none; }
         .sa3-analysis-list { display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
         .sa3-analysis-item { padding:10px 12px; border-radius:9px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); font-size:.78rem; }
         .sa3-analysis-item-row { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:start; }
@@ -530,10 +533,9 @@
               <button class="sa3-btn" data-action="toggle-objective-edit">Editar</button>
             </div>
             <p class="sa3-objective-text" data-objective-display>${hasObjective ? escapeHtml(a3.objective) : '<span style="color:var(--sa3-faint)">Objetivo estratégico ainda não cadastrado.</span>'}</p>
-            <div class="sa3-form hidden" data-objective-form>
-              <textarea class="sa3-analysis-summary" data-field="objective-text" placeholder="Objetivo estratégico deste A3...">${escapeHtml(a3.objective || "")}</textarea>
+            <div class="sa3-objective-editor hidden" data-objective-form>
+              <textarea class="sa3-objective-textarea" data-field="objective-text" placeholder="Objetivo estratégico deste A3...">${escapeHtml(a3.objective || "")}</textarea>
               <div class="sa3-form-foot">
-                <button class="sa3-btn" data-action="cancel-objective-edit">Cancelar</button>
                 <button class="sa3-btn primary" data-action="save-objective">Salvar objetivo</button>
               </div>
             </div>
@@ -550,13 +552,29 @@
         btn.addEventListener("click", () => loadA3Detail(btn.dataset.a3Id, false));
       });
 
+      // Edição in-place: o texto SOME e vira o textarea no lugar dele (nunca
+      // os dois juntos) — o botão "Editar" no cabeçalho vira "Cancelar"
+      // enquanto edita.
+      const objectiveToggleBtn = root.querySelector('[data-action="toggle-objective-edit"]');
+      const objectiveDisplay = root.querySelector('[data-objective-display]');
       const objectiveForm = root.querySelector('[data-objective-form]');
-      root.querySelector('[data-action="toggle-objective-edit"]')?.addEventListener("click", () => objectiveForm?.classList.toggle("hidden"));
-      root.querySelector('[data-action="cancel-objective-edit"]')?.addEventListener("click", () => objectiveForm?.classList.add("hidden"));
+      const objectiveTextarea = root.querySelector('[data-field="objective-text"]');
+
+      const setObjectiveEditing = (editing) => {
+        objectiveDisplay?.classList.toggle("hidden", editing);
+        objectiveForm?.classList.toggle("hidden", !editing);
+        objectiveToggleBtn.textContent = editing ? "Cancelar" : "Editar";
+        if (editing) {
+          objectiveTextarea.value = a3.objective || "";
+          objectiveTextarea.focus();
+          objectiveTextarea.setSelectionRange(objectiveTextarea.value.length, objectiveTextarea.value.length);
+        }
+      };
+      objectiveToggleBtn?.addEventListener("click", () => setObjectiveEditing(objectiveForm?.classList.contains("hidden")));
       root.querySelector('[data-action="save-objective"]')?.addEventListener("click", async (e) => {
         if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
         const btn = e.currentTarget;
-        const value = root.querySelector('[data-field="objective-text"]').value.trim();
+        const value = objectiveTextarea.value.trim();
         btn.disabled = true;
         try {
           const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/strategic_a3?id=eq.${state.a3Id}`, {
