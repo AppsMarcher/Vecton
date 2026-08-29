@@ -106,14 +106,39 @@
     return `${n.toLocaleString("pt-BR", { minimumFractionDigits: dp, maximumFractionDigits: dp })}${suffix}`;
   }
 
-  function formatTargetVariation(actual, target) {
+  // achado (melhoria #2 do review): Number(null) === 0 é finito, então
+  // "sem realizado" (null) com meta preenchida passava pelo guard de
+  // Number.isFinite e calculava uma variação de -100% inventada, em vez de
+  // "—". Guard explícito de null/undefined/"" ANTES de converter pra number.
+  //
+  // achado (melhoria #3): KPI unit='percent' mostrava variação RELATIVA
+  // (ex.: real 12% vs meta 10% virava "+20,0%", quando o que interessa pro
+  // negócio é a diferença em PONTOS PERCENTUAIS, "+2,0 p.p."). Também
+  // sinaliza o sentido favorável (▲ bom / ▼ ruim) conforme comparisonMode
+  // do KPI — 'lower' inverte quem é favorável (menor é melhor), sem mudar
+  // o número (mantém sinal aritmético honesto: sempre real - meta).
+  function formatTargetVariation(actual, target, { unit = null, comparisonMode = null } = {}) {
+    if (actual === null || actual === undefined || actual === "" ||
+        target === null || target === undefined || target === "") return "—";
     const actualValue = Number(actual);
     const targetValue = Number(target);
     if (!Number.isFinite(actualValue) || !Number.isFinite(targetValue)) return "—";
-    if (targetValue === 0) return actualValue === 0 ? "0,0%" : "—";
-    const variation = ((actualValue - targetValue) / Math.abs(targetValue)) * 100;
+
+    let variation;
+    let suffix;
+    if (unit === "percent") {
+      variation = (actualValue - targetValue) * 100; // valores já vêm em fração (0.12 = 12%)
+      suffix = " p.p.";
+    } else {
+      if (targetValue === 0) return actualValue === 0 ? "0,0%" : "—";
+      variation = ((actualValue - targetValue) / Math.abs(targetValue)) * 100;
+      suffix = "%";
+    }
+
+    const favorable = comparisonMode === "lower" ? -variation : variation;
+    const arrow = favorable > 0 ? " ▲" : favorable < 0 ? " ▼" : "";
     const sign = variation > 0 ? "+" : "";
-    return `${sign}${variation.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    return `${sign}${variation.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}${suffix}${arrow}`;
   }
 
   function createStrategicModule(deps) {
@@ -701,7 +726,11 @@
       const areaRows = areas.map((a) => {
         const total = a.totalKpis || 0;
         const onTarget = a.onTargetCount || 0;
-        const ratio = total ? onTarget / total : null;
+        // "Sem dado" (not_available) não conta como fora da meta — sai do
+        // denominador (melhoria #1 do review: painel misturava "off_target
+        // de verdade" com "indicador sem realizado/meta lançados ainda").
+        const withData = total - (a.notAvailableCount || 0);
+        const ratio = withData ? onTarget / withData : null;
         const pillTone = ratio === null ? "muted" : ratio === 1 ? "pos" : "neg";
         return `
           <button class="sa3-area-row" style="--row-accent:${escapeHtml(a.color || "#4f7cff")}" data-action="open-detail" data-a3-id="${escapeHtml(a.id)}">
@@ -710,7 +739,7 @@
               <div class="sa3-area-name">A3 ${escapeHtml(a.name)}</div>
               <div class="sa3-area-sub">${total} indicador${total === 1 ? "" : "es"}${a.childrenCount ? ` &middot; ${a.childrenCount} A3 filho${a.childrenCount === 1 ? "" : "s"}` : ""}</div>
             </div>
-            <span class="sa3-pill ${pillTone}">${onTarget}/${total} dentro da meta</span>
+            <span class="sa3-pill ${pillTone}">${ratio === null ? "Sem dado" : `${onTarget}/${withData} dentro da meta`}</span>
             <svg class="sa3-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg>
           </button>
         `;
@@ -776,7 +805,7 @@
           <div style="margin-top:12px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
               <label style="font-size:.64rem;font-weight:700;text-transform:uppercase;color:var(--sa3-faint)">Objetivo estratégico</label>
-              <button type="button" class="sa3-icon-btn" data-action="toggle-objective-edit" title="Editar">${ICON_EDIT}</button>
+              ${canManage() ? `<button type="button" class="sa3-icon-btn" data-action="toggle-objective-edit" title="Editar">${ICON_EDIT}</button>` : ""}
             </div>
             <p class="sa3-objective-text" data-objective-display>${hasObjective ? escapeHtml(a3.objective) : '<span style="color:var(--sa3-faint)">Objetivo estratégico ainda não cadastrado.</span>'}</p>
             <div class="sa3-objective-editor hidden" data-objective-form>
@@ -891,10 +920,12 @@
             <span class="sa3-analysis-tag ${it.item_type}">${it.item_type === "cause" ? "Causa" : "Contramedida"}</span>
             <div>${escapeHtml(it.description)}</div>
             <div class="sa3-item-actions">
-              <button type="button" class="sa3-icon-btn" data-action="edit-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Editar">${ICON_EDIT}</button>
-              <button type="button" class="sa3-icon-btn" data-action="remove-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Excluir">${ICON_TRASH}</button>
+              ${canManage() ? `
+                <button type="button" class="sa3-icon-btn" data-action="edit-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Editar">${ICON_EDIT}</button>
+                <button type="button" class="sa3-icon-btn" data-action="remove-analysis-item" data-item-id="${escapeHtml(it.id)}" title="Excluir">${ICON_TRASH}</button>
+              ` : ""}
             </div>
-            <div style="grid-column:1/-1">${renderAttachmentsStrip("analysis_item", it.id, it.description)}</div>
+            <div style="grid-column:1/-1">${renderAttachmentsStrip("analysis_item", it.id, it.description, { canAdd: canManage(), canRemove: canManage() })}</div>
           </div>
           <div class="sa3-form hidden" data-item-edit-form="${escapeHtml(it.id)}">
             <div class="sa3-form-grid" style="grid-template-columns:150px 1fr">
@@ -924,7 +955,7 @@
         <div class="sa3-action-plan">
           <div class="sa3-head" style="margin-bottom:8px">
             <h3 style="font-size:.76rem;text-transform:uppercase;color:var(--sa3-soft)">Causas e contramedidas</h3>
-            <button class="sa3-btn" data-action="toggle-analysis-form" data-kpi-id="${escapeHtml(k.id)}">+ Novo item</button>
+            ${canManage() ? `<button class="sa3-btn" data-action="toggle-analysis-form" data-kpi-id="${escapeHtml(k.id)}">+ Novo item</button>` : ""}
           </div>
           ${itemsHtml}
           <div class="sa3-form hidden" data-analysis-form="${escapeHtml(k.id)}">
@@ -1088,7 +1119,7 @@
           const hit = k.comparisonMode === "lower" ? m.value <= tVal : m.value >= tVal;
           tone = hit ? "pos" : "neg";
         }
-        const variation = formatTargetVariation(m.value, tVal);
+        const variation = formatTargetVariation(m.value, tVal, { unit: k.unit, comparisonMode: k.comparisonMode });
         const tooltip = `${MONTH_LABELS_SHORT[i]} — Realizado: ${formatByUnit(m.value, k.unit, k.decimalPlaces)} · Meta: ${formatByUnit(tVal, k.unit, k.decimalPlaces)} · Var: ${variation}`;
         return `
           <div class="sa3-bar-col" data-chart-has-real="${hasReal}" data-chart-month="${MONTH_LABELS_SHORT[i].toLowerCase()}" data-chart-real="${escapeHtml(formatByUnit(m.value, k.unit, k.decimalPlaces))}" data-chart-meta="${escapeHtml(formatByUnit(tVal, k.unit, k.decimalPlaces))}" data-chart-variation="${escapeHtml(variation)}">
@@ -1183,7 +1214,7 @@
           <div class="sa3-action-plan">
             <div class="sa3-head" style="margin-bottom:8px">
               <h3 style="font-size:.76rem;text-transform:uppercase;color:var(--sa3-soft)">Plano de ação</h3>
-              <button class="sa3-btn" data-action="toggle-action-form" data-kpi-id="${escapeHtml(k.id)}">+ Nova ação</button>
+              ${canManage() ? `<button class="sa3-btn" data-action="toggle-action-form" data-kpi-id="${escapeHtml(k.id)}">+ Nova ação</button>` : ""}
             </div>
             ${actionsHtml}
             ${renderActionForm(k.id)}
@@ -1734,10 +1765,12 @@
           <div class="sa3-action-meta">${a.due_date ? escapeHtml(a.due_date) : "—"}</div>
           <span class="sa3-pill ${tone}">${escapeHtml(label)}</span>
           <div class="sa3-item-actions">
-            <button type="button" class="sa3-icon-btn" data-action="edit-action-item" data-action-id="${escapeHtml(a.id)}" title="Editar">${ICON_EDIT}</button>
-            <button type="button" class="sa3-icon-btn" data-action="delete-action-item" data-action-id="${escapeHtml(a.id)}" title="Excluir">${ICON_TRASH}</button>
+            ${canManage() ? `
+              <button type="button" class="sa3-icon-btn" data-action="edit-action-item" data-action-id="${escapeHtml(a.id)}" title="Editar">${ICON_EDIT}</button>
+              <button type="button" class="sa3-icon-btn" data-action="delete-action-item" data-action-id="${escapeHtml(a.id)}" title="Excluir">${ICON_TRASH}</button>
+            ` : ""}
           </div>
-          <div style="grid-column:1/-1">${renderAttachmentsStrip("action", a.id, a.title, { canAdd: false, canRemove: !ACTION_CLOSED_STATUSES.includes(a.status) })}</div>
+          <div style="grid-column:1/-1">${renderAttachmentsStrip("action", a.id, a.title, { canAdd: false, canRemove: canManage() && !ACTION_CLOSED_STATUSES.includes(a.status) })}</div>
         </div>
       `;
     }
@@ -1872,8 +1905,8 @@
       if (attachEl) {
         if (action?.id) {
           attachEl.innerHTML = renderAttachmentsStrip("action", action.id, action.title, {
-            canAdd: !ACTION_CLOSED_STATUSES.includes(action.status),
-            canRemove: !ACTION_CLOSED_STATUSES.includes(action.status)
+            canAdd: canManage() && !ACTION_CLOSED_STATUSES.includes(action.status),
+            canRemove: canManage() && !ACTION_CLOSED_STATUSES.includes(action.status)
           });
         } else {
           attachEl.innerHTML = renderStagedAttachments(state.editingAction?.stagedFiles || []);
@@ -2056,7 +2089,12 @@
       if (!a3) { root.innerHTML = `<div class="sa3-error">Área não encontrada.</div>`; return; }
 
       const isClosed = period?.status === "closed";
-      const rows = kpis.map((k) => renderEntryRow(k, isClosed)).join("");
+      // Controles de edição só aparecem pra quem pode editar ESTE A3 — antes
+      // apareciam sempre (mesmo pra perfil só-leitura) e a negativa só vinha
+      // no clique de Salvar (melhoria #4 do review: "não exibir controles de
+      // edição pra usuário somente leitura").
+      const readOnly = isClosed || !canManage();
+      const rows = kpis.map((k) => renderEntryRow(k, readOnly)).join("");
 
       root.innerHTML = `
         <button class="sa3-back" data-action="back-detail"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg>Voltar</button>
@@ -2064,7 +2102,7 @@
           <div class="sa3-head">
             <div><h2 style="color:${escapeHtml(a3.color || "#4f7cff")}">${escapeHtml(a3.name)} — lançamento mensal</h2><p>${MONTH_LABELS_SHORT[(period.month || 1) - 1]}/${period.year}</p></div>
             <div style="display:flex;gap:8px;">
-              <button class="sa3-btn" data-action="sync-computed">Sincronizar automáticos</button>
+              <button class="sa3-btn" data-action="sync-computed" ${canManage() ? "" : "disabled"}>Sincronizar automáticos</button>
               ${isClosed
                 ? `<button class="sa3-btn" data-action="reopen-period" ${canManage() ? "" : "disabled"}>Reabrir período</button>`
                 : `<button class="sa3-btn primary" data-action="close-period" ${canManage() ? "" : "disabled"}>Fechar período</button>`}
@@ -2079,6 +2117,7 @@
 
       root.querySelector('[data-action="back-detail"]')?.addEventListener("click", () => loadA3Detail(state.a3Id, false));
       root.querySelector('[data-action="sync-computed"]')?.addEventListener("click", async () => {
+        if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); return; }
         try {
           await callSupabaseRpc("strategic_sync_computed_kpi_records", {
             p_organization_id: state.organizationId, p_year: period.year, p_month: period.month, p_a3_id: state.a3Id
@@ -2103,7 +2142,7 @@
         } catch (err) { appAlert?.(friendlyError(err), "error"); }
       });
 
-      kpis.forEach((k) => bindEntryRow(k, isClosed));
+      kpis.forEach((k) => bindEntryRow(k, readOnly));
     }
 
     // Meta editável em TODO entry_mode (inclusive 'computed' e 'breakdown' —
