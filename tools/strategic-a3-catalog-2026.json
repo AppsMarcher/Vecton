@@ -29,15 +29,25 @@
   ],
 
   "kpis": [
-    { "code": "ebitda_pct", "name": "EBITDA %", "primaryA3": "ebitda", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+    { "code": "ebitda_pct", "name": "EBITDA % Mensal", "primaryA3": "ebitda", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
       "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher",
       "formulaConfig": { "source": "dre_gerencial", "report": "gerencial_real", "line": "ebitdaPct", "numeratorLine": "ebitda", "denominatorLine": "receitaLiquida" },
       "note": "Já calculado hoje em app.js/buildDreGerRealReport; reaproveitado sem tabela nova." },
 
-    { "code": "mc1_pct", "name": "MC1 %", "primaryA3": "ebitda", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+    { "code": "ebitda_pct_accumulated", "name": "EBITDA % Acumulado", "primaryA3": "ebitda", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "last_closed", "comparisonMode": "higher",
+      "formulaConfig": { "source": "dre_gerencial", "report": "gerencial_real", "line": "ebitdaPct", "numeratorLine": "ebitda", "denominatorLine": "receitaLiquida", "range": "ytd" },
+      "note": "Indicador próprio (migration 136) — pedido do usuário pra área EBITDA ter 4 linhas (mensal+acumulado de cada). Calcula sempre Jan..mês, ignora month_from recebido." },
+
+    { "code": "mc1_pct", "name": "MC1 % Mensal", "primaryA3": "ebitda", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
       "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "ratio_of_sums", "comparisonMode": "higher",
       "formulaConfig": { "source": "dre_gerencial", "report": "gerencial_real", "line": "lbPct", "numeratorLine": "lucroBruto", "denominatorLine": "receitaLiquida" },
       "note": "MC1 = Lucro Bruto (linha 'lbPct' já existe). Confirmado pelo usuário: MC1% = 1 − CPV%." },
+
+    { "code": "mc1_pct_accumulated", "name": "MC1 % Acumulado", "primaryA3": "ebitda", "linkedA3s": [], "unit": "percent", "decimalPlaces": 1,
+      "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "last_closed", "comparisonMode": "higher",
+      "formulaConfig": { "source": "dre_gerencial", "report": "gerencial_real", "line": "lbPct", "numeratorLine": "lucroBruto", "denominatorLine": "receitaLiquida", "range": "ytd" },
+      "note": "Indicador próprio (migration 136), mesmo padrão do EBITDA % Acumulado." },
 
     { "code": "commercial_revenue", "name": "Faturamento", "primaryA3": "comercial", "linkedA3s": [], "unit": "BRL", "decimalPlaces": 0,
       "entryMode": "computed", "monthlyCalculation": "direct", "accumulationMethod": "sum", "comparisonMode": "higher",
