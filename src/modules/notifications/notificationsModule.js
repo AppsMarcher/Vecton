@@ -396,17 +396,20 @@
     let _settings = new Map();
     let _users = [];        // usuários cadastrados na org (nome + e-mail)
 
-    function recipientsOf(kind) {
+    // field: "email_recipients" | "messenger_recipients".
+    function recipientsOf(kind, field) {
       const cfg = _settings.get(kind);
-      return Array.isArray(cfg?.email_recipients) ? cfg.email_recipients : [];
+      return Array.isArray(cfg?.[field]) ? cfg[field] : [];
     }
 
-    // Rótulo do botão: mostra o e-mail quando é um só (informação útil de
-    // relance) e cai na contagem a partir de dois, senão a célula estoura.
-    function recipientsLabel(list) {
+    // Rótulo do botão: mostra o nome/e-mail quando é um só (informação útil
+    // de relance) e cai na contagem a partir de dois, senão a célula estoura.
+    // idKey: "email" (canal E-mail) ou "user_id" (canal Messenger — não tem
+    // destinatário externo, só gente cadastrada no Vecton).
+    function recipientsLabel(list, idKey = "email") {
       if (!list.length) return "Ninguém selecionado";
       if (list.length === 1) {
-        const user = _users.find((u) => u.email === list[0]);
+        const user = _users.find((u) => u[idKey] === list[0]);
         return user?.name || list[0];
       }
       return `${list.length} destinatários`;
@@ -415,7 +418,11 @@
     // Valor default de cada campo quando a org ainda não tem linha em
     // notification_settings pra esse kind (org nova, ou tipo recém-criado
     // antes do primeiro fetch semear a linha).
-    const DEFAULT_CFG = { in_app: true, email: false, email_recipients: [], is_active: true, schedule_weekday: null, schedule_time: null };
+    const DEFAULT_CFG = {
+      in_app: true, email: false, email_recipients: [],
+      messenger: false, messenger_recipients: [],
+      is_active: true, schedule_weekday: null, schedule_time: null
+    };
 
     function scheduleRowMarkup(cfg) {
       const weekdayOptions = WEEKDAY_LABELS
@@ -442,13 +449,28 @@
     // dia/horário quando for o tipo agendado) juntos numa barra só. Antes
     // cada controle vivia numa coluna própria de uma tabela larga; virou
     // lista de blocos pra caber melhor e deixar o texto do evento respirar.
+    // Botão de destinatários de UM canal (E-mail ou Messenger) — mesmo
+    // desenho pros dois, só troca o campo salvo e a chave de identidade
+    // (e-mail x user_id, porque o Messenger só manda pra gente cadastrada).
+    function channelRecipientsMarkup(type, cfg, channel) {
+      const field = channel === "email" ? "email_recipients" : "messenger_recipients";
+      const idKey = channel === "email" ? "email" : "user_id";
+      const list = Array.isArray(cfg[field]) ? cfg[field] : [];
+      const enabled = channel === "email" ? cfg.email : cfg.messenger;
+      return `<button type="button" class="notif-rcpt-trigger${list.length ? " has-value" : ""}"
+              data-kind="${escapeHtml(type.kind)}" data-channel="${channel}"${enabled ? "" : " disabled"}>
+              <span class="notif-rcpt-label">${escapeHtml(recipientsLabel(list, idKey))}</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+            </button>`;
+    }
+
     function settingsRowMarkup(type) {
       const cfg = { ...DEFAULT_CFG, ..._settings.get(type.kind) };
-      const list = Array.isArray(cfg.email_recipients) ? cfg.email_recipients : [];
       const isScheduled = type.trigger_mode === "scheduled";
-      // "assignee": não tem lista de destinatários pra escolher — vai
-      // direto pra quem é o Responsável/atribuído daquele item (calculado
-      // no banco, não configurável). Mostra um aviso no lugar do seletor.
+      // "assignee": não tem lista de destinatários pra escolher em nenhum
+      // canal — vai direto pra quem é o Responsável/atribuído daquele item
+      // (calculado no banco, não configurável). Mostra um aviso único no
+      // lugar dos dois seletores.
       const isAssignee = type.target_mode === "assignee";
       return `
         <div class="notif-cfg-row" data-kind="${escapeHtml(type.kind)}">
@@ -465,13 +487,15 @@
               <input type="checkbox" data-field="email"${cfg.email ? " checked" : ""} aria-label="E-mail">
               <span>E-mail</span>
             </label>
+            ${isAssignee ? "" : channelRecipientsMarkup(type, cfg, "email")}
+            <label class="notif-cfg-toggle">
+              <input type="checkbox" data-field="messenger"${cfg.messenger ? " checked" : ""} aria-label="Messenger">
+              <span>Messenger</span>
+            </label>
+            ${isAssignee ? "" : channelRecipientsMarkup(type, cfg, "messenger")}
             ${isAssignee
               ? `<span class="notif-cfg-desc" style="font-style:italic">Vai direto pro responsável — sem lista de destinatários.</span>`
-              : `<button type="button" class="notif-rcpt-trigger${list.length ? " has-value" : ""}"
-              data-kind="${escapeHtml(type.kind)}"${cfg.email ? "" : " disabled"}>
-              <span class="notif-rcpt-label">${escapeHtml(recipientsLabel(list))}</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
-            </button>`}
+              : ""}
             ${isScheduled ? scheduleRowMarkup(cfg) : ""}
             <label class="notif-cfg-toggle notif-cfg-toggle-active">
               <input type="checkbox" data-field="is_active"${cfg.is_active !== false ? " checked" : ""} aria-label="Ativo">
@@ -490,7 +514,7 @@
 
     function closePicker(persist = true) {
       if (!_picker) return;
-      const { kind, selected, changed, el, trigger } = _picker;
+      const { kind, field, idKey, selected, changed, el, trigger } = _picker;
       _picker = null;
       el.remove();
       document.removeEventListener("keydown", onPickerKey, true);
@@ -502,11 +526,11 @@
       if (trigger) {
         trigger.classList.toggle("has-value", list.length > 0);
         const label = trigger.querySelector(".notif-rcpt-label");
-        if (label) label.textContent = recipientsLabel(list);
+        if (label) label.textContent = recipientsLabel(list, idKey);
       }
       // Grava uma vez, ao fechar — e não a cada clique de checkbox.
       if (persist && changed) {
-        persistRow(kind, { email_recipients: list })
+        persistRow(kind, { [field]: list })
           .then(() => showToast("Destinatários atualizados."))
           .catch((error) => {
             console.error(error);
@@ -554,20 +578,26 @@
       panel.style.left = `${Math.max(MARGIN, Math.min(r.right - panel.offsetWidth, window.innerWidth - panel.offsetWidth - MARGIN))}px`;
     }
 
-    function pickerOptionsMarkup(selected) {
+    // idKey: "email" (canal E-mail, aceita destinatário externo) ou
+    // "user_id" (canal Messenger, só gente cadastrada no Vecton).
+    function pickerOptionsMarkup(selected, idKey) {
       const cadastrados = _users.map((u) => ({ ...u, externo: false }));
       // E-mail que está salvo mas não pertence a nenhum usuário: continua
       // aparecendo (marcado) num grupo à parte, senão sumiria da tela sem a
-      // pessoa perceber que ainda vai receber.
-      const externos = [...selected]
-        .filter((mail) => !_users.some((u) => u.email === mail))
-        .map((mail) => ({ email: mail, name: mail, externo: true }));
+      // pessoa perceber que ainda vai receber. Só existe no canal E-mail —
+      // o Messenger nunca guarda um valor que não seja user_id de gente
+      // cadastrada.
+      const externos = idKey === "email"
+        ? [...selected]
+            .filter((mail) => !_users.some((u) => u.email === mail))
+            .map((mail) => ({ email: mail, name: mail, externo: true }))
+        : [];
 
       const linha = (o) => `
         <label class="notif-rcpt-opt">
-          <input type="checkbox" value="${escapeHtml(o.email)}"${selected.has(o.email) ? " checked" : ""}>
+          <input type="checkbox" value="${escapeHtml(o[idKey])}"${selected.has(o[idKey]) ? " checked" : ""}>
           <span class="notif-rcpt-opt-copy">
-            <strong>${escapeHtml(o.name || o.email)}</strong>
+            <strong>${escapeHtml(o.name || o[idKey])}</strong>
             ${o.name && o.name !== o.email ? `<span>${escapeHtml(o.email)}</span>` : ""}
           </span>
         </label>`;
@@ -581,20 +611,22 @@
       return html;
     }
 
-    function openPicker(kind, trigger) {
+    function openPicker(kind, trigger, channel) {
       closePicker();
-      const selected = new Set(recipientsOf(kind));
+      const field = channel === "email" ? "email_recipients" : "messenger_recipients";
+      const idKey = channel === "email" ? "email" : "user_id";
+      const selected = new Set(recipientsOf(kind, field));
       const panel = document.createElement("div");
       panel.className = "notif-rcpt-panel";
       panel.innerHTML = `
-        <div class="notif-rcpt-opts">${pickerOptionsMarkup(selected)}</div>
-        <div class="notif-rcpt-add">
+        <div class="notif-rcpt-opts">${pickerOptionsMarkup(selected, idKey)}</div>
+        ${channel === "email" ? `<div class="notif-rcpt-add">
           <input type="email" placeholder="Adicionar e-mail de fora do Vecton" aria-label="Adicionar e-mail externo">
           <button type="button" class="notif-rcpt-add-btn">Adicionar</button>
-        </div>
+        </div>` : ""}
       `;
       document.body.appendChild(panel);
-      _picker = { kind, trigger, el: panel, selected, changed: false };
+      _picker = { kind, field, idKey, trigger, el: panel, selected, changed: false };
       positionPicker(panel, trigger);
 
       panel.querySelector(".notif-rcpt-opts").addEventListener("change", (event) => {
@@ -605,23 +637,27 @@
         _picker.changed = true;
       });
 
+      // Adicionar e-mail externo: só existe no canal E-mail — o Messenger
+      // não tem esse rodapé no painel (ver innerHTML acima).
       const addInput = panel.querySelector(".notif-rcpt-add input");
       const addBtn = panel.querySelector(".notif-rcpt-add-btn");
-      const adicionar = () => {
-        const mail = addInput.value.trim().toLowerCase();
-        if (!mail) return;
-        if (!EMAIL_RE.test(mail)) { showToast(`E-mail inválido: ${mail}`, "error"); return; }
-        if (selected.has(mail)) { addInput.value = ""; return; }
-        selected.add(mail);
-        _picker.changed = true;
-        addInput.value = "";
-        panel.querySelector(".notif-rcpt-opts").innerHTML = pickerOptionsMarkup(selected);
-        positionPicker(panel, trigger);
-      };
-      addBtn.addEventListener("click", adicionar);
-      addInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") { event.preventDefault(); adicionar(); }
-      });
+      if (addInput && addBtn) {
+        const adicionar = () => {
+          const mail = addInput.value.trim().toLowerCase();
+          if (!mail) return;
+          if (!EMAIL_RE.test(mail)) { showToast(`E-mail inválido: ${mail}`, "error"); return; }
+          if (selected.has(mail)) { addInput.value = ""; return; }
+          selected.add(mail);
+          _picker.changed = true;
+          addInput.value = "";
+          panel.querySelector(".notif-rcpt-opts").innerHTML = pickerOptionsMarkup(selected, idKey);
+          positionPicker(panel, trigger);
+        };
+        addBtn.addEventListener("click", adicionar);
+        addInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") { event.preventDefault(); adicionar(); }
+        });
+      }
 
       document.addEventListener("keydown", onPickerKey, true);
       document.addEventListener("mousedown", onPickerOutside, true);
@@ -648,13 +684,19 @@
         const [types, settings, users] = await Promise.all([
           fetchSupabaseRowsSafe("notification_event_types", "order=sort_order.asc"),
           fetchSupabaseRowsSafe("notification_settings", `organization_id=eq.${orgId}`),
-          fetchSupabaseRowsSafe("user_profiles", `organization_id=eq.${orgId}&select=full_name,email&order=full_name.asc`)
+          fetchSupabaseRowsSafe("user_profiles", `organization_id=eq.${orgId}&select=user_id,full_name,email&order=full_name.asc`)
         ]);
         _types = types || [];
         _settings = new Map((settings || []).map((row) => [row.kind, row]));
+        // user_id entra pro canal Messenger (destinatário é a pessoa
+        // cadastrada, não o e-mail dela).
         _users = (users || [])
-          .map((u) => ({ email: String(u.email || "").trim().toLowerCase(), name: String(u.full_name || "").trim() }))
-          .filter((u) => u.email)
+          .map((u) => ({
+            user_id: u.user_id,
+            email: String(u.email || "").trim().toLowerCase(),
+            name: String(u.full_name || "").trim()
+          }))
+          .filter((u) => u.email && u.user_id)
           // Mesma pessoa pode ter mais de um perfil; a lista é de e-mails.
           .filter((u, i, arr) => arr.findIndex((o) => o.email === u.email) === i);
         paintSettings();
@@ -675,6 +717,8 @@
         in_app: patch.in_app !== undefined ? patch.in_app : current.in_app,
         email: patch.email !== undefined ? patch.email : current.email,
         email_recipients: patch.email_recipients !== undefined ? patch.email_recipients : (current.email_recipients || []),
+        messenger: patch.messenger !== undefined ? patch.messenger : current.messenger,
+        messenger_recipients: patch.messenger_recipients !== undefined ? patch.messenger_recipients : (current.messenger_recipients || []),
         is_active: patch.is_active !== undefined ? patch.is_active : current.is_active,
         schedule_weekday: patch.schedule_weekday !== undefined ? patch.schedule_weekday : current.schedule_weekday,
         schedule_time: patch.schedule_time !== undefined ? patch.schedule_time : current.schedule_time,
@@ -688,7 +732,7 @@
       _settings.set(kind, merged);
     }
 
-    const CHECKBOX_FIELDS = ["in_app", "email", "is_active"];
+    const CHECKBOX_FIELDS = ["in_app", "email", "messenger", "is_active"];
     const SCHEDULE_FIELDS = ["schedule_weekday", "schedule_time"];
 
     // Valor atual (já salvo) de um campo — usado pra restaurar a tela se o
@@ -713,10 +757,14 @@
         const isSchedule = SCHEDULE_FIELDS.includes(field);
         if (!isCheckbox && !isSchedule) return;
 
-        const rcptTrigger = row.querySelector(".notif-rcpt-trigger");
-        if (field === "email" && rcptTrigger) {
+        // Cada canal (E-mail/Messenger) tem seu próprio botão de
+        // destinatários — desligar um dos dois só afeta o dele.
+        const rcptTrigger = (field === "email" || field === "messenger")
+          ? row.querySelector(`.notif-rcpt-trigger[data-channel="${field}"]`)
+          : null;
+        if (rcptTrigger) {
           rcptTrigger.disabled = !input.checked;
-          // Desligar o e-mail com o seletor aberto deixaria um painel órfão.
+          // Desligar o canal com o seletor aberto deixaria um painel órfão.
           if (!input.checked && _picker && _picker.trigger === rcptTrigger) closePicker();
         }
 
@@ -734,7 +782,7 @@
           const previous = currentFieldValue(kind, field);
           if (isCheckbox) {
             input.checked = !!previous;
-            if (field === "email" && rcptTrigger) rcptTrigger.disabled = !input.checked;
+            if (rcptTrigger) rcptTrigger.disabled = !input.checked;
           } else {
             input.value = previous === null || previous === undefined
               ? ""
@@ -750,7 +798,7 @@
         const trigger = event.target.closest(".notif-rcpt-trigger");
         if (!trigger || trigger.disabled || !isAdmin()) return;
         if (_picker && _picker.trigger === trigger) { closePicker(); return; }
-        openPicker(trigger.dataset.kind, trigger);
+        openPicker(trigger.dataset.kind, trigger, trigger.dataset.channel);
       });
     }
 

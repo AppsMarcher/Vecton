@@ -9489,6 +9489,9 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .msn-avatar.ausente::after    { background: var(--amber); }
 .msn-avatar.ocupado::after    { background: var(--neg); }
 .msn-avatar.grupo::after      { display: none; }
+/* Aviso automático (canal Messenger da Central de Notificações, 178): sino
+   em vez de inicial, cor própria pra não parecer um grupo de gente. */
+.msn-avatar.sistema { background: var(--blue); color: #fff; font-size: 1rem; }
 /* Foto do perfil: preenche o quadrado sem distorcer. */
 .msn-avatar.com-foto { background-size: cover; background-position: center; color: transparent; }
 /* Offline em tom mais apagado, como no MSN. */

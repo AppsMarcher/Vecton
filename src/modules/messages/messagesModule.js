@@ -306,15 +306,22 @@
       if (_disabled) {
         return `<div class="msn-vazio">Correio interno ainda não configurado no banco.</div>`;
       }
-      const grupos = _grupos.map((g) => `
-        <div class="msn-contato msn-grupo" role="button" tabindex="0" data-thread="${escapeHtml(g.thread_id)}" data-titulo="${escapeHtml(g.titulo)}">
-          <span class="msn-avatar grupo">${escapeHtml((g.titulo || "G").slice(0, 1).toUpperCase())}</span>
+      // "system" = aviso automático da Central de Notificações (canal
+      // Messenger, ver notify_via_messenger na 178) — cai no mesmo bloco
+      // "Grupos" da lista, só com um ícone/rodapé diferente pra não parecer
+      // um grupo de gente de verdade.
+      const grupos = _grupos.map((g) => {
+        const sistema = g.audience === "system";
+        return `
+        <div class="msn-contato msn-grupo${sistema ? " msn-grupo-sistema" : ""}" role="button" tabindex="0" data-thread="${escapeHtml(g.thread_id)}" data-titulo="${escapeHtml(g.titulo)}">
+          <span class="msn-avatar grupo${sistema ? " sistema" : ""}">${sistema ? "🔔" : escapeHtml((g.titulo || "G").slice(0, 1).toUpperCase())}</span>
           <span class="msn-contato-copy">
             <strong>${escapeHtml(g.titulo)}</strong>
-            <span>${g.membros} participantes</span>
+            <span>${sistema ? "Aviso do sistema" : `${g.membros} participantes`}</span>
           </span>
           ${g.nao_lidas > 0 ? `<span class="msn-badge">${g.nao_lidas}</span>` : ""}
-        </div>`).join("");
+        </div>`;
+      }).join("");
 
       const lista = contatosFiltrados();
       const online = lista.filter((c) => c.presenca !== "offline");
@@ -840,7 +847,7 @@
       ) || null;
       const grupo = _grupos.find((item) => String(item.thread_id) === String(threadId)) || null;
       const tituloExibido = grupo
-        ? `Grupo: ${grupo.titulo || titulo || "Participantes"}`
+        ? (grupo.audience === "system" ? (grupo.titulo || titulo) : `Grupo: ${grupo.titulo || titulo || "Participantes"}`)
         : titulo;
       const fotoUrl = (!grupo && contato && resolverFoto) ? resolverFoto(contato.foto_kind, contato.foto_value) : null;
       el.innerHTML = janelaMarkup(tituloExibido, contato, fotoUrl) + alcasRedimensionamentoMarkup();
