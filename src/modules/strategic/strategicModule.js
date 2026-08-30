@@ -499,7 +499,6 @@
         .sa3-bar-real::after { content:""; position:absolute; top:1px; left:1px; right:1px; height:28%; min-height:2px; border-radius:4px 4px 2px 2px; background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.06)); pointer-events:none; }
         .sa3-bar-real.pos { background:linear-gradient(180deg,#74e89b 0%,#2dcc6b 24%,#0d6b38 100%); box-shadow:0 8px 12px rgba(34,197,94,.20); }
         .sa3-bar-real.neg { background:linear-gradient(180deg,#f58a8a 0%,#ef5050 24%,#8b202b 100%); box-shadow:0 8px 12px rgba(239,68,68,.20); }
-        .sa3-bar-real.warn { background:linear-gradient(180deg,#ffd479 0%,#f5a623 24%,#8a5a0d 100%); box-shadow:0 8px 12px rgba(245,158,11,.20); }
         .sa3-chart-zero { position:absolute; left:2px; right:2px; height:1px; background:rgba(255,255,255,.08); z-index:0; }
         .sa3-target-svg { position:absolute; inset:0 2px; width:calc(100% - 4px); height:100%; overflow:visible; pointer-events:none; z-index:2; }
         .sa3-target-line { fill:none; stroke:#4f7cff; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; filter:drop-shadow(0 2px 4px rgba(79,124,255,.34)); }
@@ -1467,7 +1466,14 @@
       // a regra (achado do usuário, 2026-08-29: 'range'/'exact'/
       // 'exact_with_tolerance' ficavam com cor errada porque o JS só sabia
       // tratar 'higher'/'lower').
-      const STATUS_TONE = { on_target: "pos", attention: "warn", off_target: "neg" };
+      // 'attention' (pedido do usuário, 2026-08-29: "retira esse amarelo")
+      // virava barra âmbar — mas strategic_kpi_status só devolve
+      // 'attention' quando o resultado NÃO bateu a meta (só ficou dentro
+      // de uma margem pequena de errar, attention_band_pct, default 5%).
+      // Continua sendo meta não batida de verdade, então a cor certa é a
+      // mesma de off_target: vermelho. Paleta do gráfico agora é só
+      // verde/vermelho pro Realizado + azul pra Meta, sem 3º tom.
+      const STATUS_TONE = { on_target: "pos", attention: "neg", off_target: "neg" };
       const values = [
         ...monthly.map((m) => m?.value),
         ...targets.flatMap((t) => [t?.value, t?.min, t?.max])
