@@ -317,6 +317,10 @@
         .sa3-btn { border-radius:10px; padding:8px 14px; font-size:.78rem; font-weight:600; cursor:pointer; border:1px solid var(--sa3-line); background:transparent; color:var(--sa3-soft); }
         .sa3-btn:hover { background:rgba(255,255,255,.05); color:var(--sa3-text); }
         .sa3-btn.primary { background:var(--sa3-blue); border-color:var(--sa3-blue); color:#fff; }
+        /* Excluir item arquivado (pedido do usuário, 2026-08-29) — mesmo
+           padrão visual de .sa3-btn.primary, só na cor de "perigo". */
+        .sa3-btn.danger { background:var(--sa3-neg); border-color:var(--sa3-neg); color:#fff; }
+        .sa3-btn.danger:hover { background:#e05a5a; }
         .sa3-btn.primary:hover { background:#3f68e6; }
         .sa3-btn:disabled { opacity:.45; cursor:not-allowed; }
         .sa3-back { display:inline-flex; align-items:center; gap:6px; color:var(--sa3-soft); background:none; border:none; cursor:pointer; font-size:.78rem; margin-bottom:12px; padding:0; }
@@ -986,7 +990,10 @@
             <div class="sa3-archived-name">${escapeHtml(a.name)}${a.parent_id ? ' <span class="sa3-archived-tag">A3-filha</span>' : ""}</div>
             <div class="sa3-archived-meta">${escapeHtml(a.management || "Sem gestão")} · desativada em ${fmtDate(a.updated_at)}</div>
           </div>
-          <button type="button" class="sa3-btn primary" data-action="restore-a3" data-a3-id="${escapeHtml(a.id)}">Restaurar</button>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="sa3-btn primary" data-action="restore-a3" data-a3-id="${escapeHtml(a.id)}">Restaurar</button>
+            <button type="button" class="sa3-btn danger" data-action="delete-a3-permanent" data-a3-id="${escapeHtml(a.id)}" data-a3-name="${escapeHtml(a.name)}">Excluir</button>
+          </div>
         </div>
       `).join("") : `<div class="sa3-empty">Nenhuma A3 arquivada.</div>`;
 
@@ -996,7 +1003,10 @@
             <div class="sa3-archived-name">${escapeHtml(k.name)}</div>
             <div class="sa3-archived-meta">${escapeHtml(k.code)} · desativado em ${fmtDate(k.updated_at)}</div>
           </div>
-          <button type="button" class="sa3-btn primary" data-action="restore-kpi" data-kpi-id="${escapeHtml(k.id)}">Restaurar</button>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="sa3-btn primary" data-action="restore-kpi" data-kpi-id="${escapeHtml(k.id)}">Restaurar</button>
+            <button type="button" class="sa3-btn danger" data-action="delete-kpi-permanent" data-kpi-id="${escapeHtml(k.id)}" data-kpi-name="${escapeHtml(k.name)}">Excluir</button>
+          </div>
         </div>
       `).join("") : `<div class="sa3-empty">Nenhum indicador arquivado.</div>`;
 
@@ -1032,6 +1042,45 @@
           btn.disabled = true;
           try {
             await callSupabaseRpc("strategic_restore_kpi", { p_kpi_id: btn.dataset.kpiId });
+            await loadArchived();
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+            btn.disabled = false;
+          }
+        });
+      });
+      // Excluir de vez (pedido do usuário 2026-08-29) — irreversível, por
+      // isso confirm "danger" com o nome do item, e a RPC (migration 174)
+      // recusa sozinha se ainda tiver histórico (mensagem já vem pronta de
+      // lá, só repassa pro appAlert — não precisa reimplementar a checagem
+      // aqui, é sempre a mesma regra dos dois lados).
+      root.querySelectorAll('[data-action="delete-a3-permanent"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const ok = await appConfirm?.(
+            `Excluir "${btn.dataset.a3Name}" DE VEZ? Isso não pode ser desfeito.`,
+            "danger"
+          );
+          if (!ok) return;
+          btn.disabled = true;
+          try {
+            await callSupabaseRpc("strategic_delete_a3", { p_a3_id: btn.dataset.a3Id });
+            await loadArchived();
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+            btn.disabled = false;
+          }
+        });
+      });
+      root.querySelectorAll('[data-action="delete-kpi-permanent"]').forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const ok = await appConfirm?.(
+            `Excluir "${btn.dataset.kpiName}" DE VEZ? Isso não pode ser desfeito.`,
+            "danger"
+          );
+          if (!ok) return;
+          btn.disabled = true;
+          try {
+            await callSupabaseRpc("strategic_delete_kpi", { p_kpi_id: btn.dataset.kpiId });
             await loadArchived();
           } catch (err) {
             appAlert?.(friendlyError(err), "error");
