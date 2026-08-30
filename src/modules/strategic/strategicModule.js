@@ -106,6 +106,46 @@
     return `${n.toLocaleString("pt-BR", { minimumFractionDigits: dp, maximumFractionDigits: dp })}${suffix}`;
   }
 
+  // Formatação dos campos EDITÁVEIS de Meta/Real (pedido do usuário,
+  // 2026-08-29) — mesma lógica de unidade do formatByUnit acima, só que
+  // com dois estados: "blurred" (o campo mostra R$/%/separador de milhar,
+  // bonito de ler) e "focused" (mostra só o número puro, vírgula decimal,
+  // sem milhar/prefixo/sufixo — ninguém digita "R$ 1.234,50" com o cursor
+  // no meio de um separador). unit='percent' guarda FRAÇÃO no banco
+  // (0.025 = 2,5%) mas a pessoa digita/vê sempre a escala percentual
+  // (2,5) — a conversão ×100 / ÷100 mora só aqui (format) e no parse
+  // abaixo, o resto do módulo continua tratando tudo em fração.
+  function formatEditableValue(value, unit, decimalPlaces, focused) {
+    if (value === null || value === undefined || value === "") return "";
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "";
+    const dp = unit === "BRL" ? 0 : (Number.isFinite(decimalPlaces) ? decimalPlaces : (unit === "percent" ? 1 : 0));
+    const displayNumber = unit === "percent" ? n * 100 : n;
+    const s = displayNumber.toLocaleString("pt-BR", { minimumFractionDigits: dp, maximumFractionDigits: dp });
+    if (focused) return s.replace(/\./g, "");
+    if (unit === "percent") return `${s}%`;
+    if (unit === "BRL") return `R$ ${s}`;
+    const suffix = unit && unit !== "un" ? ` ${unit}` : "";
+    return `${s}${suffix}`;
+  }
+
+  // Caminho inverso: texto do input (formatado ou não — na dúvida aceita
+  // os dois, já que o valor pode chegar recém-focado/limpo ou ainda
+  // formatado de um blur anterior) -> número cru pro banco. Tira tudo que
+  // não é dígito/vírgula/ponto/sinal (R$, %, sufixo de unidade, espaço),
+  // remove ponto de milhar, troca vírgula decimal por ponto — só então
+  // faz Number(). percent divide por 100 (volta pra fração).
+  function parseEditableValue(text, unit) {
+    if (text === null || text === undefined) return null;
+    const raw = String(text).trim();
+    if (raw === "") return null;
+    const cleaned = raw.replace(/[^\d,.\-]/g, "").replace(/\./g, "").replace(",", ".");
+    if (cleaned === "" || cleaned === "-") return null;
+    const n = Number(cleaned);
+    if (!Number.isFinite(n)) return null;
+    return unit === "percent" ? n / 100 : n;
+  }
+
   // achado (melhoria #2 do review): Number(null) === 0 é finito, então
   // "sem realizado" (null) com meta preenchida passava pelo guard de
   // Number.isFinite e calculava uma variação de -100% inventada, em vez de
@@ -451,12 +491,22 @@
         .sa3-entry-driver-row { display:flex; align-items:center; gap:6px; margin-top:2px; }
         .sa3-entry-driver-row label { font-size:.62rem; color:var(--sa3-faint); flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .sa3-entry-driver-row input { width:76px; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.74rem; padding:5px 6px; text-align:right; }
-        .sa3-entry-save { padding-top:22px; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+        /* align-self:stretch (pedido do usuário 2026-08-29) — antes tinha
+           padding-top:22px pra tentar imitar a posição do input, mas
+           ficava só "colado no topo" da linha em vez de centralizado de
+           verdade. Esticando a célula até a altura da linha (definida
+           pela coluna mais alta, normalmente Meta/Real) e centralizando
+           o conteúdo dela por dentro, o botão acompanha a altura real. */
+        .sa3-entry-save { align-self:stretch; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
         /* Aviso de rascunho não salvo (melhoria #5 do review) — some por
            padrão, .sa3-entry-row.dirty é quem revela (JS toggla a classe no
-           1º input tocado, sem re-renderizar a linha inteira). */
-        .sa3-dirty-badge { display:none; font-size:.64rem; font-weight:700; color:var(--sa3-amber); }
-        .sa3-entry-row.dirty .sa3-dirty-badge { display:inline; }
+           1º input tocado, sem re-renderizar a linha inteira). Pedido do
+           usuário (2026-08-29): trocado o texto "Não salvo" por um ponto
+           pulsante — símbolo mais compacto, o texto vira title/aria-label
+           pra não perder a informação de quem usa leitor de tela. */
+        .sa3-dirty-badge { display:none; font-size:1rem; line-height:1; color:var(--sa3-amber); cursor:default; }
+        .sa3-entry-row.dirty .sa3-dirty-badge { display:inline-block; animation:sa3-dirty-pulse 1.6s ease-in-out infinite; }
+        @keyframes sa3-dirty-pulse { 0%, 100% { opacity:1; } 50% { opacity:.35; } }
         /* Painel de composição (entry_mode='breakdown') — full-width, logo
            abaixo da linha compacta (não cabe nos 190px da coluna Real). */
         .sa3-breakdown-panel { padding:10px 14px 14px; margin:-2px 0 8px; border-radius:0 0 10px 10px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); border-top:none; }
@@ -2340,13 +2390,14 @@
     function renderTargetInputs(k, isClosed) {
       const t = k.target || {};
       const dis = isClosed ? "disabled" : "";
+      const fmt = (v) => formatEditableValue(v, k.unit, k.decimalPlaces, false);
       if (k.comparisonMode === "range") {
         return `
           <div class="sa3-entry-meta">
             <span class="k">Meta (mín–máx)</span>
             <div class="sa3-entry-meta-row">
-              <input type="number" step="any" data-target-field="target_min" value="${t.min ?? ""}" placeholder="mín" ${dis}>
-              <input type="number" step="any" data-target-field="target_max" value="${t.max ?? ""}" placeholder="máx" ${dis}>
+              <input type="text" inputmode="decimal" data-target-field="target_min" value="${fmt(t.min)}" placeholder="mín" ${dis}>
+              <input type="text" inputmode="decimal" data-target-field="target_max" value="${fmt(t.max)}" placeholder="máx" ${dis}>
             </div>
           </div>
         `;
@@ -2356,8 +2407,8 @@
           <div class="sa3-entry-meta">
             <span class="k">Meta &plusmn; tolerância</span>
             <div class="sa3-entry-meta-row">
-              <input type="number" step="any" data-target-field="target_value" value="${t.value ?? ""}" ${dis}>
-              <input type="number" step="any" data-target-field="tolerance" value="${t.tolerance ?? ""}" placeholder="±" ${dis}>
+              <input type="text" inputmode="decimal" data-target-field="target_value" value="${fmt(t.value)}" ${dis}>
+              <input type="text" inputmode="decimal" data-target-field="tolerance" value="${fmt(t.tolerance)}" placeholder="±" ${dis}>
             </div>
           </div>
         `;
@@ -2366,16 +2417,16 @@
         <div class="sa3-entry-meta">
           <span class="k">Meta</span>
           <div class="sa3-entry-meta-row">
-            <input type="number" step="any" data-target-field="target_value" value="${t.value ?? ""}" ${dis}>
+            <input type="text" inputmode="decimal" data-target-field="target_value" value="${fmt(t.value)}" ${dis}>
           </div>
         </div>
       `;
     }
 
-    function readTargetPayload(rowEl) {
+    function readTargetPayload(rowEl, unit) {
       const val = (sel) => {
         const el = rowEl.querySelector(sel);
-        return el && el.value !== "" ? Number(el.value) : null;
+        return el ? parseEditableValue(el.value, unit) : null;
       };
       return {
         target_value: val('[data-target-field="target_value"]'),
@@ -2429,7 +2480,7 @@
         realCell = `
           <div class="sa3-entry-real">
             <span class="k">Real</span>
-            <input type="number" step="any" data-field="result" value="${k.resultValue ?? ""}" ${isClosed ? "disabled" : ""}>
+            <input type="text" inputmode="decimal" data-field="result" value="${formatEditableValue(k.resultValue, k.unit, k.decimalPlaces, false)}" ${isClosed ? "disabled" : ""}>
           </div>
         `;
       }
@@ -2442,7 +2493,7 @@
           </div>
           ${targetInputs}
           ${realCell}
-          <div class="sa3-entry-save"><span class="sa3-dirty-badge">Não salvo</span>${saveBtn}</div>
+          <div class="sa3-entry-save"><span class="sa3-dirty-badge" title="Alterações não salvas" aria-label="Alterações não salvas">●</span>${saveBtn}</div>
         </div>
         ${breakdownPanel}
       `;
@@ -2548,6 +2599,23 @@
         inp.addEventListener("input", () => markDirty(k.id));
       });
 
+      // Formatação por unidade (pedido do usuário 2026-08-29): Meta e Real
+      // mostram R$/%/separador de milhar quando não estão em foco; ao
+      // focar, viram número puro (sem prefixo/sufixo/milhar) pra digitar
+      // sem atrito, e ao desfocar reformatam de novo. O valor CRU nunca
+      // fica só no texto formatado — parseEditableValue (no Salvar) sabe
+      // ler os dois estados, então não precisa guardar em data-attribute.
+      rowEl?.querySelectorAll('[data-target-field], [data-field="result"]').forEach((inp) => {
+        inp.addEventListener("focus", () => {
+          const raw = parseEditableValue(inp.value, k.unit);
+          inp.value = formatEditableValue(raw, k.unit, k.decimalPlaces, true);
+        });
+        inp.addEventListener("blur", () => {
+          const raw = parseEditableValue(inp.value, k.unit);
+          inp.value = formatEditableValue(raw, k.unit, k.decimalPlaces, false);
+        });
+      });
+
       if (k.entryMode === "breakdown") bindBreakdownPanel(k);
 
       btn?.addEventListener("click", async () => {
@@ -2562,7 +2630,7 @@
         btn.disabled = true;
         try {
           const { year, month } = currentPeriod();
-          const targetPayload = readTargetPayload(rowEl);
+          const targetPayload = readTargetPayload(rowEl, k.unit);
           const version = rowEl.dataset.version ? Number(rowEl.dataset.version) : null;
           const targetVersion = rowEl.dataset.targetVersion ? Number(rowEl.dataset.targetVersion) : null;
           const targetParams = {
@@ -2611,7 +2679,7 @@
           } else {
             // direct, ou sobrescrita manual de 'computed'
             const input = rowEl.querySelector('[data-field="result"]');
-            const value = input && input.value !== "" ? Number(input.value) : null;
+            const value = input ? parseEditableValue(input.value, k.unit) : null;
             await callSupabaseRpc("strategic_save_kpi_record", {
               p_kpi_id: k.id, p_year: year, p_month: month, p_result_value: value, p_expected_version: version,
               ...targetParams
