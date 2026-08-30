@@ -298,13 +298,23 @@
       const s = document.createElement("style");
       s.id = "sa3-style";
       s.textContent = `
-        .sa3 {
+        /* Bug estrutural achado pelo usuário (2026-08-29): essas variáveis
+           estavam declaradas em .sa3 (só o root da tela) — mas modal
+           (openSa3Modal) e carrossel (openAttachmentCarousel) são
+           anexados direto em document.body, FORA da árvore de .sa3.
+           Custom property não atravessa esse "fora da árvore": var(--sa3-
+           panel) lá dentro do modal virava undefined, fundo sumia (viu-se
+           o "Editar Norte Verdadeiro" com o card atrás vazando por
+           baixo). Promovido pra :root (global) resolve pra qualquer
+           elemento em document.body, modal incluso — o prefixo --sa3- já
+           evita colisão com variáveis de outros módulos. */
+        :root {
           --sa3-bg:#09090a; --sa3-bg-soft:#0e0e10; --sa3-panel:#121317; --sa3-panel-alt:#0f1013; --sa3-panel-hover:#191b20;
           --sa3-line:#2a2d34; --sa3-line-soft:rgba(255,255,255,.06);
           --sa3-text:#ffffff; --sa3-soft:#a1a7b3; --sa3-faint:#6b7280;
           --sa3-blue:#4f7cff; --sa3-pos:#4ade80; --sa3-neg:#f87171; --sa3-amber:#f59e0b; --sa3-violet:#8b5cf6;
-          color:var(--sa3-text); font-family:inherit;
         }
+        .sa3 { color:var(--sa3-text); font-family:inherit; }
         .sa3 * { box-sizing:border-box; }
         .sa3 button { font-family:inherit; }
         .sa3-card { background:rgba(12,14,18,.9); border:1px solid var(--sa3-line); border-radius:16px; box-shadow:0 18px 48px rgba(0,0,0,.32); padding:18px 20px; margin-bottom:14px; }
