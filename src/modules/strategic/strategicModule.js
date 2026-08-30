@@ -420,19 +420,35 @@
            título/subtítulo por 2 inputs no lugar (mesmo padrão do Objetivo
            Estratégico). */
         .sa3-kpi-head-actions { display:flex; align-items:center; gap:2px; flex-shrink:0; }
-        /* Anexos de suporte do indicador (pedido do usuário, 2026-08-29) —
-           ícone de clipe no cabeçalho do card, com contador quando já tem
-           anexo; clicar abre/fecha o painel .sa3-kpi-attachments logo
-           abaixo do header (mesmo renderAttachmentsStrip de Causas/Plano
-           de Ação — chips + carrossel já prontos, só reaproveitados). */
-        .sa3-kpi-head-actions [data-action="toggle-kpi-attachments"] { position:relative; }
+        /* Anexos de suporte do indicador (pedido do usuário, 2026-08-29,
+           revisado no mesmo dia depois do 1º teste em produção) — ícone
+           de clipe no cabeçalho do card, SEMPRE na cor azul do projeto
+           (não o cinza padrão de .sa3-icon-btn) e afastado de editar/
+           excluir (margin-right maior, pra não confundir clique). Sem
+           anexo: clicar abre o seletor de arquivo direto (aceita vários
+           de uma vez, input multiple). Com anexo: clicar abre o
+           carrossel (openAttachmentCarousel) — que também ganha, quando
+           canManage(), um jeito de adicionar/remover sem fechar. Ícone
+           pisca (.has-attachments) enquanto existe pelo menos 1 anexo —
+           sinal visual de "tem conteúdo aqui", não só decorativo. */
+        .sa3-kpi-attach-btn { position:relative; margin-right:10px; color:var(--sa3-blue) !important; }
+        .sa3-kpi-attach-btn.has-attachments { animation:sa3-attach-pulse 1.8s ease-in-out infinite; }
+        @keyframes sa3-attach-pulse { 0%, 100% { opacity:1; } 50% { opacity:.4; } }
         .sa3-attachment-count {
           position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; padding:0 3px;
           border-radius:999px; background:var(--sa3-blue); color:#fff; font-size:.56rem; font-weight:800;
           line-height:14px; text-align:center;
         }
-        .sa3-kpi-attachments { margin:-2px 0 12px; }
-        .sa3-kpi-attachments.hidden { display:none; }
+        /* .rps-carousel-add reaproveita .rps-carousel-external (mesmo botão
+           pill do "Abrir arquivo ↗", zero CSS novo) — só que essa classe
+           tem uma regra no styles.css global (compartilhada com o RPS) que
+           colapsa pra um ícone "↗" via ::after em telas <720px. Sem esse
+           override ela vazaria pro botão Adicionar também (mostraria uma
+           setinha de link externo em vez de "+"). Seletor mais específico
+           que o original, não precisa mexer no arquivo compartilhado. */
+        @media (max-width:720px) {
+          .rps-carousel-actions .rps-carousel-add::after { content:"+" !important; font-size:1rem !important; }
+        }
         .sa3-kpi-title-edit.hidden { display:none; }
         .sa3-kpi-title-edit input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; margin-bottom:6px; }
         .sa3-kpi-title-edit input:last-of-type { margin-bottom:10px; }
@@ -1150,7 +1166,7 @@
         }
       });
 
-      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); bindKpiCatalogActions(k.id); bindKpiAttachmentsToggle(k.id); });
+      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); bindKpiCatalogActions(k.id); bindKpiAttachTrigger(k.id); });
       bindKpiChartTooltips();
       bindAnalysisRemoveButtons();
       bindActionItemButtons();
@@ -1484,9 +1500,10 @@
             ${(canEditCatalog || showAttachmentIcon) ? `
               <div class="sa3-kpi-head-actions">
                 ${showAttachmentIcon ? `
-                  <button type="button" class="sa3-icon-btn" data-action="toggle-kpi-attachments" data-kpi-id="${escapeHtml(k.id)}" title="Anexos do indicador">
+                  <button type="button" class="sa3-icon-btn sa3-kpi-attach-btn${kpiAttachments.length ? " has-attachments" : ""}" data-action="kpi-attach-trigger" data-kpi-id="${escapeHtml(k.id)}" data-kpi-name="${escapeHtml(k.name)}" title="${kpiAttachments.length ? "Ver anexos do indicador" : "Anexar documento de suporte"}">
                     ${ICON_CLIP}${kpiAttachments.length ? `<span class="sa3-attachment-count">${kpiAttachments.length}</span>` : ""}
                   </button>
+                  <input type="file" data-action="upload-attachment" data-owner-type="kpi" data-owner-id="${escapeHtml(k.id)}" multiple hidden>
                 ` : ""}
                 ${canEditCatalog ? `
                   <button type="button" class="sa3-icon-btn" data-action="toggle-kpi-edit" data-kpi-id="${escapeHtml(k.id)}" title="Editar indicador">${ICON_EDIT}</button>
@@ -1495,11 +1512,6 @@
               </div>
             ` : ""}
           </div>
-          ${showAttachmentIcon ? `
-            <div class="sa3-kpi-attachments hidden" data-kpi-attachments="${escapeHtml(k.id)}">
-              ${renderAttachmentsStrip("kpi", k.id, k.name, { canAdd: canManage(), canRemove: canManage() })}
-            </div>
-          ` : ""}
           <div class="sa3-combo-chart" role="img" aria-label="Gráfico combinado de realizado mensal em colunas e meta mensal em linha">
             <div class="sa3-chart-plot">
               <div class="sa3-chart-zero" style="top:${zeroY}%"></div>
@@ -1582,16 +1594,25 @@
       });
     }
 
-    // Toggle do painel de anexos do indicador (pedido do usuário,
-    // 2026-08-29) — só mostra/esconde (a lista em si já veio renderizada
-    // por renderAttachmentsStrip; upload/remoção/carrossel são
-    // bindAttachmentWidgets(), genérico, chamado 1x pra tela toda). Sem
-    // gate de canEditCatalog: qualquer um que enxergue o ícone (canManage
-    // OU já tem anexo pra ver) consegue abrir/fechar.
-    function bindKpiAttachmentsToggle(kpiId) {
-      const btn = root.querySelector(`[data-action="toggle-kpi-attachments"][data-kpi-id="${cssEscape(kpiId)}"]`);
-      const panel = root.querySelector(`[data-kpi-attachments="${cssEscape(kpiId)}"]`);
-      btn?.addEventListener("click", () => panel?.classList.toggle("hidden"));
+    // Ícone de clipe do indicador (pedido do usuário, 2026-08-29 — revisado
+    // no mesmo dia depois do 1º teste em produção: era um toggle de painel,
+    // virou gatilho direto). Sem anexo: clique dispara o <input multiple
+    // hidden> que já vem do lado do botão (upload em si é o handler
+    // genérico de bindAttachmentWidgets(), só generalizado pra multi-
+    // arquivo — ver uploadAttachmentFiles). Com anexo: clique abre o
+    // carrossel com canManage()=true, que por sua vez ganha um jeito de
+    // adicionar/remover sem fechar (ver openAttachmentCarousel).
+    function bindKpiAttachTrigger(kpiId) {
+      const btn = root.querySelector(`[data-action="kpi-attach-trigger"][data-kpi-id="${cssEscape(kpiId)}"]`);
+      const picker = root.querySelector(`[data-action="upload-attachment"][data-owner-type="kpi"][data-owner-id="${cssEscape(kpiId)}"]`);
+      btn?.addEventListener("click", () => {
+        const attachments = state.attachments?.kpi?.[kpiId] || [];
+        if (attachments.length) {
+          openAttachmentCarousel("kpi", kpiId, 0, btn.dataset.kpiName, { canManage: canManage() });
+        } else {
+          picker?.click();
+        }
+      });
     }
 
     // -------------------------------------------------------- Criar A3 / criar indicador
@@ -1876,6 +1897,24 @@
       }
     }
 
+    // Sobe uma FileList inteira, sequencial (não Promise.all — mais fácil
+    // de reportar qual arquivo falhou, e evita martelar o Storage com N
+    // uploads em paralelo). Pedido do usuário (2026-08-29): o anexo do
+    // indicador (ícone de clipe) precisa aceitar VÁRIOS arquivos de uma
+    // vez — os outros donos (ação/item de análise) continuam 1 arquivo
+    // por vez porque o <input> deles não tem o atributo multiple, mas
+    // usam esta mesma função (loop de 1 item também funciona).
+    async function uploadAttachmentFiles(ownerType, ownerId, fileList) {
+      const files = Array.from(fileList || []);
+      for (const file of files) {
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+          appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB — não foi enviado.`, "warn");
+          continue;
+        }
+        await uploadAttachment(ownerType, ownerId, file);
+      }
+    }
+
     // canAdd/canRemove são independentes — achado do usuário (2026-08-29):
     // "Anexar" só pode existir DENTRO do form aberto (canAdd:false no card,
     // sempre, mesmo com a ação aberta/ativa); remover continua liberado no
@@ -1928,7 +1967,13 @@
       document.body.classList.remove("rps-carousel-open");
     }
 
-    function openAttachmentCarousel(ownerType, ownerId, startIndex, title) {
+    // canManage (5º parâmetro, pedido do usuário 2026-08-29): quando true,
+    // o carrossel ganha um botão "+ Adicionar" no header (sobe mais
+    // arquivo(s) sem fechar — reabre no recém-adicionado) e um "Remover"
+    // no rodapé (apaga o anexo ativo — reabre no próximo, ou fecha se
+    // esvaziou). Antes disso o carrossel era só visualizador; usado assim
+    // (sem canManage) continua idêntico ao de Causas/Plano de Ação.
+    function openAttachmentCarousel(ownerType, ownerId, startIndex, title, { canManage: canManageHere = false } = {}) {
       closeAttachmentCarousel();
       const attachments = (state.attachments?.[ownerType]?.[ownerId]) || [];
       if (!attachments.length) return;
@@ -1948,6 +1993,12 @@
             </div>
             <div class="rps-carousel-actions">
               <span class="rps-carousel-counter" data-carousel-counter></span>
+              ${canManageHere ? `
+                <label class="rps-carousel-external rps-carousel-add" title="Adicionar anexo">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="margin-right:4px;vertical-align:-1px"><path d="M12 5v14M5 12h14"/></svg>Adicionar
+                  <input type="file" data-carousel-add-input multiple hidden>
+                </label>
+              ` : ""}
               <a class="rps-carousel-external" data-carousel-external target="_blank" rel="noopener noreferrer">Abrir arquivo ↗</a>
               <button type="button" class="rps-carousel-close" data-carousel-close aria-label="Fechar apresentação">×</button>
             </div>
@@ -1956,7 +2007,10 @@
           ${attachments.length > 1 ? `<button type="button" class="rps-carousel-arrow is-previous" data-carousel-previous aria-label="Anexo anterior">‹</button>
           <button type="button" class="rps-carousel-arrow is-next" data-carousel-next aria-label="Próximo anexo">›</button>` : ""}
           <footer class="rps-carousel-footer">
-            <div class="rps-carousel-caption"><strong data-carousel-name></strong><span data-carousel-meta></span></div>
+            <div class="rps-carousel-caption">
+              <strong data-carousel-name></strong><span data-carousel-meta></span>
+              ${canManageHere ? `<button type="button" class="sa3-attachment-remove" data-carousel-remove title="Remover este anexo" style="font-size:1.1rem;margin-left:8px">&times;</button>` : ""}
+            </div>
             <nav class="rps-carousel-strip" aria-label="Arquivos anexados">${attachments.map((att, index) => `<button type="button" data-carousel-index="${index}" title="${escapeHtml(att.file_name || `Arquivo ${index + 1}`)}"><span>${index + 1}</span><small>${escapeHtml(att.file_name || "Arquivo")}</small></button>`).join("")}</nav>
           </footer>
         </section>`;
@@ -1968,6 +2022,7 @@
       const nameEl = carousel.querySelector("[data-carousel-name]");
       const metaEl = carousel.querySelector("[data-carousel-meta]");
       const external = carousel.querySelector("[data-carousel-external]");
+      const addInput = carousel.querySelector("[data-carousel-add-input]");
 
       const mediaMarkup = (att, url) => {
         const safeUrl = escapeHtml(url);
@@ -2009,11 +2064,58 @@
 
       const show = (index) => { activeIndex = (index + attachments.length) % attachments.length; void renderActive(); };
       const close = () => closeAttachmentCarousel();
+
+      // Adicionar sem fechar: sobe, recarrega state.attachments e reabre o
+      // MESMO carrossel (função recursiva — closeAttachmentCarousel() no
+      // topo já limpa o anterior) já apontando pro 1º arquivo novo.
+      // renderShell() atualiza o ícone/contador por trás (o carrossel vive
+      // em document.body, fora de root — sobrevive ao re-render).
+      addInput?.addEventListener("change", async () => {
+        if (!addInput.files?.length) return;
+        const previousCount = attachments.length;
+        addInput.disabled = true;
+        try {
+          await uploadAttachmentFiles(ownerType, ownerId, addInput.files);
+          await loadAttachments();
+          renderShell();
+          openAttachmentCarousel(ownerType, ownerId, previousCount, title, { canManage: canManageHere });
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          addInput.disabled = false;
+        }
+      });
+
+      const removeCurrent = async () => {
+        const att = attachments[activeIndex];
+        if (!att) return;
+        const ok = await appConfirm?.("Remover este anexo?", "warn");
+        if (!ok) return;
+        try {
+          const response = await authenticatedFetch(
+            `${supabaseApiUrl}/rest/v1/strategic_attachments?id=eq.${att.id}`,
+            { method: "DELETE" }
+          );
+          if (!response.ok) throw new Error(await response.text());
+          await deleteFromStorage(ATTACHMENT_BUCKET, att.storage_path);
+          await loadAttachments();
+          renderShell();
+          const remaining = (state.attachments?.[ownerType]?.[ownerId]) || [];
+          if (remaining.length) {
+            openAttachmentCarousel(ownerType, ownerId, Math.min(activeIndex, remaining.length - 1), title, { canManage: canManageHere });
+          } else {
+            close();
+          }
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+        }
+      };
+
       carousel.addEventListener("click", (event) => {
         if (event.target === carousel || event.target.closest("[data-carousel-close]")) return close();
         if (event.target.closest("[data-carousel-previous]")) return show(activeIndex - 1);
         if (event.target.closest("[data-carousel-next]")) return show(activeIndex + 1);
         if (event.target.closest("[data-carousel-retry]")) { signedUrls.delete(attachments[activeIndex].id); return void renderActive(); }
+        if (event.target.closest("[data-carousel-remove]")) return void removeCurrent();
         const indexed = event.target.closest("[data-carousel-index]");
         if (indexed) show(Number(indexed.dataset.carouselIndex));
       });
@@ -2029,19 +2131,22 @@
     function bindAttachmentWidgets() {
       root.querySelectorAll('[data-action="upload-attachment"]').forEach((input) => {
         input.addEventListener("change", async () => {
-          const file = input.files?.[0];
-          if (!file) return;
+          if (!input.files?.length) return;
           if (!canManage()) { appAlert?.("Você não tem permissão para editar este módulo.", "warn"); input.value = ""; return; }
-          if (file.size > MAX_ATTACHMENT_BYTES) { appAlert?.(`O arquivo "${file.name}" ultrapassa o limite de 20 MB.`, "warn"); input.value = ""; return; }
           const ownerType = input.dataset.ownerType;
           const ownerId = input.dataset.ownerId;
           input.disabled = true;
           try {
-            await uploadAttachment(ownerType, ownerId, file);
+            // Loop de N arquivos (uploadAttachmentFiles já filtra os que
+            // passam de 20MB) — funciona igual pra 1 arquivo só (donos sem
+            // o atributo multiple no <input>).
+            await uploadAttachmentFiles(ownerType, ownerId, input.files);
             await loadAttachments();
             renderShell();
           } catch (err) {
             appAlert?.(friendlyError(err), "error");
+          } finally {
+            input.value = "";
             input.disabled = false;
           }
         });
