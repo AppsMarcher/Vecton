@@ -952,7 +952,7 @@
         </div>
         <div class="sa3-card">
           <div class="sa3-head">
-            <div><h3>Áreas</h3><p>Abrir uma área leva ao A3 digital dela: metas x realizado, acumulado e plano de&nbsp;ação.</p></div>
+            <div><h3>Áreas</h3><p style="white-space:nowrap">Abrir uma área leva ao A3 digital dela: metas x realizado, acumulado e plano de ação.</p></div>
             ${isSuperAdminOrAdmin() ? `
               <div style="display:flex;gap:8px">
                 <button type="button" class="sa3-btn" data-action="open-archived">Itens arquivados</button>
