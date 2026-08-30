@@ -225,7 +225,9 @@
                                 // pra disparar o flash "✓ Salvo" (CSS anima e some sozinho), e já
                                 // limpa o campo na hora — não é estado persistente, é só o sinal
                                 // "acabei de salvar ESTE" atravessando o loadMonthlyEntry().
-      attachments: { action: {}, analysis_item: {} }, // { [ownerType]: { [ownerId]: strategic_attachments[] } }
+      attachments: { action: {}, analysis_item: {}, kpi: {} }, // { [ownerType]: { [ownerId]: strategic_attachments[] } } —
+                                // 'kpi' é anexo de suporte do indicador (2026-08-29), independente
+                                // de mês/período — ver renderKpiBlock e migration 172.
       orgUsers: null,          // usuários da org (picker de Responsáveis do plano de ação) — carregado 1x, cacheado
       archivedA3: null,        // A3 desativadas (is_active=false) — carregado só ao abrir a tela "Itens arquivados"
       archivedKpis: null,      // KPIs desativados — idem
@@ -413,6 +415,19 @@
            título/subtítulo por 2 inputs no lugar (mesmo padrão do Objetivo
            Estratégico). */
         .sa3-kpi-head-actions { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+        /* Anexos de suporte do indicador (pedido do usuário, 2026-08-29) —
+           ícone de clipe no cabeçalho do card, com contador quando já tem
+           anexo; clicar abre/fecha o painel .sa3-kpi-attachments logo
+           abaixo do header (mesmo renderAttachmentsStrip de Causas/Plano
+           de Ação — chips + carrossel já prontos, só reaproveitados). */
+        .sa3-kpi-head-actions [data-action="toggle-kpi-attachments"] { position:relative; }
+        .sa3-attachment-count {
+          position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; padding:0 3px;
+          border-radius:999px; background:var(--sa3-blue); color:#fff; font-size:.56rem; font-weight:800;
+          line-height:14px; text-align:center;
+        }
+        .sa3-kpi-attachments { margin:-2px 0 12px; }
+        .sa3-kpi-attachments.hidden { display:none; }
         .sa3-kpi-title-edit.hidden { display:none; }
         .sa3-kpi-title-edit input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; margin-bottom:6px; }
         .sa3-kpi-title-edit input:last-of-type { margin-bottom:10px; }
@@ -740,15 +755,18 @@
       return u ? (u.full_name || u.email || "Usuário") : null;
     }
 
-    // Anexos de todas as ações + itens de análise já carregados na tela,
-    // numa tacada só por dono (2 requests no total, não 1 por item/ação).
-    // kpi_record_id fica pra uma leva futura (exige garantir que o registro
-    // do mês já existe antes de anexar).
+    // Anexos de todas as ações + itens de análise + KPIs já carregados na
+    // tela, numa tacada só por dono (3 requests no total, não 1 por
+    // item/ação/kpi). kpi_id (2026-08-29) é o anexo de SUPORTE do
+    // indicador — independente de mês/período, por isso usa a lista de
+    // KPIs do a3Detail inteiro, não algo do mês corrente.
     async function loadAttachments() {
       const actionIds = (state.actions || []).map((a) => a.id);
       const itemIds = (state.periodAnalysis?.strategic_analysis_items || []).map((it) => it.id);
+      const kpiIds = (state.a3Detail?.kpis || []).map((k) => k.id);
       const byAction = {};
       const byItem = {};
+      const byKpi = {};
       if (actionIds.length) {
         const rows = await fetchRest(
           "strategic_attachments",
@@ -763,7 +781,14 @@
         );
         (rows || []).forEach((r) => { (byItem[r.analysis_item_id] ||= []).push(r); });
       }
-      state.attachments = { action: byAction, analysis_item: byItem };
+      if (kpiIds.length) {
+        const rows = await fetchRest(
+          "strategic_attachments",
+          `kpi_id=in.(${kpiIds.join(",")})&select=*&order=created_at.asc`
+        );
+        (rows || []).forEach((r) => { (byKpi[r.kpi_id] ||= []).push(r); });
+      }
+      state.attachments = { action: byAction, analysis_item: byItem, kpi: byKpi };
     }
 
     // Leitura simples (SELECT direto, RLS já protege) — mesma decisão de
@@ -1119,7 +1144,7 @@
         }
       });
 
-      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); bindKpiCatalogActions(k.id); });
+      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); bindKpiCatalogActions(k.id); bindKpiAttachmentsToggle(k.id); });
       bindKpiChartTooltips();
       bindAnalysisRemoveButtons();
       bindActionItemButtons();
@@ -1138,6 +1163,10 @@
     // Ícones compactos reaproveitados em causas/contramedidas e plano de ação.
     const ICON_EDIT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`;
     const ICON_TRASH = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>`;
+    // Pedido do usuário (2026-08-29): "clipe" pra anexos de suporte do
+    // indicador (chamou de "eclipse" na hora, mas o pedido — anexar
+    // documentos, abrir carrossel — é claramente o ícone de clipe padrão).
+    const ICON_CLIP = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>`;
 
     // Cada item tem sua própria mini-forma de edição escondida (não reaproveita
     // a forma de "novo item" — evita ter que rastrear "criando vs editando"
@@ -1419,6 +1448,14 @@
       const isAuto = k.entryMode === "computed";
 
       const canEditCatalog = isSuperAdminOrAdmin();
+      // Anexos de SUPORTE do indicador (pedido do usuário, 2026-08-29) —
+      // independente de mês/meta batida/plano de ação, ficam no cabeçalho
+      // do card, atrás de um ícone de clipe (não uma seção sempre aberta
+      // feita nem Causas/Plano de Ação). O ícone só aparece pra quem pode
+      // adicionar (canManage) OU quando já existe algo pra ver (viewer
+      // sem permissão de edição ainda consegue abrir o carrossel).
+      const kpiAttachments = state.attachments?.kpi?.[k.id] || [];
+      const showAttachmentIcon = canManage() || kpiAttachments.length > 0;
       return `
         <div class="sa3-card">
           <div class="sa3-kpi-block-head">
@@ -1438,13 +1475,25 @@
                 </div>
               ` : ""}
             </div>
-            ${canEditCatalog ? `
+            ${(canEditCatalog || showAttachmentIcon) ? `
               <div class="sa3-kpi-head-actions">
-                <button type="button" class="sa3-icon-btn" data-action="toggle-kpi-edit" data-kpi-id="${escapeHtml(k.id)}" title="Editar indicador">${ICON_EDIT}</button>
-                <button type="button" class="sa3-icon-btn" data-action="delete-kpi" data-kpi-id="${escapeHtml(k.id)}" data-kpi-name="${escapeHtml(k.name)}" title="Excluir indicador">${ICON_TRASH}</button>
+                ${showAttachmentIcon ? `
+                  <button type="button" class="sa3-icon-btn" data-action="toggle-kpi-attachments" data-kpi-id="${escapeHtml(k.id)}" title="Anexos do indicador">
+                    ${ICON_CLIP}${kpiAttachments.length ? `<span class="sa3-attachment-count">${kpiAttachments.length}</span>` : ""}
+                  </button>
+                ` : ""}
+                ${canEditCatalog ? `
+                  <button type="button" class="sa3-icon-btn" data-action="toggle-kpi-edit" data-kpi-id="${escapeHtml(k.id)}" title="Editar indicador">${ICON_EDIT}</button>
+                  <button type="button" class="sa3-icon-btn" data-action="delete-kpi" data-kpi-id="${escapeHtml(k.id)}" data-kpi-name="${escapeHtml(k.name)}" title="Excluir indicador">${ICON_TRASH}</button>
+                ` : ""}
               </div>
             ` : ""}
           </div>
+          ${showAttachmentIcon ? `
+            <div class="sa3-kpi-attachments hidden" data-kpi-attachments="${escapeHtml(k.id)}">
+              ${renderAttachmentsStrip("kpi", k.id, k.name, { canAdd: canManage(), canRemove: canManage() })}
+            </div>
+          ` : ""}
           <div class="sa3-combo-chart" role="img" aria-label="Gráfico combinado de realizado mensal em colunas e meta mensal em linha">
             <div class="sa3-chart-plot">
               <div class="sa3-chart-zero" style="top:${zeroY}%"></div>
@@ -1525,6 +1574,18 @@
           deleteBtn.disabled = false;
         }
       });
+    }
+
+    // Toggle do painel de anexos do indicador (pedido do usuário,
+    // 2026-08-29) — só mostra/esconde (a lista em si já veio renderizada
+    // por renderAttachmentsStrip; upload/remoção/carrossel são
+    // bindAttachmentWidgets(), genérico, chamado 1x pra tela toda). Sem
+    // gate de canEditCatalog: qualquer um que enxergue o ícone (canManage
+    // OU já tem anexo pra ver) consegue abrir/fechar.
+    function bindKpiAttachmentsToggle(kpiId) {
+      const btn = root.querySelector(`[data-action="toggle-kpi-attachments"][data-kpi-id="${cssEscape(kpiId)}"]`);
+      const panel = root.querySelector(`[data-kpi-attachments="${cssEscape(kpiId)}"]`);
+      btn?.addEventListener("click", () => panel?.classList.toggle("hidden"));
     }
 
     // -------------------------------------------------------- Criar A3 / criar indicador
@@ -1754,9 +1815,12 @@
     }
 
     // -------------------------------------------------------- Anexos
-    // Mesmo widget pra ação e item de análise (strategic_attachments só
-    // aceita exatamente 1 dono — kpi_record_id fica pra depois). Upload
-    // dispara na hora, sem botão "enviar" separado (1 arquivo por vez).
+    // Mesmo widget pra ação, item de análise e KPI (strategic_attachments
+    // aceita exatamente 1 dono — ver constraint strategic_attachments_
+    // single_owner, migration 172 adicionou kpi_id como 4ª opção).
+    // Upload dispara na hora, sem botão "enviar" separado (1 arquivo por
+    // vez). kpi_record_id (anexo por MÊS específico) segue sem uso.
+    const ATTACHMENT_OWNER_COLUMN = { action: "action_id", analysis_item: "analysis_item_id", kpi: "kpi_id" };
     function truncateFileName(name, max = 22) {
       const s = String(name || "arquivo");
       return s.length > max ? `${s.slice(0, max - 1)}…` : s;
@@ -1787,7 +1851,7 @@
         file_name: file.name,
         mime_type: file.type || null,
         file_size: file.size || null,
-        [ownerType === "action" ? "action_id" : "analysis_item_id"]: ownerId
+        [ATTACHMENT_OWNER_COLUMN[ownerType]]: ownerId
       };
       try {
         const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/strategic_attachments`, {
