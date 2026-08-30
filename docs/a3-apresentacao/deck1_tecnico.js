@@ -88,7 +88,7 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia Técnico de Administra
     ["Ciclo\n(ano)", "strategic_cycles — 1 por ano (2026)"],
     ["Cenário\nvigente", "strategic_scenarios — mesmo motor do Planejamento"],
     ["A3\n(mãe/filha)", "área estratégica, com Gestão responsável"],
-    ["Indicador\n(KPI)", "direct · computed · drivers · breakdown"],
+    ["Indicador\n(KPI)", "direct (manual) · computed (auto)"],
     ["Registro\nmensal", "meta + realizado do mês, por A3+KPI"],
     ["Ação /\nCausa-contramedida", "plano de ação quando foge da meta"]
   ];
@@ -224,7 +224,7 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia Técnico de Administra
 // ------------------------------------------------------------ 8. TELA 3 MOCKUP
 {
   const s = pptx.addSlide();
-  H.slideHeader(s, "Tela 3", "Lançamento mensal — os 4 modos de indicador", { pageNum: 8 });
+  H.slideHeader(s, "Tela 3", "Lançamento mensal — os modos de indicador", { pageNum: 8 });
   const area = H.appFrame(s, { breadcrumb: "A3 Estratégicos › A3 Comercial › Lançamento", active: "A3 Estratégicos" });
   const pad = 0.26;
   const cx = area.x + pad, cy = area.y + pad, cw = area.w - pad * 2;
@@ -235,21 +235,29 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia Técnico de Administra
   H.pill(s, cx + cw - 2.05, cy + 0.13, 1.85, 0.3, "Fechar período", "blue");
 
   const modes = [
-    { m: "DIRECT", n: "Faturamento Exportação", d: "Meta e realizado digitados manualmente todo mês.", ex: "Real: R$ 820 mil" },
-    { m: "COMPUTED · Auto", n: "EBITDA % Mensal", d: "Calculado a partir do DRE Gerencial — “Sincronizar automáticos” traz a sugestão.", ex: "Real: 21,4%" },
-    { m: "DRIVERS", n: "Turnover", d: "Direcionadores somados/divididos pelo sistema (admissões, demissões, quadro).", ex: "Adm 4 · Desl 3 · QT 210" },
-    { m: "BREAKDOWN", n: "Assertividade do Mix", d: "Composição em linhas (ex.: por modelo de máquina), com planejado x real por linha.", ex: "6 linhas cadastradas" }
+    { m: "DIRECT", n: "Faturamento Exportação", d: "Meta e realizado digitados manualmente todo mês — modo padrão de praticamente todo o catálogo hoje.", ex: "Real: R$ 820 mil" },
+    { m: "COMPUTED · Auto", n: "EBITDA % Mensal", d: "Calculado a partir do DRE Gerencial/Comercial/Headcount — “Sincronizar automáticos” traz a sugestão, mas ainda dá pra ajustar.", ex: "Real: 21,4%" }
   ];
-  const rw = (cw - 0.3) / 2, rh = 1.9, gapx = 0.3, gapy = 0.25;
+  const rw = (cw - 0.3) / 2, rh = 1.9;
   modes.forEach((md, i) => {
-    const col = i % 2, row = Math.floor(i / 2);
-    const rx = cx + col * (rw + gapx), ryy = cy + 0.75 + row * (rh + gapy);
+    const rx = cx + i * (rw + 0.3), ryy = cy + 0.75;
     H.card(s, rx, ryy, rw, rh, {});
-    H.pill(s, rx + 0.2, ryy + 0.16, 1.7, 0.26, md.m, "blue");
-    s.addText(md.n, { x: rx + 0.2, y: ryy + 0.5, w: rw - 0.4, h: 0.3, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 12, bold: true, color: COLORS.white });
-    s.addText(md.d, { x: rx + 0.2, y: ryy + 0.82, w: rw - 0.4, h: 0.75, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 9.3, color: COLORS.soft, lineSpacingMultiple: 1.25 });
-    s.addText(md.ex, { x: rx + 0.2, y: ryy + rh - 0.36, w: rw - 0.4, h: 0.26, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 9, bold: true, color: COLORS.pos });
+    H.pill(s, rx + 0.2, ryy + 0.18, 1.9, 0.28, md.m, "blue");
+    s.addText(md.n, { x: rx + 0.2, y: ryy + 0.56, w: rw - 0.4, h: 0.3, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 13, bold: true, color: COLORS.white });
+    s.addText(md.d, { x: rx + 0.2, y: ryy + 0.9, w: rw - 0.4, h: 0.75, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 9.8, color: COLORS.soft, lineSpacingMultiple: 1.3 });
+    s.addText(md.ex, { x: rx + 0.2, y: ryy + rh - 0.36, w: rw - 0.4, h: 0.26, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 9.5, bold: true, color: COLORS.pos });
   });
+
+  const noteY = cy + 0.75 + rh + 0.22;
+  H.card(s, cx, noteY, cw, area.h - (noteY - area.y) - 0.15, { fill: COLORS.bg, line: COLORS.line, noShadow: true });
+  s.addText("Nota histórica — modos “Direcionadores” e “Composição” descontinuados (29/08/2026)", { x: cx + 0.2, y: noteY + 0.14, w: cw - 0.4, h: 0.28, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 10.5, bold: true, color: COLORS.amber });
+  s.addText(
+    "O catálogo já teve indicadores nos modos entry_mode “drivers” (ex.: Turnover, calculado por admissões/demissões/quadro) e “breakdown” " +
+    "(composição em linhas). Por pedido do usuário, todos foram convertidos para “direct” (migrations 169-171) — o cálculo passou a ser feito " +
+    "fora da ferramenta, só o resultado final é digitado. As tabelas de suporte (strategic_kpi_drivers, strategic_kpi_breakdown_rows) e o " +
+    "histórico já lançado continuam no banco, só saem de uso — a UI ainda sabe renderizar os dois modos se algum indicador voltar a usá-los.",
+    { x: cx + 0.2, y: noteY + 0.46, w: cw - 0.4, h: 0.9, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 9.3, color: COLORS.soft, lineSpacingMultiple: 1.3 }
+  );
 }
 
 // ------------------------------------------------------------ 9. CATÁLOGO 2026

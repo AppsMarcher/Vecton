@@ -34,7 +34,7 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia do Usuário");
     ["01", "O que é o A3", "Por que a Marcher usa esse painel e o que ele muda no seu dia a dia"],
     ["02", "Como acessar", "Onde encontrar o módulo dentro do Vecton"],
     ["03", "Visão Geral e Detalhe", "Navegar pelas metas e abrir a sua área"],
-    ["04", "Lançar um indicador", "Passo a passo dos 2 jeitos mais comuns"],
+    ["04", "Lançar um indicador", "Passo a passo: digitação direta ou conferência do valor automático"],
     ["05", "Causas e plano de ação", "O que fazer quando o resultado foge da meta"],
     ["06", "Anexos", "Guardar evidência junto do número lançado"],
     ["07", "Fechamento e alertas", "O que muda quando o mês fecha, e o que você recebe por notificação"],
@@ -204,45 +204,10 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia do Usuário");
   });
 }
 
-// ------------------------------------------------------------ 8. PASSO A PASSO — DRIVERS
+// ------------------------------------------------------------ 8. PASSO A PASSO — CAUSAS/CONTRAMEDIDAS
 {
   const s = pptx.addSlide();
-  H.slideHeader(s, "Passo a passo", "Lançar um indicador por direcionadores", { pageNum: 8 });
-  const area = H.appFrame(s, { breadcrumb: "A3 Estratégicos › A3 Pessoas › Lançamento", active: "A3 Estratégicos", w: 7.5 });
-  const pad = 0.24;
-  const cx = area.x + pad, cy = area.y + pad, cw = area.w - pad * 2;
-  H.card(s, cx, cy, cw, 0.5, {});
-  s.addText("A3 Pessoas — lançamento mensal · Jul/2026", { x: cx + 0.16, y: cy + 0.13, w: cw - 0.3, h: 0.26, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 9.5, bold: true, color: COLORS.white });
-  const ry0 = cy + 0.7;
-  s.addShape("roundRect", { x: cx, y: ry0, w: cw, h: 1.85, rectRadius: 0.06, fill: { color: COLORS.panelAlt }, line: { color: COLORS.blue, width: 1.25 } });
-  s.addText("Turnover", { x: cx + 0.16, y: ry0 + 0.08, w: cw - 0.3, h: 0.24, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 10, bold: true, color: COLORS.white });
-  H.pill(s, cx + 1.15, ry0 + 0.06, 1.5, 0.24, "Direcionadores", "blue");
-  H.field(s, cx + 0.16, ry0 + 0.4, cw - 0.32, "Meta", "≤ 2,5%", { h: 0.4 });
-  H.field(s, cx + 0.16, ry0 + 0.85, (cw - 0.6) / 3, "Admissões", "4", { h: 0.4 });
-  H.field(s, cx + 0.16 + (cw - 0.6) / 3 + 0.14, ry0 + 0.85, (cw - 0.6) / 3, "Demissões", "3", { h: 0.4 });
-  H.field(s, cx + 0.16 + 2 * ((cw - 0.6) / 3 + 0.14), ry0 + 0.85, (cw - 0.6) / 3, "Quadro total", "210", { h: 0.4 });
-  s.addText("Resultado atual: 3,3%", { x: cx + 0.16, y: ry0 + 1.34, w: 3, h: 0.24, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 9.5, bold: true, color: COLORS.neg });
-  H.button(s, cx + cw - 1.3, ry0 + 1.4, 1.1, 0.32, "Salvar", { primary: true });
-
-  const tx = area.outer.x + area.outer.w + 0.3, tw = 12.23 - area.outer.w - 0.3;
-  const steps = [
-    ["Identifique o selo “Direcionadores”", "Alguns indicadores (ex.: Turnover, Absenteísmo) não pedem 1 número — pedem as partes que compõem a conta."],
-    ["Preencha cada direcionador", "Ex.: admissões, demissões e quadro total do mês — cada um no seu campinho."],
-    ["O sistema calcula sozinho", "O resultado (ex.: 3,3%) aparece automaticamente — você não faz a conta na mão."],
-    ["Salvar", "Mesma dinâmica dos outros indicadores — 1 botão, para a linha inteira."]
-  ];
-  let ty = 1.5;
-  steps.forEach((st, i) => {
-    H.stepBadge(s, tx, ty, i + 1);
-    H.stepText(s, tx + 0.6, ty, tw - 0.6, st[0], st[1]);
-    ty += 1.28;
-  });
-}
-
-// ------------------------------------------------------------ 9. PASSO A PASSO — CAUSAS/CONTRAMEDIDAS
-{
-  const s = pptx.addSlide();
-  H.slideHeader(s, "Passo a passo", "Registrar causa e contramedida", { pageNum: 9 });
+  H.slideHeader(s, "Passo a passo", "Registrar causa e contramedida", { pageNum: 8 });
   const area = H.appFrame(s, { breadcrumb: "A3 Estratégicos › A3 Comercial", active: "A3 Estratégicos", w: 7.5 });
   const modal = H.modalMock(s, area, { title: "", w: 6.2, h: 2.7 });
   s.addText("Causas e contramedidas", { x: modal.x + 0.3, y: modal.y + 0.26, w: modal.w - 0.6, h: 0.3, isTextBox: true, margin: 0, fontFace: H.FONT_HEAD, fontSize: 14, bold: true, color: COLORS.white });
@@ -270,10 +235,10 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia do Usuário");
   });
 }
 
-// ------------------------------------------------------------ 10. PASSO A PASSO — PLANO DE AÇÃO
+// ------------------------------------------------------------ 9. PASSO A PASSO — PLANO DE AÇÃO
 {
   const s = pptx.addSlide();
-  H.slideHeader(s, "Passo a passo", "Criar e acompanhar uma ação", { pageNum: 10 });
+  H.slideHeader(s, "Passo a passo", "Criar e acompanhar uma ação", { pageNum: 9 });
   const area = H.appFrame(s, { breadcrumb: "A3 Estratégicos › A3 Comercial", active: "A3 Estratégicos", w: 7.7 });
   const modal = H.modalMock(s, area, { title: "", w: 6.6, h: 4.5 });
   s.addText("Nova ação", { x: modal.x + 0.3, y: modal.y + 0.24, w: modal.w - 0.6, h: 0.3, isTextBox: true, margin: 0, fontFace: H.FONT_HEAD, fontSize: 14, bold: true, color: COLORS.white });
@@ -309,10 +274,10 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia do Usuário");
   });
 }
 
-// ------------------------------------------------------------ 11. ANEXOS
+// ------------------------------------------------------------ 10. ANEXOS
 {
   const s = pptx.addSlide();
-  H.slideHeader(s, "Evidências", "Anexar documentos de suporte", { pageNum: 11 });
+  H.slideHeader(s, "Evidências", "Anexar documentos de suporte", { pageNum: 10 });
   H.card(s, 0.55, 1.5, 6.0, 2.3, {});
   s.addText("Ícone de clipe no indicador", { x: 0.8, y: 1.7, w: 5.5, h: 0.3, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 12.5, bold: true, color: COLORS.white });
   s.addShape("roundRect", { x: 0.8, y: 2.15, w: 5.5, h: 0.55, rectRadius: 0.06, fill: { color: COLORS.panelAlt }, line: { color: COLORS.lineSoft, width: 1 } });
@@ -342,10 +307,10 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia do Usuário");
   });
 }
 
-// ------------------------------------------------------------ 12. FECHAMENTO DE PERÍODO — PARA VOCÊ
+// ------------------------------------------------------------ 11. FECHAMENTO DE PERÍODO — PARA VOCÊ
 {
   const s = pptx.addSlide();
-  H.slideHeader(s, "Rotina mensal", "O que muda quando o período fecha", { pageNum: 12 });
+  H.slideHeader(s, "Rotina mensal", "O que muda quando o período fecha", { pageNum: 11 });
   const cols = [
     ["Período aberto", "Você lança, edita e corrige à vontade — nada trava.", COLORS.pos, "pos"],
     ["Período fechado", "Meta e realizado ficam somente-leitura — pra editar de novo, alguém precisa reabrir.", COLORS.neg, "neg"],
@@ -364,10 +329,10 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia do Usuário");
   });
 }
 
-// ------------------------------------------------------------ 13. NOTIFICAÇÕES
+// ------------------------------------------------------------ 12. NOTIFICAÇÕES
 {
   const s = pptx.addSlide();
-  H.slideHeader(s, "Fique de olho", "Notificações que você pode receber", { pageNum: 13 });
+  H.slideHeader(s, "Fique de olho", "Notificações que você pode receber", { pageNum: 12 });
   const rows = [
     ["Indicador fora da meta", "Quando o A3 que você acompanha fecha o mês com algum indicador em atenção ou fora da meta.", COLORS.neg],
     ["Prazo de ação vencendo", "Se você é responsável por uma ação, um aviso chega até 3 dias antes do prazo — e outro se ela vencer.", COLORS.amber],
@@ -386,10 +351,10 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia do Usuário");
   });
 }
 
-// ------------------------------------------------------------ 14. ADMINISTRAÇÃO DO CATÁLOGO (RESUMO)
+// ------------------------------------------------------------ 13. ADMINISTRAÇÃO DO CATÁLOGO (RESUMO)
 {
   const s = pptx.addSlide();
-  H.slideHeader(s, "Para quem também administra", "Cuidando do catálogo (resumo)", { pageNum: 14 });
+  H.slideHeader(s, "Para quem também administra", "Cuidando do catálogo (resumo)", { pageNum: 13 });
   s.addText("Se o seu perfil também cuida do módulo (super_admin, admin, ou acesso concedido pontualmente), estas 4 ações estão na própria Tela 1/2:", {
     x: 0.55, y: 1.4, w: 12.2, h: 0.4, isTextBox: true, margin: 0, fontFace: H.FONT_BODY, fontSize: 12.5, color: COLORS.soft
   });
@@ -412,10 +377,10 @@ const pptx = H.newDeck(pptxgen, "A3 Estratégico — Guia do Usuário");
   });
 }
 
-// ------------------------------------------------------------ 15. FAQ + ENCERRAMENTO
+// ------------------------------------------------------------ 14. FAQ + ENCERRAMENTO
 {
   const s = pptx.addSlide();
-  H.slideHeader(s, "Antes de terminar", "Perguntas frequentes", { pageNum: 15 });
+  H.slideHeader(s, "Antes de terminar", "Perguntas frequentes", { pageNum: 14 });
   const faq = [
     ["Errei um número — dá para corrigir?", "Sim, enquanto o período estiver aberto. Basta digitar de novo e salvar."],
     ["Meu indicador é “Auto” — preciso fazer alguma coisa?", "Só conferir. Se o valor calculado não bater, avise o administrador — a fórmula pode precisar de ajuste."],
