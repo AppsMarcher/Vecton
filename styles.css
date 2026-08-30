@@ -10322,7 +10322,10 @@ body.rps-laser-mode .rps-attachment-carousel * {
   justify-content: space-between;
   gap: 8px;
   width: 100%;
-  max-width: 280px;
+  /* Mesma largura do painel que abre embaixo dele (.notif-rcpt-panel) —
+     senão o botão ficava mais largo que a própria lista, empurrando as
+     linhas de controle e quebrando o layout. */
+  max-width: 220px;
   padding: 7px 10px;
   border-radius: 8px;
   border: 1px solid var(--line);
