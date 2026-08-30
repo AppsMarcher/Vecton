@@ -225,9 +225,11 @@
                                 // pra disparar o flash "✓ Salvo" (CSS anima e some sozinho), e já
                                 // limpa o campo na hora — não é estado persistente, é só o sinal
                                 // "acabei de salvar ESTE" atravessando o loadMonthlyEntry().
-      attachments: { action: {}, analysis_item: {}, kpi: {} }, // { [ownerType]: { [ownerId]: strategic_attachments[] } } —
-                                // 'kpi' é anexo de suporte do indicador (2026-08-29), independente
-                                // de mês/período — ver renderKpiBlock e migration 172.
+      attachments: { action: {}, analysis_item: {}, kpi_record: {} }, // { [ownerType]: { [ownerId]: strategic_attachments[] } } —
+                                // 'kpi_record' é anexo de suporte do indicador, por MÊS (ownerId é o
+                                // id de strategic_kpi_records do mês selecionado — pedido do usuário
+                                // 2026-08-29, revertido de "por indicador inteiro" pra "por mês" no
+                                // mesmo dia — ver renderKpiBlock e migrations 176/177).
       orgUsers: null,          // usuários da org (picker de Responsáveis do plano de ação) — carregado 1x, cacheado
       archivedA3: null,        // A3 desativadas (is_active=false) — carregado só ao abrir a tela "Itens arquivados"
       archivedKpis: null,      // KPIs desativados — idem
@@ -780,18 +782,21 @@
       return u ? (u.full_name || u.email || "Usuário") : null;
     }
 
-    // Anexos de todas as ações + itens de análise + KPIs já carregados na
-    // tela, numa tacada só por dono (3 requests no total, não 1 por
-    // item/ação/kpi). kpi_id (2026-08-29) é o anexo de SUPORTE do
-    // indicador — independente de mês/período, por isso usa a lista de
-    // KPIs do a3Detail inteiro, não algo do mês corrente.
+    // Anexos de todas as ações + itens de análise + registros de KPI do
+    // mês corrente, numa tacada só por dono (3 requests no total). Anexo
+    // do indicador é por MÊS (kpi_record_id — revertido de "indicador
+    // inteiro" pro usuário, 2026-08-29, migrations 176/177): usa
+    // k.recordId, que só existe pra KPIs que já têm alguma linha em
+    // strategic_kpi_records pro (ano, mês) corrente — indicador sem
+    // NADA lançado ainda no mês não tem recordId (null), e portanto não
+    // tem anexo nenhum pra buscar (fica de fora do filter/in.()).
     async function loadAttachments() {
       const actionIds = (state.actions || []).map((a) => a.id);
       const itemIds = (state.periodAnalysis?.strategic_analysis_items || []).map((it) => it.id);
-      const kpiIds = (state.a3Detail?.kpis || []).map((k) => k.id);
+      const recordIds = (state.a3Detail?.kpis || []).map((k) => k.recordId).filter(Boolean);
       const byAction = {};
       const byItem = {};
-      const byKpi = {};
+      const byRecord = {};
       if (actionIds.length) {
         const rows = await fetchRest(
           "strategic_attachments",
@@ -806,14 +811,14 @@
         );
         (rows || []).forEach((r) => { (byItem[r.analysis_item_id] ||= []).push(r); });
       }
-      if (kpiIds.length) {
+      if (recordIds.length) {
         const rows = await fetchRest(
           "strategic_attachments",
-          `kpi_id=in.(${kpiIds.join(",")})&select=*&order=created_at.asc`
+          `kpi_record_id=in.(${recordIds.join(",")})&select=*&order=created_at.asc`
         );
-        (rows || []).forEach((r) => { (byKpi[r.kpi_id] ||= []).push(r); });
+        (rows || []).forEach((r) => { (byRecord[r.kpi_record_id] ||= []).push(r); });
       }
-      state.attachments = { action: byAction, analysis_item: byItem, kpi: byKpi };
+      state.attachments = { action: byAction, analysis_item: byItem, kpi_record: byRecord };
     }
 
     // Leitura simples (SELECT direto, RLS já protege) — mesma decisão de
@@ -1219,7 +1224,7 @@
         }
       });
 
-      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); bindKpiCatalogActions(k.id); bindKpiAttachTrigger(k.id); });
+      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); bindKpiCatalogActions(k.id); bindKpiAttachTrigger(k); });
       bindKpiChartTooltips();
       bindAnalysisRemoveButtons();
       bindActionItemButtons();
@@ -1420,8 +1425,20 @@
     }
 
     function renderKpiBlock(k) {
-      const monthly = k.monthlyValues || [];
-      const targets = k.monthlyTargets || [];
+      // Achado do usuário (2026-08-29, "erro estrutural"): o gráfico
+      // sempre desenhava Jan-Dez inteiro, mesmo com Fev em diante ainda
+      // no futuro em relação ao mês selecionado no filtro do topo — ex.:
+      // filtrar Jan/2026 não devia mostrar Fev-Jul só porque o dado já
+      // tinha sido lançado depois (em agosto, revisando janeiro). O
+      // filtro do topo agora funciona como "viajar no tempo": corta tudo
+      // depois do mês selecionado, tanto no gráfico quanto no Plano de
+      // Ação (ver kpiActions abaixo) — Causas/Contramedidas já era
+      // filtrado certo (strategic_period_analyses é por a3+ano+mês exato,
+      // loadPeriodAnalysis já busca só o mês corrente).
+      const cutoffPeriod = currentPeriod();
+      const cutoffMonth = cutoffPeriod.month;
+      const monthly = (k.monthlyValues || []).map((m) => (m && m.month <= cutoffMonth ? m : null));
+      const targets = (k.monthlyTargets || []).map((t) => (t && t.month <= cutoffMonth ? t : null));
       const isRange = k.comparisonMode === "range";
       // status já vem calculado do banco (strategic_kpi_status, snapshot-aware
       // pra período fechado) — o frontend só mapeia pra cor, nunca reimplementa
@@ -1515,7 +1532,16 @@
         : buildTargetLine((i) => targets[i]?.value);
       const months = MONTH_LABELS_SHORT.map((label) => `<span class="sa3-bar-month">${label}</span>`).join("");
 
-      const kpiActions = state.actions.filter((a) => (a.strategic_action_kpis || []).some((l) => l.kpi_id === k.id));
+      // Mesmo corte "viajar no tempo" do gráfico acima: ação criada DEPOIS
+      // do mês selecionado ainda não existia naquele ponto do tempo, não
+      // devia aparecer revisando um mês passado. strategic_actions não
+      // tem year/month (é intencionalmente aberto no tempo — due_date é
+      // opcional), então o corte é por created_at.
+      const actionCutoffDate = new Date(cutoffPeriod.year, cutoffPeriod.month, 1);
+      const kpiActions = state.actions.filter((a) =>
+        (a.strategic_action_kpis || []).some((l) => l.kpi_id === k.id) &&
+        (!a.created_at || new Date(a.created_at) < actionCutoffDate)
+      );
       const actionsHtml = kpiActions.length
         ? kpiActions.map((a) => renderActionItem(a)).join("")
         : `<div class="sa3-empty">Nenhuma ação registrada.</div>`;
@@ -1524,12 +1550,16 @@
 
       const canEditCatalog = isSuperAdminOrAdmin();
       // Anexos de SUPORTE do indicador (pedido do usuário, 2026-08-29) —
-      // independente de mês/meta batida/plano de ação, ficam no cabeçalho
-      // do card, atrás de um ícone de clipe (não uma seção sempre aberta
-      // feita nem Causas/Plano de Ação). O ícone só aparece pra quem pode
-      // adicionar (canManage) OU quando já existe algo pra ver (viewer
-      // sem permissão de edição ainda consegue abrir o carrossel).
-      const kpiAttachments = state.attachments?.kpi?.[k.id] || [];
+      // independente de meta batida/plano de ação, mas POR MÊS (revertido
+      // de "indicador inteiro" pro usuário 2026-08-29 — respeita o filtro
+      // do topo igual o gráfico e o plano de ação). k.recordId é o id de
+      // strategic_kpi_records do mês corrente — null quando nada foi
+      // lançado ainda nesse mês (aí não tem em quê anexar até alguém
+      // clicar, ver bindKpiAttachTrigger/strategic_ensure_kpi_record). O
+      // ícone só aparece pra quem pode adicionar (canManage) OU quando já
+      // existe algo pra ver (viewer sem permissão de edição ainda abre o
+      // carrossel).
+      const kpiAttachments = k.recordId ? (state.attachments?.kpi_record?.[k.recordId] || []) : [];
       const showAttachmentIcon = canManage() || kpiAttachments.length > 0;
       return `
         <div class="sa3-card">
@@ -1553,10 +1583,9 @@
             ${(canEditCatalog || showAttachmentIcon) ? `
               <div class="sa3-kpi-head-actions">
                 ${showAttachmentIcon ? `
-                  <button type="button" class="sa3-icon-btn sa3-kpi-attach-btn${kpiAttachments.length ? " has-attachments" : ""}" data-action="kpi-attach-trigger" data-kpi-id="${escapeHtml(k.id)}" data-kpi-name="${escapeHtml(k.name)}" title="${kpiAttachments.length ? "Ver anexos do indicador" : "Anexar documento de suporte"}">
+                  <button type="button" class="sa3-icon-btn sa3-kpi-attach-btn${kpiAttachments.length ? " has-attachments" : ""}" data-action="kpi-attach-trigger" data-kpi-id="${escapeHtml(k.id)}" data-kpi-name="${escapeHtml(k.name)}" title="${kpiAttachments.length ? "Ver anexos deste mês" : "Anexar documento de suporte deste mês"}">
                     ${ICON_CLIP}${kpiAttachments.length ? `<span class="sa3-attachment-count">${kpiAttachments.length}</span>` : ""}
                   </button>
-                  <input type="file" data-action="upload-attachment" data-owner-type="kpi" data-owner-id="${escapeHtml(k.id)}" multiple hidden>
                 ` : ""}
                 ${canEditCatalog ? `
                   <button type="button" class="sa3-icon-btn" data-action="toggle-kpi-edit" data-kpi-id="${escapeHtml(k.id)}" title="Editar indicador">${ICON_EDIT}</button>
@@ -1648,23 +1677,63 @@
     }
 
     // Ícone de clipe do indicador (pedido do usuário, 2026-08-29 — revisado
-    // no mesmo dia depois do 1º teste em produção: era um toggle de painel,
-    // virou gatilho direto). Sem anexo: clique dispara o <input multiple
-    // hidden> que já vem do lado do botão (upload em si é o handler
-    // genérico de bindAttachmentWidgets(), só generalizado pra multi-
-    // arquivo — ver uploadAttachmentFiles). Com anexo: clique abre o
-    // carrossel com canManage()=true, que por sua vez ganha um jeito de
-    // adicionar/remover sem fechar (ver openAttachmentCarousel).
-    function bindKpiAttachTrigger(kpiId) {
-      const btn = root.querySelector(`[data-action="kpi-attach-trigger"][data-kpi-id="${cssEscape(kpiId)}"]`);
-      const picker = root.querySelector(`[data-action="upload-attachment"][data-owner-type="kpi"][data-owner-id="${cssEscape(kpiId)}"]`);
-      btn?.addEventListener("click", () => {
-        const attachments = state.attachments?.kpi?.[kpiId] || [];
+    // 2x no mesmo dia: 1º virou gatilho direto ao invés de painel, depois
+    // o dono do anexo virou por MÊS em vez de por indicador inteiro,
+    // seguindo o mesmo "viajar no tempo" do gráfico). Recebe o KPI
+    // inteiro (não só o id) porque precisa de k.recordId (pode ser null —
+    // mês sem nada lançado ainda) e k.name pro título do carrossel.
+    //
+    // Com anexo (recordId existe E tem itens): clique abre o carrossel
+    // direto, canManage=true habilita adicionar/remover de lá.
+    // Sem anexo: clique cria um <input type=file multiple> NA HORA (não
+    // dá pra pré-renderizar com data-owner-id fixo — o record do mês pode
+    // nem existir ainda). No change: garante o record via
+    // strategic_ensure_kpi_record (só se recordId ainda for null — não
+    // chama de novo se já existe), sobe os arquivos, e recarrega o A3
+    // inteiro (loadA3Detail, não só loadAttachments) só nesse caso — é a
+    // única forma do state.a3Detail.kpis[].recordId (que ficou null até
+    // aqui) sincronizar com o record que acabou de ser criado no banco.
+    function bindKpiAttachTrigger(k) {
+      const btn = root.querySelector(`[data-action="kpi-attach-trigger"][data-kpi-id="${cssEscape(k.id)}"]`);
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        const attachments = k.recordId ? (state.attachments?.kpi_record?.[k.recordId] || []) : [];
         if (attachments.length) {
-          openAttachmentCarousel("kpi", kpiId, 0, btn.dataset.kpiName, { canManage: canManage() });
-        } else {
-          picker?.click();
+          openAttachmentCarousel("kpi_record", k.recordId, 0, k.name, { canManage: canManage() });
+          return;
         }
+        if (!canManage()) return;
+
+        const input = document.createElement("input");
+        input.type = "file";
+        input.multiple = true;
+        input.hidden = true;
+        document.body.appendChild(input);
+        input.addEventListener("change", async () => {
+          if (!input.files?.length) { input.remove(); return; }
+          btn.disabled = true;
+          try {
+            let recordId = k.recordId;
+            const isNewRecord = !recordId;
+            if (isNewRecord) {
+              const { year, month } = currentPeriod();
+              recordId = await callSupabaseRpc("strategic_ensure_kpi_record", { p_kpi_id: k.id, p_year: year, p_month: month });
+            }
+            await uploadAttachmentFiles("kpi_record", recordId, input.files);
+            if (isNewRecord) {
+              await loadA3Detail(state.a3Id, state.a3Id === state.a3RootId);
+            } else {
+              await loadAttachments();
+              renderShell();
+            }
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+          } finally {
+            input.remove();
+            btn.disabled = false;
+          }
+        });
+        input.click();
       });
     }
 
@@ -1971,12 +2040,15 @@
     }
 
     // -------------------------------------------------------- Anexos
-    // Mesmo widget pra ação, item de análise e KPI (strategic_attachments
-    // aceita exatamente 1 dono — ver constraint strategic_attachments_
-    // single_owner, migration 172 adicionou kpi_id como 4ª opção).
-    // Upload dispara na hora, sem botão "enviar" separado (1 arquivo por
-    // vez). kpi_record_id (anexo por MÊS específico) segue sem uso.
-    const ATTACHMENT_OWNER_COLUMN = { action: "action_id", analysis_item: "analysis_item_id", kpi: "kpi_id" };
+    // Mesmo widget pra ação, item de análise e registro de KPI do mês
+    // (strategic_attachments aceita exatamente 1 dono — ver constraint
+    // strategic_attachments_single_owner). Upload dispara na hora, sem
+    // botão "enviar" separado.
+    // kpi_record (não "kpi" — pedido do usuário 2026-08-29: chegou a ser
+    // "por indicador inteiro" nas migrations 172/173, revertido pra
+    // "por mês" nas 176/177 no mesmo dia): anexo do indicador vale
+    // só pro mês selecionado no filtro do topo, não pro indicador inteiro.
+    const ATTACHMENT_OWNER_COLUMN = { action: "action_id", analysis_item: "analysis_item_id", kpi_record: "kpi_record_id" };
     function truncateFileName(name, max = 22) {
       const s = String(name || "arquivo");
       return s.length > max ? `${s.slice(0, max - 1)}…` : s;
