@@ -102,7 +102,14 @@
     const overlay = document.createElement("div");
     overlay.className = "vp-app-dialog-overlay";
     overlay.tabIndex = -1;
-    overlay.style.cssText = "position:fixed;inset:0;z-index:9900;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);animation:fadeInOv .12s ease";
+    // z-index 10500 (não 9900) — bug reportado pelo usuário (2026-08-29):
+    // confirmar exclusão de anexo dentro do carrossel de anexos (.rps-
+    // attachment-carousel, z-index 10100) ficava atrás dele, invisível.
+    // appAlert/appConfirm/appPrompt são o app inteiro compartilhando esta
+    // função — o diálogo é sempre pra bloquear tudo até responder, então
+    // sempre deve ficar acima de QUALQUER overlay existente; 10500 folga
+    // acima do maior z-index hoje no app (10100, o carrossel).
+    overlay.style.cssText = "position:fixed;inset:0;z-index:10500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);animation:fadeInOv .12s ease";
     return overlay;
   }
 

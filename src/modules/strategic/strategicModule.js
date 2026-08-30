@@ -465,6 +465,18 @@
         @media (max-width:720px) {
           .rps-carousel-actions .rps-carousel-add::after { content:"+" !important; font-size:1rem !important; }
         }
+        /* Remover anexo no carrossel — pedido do usuário (2026-08-29): o
+           "×" cinza discreto perto do nome do arquivo não deixava óbvio
+           que dava pra excluir dali. Vira um botão vermelho com ícone +
+           texto "Remover", no mesmo peso visual do "+ Adicionar"/"Abrir
+           arquivo" ao lado — impossível não notar que aquilo é uma ação. */
+        .rps-carousel-remove {
+          display:inline-flex; align-items:center; gap:6px; flex-shrink:0; height:32px; padding:0 12px;
+          border:1px solid rgba(248,113,113,.4); border-radius:8px; background:rgba(248,113,113,.12);
+          color:#f87171; font-size:.68rem; font-weight:700; cursor:pointer; white-space:nowrap;
+        }
+        .rps-carousel-remove:hover { background:rgba(248,113,113,.22); border-color:rgba(248,113,113,.6); }
+        .rps-carousel-remove svg { width:13px; height:13px; flex-shrink:0; }
         .sa3-kpi-title-edit.hidden { display:none; }
         .sa3-kpi-title-edit input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; margin-bottom:6px; }
         .sa3-kpi-title-edit input:last-of-type { margin-bottom:10px; }
@@ -2218,9 +2230,11 @@
           ${attachments.length > 1 ? `<button type="button" class="rps-carousel-arrow is-previous" data-carousel-previous aria-label="Anexo anterior">‹</button>
           <button type="button" class="rps-carousel-arrow is-next" data-carousel-next aria-label="Próximo anexo">›</button>` : ""}
           <footer class="rps-carousel-footer">
-            <div class="rps-carousel-caption">
-              <strong data-carousel-name></strong><span data-carousel-meta></span>
-              ${canManageHere ? `<button type="button" class="sa3-attachment-remove" data-carousel-remove title="Remover este anexo" style="font-size:1.1rem;margin-left:8px">&times;</button>` : ""}
+            <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+              <div class="rps-carousel-caption">
+                <strong data-carousel-name></strong><span data-carousel-meta></span>
+              </div>
+              ${canManageHere ? `<button type="button" class="rps-carousel-remove" data-carousel-remove title="Remover este anexo">${ICON_TRASH} Remover</button>` : ""}
             </div>
             <nav class="rps-carousel-strip" aria-label="Arquivos anexados">${attachments.map((att, index) => `<button type="button" data-carousel-index="${index}" title="${escapeHtml(att.file_name || `Arquivo ${index + 1}`)}"><span>${index + 1}</span><small>${escapeHtml(att.file_name || "Arquivo")}</small></button>`).join("")}</nav>
           </footer>
