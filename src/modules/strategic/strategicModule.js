@@ -220,6 +220,11 @@
       actions: [],             // ações do A3 atual (todas, filtro é feito na leitura)
       periodAnalysis: null,    // { id, summary, strategic_analysis_items: [...] } do A3+mês ativo, ou null se nunca salvo
       dirtyDrafts: {},         // { [kpiId]: { resultValue, drivers: {code: value} } } — edição em andamento, não salva
+      justSavedKpiId: null,    // pedido do usuário (2026-08-29): KPI cujo Salvar acabou de ter
+                                // sucesso — bindEntryRow lê isso 1x logo após o reload pós-save
+                                // pra disparar o flash "✓ Salvo" (CSS anima e some sozinho), e já
+                                // limpa o campo na hora — não é estado persistente, é só o sinal
+                                // "acabei de salvar ESTE" atravessando o loadMonthlyEntry().
       attachments: { action: {}, analysis_item: {} }, // { [ownerType]: { [ownerId]: strategic_attachments[] } }
       orgUsers: null,          // usuários da org (picker de Responsáveis do plano de ação) — carregado 1x, cacheado
       archivedA3: null,        // A3 desativadas (is_active=false) — carregado só ao abrir a tela "Itens arquivados"
@@ -486,7 +491,7 @@
            Coluna do Salvar também foi de 100px pra 160px (ver
            .sa3-dirty-badge abaixo — 100px forçava "Não salvo" a quebrar
            em 2 linhas). */
-        .sa3-entry-row { display:grid; grid-template-columns:minmax(200px,320px) 190px 190px 160px; align-items:start; gap:14px; padding:14px; border-radius:10px; background:var(--sa3-panel); border:1px solid var(--sa3-line-soft); margin-bottom:8px; }
+        .sa3-entry-row { position:relative; display:grid; grid-template-columns:minmax(200px,320px) 190px 190px 160px; align-items:start; gap:14px; padding:14px; border-radius:10px; background:var(--sa3-panel); border:1px solid var(--sa3-line-soft); margin-bottom:8px; }
         .sa3-entry-name { font-size:.82rem; font-weight:700; padding-top:22px; }
         .sa3-entry-target { font-size:.68rem; color:var(--sa3-faint); margin-top:2px; }
         .sa3-entry-meta, .sa3-entry-real, .sa3-entry-save { display:flex; flex-direction:column; gap:4px; }
@@ -522,6 +527,19 @@
         .sa3-dirty-badge { display:none; font-size:.68rem; font-weight:700; white-space:nowrap; color:#f472b6; }
         .sa3-entry-row.dirty .sa3-dirty-badge { display:inline; animation:sa3-dirty-pulse 1.6s ease-in-out infinite; }
         @keyframes sa3-dirty-pulse { 0%, 100% { opacity:1; } 50% { opacity:.4; } }
+        /* Flash de confirmação (pedido do usuário 2026-08-29): depois do
+           Salvar dar certo, some o "Não salvo" (a linha já recarrega sem
+           a classe .dirty) e pisca um "✓ Salvo" à direita do botão, no
+           espaço vazio que já sobrava ali — position:absolute ancorado no
+           canto direito da LINHA (não da coluna do Salvar, que é largura
+           fixa) pra não brigar com o grid. .show é quem a JS liga depois
+           do reload pós-save (ver bindEntryRow); a animação "forwards"
+           termina em opacity:0 e para sozinha, sem precisar remover a
+           classe — o próximo Salvar recria a linha do zero de qualquer
+           jeito (loadMonthlyEntry re-renderiza tudo). */
+        .sa3-saved-flag { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:.72rem; font-weight:700; color:var(--sa3-pos); opacity:0; pointer-events:none; }
+        .sa3-saved-flag.show { animation:sa3-saved-blink 1.4s ease-in-out forwards; }
+        @keyframes sa3-saved-blink { 0% { opacity:0; } 20% { opacity:1; } 75% { opacity:1; } 100% { opacity:0; } }
         /* Painel de composição (entry_mode='breakdown') — full-width, logo
            abaixo da linha compacta (não cabe nos 190px da coluna Real). */
         .sa3-breakdown-panel { padding:10px 14px 14px; margin:-2px 0 8px; border-radius:0 0 10px 10px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); border-top:none; }
@@ -2514,6 +2532,7 @@
               <span class="sa3-dirty-badge">Não salvo</span>${saveBtn}
             </div>
           </div>
+          <span class="sa3-saved-flag" data-saved-flag="${escapeHtml(k.id)}" aria-live="polite">&check; Salvo</span>
         </div>
         ${breakdownPanel}
       `;
@@ -2611,6 +2630,17 @@
       const rowEl = root.querySelector(`[data-kpi-row="${cssEscape(k.id)}"]`);
       const btn = root.querySelector(`[data-action="save-row"][data-kpi-id="${cssEscape(k.id)}"]`);
 
+      // Flash "✓ Salvo" (pedido do usuário 2026-08-29): bindEntryRow roda
+      // de novo em TODO render, inclusive o reload logo depois de um save
+      // — é aqui, não no handler de clique, que a linha recém-recriada já
+      // existe no DOM pra receber a classe que dispara a animação. Só o
+      // KPI que acabou de salvar recebe o flash (state.justSavedKpiId),
+      // e o campo se limpa na hora — não sobrevive a um 2º render.
+      if (state.justSavedKpiId === k.id) {
+        state.justSavedKpiId = null;
+        rowEl?.querySelector('[data-saved-flag]')?.classList.add("show");
+      }
+
       // Rascunho não salvo: qualquer input tocado nesta linha (meta, real,
       // direcionador) marca dirty — mesmo listener serve pra qualquer
       // entry_mode, já cobre tudo que está DENTRO de rowEl (breakdown fica
@@ -2705,6 +2735,7 @@
               ...targetParams
             });
           }
+          state.justSavedKpiId = k.id;
           await loadMonthlyEntry(state.a3Id);
         } catch (err) {
           appAlert?.(friendlyError(err), "error");
