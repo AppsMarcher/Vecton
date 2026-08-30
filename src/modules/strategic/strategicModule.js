@@ -306,6 +306,11 @@
         .sa3 * { box-sizing:border-box; }
         .sa3 button { font-family:inherit; }
         .sa3-card { background:rgba(12,14,18,.9); border:1px solid var(--sa3-line); border-radius:16px; box-shadow:0 18px 48px rgba(0,0,0,.32); padding:18px 20px; margin-bottom:14px; }
+        /* Card "Norte Verdadeiro" em destaque (pedido do usuário,
+           2026-08-29) — é a meta anual macro da empresa, no topo da Tela
+           1, então a borda usa o azul do projeto em vez do cinza padrão
+           de .sa3-card. */
+        .sa3-card-north { border-color:var(--sa3-blue); }
         .sa3-head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
         .sa3-head h2, .sa3-head h3 { margin:0; font-size:1rem; font-weight:700; letter-spacing:-.01em; }
         .sa3-head p { margin:4px 0 0; font-size:.78rem; color:var(--sa3-soft); max-width:520px; line-height:1.45; }
@@ -923,9 +928,10 @@
         `;
       }).join("");
 
+      const cycleYear = state.contextYear || currentPeriod().year;
       root.innerHTML = `
-        <div class="sa3-card">
-          <div class="sa3-head"><div><h2>Norte Verdadeiro</h2><p>Metas anuais do ciclo — o tracking mensal fica dentro de cada área.</p></div></div>
+        <div class="sa3-card sa3-card-north">
+          <div class="sa3-head"><div><h2>Norte Verdadeiro</h2><p>Metas anuais do ciclo ${escapeHtml(String(cycleYear))}.</p></div></div>
           <div class="sa3-north-grid">${northHtml || '<div class="sa3-empty">Nenhuma meta cadastrada.</div>'}</div>
         </div>
         <div class="sa3-card">
