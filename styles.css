@@ -10351,7 +10351,11 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .notif-rcpt-panel {
   position: fixed;
   z-index: 9950;
-  width: 320px;
+  /* Estreito de propósito: nome e e-mail já truncam com ellipsis (ver
+     .notif-rcpt-opt-copy abaixo), então não tem texto que precise de mais
+     que isso — e um painel largo tampava o rótulo das linhas de baixo
+     enquanto aberto (reclamação do usuário: "quebra de tela"). */
+  width: 220px;
   max-height: 60vh;
   display: flex;
   flex-direction: column;
