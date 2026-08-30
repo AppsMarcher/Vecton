@@ -477,11 +477,20 @@
         /* Tela 3 (lançamento mensal) — layout ÚNICO pra 100% dos indicadores,
            qualquer entry_mode: Nome | Meta | Real | 1 botão Salvar, sempre
            nas mesmas 4 colunas, botões sempre alinhados na mesma borda. */
-        .sa3-entry-row { display:grid; grid-template-columns:1fr 190px 190px 100px; align-items:start; gap:14px; padding:14px; border-radius:10px; background:var(--sa3-panel); border:1px solid var(--sa3-line-soft); margin-bottom:8px; }
+        /* Pedido do usuário (2026-08-29): a coluna do nome era 1fr — em
+           painéis largos isso empurrava Meta/Real/Salvar lá pra direita,
+           com um vão enorme de espaço vazio no meio da linha. Trocado por
+           minmax(200px,320px): cresce só até o necessário pro nome mais
+           comprido do catálogo, sem "puxar" a largura toda como 1fr
+           fazia — o resto das colunas fica coladas mais à esquerda.
+           Coluna do Salvar também foi de 100px pra 160px (ver
+           .sa3-dirty-badge abaixo — 100px forçava "Não salvo" a quebrar
+           em 2 linhas). */
+        .sa3-entry-row { display:grid; grid-template-columns:minmax(200px,320px) 190px 190px 160px; align-items:start; gap:14px; padding:14px; border-radius:10px; background:var(--sa3-panel); border:1px solid var(--sa3-line-soft); margin-bottom:8px; }
         .sa3-entry-name { font-size:.82rem; font-weight:700; padding-top:22px; }
         .sa3-entry-target { font-size:.68rem; color:var(--sa3-faint); margin-top:2px; }
-        .sa3-entry-meta, .sa3-entry-real { display:flex; flex-direction:column; gap:4px; }
-        .sa3-entry-meta .k, .sa3-entry-real .k { font-size:.6rem; text-transform:uppercase; letter-spacing:.04em; color:var(--sa3-faint); font-weight:700; }
+        .sa3-entry-meta, .sa3-entry-real, .sa3-entry-save { display:flex; flex-direction:column; gap:4px; }
+        .sa3-entry-meta .k, .sa3-entry-real .k, .sa3-entry-save .k { font-size:.6rem; text-transform:uppercase; letter-spacing:.04em; color:var(--sa3-faint); font-weight:700; }
         .sa3-entry-meta-row { display:flex; gap:4px; }
         .sa3-entry-meta-row input, .sa3-entry-real > input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; text-align:right; }
         .sa3-entry-meta-row input:disabled, .sa3-entry-real > input:disabled { opacity:.55; }
@@ -491,22 +500,28 @@
         .sa3-entry-driver-row { display:flex; align-items:center; gap:6px; margin-top:2px; }
         .sa3-entry-driver-row label { font-size:.62rem; color:var(--sa3-faint); flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .sa3-entry-driver-row input { width:76px; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.74rem; padding:5px 6px; text-align:right; }
-        /* align-self:stretch (pedido do usuário 2026-08-29) — antes tinha
-           padding-top:22px pra tentar imitar a posição do input, mas
-           ficava só "colado no topo" da linha em vez de centralizado de
-           verdade. Esticando a célula até a altura da linha (definida
-           pela coluna mais alta, normalmente Meta/Real) e centralizando
-           o conteúdo dela por dentro, o botão acompanha a altura real. */
-        .sa3-entry-save { align-self:stretch; display:flex; align-items:center; justify-content:flex-end; gap:8px; }
+        /* Pedido do usuário (2026-08-29): 1ª tentativa foi align-self:
+           stretch + centralizar por dentro, mas na tela real o botão saía
+           mais baixo que o rótulo "META"/"REAL" — a suposição de que a
+           altura esticada bate exatamente com a coluna mais alta não se
+           confirmou. Troca de abordagem: em vez de tentar adivinhar/
+           centralizar relativo à altura da linha, replica a MESMA
+           estrutura de Meta/Real (rótulo + gap:4px + conteúdo) — um
+           rótulo ".k" invisível (mesma fonte/altura, só sem texto
+           visível) posiciona o botão exatamente na mesma régua vertical
+           do input, não interessa a altura final da linha. */
+        .sa3-entry-save .k { visibility:hidden; }
+        .sa3-entry-save-row { display:flex; align-items:center; justify-content:flex-end; gap:8px; }
         /* Aviso de rascunho não salvo (melhoria #5 do review) — some por
            padrão, .sa3-entry-row.dirty é quem revela (JS toggla a classe no
            1º input tocado, sem re-renderizar a linha inteira). Pedido do
-           usuário (2026-08-29): trocado o texto "Não salvo" por um ponto
-           pulsante — símbolo mais compacto, o texto vira title/aria-label
-           pra não perder a informação de quem usa leitor de tela. */
-        .sa3-dirty-badge { display:none; font-size:1rem; line-height:1; color:var(--sa3-amber); cursor:default; }
-        .sa3-entry-row.dirty .sa3-dirty-badge { display:inline-block; animation:sa3-dirty-pulse 1.6s ease-in-out infinite; }
-        @keyframes sa3-dirty-pulse { 0%, 100% { opacity:1; } 50% { opacity:.35; } }
+           usuário (2026-08-29): testou como ponto pulsante e não gostou —
+           texto "Não salvo" de volta, mas com white-space:nowrap (a coluna
+           do Salvar tinha só 100px, forçava quebra em 2 linhas — agora tem
+           160px) e uma cor mais viva (rosa) que o âmbar original. */
+        .sa3-dirty-badge { display:none; font-size:.68rem; font-weight:700; white-space:nowrap; color:#f472b6; }
+        .sa3-entry-row.dirty .sa3-dirty-badge { display:inline; animation:sa3-dirty-pulse 1.6s ease-in-out infinite; }
+        @keyframes sa3-dirty-pulse { 0%, 100% { opacity:1; } 50% { opacity:.4; } }
         /* Painel de composição (entry_mode='breakdown') — full-width, logo
            abaixo da linha compacta (não cabe nos 190px da coluna Real). */
         .sa3-breakdown-panel { padding:10px 14px 14px; margin:-2px 0 8px; border-radius:0 0 10px 10px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); border-top:none; }
@@ -2493,7 +2508,12 @@
           </div>
           ${targetInputs}
           ${realCell}
-          <div class="sa3-entry-save"><span class="sa3-dirty-badge" title="Alterações não salvas" aria-label="Alterações não salvas">●</span>${saveBtn}</div>
+          <div class="sa3-entry-save">
+            <span class="k" aria-hidden="true">&nbsp;</span>
+            <div class="sa3-entry-save-row">
+              <span class="sa3-dirty-badge">Não salvo</span>${saveBtn}
+            </div>
+          </div>
         </div>
         ${breakdownPanel}
       `;
