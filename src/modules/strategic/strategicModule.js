@@ -951,7 +951,10 @@
       const cycleYear = state.contextYear || currentPeriod().year;
       root.innerHTML = `
         <div class="sa3-card sa3-card-north">
-          <div class="sa3-head"><div><h2>Norte Verdadeiro</h2><p>Metas anuais do ciclo ${escapeHtml(String(cycleYear))}.</p></div></div>
+          <div class="sa3-head">
+            <div><h2>Norte Verdadeiro</h2><p>Metas anuais do ciclo ${escapeHtml(String(cycleYear))}.</p></div>
+            ${isSuperAdminOrAdmin() ? `<button type="button" class="sa3-icon-btn" data-action="edit-north-goals" title="Editar metas do Norte Verdadeiro">${ICON_EDIT}</button>` : ""}
+          </div>
           <div class="sa3-north-grid">${northHtml || '<div class="sa3-empty">Nenhuma meta cadastrada.</div>'}</div>
         </div>
         <div class="sa3-card">
@@ -973,6 +976,7 @@
       });
       root.querySelector('[data-action="open-create-a3"]')?.addEventListener("click", () => openCreateA3Modal());
       root.querySelector('[data-action="open-archived"]')?.addEventListener("click", () => loadArchived());
+      root.querySelector('[data-action="edit-north-goals"]')?.addEventListener("click", () => openEditNorthGoalsModal());
     }
 
     // -------------------------------------------------------- render: Itens arquivados
@@ -1849,6 +1853,82 @@
           });
           closeSa3Modal();
           await loadA3Detail(state.a3Id, state.a3Id === state.a3RootId);
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          saveBtn.disabled = false;
+        }
+      });
+    }
+
+    // Editar Norte Verdadeiro (pedido do usuário, 2026-08-29) — mesmo
+    // fluxo de permissão do resto do catálogo (só super_admin/admin, ver
+    // isSuperAdminOrAdmin() no botão que abre isto). Lista TODAS as metas
+    // do ciclo num modal só, cada uma com Título + Meta (texto livre —
+    // "R$ 200 milhões", "Superior a 20%", até uma frase inteira, como já
+    // é hoje), "+ Nova meta" adiciona linha em branco, "×" remove sem
+    // confirmar (nada é gravado até clicar Salvar). Salvar manda a lista
+    // inteira pra strategic_save_north_goals (migration 175, mesmo padrão
+    // "substitui tudo" de strategic_save_period_analysis) — não precisa
+    // reconciliar diff no frontend, o RPC já decide o que apagar/att/criar
+    // comparando os ids que vieram.
+    function goalRowHtml(g) {
+      return `
+        <div data-north-goal-row data-goal-id="${escapeHtml(g?.id || "")}" style="position:relative;border:1px solid var(--sa3-line);border-radius:10px;padding:12px 34px 4px 12px;margin-bottom:10px;">
+          <button type="button" class="sa3-icon-btn" data-action="remove-north-goal-row" title="Remover esta meta" style="position:absolute;top:8px;right:8px">${ICON_TRASH}</button>
+          <div class="sa3-modal-field">
+            <label>Título</label>
+            <input type="text" data-field="goal-title" value="${escapeHtml(g?.title || "")}" placeholder="Ex.: Receita Líquida" maxlength="80">
+          </div>
+          <div class="sa3-modal-field" style="margin-bottom:0">
+            <label>Meta</label>
+            <input type="text" data-field="goal-target-label" value="${escapeHtml(g?.targetLabel || "")}" placeholder="Ex.: R$ 200 milhões, ou Superior a 20%" maxlength="120">
+          </div>
+        </div>
+      `;
+    }
+
+    function openEditNorthGoalsModal() {
+      const goals = state.overview?.northGoals || [];
+      const overlay = openSa3Modal(`
+        <h3 class="sa3-modal-title">Editar Norte Verdadeiro</h3>
+        <p class="sa3-modal-subtitle">Metas anuais macro da empresa — aparecem no topo da Tela 1, pra todo mundo.</p>
+        <div data-north-goal-rows>${goals.map((g) => goalRowHtml(g)).join("")}</div>
+        <button type="button" class="sa3-btn" data-action="add-north-goal-row" style="width:100%;margin-bottom:14px">+ Nova meta</button>
+        <div class="sa3-modal-foot">
+          <button type="button" class="sa3-btn" data-action="close-modal">Cancelar</button>
+          <button type="button" class="sa3-btn primary" data-action="save-north-goals">Salvar</button>
+        </div>
+      `);
+
+      const rowsWrap = overlay.querySelector("[data-north-goal-rows]");
+      overlay.querySelector('[data-action="add-north-goal-row"]').addEventListener("click", () => {
+        rowsWrap.insertAdjacentHTML("beforeend", goalRowHtml(null));
+      });
+      // Delegação (não addEventListener por linha) — cobre também as linhas
+      // adicionadas depois pelo "+ Nova meta", sem precisar rebind.
+      rowsWrap.addEventListener("click", (event) => {
+        if (event.target.closest('[data-action="remove-north-goal-row"]')) {
+          event.target.closest("[data-north-goal-row]")?.remove();
+        }
+      });
+
+      overlay.querySelector('[data-action="close-modal"]').addEventListener("click", closeSa3Modal);
+      const saveBtn = overlay.querySelector('[data-action="save-north-goals"]');
+      saveBtn.addEventListener("click", async () => {
+        const goalsPayload = Array.from(rowsWrap.querySelectorAll("[data-north-goal-row]")).map((row) => ({
+          id: row.dataset.goalId || null,
+          title: row.querySelector('[data-field="goal-title"]').value.trim(),
+          target_label: row.querySelector('[data-field="goal-target-label"]').value.trim()
+        })).filter((g) => g.title);
+        saveBtn.disabled = true;
+        try {
+          await callSupabaseRpc("strategic_save_north_goals", {
+            p_organization_id: state.organizationId,
+            p_year: state.contextYear || currentPeriod().year,
+            p_goals: goalsPayload
+          });
+          closeSa3Modal();
+          await loadOverview();
         } catch (err) {
           appAlert?.(friendlyError(err), "error");
           saveBtn.disabled = false;
