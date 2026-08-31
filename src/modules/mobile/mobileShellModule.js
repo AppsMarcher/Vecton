@@ -52,9 +52,9 @@
 
     function renderHeader(showModuleChrome) {
       return '<header class="vmob-header">' +
-        '<button type="button" class="vmob-brand" id="vmob-brand-btn" aria-label="Início · Módulos"><span class="vmob-brand-mark">V</span>Vecton</button>' +
+        '<button type="button" class="vmob-brand" id="vmob-brand-btn" aria-label="Início · Módulos"><img class="vmob-brand-logo" src="logo-branco.png" alt="Vecton Planning"></button>' +
         '<span class="vmob-header-right">' +
-        '<button type="button" class="vmob-avatar" id="vmob-avatar-btn" aria-haspopup="true" aria-expanded="' + profileOpen + '">' + initials() + "</button>" +
+        '<button type="button" class="vmob-avatar" id="vmob-avatar-btn" aria-haspopup="true" aria-expanded="' + profileOpen + '"></button>' +
         "</span>" +
         '<div class="vmob-profile-pop' + (profileOpen ? " is-open" : "") + '" id="vmob-profile-pop">' +
         '<button type="button" id="vmob-logout-btn" class="is-danger">Sair</button>' +
@@ -62,15 +62,26 @@
         "</header>";
     }
 
-    function initials() {
-      // Reaproveita o mesmo texto que o avatar da sidebar desktop já mostra
-      // (#user-avatar) — evita reimplementar a lógica de nome->iniciais e
-      // garante que os dois avatares nunca divirjam.
+    // Reaproveita o AVATAR já resolvido da sidebar desktop (#user-avatar) --
+    // texto (iniciais) E foto de perfil quando cadastrada (background-image +
+    // classe has-photo, mesma convenção de .avatar-block em styles.css).
+    // Nunca reimplementa a lógica de nome/foto -> os dois avatares não podem
+    // divergir. Chamado depois do avatar existir no DOM (paintAvatar, não
+    // dentro do template HTML), porque copia estilo computado, não texto puro.
+    function paintAvatar(el) {
+      if (!el) return;
       const desktopAvatar = document.querySelector("#user-avatar");
-      if (desktopAvatar && desktopAvatar.textContent.trim()) return desktopAvatar.textContent.trim();
+      if (desktopAvatar) {
+        el.textContent = desktopAvatar.textContent;
+        const bg = desktopAvatar.style.backgroundImage;
+        el.style.backgroundImage = bg || "";
+        el.classList.toggle("has-photo", desktopAvatar.classList.contains("has-photo"));
+        el.classList.toggle("is-silhouette", desktopAvatar.classList.contains("is-silhouette"));
+        return;
+      }
       const user = getCurrentUser ? getCurrentUser() : null;
       const name = (user && (user.name || user.email)) || "?";
-      return name.trim().slice(0, 2).toUpperCase();
+      el.textContent = name.trim().slice(0, 2).toUpperCase();
     }
 
     // ---------------------------------------------------------------- menu
@@ -91,7 +102,7 @@
           chev +
           "</" + tag + ">";
       }).join("");
-      return '<div class="vmob-crumbbar"><p class="vmob-menu-eyebrow">Vecton &middot; Mobile</p><h2 class="vmob-level-title" tabindex="-1">Módulos</h2></div>' +
+      return '<div class="vmob-crumbbar"><h2 class="vmob-level-title" tabindex="-1">Módulos</h2></div>' +
         '<div class="vmob-section"><div class="vmob-module-list">' + tiles + "</div></div>";
     }
 
@@ -132,7 +143,10 @@
       const avatarBtn = rootEl.querySelector("#vmob-avatar-btn");
       const logoutBtn = rootEl.querySelector("#vmob-logout-btn");
       if (brandBtn) brandBtn.addEventListener("click", goToMenu);
-      if (avatarBtn) avatarBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleProfile(); });
+      if (avatarBtn) {
+        paintAvatar(avatarBtn);
+        avatarBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleProfile(); });
+      }
       if (logoutBtn) logoutBtn.addEventListener("click", () => { handleLogout && handleLogout(); });
     }
 

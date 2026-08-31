@@ -10595,23 +10595,13 @@ body.mobile-shell-active .vmob-shell {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 800;
-  font-size: 14.5px;
-  letter-spacing: -0.01em;
-  color: var(--vmob-text);
   cursor: pointer;
 }
-.vmob-brand-mark {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  background: linear-gradient(155deg, var(--vmob-accent), #2f4fd6);
-  display: grid;
-  place-items: center;
-  font-size: 11px;
-  font-weight: 800;
-  flex-shrink: 0;
+.vmob-brand-logo {
+  height: 26px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 .vmob-header-right { display: flex; align-items: center; gap: 8px; }
 .vmob-avatar {
@@ -10619,7 +10609,7 @@ body.mobile-shell-active .vmob-shell {
   box-sizing: border-box;
   width: 32px;
   height: 32px;
-  border-radius: 999px;
+  border-radius: 10px;
   background: var(--vmob-accent-soft);
   color: var(--vmob-accent);
   border: 1px solid rgba(79, 124, 255, 0.35);
@@ -10628,6 +10618,16 @@ body.mobile-shell-active .vmob-shell {
   display: grid;
   place-items: center;
   cursor: pointer;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+.vmob-avatar.has-photo { color: transparent; }
+.vmob-avatar.is-silhouette {
+  color: transparent;
+  background-image: url("avatar.png");
+  background-size: cover;
+  background-position: center;
 }
 .vmob-profile-pop {
   position: absolute;
@@ -10672,7 +10672,6 @@ body.mobile-shell-active .vmob-shell {
 .vmob-crumbbar { padding-top: 2px; }
 .vmob-level-title { margin: 2px 0 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; color: var(--vmob-text); }
 .vmob-level-sub { margin: 2px 0 0; font-size: 12px; color: var(--vmob-soft); }
-.vmob-menu-eyebrow { margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vmob-accent); }
 .vmob-section { margin-top: 16px; }
 .vmob-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
 .vmob-section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--vmob-faint); }
