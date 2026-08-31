@@ -1338,10 +1338,21 @@ const comercialPainelMobileModule = createComercialPainelMobileModule({
   callSupabaseRpc,
   isSupabaseConfigured,
 });
+// Sair pelo shell mobile precisa do MESMO cleanup do botão de logout desktop
+// (para o polling do sininho, derruba as janelas do Correio) e AINDA
+// desativar o próprio shell mobile -- handleLogout() só troca pra tela de
+// login (body.auth-only); sem isso o <body> ficava com as duas classes ao
+// mesmo tempo e o .vmob-shell continuava por cima, escondendo o login.
+function handleMobileLogout() {
+  stopNotifications();
+  messagesTab.stopMessages();
+  mobileShellModule.deactivate();
+  return handleLogout();
+}
 const mobileShellModule = createMobileShellModule({
   canSeeReport,
   getCurrentUser: () => currentUser,
-  handleLogout,
+  handleLogout: handleMobileLogout,
   comercialPainelMobileModule,
 });
 const comercialMapaModule = createComercialMapaModule({
