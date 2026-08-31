@@ -34,7 +34,7 @@
     let ui = {
       level: "brasil", coordKey: null, terrIdx: null,
       periodMode: "mes", scenarioId: null,
-      filtersOpen: true, cenarioListOpen: false
+      filtersOpen: true, cenarioListOpen: false, periodListOpen: false, pickerYear: null
     };
 
     // ---------------------------------------------------------------- CSS
@@ -77,6 +77,16 @@
         .vmob-cenario-item + .vmob-cenario-item { border-top:1px solid var(--vmob-line); }
         .vmob-cenario-item:active { background:var(--vmob-panel-elevated); }
         .vmob-cenario-item.is-selected { color:var(--vmob-accent); font-weight:700; background:var(--vmob-accent-soft); }
+
+        .vmob-period-panel { display:none; flex-direction:column; gap:8px; margin-top:6px; padding:10px; border:1px solid var(--vmob-line); border-radius:10px; background:var(--vmob-bg); }
+        .vmob-period-panel.is-open { display:flex; }
+        .vmob-period-year { display:flex; align-items:center; justify-content:center; gap:18px; font-size:13px; font-weight:700; color:var(--vmob-text); }
+        .vmob-period-year button { all:unset; box-sizing:border-box; width:26px; height:26px; display:grid; place-items:center; border-radius:8px; color:var(--vmob-soft); cursor:pointer; font-size:16px; }
+        .vmob-period-year button:active { background:var(--vmob-panel-elevated); }
+        .vmob-month-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
+        .vmob-month-item { all:unset; box-sizing:border-box; text-align:center; padding:8px 0; font-size:12px; font-weight:600; color:var(--vmob-soft); border-radius:8px; cursor:pointer; }
+        .vmob-month-item:active { background:var(--vmob-panel-elevated); }
+        .vmob-month-item.is-selected { background:var(--vmob-accent); color:#fff; }
 
         .vmob-matrix { width:100%; border-collapse:collapse; }
         .vmob-matrix th { text-align:right; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--vmob-faint); padding:0 0 8px; }
@@ -337,7 +347,7 @@
     // ---------------------------------------------------------------- navegação/estado
 
     function crumb() {
-      const parts = [{ label: "Brasil", action: "back-brasil" }];
+      const parts = [{ label: "Painel de Vendas", action: "back-brasil" }];
       if (ui.coordKey) parts.push({ label: ui.coordKey, action: "back-coord" });
       if (ui.level === "territorio") {
         const det = buildCoordDetail(ui.coordKey, coords, regioes);
@@ -362,6 +372,34 @@
       return found ? found.name : "Budget";
     }
 
+    // Grade de mês/ano -- escolhe A QUE mês/ano o painel se refere (Mês exibe
+    // esse mês; YTD acumula até ele). Sem isso não tinha como ver período
+    // diferente do calendário de hoje no mobile (achado do usuário).
+    function periodPickerHtml() {
+      // pickerYear é o ano que a GRADE está mostrando (navegação livre com
+      // ‹ ›); só vira o year "de verdade" quando um mês é clicado -- igual
+      // ao period-popover do desktop, onde navegar ano não recarrega nada
+      // sozinho.
+      const gridYear = ui.pickerYear || year;
+      const monthItems = Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+        const selected = m === month && gridYear === year;
+        return '<button type="button" class="vmob-month-item' + (selected ? " is-selected" : "") + '" data-action="select-month" data-m="' + m + '">' + monthAbbrev(m) + "</button>";
+      }).join("");
+      return '<div class="vmob-filter-row"><span class="vmob-filter-label">Período</span>' +
+        '<button type="button" class="vmob-cenario-trigger" aria-haspopup="true" aria-expanded="' + ui.periodListOpen + '" data-action="toggle-period-list">' +
+        "<span>" + monthAbbrev(month) + "/" + year + "</span>" +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="vmob-cenario-chev"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        "</button></div>" +
+        '<div class="vmob-period-panel' + (ui.periodListOpen ? " is-open" : "") + '">' +
+        '<div class="vmob-period-year">' +
+        '<button type="button" data-action="period-year" data-dir="-1" aria-label="Ano anterior">&lsaquo;</button>' +
+        "<span>" + gridYear + "</span>" +
+        '<button type="button" data-action="period-year" data-dir="1" aria-label="Próximo ano">&rsaquo;</button>' +
+        "</div>" +
+        '<div class="vmob-month-grid">' + monthItems + "</div>" +
+        "</div>";
+    }
+
     function filtersBlock() {
       const summary = periodLabel() + " · " + cenarioLabel(ui.scenarioId);
       const cenarioItems = [{ id: "", label: "Budget" }].concat(scenarios.map((s) => ({ id: s.id, label: s.name })))
@@ -376,7 +414,8 @@
         '<button type="button" class="vmob-filters-summary" data-action="toggle-filters"><span>Filtros &middot; <b>' + summary + "</b></span>" +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
         '<div class="vmob-filters-body">' +
-        '<div class="vmob-filter-row"><span class="vmob-filter-label">Período</span><div class="vmob-segmented">' +
+        periodPickerHtml() +
+        '<div class="vmob-filter-row"><span class="vmob-filter-label">Modo</span><div class="vmob-segmented">' +
         '<button type="button" class="' + (ui.periodMode === "mes" ? "is-active" : "") + '" data-action="set-period" data-mode="mes">Mês</button>' +
         '<button type="button" class="' + (ui.periodMode === "ytd" ? "is-active" : "") + '" data-action="set-period" data-mode="ytd">YTD</button>' +
         "</div></div>" +
@@ -393,9 +432,8 @@
 
     function screenBrasil() {
       const cards = COORD_ORDER.map(coordCardHtml).join("");
-      return '<div class="vmob-crumbbar">' + crumb() +
-        '<h2 class="vmob-level-title" tabindex="-1">Consolidado Brasil</h2>' +
-        '<p class="vmob-level-sub">Todas as coordenações &middot; ' + periodLabel() + "</p>" +
+      return '<div class="vmob-crumbbar">' +
+        '<h2 class="vmob-level-title" tabindex="-1">Painel de Vendas - ' + periodLabel() + "</h2>" +
         filtersBlock() + "</div>" +
         '<div class="vmob-section">' + renderHeroMatrix() + "</div>" +
         '<div class="vmob-section">' + renderTiposBox() + "</div>" +
@@ -504,7 +542,23 @@
       else if (action === "open-coord") { ui.level = "coord"; ui.coordKey = el.dataset.coord; ui.terrIdx = null; afterNav(); }
       else if (action === "open-terr") { ui.level = "territorio"; ui.terrIdx = Number(el.dataset.idx); afterNav(); }
       else if (action === "toggle-filters") { ui.filtersOpen = !ui.filtersOpen; render(); }
-      else if (action === "toggle-cenario-list") { ui.cenarioListOpen = !ui.cenarioListOpen; render(); }
+      else if (action === "toggle-cenario-list") { ui.cenarioListOpen = !ui.cenarioListOpen; ui.periodListOpen = false; render(); }
+      else if (action === "toggle-period-list") {
+        ui.periodListOpen = !ui.periodListOpen;
+        ui.cenarioListOpen = false;
+        if (ui.periodListOpen) ui.pickerYear = year; // reabre sempre a partir do ano atual
+        render();
+      }
+      else if (action === "period-year") { ui.pickerYear = (ui.pickerYear || year) + Number(el.dataset.dir); render(); }
+      else if (action === "select-month") {
+        const newYear = ui.pickerYear || year;
+        const newMonth = Number(el.dataset.m);
+        ui.periodListOpen = false;
+        if (newYear === year && newMonth === month) { render(); return; } // nada mudou, evita refetch à toa
+        if (newYear !== year) scenarioUserSet = false; // cenário "Fcst 5+7" pode não existir no ano novo
+        year = newYear; month = newMonth;
+        reloadAndRender();
+      }
       else if (action === "set-period") { ui.periodMode = el.dataset.mode; reloadAndRender(); }
       else if (action === "select-cenario") {
         ui.scenarioId = el.dataset.id || null;
@@ -528,7 +582,7 @@
         const today = new Date();
         year = today.getFullYear();
         month = today.getMonth() + 1;
-        ui = { level: "brasil", coordKey: null, terrIdx: null, periodMode: "mes", scenarioId: null, filtersOpen: true, cenarioListOpen: false };
+        ui = { level: "brasil", coordKey: null, terrIdx: null, periodMode: "mes", scenarioId: null, filtersOpen: true, cenarioListOpen: false, periodListOpen: false, pickerYear: null };
         enteredPainel = true;
       }
       containerEl.removeEventListener("click", handleClick);
