@@ -170,6 +170,13 @@
         .vmob-back-btn:active { background:var(--vmob-panel-elevated); }
 
         .vmob-empty { padding:40px 20px; text-align:center; color:var(--vmob-faint); font-size:13px; line-height:1.6; }
+
+        /* Carregamento inicial do módulo -- mesmo desenho do overlay de login
+           (app-loading-spinner em styles.css: anel girando + texto), só que
+           inline no lugar do "Carregando…" em texto puro que tinha antes. */
+        .vmob-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; min-height:60vh; padding:20px; color:var(--vmob-faint); font-size:13px; text-align:center; }
+        .vmob-loading-spinner { width:34px; height:34px; border-radius:50%; border:3px solid rgba(255,255,255,0.12); border-top-color:var(--vmob-accent); animation:app-loading-spin 0.8s linear infinite; }
+        @media (prefers-reduced-motion: reduce) { .vmob-loading-spinner { animation:none; } }
       `;
       document.head.appendChild(s);
     }
@@ -527,7 +534,7 @@
     }
 
     function screenLoading() {
-      return '<div class="vmob-crumbbar"><div class="vmob-level-title">Carregando…</div></div>';
+      return '<div class="vmob-loading"><div class="vmob-loading-spinner"></div><span>Carregando seus dados...</span></div>';
     }
 
     function screenNoData() {
