@@ -520,6 +520,14 @@
         userName.textContent = displayName;
       }
       applyPhotoPreview(userAvatar, resolvedProfile.photoKind, resolvedProfile.photoValue, displayName);
+      // Avisa quem copiou o estado deste avatar (hoje só o shell mobile,
+      // paintAvatar em mobileShellModule.js) que ele acabou de ser
+      // atualizado. Sem isso, um shell mobile que já tinha renderizado seu
+      // próprio avatar ANTES desta chamada (a foto ainda não tinha carregado
+      // do Supabase) ficava com o avatar em branco pra sempre até o
+      // usuário dar F5 -- ele só copia #user-avatar 1x, no momento em que
+      // monta o cabeçalho, sem re-sincronizar depois.
+      document.dispatchEvent(new CustomEvent("vecton:avatar-updated"));
     }
 
     function getUserDisplayName() {

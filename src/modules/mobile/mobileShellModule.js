@@ -61,8 +61,14 @@
         '<button type="button" class="vmob-avatar" id="vmob-avatar-btn" aria-haspopup="true" aria-expanded="' + profileOpen + '"></button>' +
         "</span>" +
         '<div class="vmob-profile-pop' + (profileOpen ? " is-open" : "") + '" id="vmob-profile-pop">' +
-        '<button type="button" id="vmob-messenger-btn">Messenger</button>' +
-        '<button type="button" id="vmob-logout-btn" class="is-danger">Sair</button>' +
+        // Mesmo símbolo do "vp-icon-chat" que o botão de Mensagens usa na
+        // barra do desktop (index.html, sprite SVG global) -- correlação
+        // visual pedida pelo usuário, não uma aproximação desenhada à mão.
+        '<button type="button" id="vmob-messenger-btn"><svg class="vmob-pop-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-chat"></use></svg><span>Messenger</span></button>' +
+        // Ícone padrão de "sair" (porta + seta), não o "⏻" (ligar/desligar)
+        // que o botão de Sair do desktop usa -- pedido do usuário foi só
+        // "um símbolo padrão de sair", não replicar o glyph do desktop.
+        '<button type="button" id="vmob-logout-btn" class="is-danger"><svg class="vmob-pop-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Sair</span></button>' +
         "</div>" +
         "</header>";
     }
@@ -238,6 +244,17 @@
       if (!started) {
         started = true;
         mediaQuery.addEventListener("change", (e) => onChange && onChange(e.matches));
+        // paintAvatar copia o #user-avatar do desktop 1x, no momento em que
+        // o cabeçalho mobile é montado -- se nesse instante a foto ainda
+        // não tinha carregado do Supabase (renderUserProfile roda de novo
+        // assim que carrega), o avatar mobile ficava em branco pra sempre,
+        // sem nunca re-sincronizar (bug relatado pelo usuário, 2026-08-31:
+        // "some, F5 traz de volta"). authSession.js dispara este evento
+        // toda vez que atualiza o avatar de verdade.
+        document.addEventListener("vecton:avatar-updated", () => {
+          const btn = rootEl?.querySelector("#vmob-avatar-btn");
+          if (btn) paintAvatar(btn);
+        });
       }
       return isMobileEntry();
     }
