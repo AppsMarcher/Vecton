@@ -850,9 +850,17 @@
       // No mobile o hint "(Enter envia, Shift+Enter quebra linha)" não faz
       // sentido (não tem teclado físico) e estourava a largura do campo,
       // quebrando em 2 linhas dentro de uma caixa de 1 linha só (print do
-      // usuário, 2026-08-31) -- placeholder mais curto lá, resto some via
-      // CSS (font-size menor).
-      const placeholder = estaNoShellMobile() ? "Escreva uma mensagem..." : "Escreva... (Enter envia, Shift+Enter quebra linha)";
+      // usuário, 2026-08-31) -- placeholder bem mais curto lá. A janela
+      // encolheu 25% (pedido do mesmo dia), sobrando menos largura ainda
+      // pro compositor -- por isso o botão "Enviar" também vira ícone
+      // redondo no mobile (mesmo padrão do "+"/emoji), liberando espaço.
+      const mobile = estaNoShellMobile();
+      const placeholder = mobile ? "Mensagem..." : "Escreva... (Enter envia, Shift+Enter quebra linha)";
+      const botaoEnviar = mobile
+        ? `<button type="button" class="msn-icon-btn msn-send-btn" data-action="enviar" title="Enviar" aria-label="Enviar mensagem">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-8 16-2-7-6-1z"/></svg>
+          </button>`
+        : `<button type="button" class="primary-button" data-action="enviar">Enviar</button>`;
       return `
         <div class="msn-jan-head">
           <div class="msn-jan-identidade">
@@ -880,7 +888,7 @@
             </button>
             <div class="msn-emoji-menu" role="dialog" aria-label="Emojis" hidden>${emojisMarkup()}</div>
           </div>
-          <button type="button" class="primary-button" data-action="enviar">Enviar</button>
+          ${botaoEnviar}
         </div>
         <div class="msn-pendentes"></div>
       `;

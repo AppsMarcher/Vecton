@@ -10829,17 +10829,20 @@ body.mobile-shell-active .msn-painel {
   border-radius: 24px !important;
   box-shadow: 0 24px 70px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
-/* Janela de conversa: por cima do painel, ainda mais recuada. `top:5%`
-   (em vez dos 20% da 1ª versão) -- com o teclado aberto (input na base da
-   janela) o navegador mobile encolhe a viewport visual por baixo; deixando
-   pouca folga em cima sobra altura de sobra pra isso não cortar/empurrar o
-   compositor pra debaixo do teclado (pedido do usuário, 2026-08-31, 2ª
-   rodada de ajuste). `bottom:20%` sem mudança. */
+/* Janela de conversa: por cima do painel, ainda mais recuada. `top` fica
+   raso (6%, quase o topo da tela) -- com o teclado aberto (input na base
+   da janela) o navegador mobile encolhe a viewport visual por baixo;
+   deixando pouca folga em cima sobra altura de sobra pra isso não cortar/
+   empurrar o compositor pra debaixo do teclado. Encolhida mais 25% no
+   total (pedido do usuário, 2026-08-31, 3ª rodada) -- pra não perder essa
+   folga no topo, o corte veio TODO do `bottom` (38%, era 20%) e das
+   laterais (17% cada, eram 22px fixos): janela menor, mais painel
+   aparecendo ao redor, reforçando a percepção de card flutuante. */
 body.mobile-shell-active .msn-janela {
-  left: 22px !important;
-  right: 22px !important;
-  top: 5% !important;
-  bottom: 20% !important;
+  left: 17% !important;
+  right: 17% !important;
+  top: 6% !important;
+  bottom: 38% !important;
   width: auto !important;
   height: auto !important;
   min-width: 0 !important;
@@ -10857,21 +10860,41 @@ body.mobile-shell-active .msn-jan-compositor,
 body.mobile-shell-active .msn-rodape {
   padding-bottom: max(10px, env(safe-area-inset-bottom));
 }
-/* Placeholder mais curto no mobile (messagesModule.js) + fonte menor aqui --
-   o hint completo do desktop ("Enter envia, Shift+Enter quebra linha")
-   quebrava dentro da caixa de 1 linha só (print do usuário, 2026-08-31). */
-body.mobile-shell-active .msn-input { font-size: 0.68rem; }
+/* `font-size` do campo de digitar TEM que ser >=16px no mobile -- abaixo
+   disso, Safari/WebKit (iOS e vários navegadores Android baseados nele)
+   dá zoom automático na página ao focar o campo, "estourando" a tela pra
+   fora da área visível (print do usuário, 2026-08-31: a tela toda
+   "expandia" ao tocar pra digitar). Erro meu na rodada anterior --
+   reduzi pra 0.68rem (~11px) só pra caber o placeholder, sem considerar
+   esse gotcha clássico de mobile web. Fix certo: placeholder BEM mais
+   curto ("Mensagem...", messagesModule.js) + botão "Enviar" virou ícone
+   redondo no mobile (.msn-send-btn, abaixo) pra sobrar largura suficiente
+   a 16px sem precisar diminuir a fonte. */
+body.mobile-shell-active .msn-input { font-size: 16px; }
+.msn-send-btn {
+  background: var(--blue);
+  color: #fff;
+  border-radius: 50%;
+}
+.msn-send-btn:hover { background: var(--blue); filter: brightness(1.1); }
+.msn-send-btn svg { width: 16px; height: 16px; }
 
 /* Esmaece o painel de contatos por trás quando uma janela de conversa abre
    (pedido do usuário, 2026-08-31) -- criado/removido por
    messagesModule.js::atualizarScrim(), z-index entre o painel (9400) e o
    z-index inicial das janelas (9500+), então fica sempre atrás de todas
    elas e na frente do painel, qualquer que seja a ordem de abertura. Clique
-   nele fecha a janela em foco, como um modal comum. */
+   nele fecha a janela em foco, como um modal comum. `backdrop-filter: blur`
+   pro efeito "fosco"/vidro fosco pedido pelo usuário -- só escurecer
+   (rodada anterior) não bastava, queria o fundo ilegível de propósito, não
+   só mais escuro. `-webkit-` porque Safari/WebKit mobile (bem provável de
+   ser o navegador aqui) só reconhece a propriedade prefixada. */
 .msn-scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  backdrop-filter: blur(10px) saturate(120%);
   z-index: 9450;
   animation: msn-scrim-in 140ms ease;
 }
