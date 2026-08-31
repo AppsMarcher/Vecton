@@ -10829,27 +10829,34 @@ body.mobile-shell-active .msn-painel {
   border-radius: 24px !important;
   box-shadow: 0 24px 70px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
-/* Janela de conversa: por cima do painel, ainda mais recuada. `top` fica
-   raso (6%, quase o topo da tela) -- com o teclado aberto (input na base
-   da janela) o navegador mobile encolhe a viewport visual por baixo;
-   deixando pouca folga em cima sobra altura de sobra pra isso não cortar/
-   empurrar o compositor pra debaixo do teclado. Encolhida mais 25% no
-   total (pedido do usuário, 2026-08-31, 3ª rodada) -- pra não perder essa
-   folga no topo, o corte veio TODO do `bottom` (38%, era 20%) e das
-   laterais (17% cada, eram 22px fixos): janela menor, mais painel
-   aparecendo ao redor, reforçando a percepção de card flutuante. */
+/* Janela de conversa: VOLTOU a ser tela cheia (2026-08-31, 4ª rodada,
+   revertendo as duas tentativas anteriores de encolher/recuar ela como um
+   card flutuante). Print do usuário comparando com o WhatsApp de verdade
+   deixou claro: a tela de conversa do WhatsApp NÃO é um card sobreposto
+   como o painel de contatos -- é tela cheia mesmo, igual a que existia
+   antes de qualquer ajuste de tamanho. O problema do teclado nunca foi o
+   `top` pequeno (tentativa anterior) -- é justamente o oposto: com a
+   janela em `inset:0` (tela cheia de verdade, sem % de altura calculada),
+   o navegador mobile encolhe a viewport inteira quando o teclado abre e o
+   flex-column interno (cabeçalho fixo / corpo flex:1 rolável / compositor
+   fixo) se redistribui sozinho, empurrando o compositor pra cima do
+   teclado sem cortar nada -- exatamente o comportamento do WhatsApp. Só
+   dava problema quando a janela tinha um tamanho FIXO em % (menor que a
+   tela): aí o teclado somava altura livre que tanto fazia com o tamanho
+   calculado, sobrando espaço morto ou cortando conteúdo. */
 body.mobile-shell-active .msn-janela {
-  left: 17% !important;
-  right: 17% !important;
-  top: 6% !important;
-  bottom: 38% !important;
-  width: auto !important;
-  height: auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
   min-width: 0 !important;
   min-height: 0 !important;
   transform: none !important;
-  border-radius: 24px !important;
-  box-shadow: 0 24px 70px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  border-radius: 0 !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
 }
 body.mobile-shell-active .msn-resize { display: none; }
 body.mobile-shell-active .msn-head,
