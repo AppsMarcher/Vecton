@@ -10923,6 +10923,14 @@ body.mobile-shell-active .msn-contato {
   border-radius: 0;
   padding: 10px 16px;
 }
+/* `var(--line)` some usar aqui de propósito: dentro do Messenger essa
+   variável é reescrita por aplicarTemaEm() pra virar a MESMA cor de "Linha"
+   que o usuário escolhe pra acentuar bordas (azul vívido por padrão) --
+   funciona pras bordas grossas do painel/janela, mas o divisor precisa ser
+   discreto, não competir com elas (pedido do usuário, 2026-08-31: "não
+   pode ser igual às bordas do app"). Branco bem transparente em vez disso
+   -- lê como um fio sutil sobre o fundo escuro, sem depender da cor de
+   tema escolhida. */
 body.mobile-shell-active .msn-contato::after {
   content: "";
   position: absolute;
@@ -10930,7 +10938,7 @@ body.mobile-shell-active .msn-contato::after {
   right: 0;
   bottom: 0;
   height: 1px;
-  background: var(--line);
+  background: rgba(255, 255, 255, 0.08);
 }
 body.mobile-shell-active .msn-avatar {
   width: 46px;
