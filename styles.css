@@ -6994,7 +6994,8 @@ table th,
   display: flex;
   align-items: center;
   gap: 14px;
-  max-width: min(92vw, 420px);
+  width: max-content;
+  max-width: 92vw;
   padding: 12px 12px 12px 18px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -7008,6 +7009,7 @@ table th,
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
+.vp-update-banner span { white-space: nowrap; }
 .vp-update-banner.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .vp-update-banner button {
   flex: none;
