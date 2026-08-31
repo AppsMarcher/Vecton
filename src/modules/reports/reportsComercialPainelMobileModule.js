@@ -162,9 +162,14 @@
            cor da coordenação (--vmob-card-accent) em vez do cinza neutro
            (pedido do usuário, 2026-08-31 -- 2ª rodada, a 1ª ainda tinha
            virado uma "caixa" com borda/padding grande demais). */
-        .vmob-matrix-flat { padding:12px 0; }
-        .vmob-matrix-flat:first-child { padding-top:0; }
-        .vmob-matrix-flat + .vmob-matrix-flat { padding-top:20px; border-top:1px solid var(--vmob-card-accent, var(--vmob-accent)); }
+        /* Assimétrico de propósito (pedido do usuário, 2026-08-31 -- 3ª
+           rodada): a linha colorida cola no território de CIMA, na mesma
+           proporção habitual das linhas internas da mini-matriz (8px, igual
+           .vmob-matrix td); o respiro maior fica só DEPOIS da linha, antes
+           do território de baixo começar -- não mais distribuído igual dos
+           dois lados. */
+        .vmob-matrix-flat { padding:0 0 8px; }
+        .vmob-matrix-flat + .vmob-matrix-flat { padding-top:24px; border-top:1px solid var(--vmob-card-accent, var(--vmob-accent)); }
         /* .vmob-chev fica em styles.css (usado também pelo Menu mobile) */
 
         .vmob-empty { padding:40px 20px; text-align:center; color:var(--vmob-faint); font-size:13px; line-height:1.6; }
