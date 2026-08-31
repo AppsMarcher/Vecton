@@ -4657,6 +4657,16 @@ textarea[disabled] {
   .main-header {
     flex-direction: column;
     align-items: stretch;
+    /* A altura ficava travada em 60px (height/max-height fixos, herdados
+       da regra base de linha única) mesmo com os filhos empilhados em 2
+       linhas por causa do flex-direction:column acima. Com overflow:visible
+       a 2ª linha (período/busca) vazava por cima do .market-ticker logo
+       abaixo -- só não aparecia antes porque esse trecho ficava fora da
+       viewport pelo bug da sidebar. */
+    height: auto;
+    min-height: 60px;
+    max-height: none;
+    padding: 10px 14px;
   }
 
   .header-left,
