@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "vecton-static-";
-const CACHE_NAME = `${CACHE_PREFIX}20260831h`;
+const CACHE_NAME = `${CACHE_PREFIX}20260831i`;
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -64,16 +64,25 @@ self.addEventListener("fetch", (event) => {
 
   if (!["script", "style", "image", "font", "audio", "manifest"].includes(request.destination)) return;
 
+  // Network-first (2026-08-31, era cache-first + atualiza em background):
+  // o cache-first servia a versão VELHA na 1ª carga depois de todo deploy
+  // (o refetch só acontecia em segundo plano, pra próxima vez) -- confundiu
+  // usuário e Claude repetidas vezes achando que uma mudança "não tinha
+  // efeito" quando na verdade só não tinha chegado ainda (ver
+  // [[project_vecton_plan]]). Agora tenta a rede SEMPRE primeiro (cache:
+  // "reload" pelo mesmo motivo do bloco de navigate acima -- ignora também
+  // o cache HTTP do navegador, não só a Cache API) e só cai pro cache se a
+  // rede falhar de verdade (offline) -- por isso o app continua funcionando
+  // sem internet, só deixa de ser "instantâneo" com WiFi ruim.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const update = fetch(request).then((response) => {
+    fetch(request, { cache: "reload" })
+      .then((response) => {
         if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
         return response;
-      });
-      return cached || update;
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
