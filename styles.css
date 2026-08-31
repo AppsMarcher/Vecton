@@ -10819,24 +10819,25 @@ body.mobile-shell-active .vmob-shell {
    borda azul, mantida de propósito -- não é "sem nenhuma moldura"). Regra
    única pros dois em vez de duplicar. `min-width/min-height/transform`
    `!important` seguem cancelando os valores fixos do desktop (drag/resize
-   com mouse); `left/right/top/bottom` `!important` cancelam o
-   `style.left/top` que `abrirJanela()` sempre define inline (posição em
-   cascata das janelas no desktop). `height` SEM `!important` de propósito
-   -- é a única propriedade que messagesModule.js::ajustarAlturaVisual()
-   pisa por cima com um valor inline (px) vindo de
-   `window.visualViewport.height`, porque no iOS Safari (e navegadores
-   baseados nele) a "layout viewport" NÃO encolhe quando o teclado abre --
-   só a "visual viewport" encolhe de verdade, e um `inset:0` fixo por si
-   só ficaria ancorado no tamanho de ANTES do teclado, empurrando/cortando
-   o cabeçalho pra fora da área visível (mais ainda com a barra de
-   navegação de campos do teclado do Safari roubando espaço extra por
-   cima dele). Sem JS ou em navegador sem suporte a VisualViewport, cai de
-   volta pro `height:100%` daqui (funciona igual a antes). */
+   com mouse); `left/right/bottom` `!important` cancelam o `style.left`
+   que `abrirJanela()` sempre define inline (posição em cascata das
+   janelas no desktop). `height` E `top` SEM `!important` de propósito --
+   messagesModule.js::ajustarAlturaVisual() pisa por cima das duas com
+   valores inline (px) vindos de `window.visualViewport`: no iOS Safari
+   (e navegadores baseados nele) `position:fixed` fica ancorado na
+   "layout viewport" (documento inteiro), não na "visual viewport" (o que
+   está de fato visível) -- ao focar o campo de digitar o Safari rola a
+   página pra manter o campo acima do teclado, e um `top:0` fixo (sem
+   compensar) fica pra trás dessa rolagem, fazendo o cabeçalho "subir"/
+   sumir da área visível. `visualViewport.height` dá a altura real que
+   sobra; `visualViewport.offsetTop` compensa em `top` quanto a página
+   rolou. Sem JS ou em navegador sem suporte a VisualViewport, `top` cai
+   de volta pro `0` daqui (funciona igual a antes). */
 body.mobile-shell-active .msn-painel,
 body.mobile-shell-active .msn-janela {
   left: 0 !important;
   right: 0 !important;
-  top: 0 !important;
+  top: 0;
   bottom: 0 !important;
   width: 100% !important;
   height: 100%;

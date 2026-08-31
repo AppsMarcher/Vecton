@@ -126,18 +126,20 @@
     }
 
     // ── Altura real no shell mobile (teclado) ───────────────────────────────
-    // No iOS Safari (e navegadores baseados nele) a "layout viewport" NÃO
-    // encolhe quando o teclado abre -- só a "visual viewport" encolhe de
-    // verdade (a barra de navegação de campos do teclado do Safari rouba
-    // espaço extra por cima dele também). Um `inset:0` fixo por si só fica
-    // ancorado no tamanho de ANTES do teclado, empurrando/cortando o
-    // cabeçalho pra fora da área visível (print do usuário, 2026-08-31).
-    // `window.visualViewport.height` é a única fonte confiável do espaço
-    // que sobra de verdade -- aplicado como altura inline (px, SEM
-    // !important -- a regra de `height` em styles.css não usa !important
-    // de propósito, só pra isso poder vencer) em toda tela cheia do
-    // Messenger aberta no momento (painel, janelas de conversa, janela de
-    // configurações).
+    // No iOS Safari (e navegadores baseados nele) `position:fixed` fica
+    // ancorado na "layout viewport" (o documento inteiro), não na "visual
+    // viewport" (o que está de fato visível). Ao focar um campo de texto o
+    // Safari costuma ROLAR a página pra manter o campo visível acima do
+    // teclado -- a visual viewport desce (`visualViewport.offsetTop`
+    // aumenta), mas nosso elemento fixo, ancorado na layout viewport que
+    // não rolou, fica pra TRÁS: some pra cima da área visível (exatamente o
+    // "cabeçalho subiu"/some do usuário, 2026-08-31, 2 rodadas seguidas --
+    // 1ª tentativa só ajustou `height`, esqueceu do deslocamento). Fix:
+    // compensa com `top: offsetTop` (empurra o elemento pra BAIXO na mesma
+    // medida que a página rolou, cancelando o efeito) além de `height`
+    // (altura real que sobra, sem o teclado). Ouve `resize` (teclado
+    // abre/fecha, muda a altura) E `scroll` (o navegador pode rolar sem
+    // disparar resize) do VisualViewport.
     let _vvBound = false;
     function elementosTelaCheiaMobile() {
       const els = [];
@@ -150,12 +152,17 @@
       if (!estaNoShellMobile()) return;
       const vv = window.visualViewport;
       const altura = vv ? `${vv.height}px` : "";
-      elementosTelaCheiaMobile().forEach((el) => { el.style.height = altura; });
+      const topo = vv ? `${vv.offsetTop || 0}px` : "";
+      elementosTelaCheiaMobile().forEach((el) => {
+        el.style.height = altura;
+        el.style.top = topo;
+      });
     }
     function iniciarObservadorVisualViewport() {
       if (_vvBound || !window.visualViewport) return;
       _vvBound = true;
       window.visualViewport.addEventListener("resize", ajustarAlturaVisual);
+      window.visualViewport.addEventListener("scroll", ajustarAlturaVisual);
     }
 
     // Estilo WhatsApp pro carimbo da última mensagem: hoje mostra hora,
