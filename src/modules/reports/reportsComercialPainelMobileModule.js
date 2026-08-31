@@ -62,7 +62,7 @@
            .vmob-card base ficam em styles.css -- compartilhados com o Menu
            mobile (mobileShellModule.js), que renderiza ANTES deste módulo
            montar (senão a tela de Menu ficaria sem estilo no 1º load). */
-        .vmob-crumb { display:flex; align-items:center; gap:5px; font-size:13px; font-weight:600; flex-wrap:wrap; margin-bottom:6px; }
+        .vmob-crumb { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; flex-wrap:wrap; margin-bottom:6px; }
         .vmob-crumb button { all:unset; color:var(--vmob-faint); cursor:pointer; padding:2px 1px; }
         .vmob-crumb button:hover { color:var(--vmob-soft); }
         .vmob-crumb .vmob-crumb-current { color:var(--vmob-text); }
@@ -158,7 +158,7 @@
            virado uma "caixa" com borda/padding grande demais). */
         .vmob-matrix-flat { padding:12px 0; }
         .vmob-matrix-flat:first-child { padding-top:0; }
-        .vmob-matrix-flat + .vmob-matrix-flat { border-top:1px solid var(--vmob-card-accent, var(--vmob-accent)); }
+        .vmob-matrix-flat + .vmob-matrix-flat { padding-top:20px; border-top:1px solid var(--vmob-card-accent, var(--vmob-accent)); }
         /* .vmob-chev fica em styles.css (usado também pelo Menu mobile) */
 
         .vmob-empty { padding:40px 20px; text-align:center; color:var(--vmob-faint); font-size:13px; line-height:1.6; }
