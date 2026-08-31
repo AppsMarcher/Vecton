@@ -1354,6 +1354,7 @@ const mobileShellModule = createMobileShellModule({
   getCurrentUser: () => currentUser,
   handleLogout: handleMobileLogout,
   comercialPainelMobileModule,
+  messagesModule: messagesTab,
 });
 const comercialMapaModule = createComercialMapaModule({
   escapeHtml,

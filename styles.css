@@ -10693,10 +10693,11 @@ body.mobile-shell-active .vmob-shell {
   padding: 8px 9px;
   border-radius: 8px;
   font-size: 13px;
-  color: var(--vmob-negative);
+  color: var(--vmob-text);
   cursor: pointer;
   text-align: left;
 }
+.vmob-profile-pop button.is-danger { color: var(--vmob-negative); }
 .vmob-profile-pop button:hover, .vmob-profile-pop button:focus-visible { background: var(--vmob-panel); }
 
 .vmob-scroll {
@@ -10790,4 +10791,43 @@ body.mobile-shell-active .vmob-shell {
   cursor: pointer;
 }
 .vmob-state-btn.vmob-ghost { background: transparent; border: 1px solid var(--vmob-line); color: var(--vmob-soft); }
+
+/* Correio interno (messagesModule.js) dentro do shell mobile (2026-08-31).
+   Não é um módulo mobile novo -- é o MESMO painel/janelas flutuantes do
+   desktop, chamados pelo botão "Messenger" no popover de perfil
+   (mobileShellModule.js). Sem breakpoint próprio, o painel nascia com
+   width:20vw (mín. 240px) e cada janela com 560x400px fixos, arrastáveis/
+   redimensionáveis -- em tela de celular isso sobrava pra fora da viewport
+   e o botão fechar (✕, que já existe no cabeçalho de ambos) ficava
+   inalcançável. Aqui os dois viram overlay de tela cheia, empilhados um
+   sobre o outro (janela de conversa por cima do painel de contatos), com o
+   ✕ sempre visível. `!important` porque left/top/width/height do desktop
+   são setados inline via JS (arrastar/redimensionar) -- só assim a regra da
+   folha de estilo vence. Alças de redimensionar (.msn-resize) não fazem
+   sentido em tela cheia por toque, ficam escondidas. z-index do Messenger
+   (9400+) já é bem maior que o do shell mobile (.vmob-shell = 10), então
+   sobrepõe normalmente sem precisar subir nada aqui. */
+body.mobile-shell-active .msn-painel,
+body.mobile-shell-active .msn-janela {
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  transform: none !important;
+  border-radius: 0 !important;
+  border-width: 0 !important;
+}
+body.mobile-shell-active .msn-resize { display: none; }
+body.mobile-shell-active .msn-head,
+body.mobile-shell-active .msn-jan-head {
+  padding-top: max(14px, env(safe-area-inset-top));
+}
+body.mobile-shell-active .msn-jan-compositor,
+body.mobile-shell-active .msn-rodape {
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
 

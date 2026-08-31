@@ -14,7 +14,8 @@
       canSeeReport,
       getCurrentUser,
       handleLogout,
-      comercialPainelMobileModule
+      comercialPainelMobileModule,
+      messagesModule
     } = deps;
 
     const BREAKPOINT_QUERY = "(max-width: 767px)";
@@ -60,6 +61,7 @@
         '<button type="button" class="vmob-avatar" id="vmob-avatar-btn" aria-haspopup="true" aria-expanded="' + profileOpen + '"></button>' +
         "</span>" +
         '<div class="vmob-profile-pop' + (profileOpen ? " is-open" : "") + '" id="vmob-profile-pop">' +
+        '<button type="button" id="vmob-messenger-btn">Messenger</button>' +
         '<button type="button" id="vmob-logout-btn" class="is-danger">Sair</button>' +
         "</div>" +
         "</header>";
@@ -144,11 +146,18 @@
     function bindHeaderEvents() {
       const brandBtn = rootEl.querySelector("#vmob-brand-btn");
       const avatarBtn = rootEl.querySelector("#vmob-avatar-btn");
+      const messengerBtn = rootEl.querySelector("#vmob-messenger-btn");
       const logoutBtn = rootEl.querySelector("#vmob-logout-btn");
       if (brandBtn) brandBtn.addEventListener("click", goToMenu);
       if (avatarBtn) {
         paintAvatar(avatarBtn);
         avatarBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleProfile(); });
+      }
+      if (messengerBtn) {
+        messengerBtn.addEventListener("click", () => {
+          toggleProfile();
+          messagesModule && messagesModule.toggleContatos();
+        });
       }
       if (logoutBtn) logoutBtn.addEventListener("click", () => { handleLogout && handleLogout(); });
     }
