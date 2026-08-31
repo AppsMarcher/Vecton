@@ -21,6 +21,17 @@
       nf, fmtR$, fmtFullR$
     } = DATA;
 
+    // Formatação de moeda SÓ do mobile: a partir de R$ 1 milhão, "R$ X.XXX
+    // mil" (fmtR$ do desktop) estoura a largura das colunas em telas
+    // estreitas (iPhone) e sobrepõe FATUR./FAT.+CART./META -- vira "R$ X,XX
+    // M". Abaixo de 1 milhão continua igual ao desktop (fmtR$ padrão).
+    function fmtR$Mobile(v) {
+      const val = v || 0;
+      if (Math.abs(val) < 1000000) return fmtR$(val);
+      const mi = val / 1000000;
+      return "R$ " + mi.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " M";
+    }
+
     const REPORT_ID = "comercialPainel";
 
     let containerEl = null;
@@ -210,7 +221,7 @@
 
     function isBlank(v) { return v === null || v === undefined || (typeof v === "number" && isNaN(v)); }
     function cellQty(v) { return isBlank(v) ? '<span class="vmob-dash">—</span>' : nf(v) + " un"; }
-    function cellVal(v) { return isBlank(v) ? '<span class="vmob-dash">—</span>' : fmtR$(v); }
+    function cellVal(v) { return isBlank(v) ? '<span class="vmob-dash">—</span>' : fmtR$Mobile(v); }
     function tdQty(v) { return "<td>" + cellQty(v) + "</td>"; }
     function tdVal(v) { const t = isBlank(v) ? "" : fmtFullR$(v); return '<td title="' + t + '">' + cellVal(v) + "</td>"; }
 
@@ -335,14 +346,14 @@
 
       let body;
       if (t.isPecas) {
-        body = '<div class="vmob-card-sub">Faturado</div><div class="vmob-card-qty">' + fmtR$(t.val) + "</div>";
+        body = '<div class="vmob-card-sub">Faturado</div><div class="vmob-card-qty">' + fmtR$Mobile(t.val) + "</div>";
       } else {
         body = '<div class="vmob-card-qty">' + nf(t.grao + t.pec) + ' <span class="vmob-card-u">un</span></div>' +
           '<div class="vmob-card-split">' +
           (t.hasGrao ? ("<span>Grão <b>" + nf(t.grao) + "</b></span>") : "<span></span>") +
           (t.hasPec ? ("<span>Pecuária <b>" + nf(t.pec) + "</b></span>") : "<span></span>") +
           "</div>" +
-          '<div class="vmob-card-fat"><span>Faturado</span><span>' + fmtR$(t.val) + "</span></div>";
+          '<div class="vmob-card-fat"><span>Faturado</span><span>' + fmtR$Mobile(t.val) + "</span></div>";
       }
 
       return '<button type="button" class="vmob-coord-card" style="--vmob-card-accent:' + accent + '" data-action="open-coord" data-coord="' + nome + '">' +
@@ -496,7 +507,7 @@
         '<div class="vmob-section"><div class="vmob-terr-hero" style="--vmob-card-accent:' + accent + '">' +
         '<div class="vmob-terr-hero-top"><span class="vmob-terr-hero-sigla">' + escapeSigla(t.terr) + '</span><span><span class="vmob-terr-hero-name">' + t.terr + '</span><span class="vmob-terr-hero-resp">' + (t.resp || "Sem responsável definido") + "</span></span></div>" +
         '<div class="vmob-stat-grid">' +
-        '<div class="vmob-stat"><div class="vmob-stat-label">Diferença p/ meta</div><div class="vmob-stat-value' + (hasMeta ? (diffPositive ? " vmob-pos" : " vmob-neg") : "") + '">' + (hasMeta ? ((diffPositive ? "+" : "−") + fmtR$(Math.abs(diff))) : "—") + "</div><div class=\"vmob-stat-sub\">" + (hasMeta ? (diffPositive ? "acima da meta" : "abaixo da meta") : "Meta não definida neste período/cenário.") + "</div></div>" +
+        '<div class="vmob-stat"><div class="vmob-stat-label">Diferença p/ meta</div><div class="vmob-stat-value' + (hasMeta ? (diffPositive ? " vmob-pos" : " vmob-neg") : "") + '">' + (hasMeta ? ((diffPositive ? "+" : "−") + fmtR$Mobile(Math.abs(diff))) : "—") + "</div><div class=\"vmob-stat-sub\">" + (hasMeta ? (diffPositive ? "acima da meta" : "abaixo da meta") : "Meta não definida neste período/cenário.") + "</div></div>" +
         '<div class="vmob-stat"><div class="vmob-stat-label">Cobertura</div><div class="vmob-stat-value">' + (cov === null ? "—" : Math.round(cov) + "%") + '</div><div class="vmob-stat-sub">' + covText + "</div></div>" +
         "</div></div></div>" +
         '<div class="vmob-section">' + renderMiniMatrix({
