@@ -41,4 +41,5 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 
 assert.match(source, /rpc\/rps_save_snapshot_atomic/);
 assert.match(source, /data-rps-status/);
+assert.doesNotMatch(source, /"Rascunho recuperado" : statusLabel\(\)/);
 console.log("RPS concurrency tests passed");

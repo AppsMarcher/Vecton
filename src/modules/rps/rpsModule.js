@@ -1356,7 +1356,10 @@
         } else if (draft) {
           clearDraft();
         }
-        setStatus(state.dirty ? "dirty" : "ready", state.dirty ? "Rascunho recuperado" : statusLabel());
+        // Durante o try state.loading ainda é true. Não congele o texto
+        // "Carregando dados..." em state.message; no finally o selo deve
+        // passar a exibir Sincronizado/Salvo às ... automaticamente.
+        setStatus(state.dirty ? "dirty" : "ready", state.dirty ? "Rascunho recuperado" : "");
       } catch (error) {
         if (generation !== state.loadGeneration) return;
         if (isMissingTable(error)) {
