@@ -449,11 +449,19 @@
         '<button type="button" class="' + (ui.periodMode === "ytd" ? "is-active" : "") + '" data-action="set-period" data-mode="ytd">YTD</button>' +
         "</div></div>" +
         '<div class="vmob-filter-row"><span class="vmob-filter-label">Cenário</span>' +
-        '<button type="button" class="vmob-cenario-trigger" aria-haspopup="listbox" aria-expanded="' + ui.cenarioListOpen + '" data-action="toggle-cenario-list">' +
+        '<button type="button" class="vmob-cenario-trigger" aria-haspopup="true" aria-expanded="' + ui.cenarioListOpen + '" data-action="toggle-cenario-list">' +
         "<span>" + cenarioLabel(ui.scenarioId) + "</span>" +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="vmob-cenario-chev"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
         "</button></div>" +
-        '<div class="vmob-cenario-list' + (ui.cenarioListOpen ? " is-open" : "") + '" role="listbox">' + cenarioItems + "</div>" +
+        // Modal centralizado -- mesmo padrão do seletor de período (backdrop +
+        // card fixo no meio da tela), não mais dropdown inline abaixo do botão.
+        '<div class="vmob-period-modal-backdrop' + (ui.cenarioListOpen ? " is-open" : "") + '" data-action="close-cenario-list"></div>' +
+        '<div class="vmob-period-modal' + (ui.cenarioListOpen ? " is-open" : "") + '" role="dialog" aria-modal="true" aria-label="Selecionar cenário">' +
+        '<div class="vmob-period-modal-card">' +
+        '<div class="vmob-period-modal-head"><span class="vmob-period-modal-year">Cenário</span></div>' +
+        '<p class="vmob-period-modal-sub">Selecione o cenário de referência da análise.</p>' +
+        '<div class="vmob-cenario-list is-open" role="listbox">' + cenarioItems + "</div>" +
+        "</div></div>" +
         "</div></div>";
     }
 
@@ -579,6 +587,7 @@
         render();
       }
       else if (action === "close-period-list") { ui.periodListOpen = false; render(); }
+      else if (action === "close-cenario-list") { ui.cenarioListOpen = false; render(); }
       else if (action === "period-year") { ui.pickerYear = (ui.pickerYear || year) + Number(el.dataset.dir); render(); }
       else if (action === "select-month") {
         const newYear = ui.pickerYear || year;
