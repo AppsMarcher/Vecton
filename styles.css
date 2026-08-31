@@ -10811,51 +10811,39 @@ body.mobile-shell-active .vmob-shell {
    (.vmob-shell = 10), então sobrepõe normalmente sem precisar subir nada
    aqui. */
 
-/* Painel de contatos: cartão quase de tela cheia, mas com margem visível nos
-   4 lados + cantos bem arredondados + sombra funda -- dá a impressão de
-   estar flutuando POR CIMA da tela anterior (Menu/módulo mobile), não de
-   ser uma tela nova (2026-08-31, feedback do usuário: tela cheia parecia
-   "trocar de tela" em vez de "abrir por cima"). */
-body.mobile-shell-active .msn-painel {
-  left: 14px !important;
-  right: 14px !important;
-  top: 14px !important;
-  bottom: 14px !important;
-  width: auto !important;
-  height: auto !important;
-  min-width: 0 !important;
-  min-height: 0 !important;
-  transform: none !important;
-  border-radius: 24px !important;
-  box-shadow: 0 24px 70px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-}
-/* Janela de conversa: VOLTOU a ser tela cheia (2026-08-31, 4ª rodada,
-   revertendo as duas tentativas anteriores de encolher/recuar ela como um
-   card flutuante). Print do usuário comparando com o WhatsApp de verdade
-   deixou claro: a tela de conversa do WhatsApp NÃO é um card sobreposto
-   como o painel de contatos -- é tela cheia mesmo, igual a que existia
-   antes de qualquer ajuste de tamanho. O problema do teclado nunca foi o
-   `top` pequeno (tentativa anterior) -- é justamente o oposto: com a
-   janela em `inset:0` (tela cheia de verdade, sem % de altura calculada),
-   o navegador mobile encolhe a viewport inteira quando o teclado abre e o
-   flex-column interno (cabeçalho fixo / corpo flex:1 rolável / compositor
-   fixo) se redistribui sozinho, empurrando o compositor pra cima do
-   teclado sem cortar nada -- exatamente o comportamento do WhatsApp. Só
-   dava problema quando a janela tinha um tamanho FIXO em % (menor que a
-   tela): aí o teclado somava altura livre que tanto fazia com o tamanho
-   calculado, sobrando espaço morto ou cortando conteúdo. */
+/* Painel de contatos E janela de conversa: tela cheia de verdade (2026-08-31,
+   5ª rodada -- as 3 rodadas anteriores tentaram fazer os dois virarem card
+   flutuante com margem/cantos redondos/sombra; print comparando com o
+   WhatsApp real deixou claro que NENHUM dos dois é assim lá -- as duas
+   telas do WhatsApp são tela cheia, só com moldura de cor (nosso caso, a
+   borda azul, mantida de propósito -- não é "sem nenhuma moldura"). Regra
+   única pros dois em vez de duplicar. `min-width/min-height/transform`
+   `!important` seguem cancelando os valores fixos do desktop (drag/resize
+   com mouse); `left/right/top/bottom` `!important` cancelam o
+   `style.left/top` que `abrirJanela()` sempre define inline (posição em
+   cascata das janelas no desktop). `height` SEM `!important` de propósito
+   -- é a única propriedade que messagesModule.js::ajustarAlturaVisual()
+   pisa por cima com um valor inline (px) vindo de
+   `window.visualViewport.height`, porque no iOS Safari (e navegadores
+   baseados nele) a "layout viewport" NÃO encolhe quando o teclado abre --
+   só a "visual viewport" encolhe de verdade, e um `inset:0` fixo por si
+   só ficaria ancorado no tamanho de ANTES do teclado, empurrando/cortando
+   o cabeçalho pra fora da área visível (mais ainda com a barra de
+   navegação de campos do teclado do Safari roubando espaço extra por
+   cima dele). Sem JS ou em navegador sem suporte a VisualViewport, cai de
+   volta pro `height:100%` daqui (funciona igual a antes). */
+body.mobile-shell-active .msn-painel,
 body.mobile-shell-active .msn-janela {
   left: 0 !important;
   right: 0 !important;
   top: 0 !important;
   bottom: 0 !important;
   width: 100% !important;
-  height: 100% !important;
+  height: 100%;
   min-width: 0 !important;
   min-height: 0 !important;
   transform: none !important;
   border-radius: 0 !important;
-  border-width: 0 !important;
   box-shadow: none !important;
 }
 body.mobile-shell-active .msn-resize { display: none; }

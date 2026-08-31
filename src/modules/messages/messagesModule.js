@@ -125,6 +125,39 @@
       return document.body.classList.contains("mobile-shell-active");
     }
 
+    // ── Altura real no shell mobile (teclado) ───────────────────────────────
+    // No iOS Safari (e navegadores baseados nele) a "layout viewport" NÃO
+    // encolhe quando o teclado abre -- só a "visual viewport" encolhe de
+    // verdade (a barra de navegação de campos do teclado do Safari rouba
+    // espaço extra por cima dele também). Um `inset:0` fixo por si só fica
+    // ancorado no tamanho de ANTES do teclado, empurrando/cortando o
+    // cabeçalho pra fora da área visível (print do usuário, 2026-08-31).
+    // `window.visualViewport.height` é a única fonte confiável do espaço
+    // que sobra de verdade -- aplicado como altura inline (px, SEM
+    // !important -- a regra de `height` em styles.css não usa !important
+    // de propósito, só pra isso poder vencer) em toda tela cheia do
+    // Messenger aberta no momento (painel, janelas de conversa, janela de
+    // configurações).
+    let _vvBound = false;
+    function elementosTelaCheiaMobile() {
+      const els = [];
+      if (_painel) els.push(_painel);
+      _janelas.forEach((ctx) => els.push(ctx.el));
+      if (_configJanela) els.push(_configJanela);
+      return els;
+    }
+    function ajustarAlturaVisual() {
+      if (!estaNoShellMobile()) return;
+      const vv = window.visualViewport;
+      const altura = vv ? `${vv.height}px` : "";
+      elementosTelaCheiaMobile().forEach((el) => { el.style.height = altura; });
+    }
+    function iniciarObservadorVisualViewport() {
+      if (_vvBound || !window.visualViewport) return;
+      _vvBound = true;
+      window.visualViewport.addEventListener("resize", ajustarAlturaVisual);
+    }
+
     // Estilo WhatsApp pro carimbo da última mensagem: hoje mostra hora,
     // ontem mostra "Ontem", dentro de 6 dias mostra o dia da semana, mais
     // antigo mostra data curta.
@@ -501,6 +534,8 @@
       document.body.appendChild(_painel);
       aplicarTemaEm(_painel);
       ligarPainelMovel(_painel);
+      iniciarObservadorVisualViewport();
+      ajustarAlturaVisual();
 
       _painel.addEventListener("click", (event) => {
         const acao = event.target.closest("[data-action]")?.dataset.action;
@@ -622,6 +657,7 @@
       preencherFormularioAjustes(el.querySelector("form"), _ajustes, _meuPerfil.nickname);
       document.body.appendChild(el);
       aplicarTemaEm(el);
+      ajustarAlturaVisual();
       ligarRedimensionamento(el);
 
       const largura = el.getBoundingClientRect().width || 560;
@@ -927,6 +963,8 @@
       const ctx = { el, threadId, titulo: tituloExibido, fotoUrl, fotoNome: tituloExibido, mensagens: [], mensagensOcultas: new Set(), aba: "conversa", pendentes: [], ultimoId: null, focada: true };
       _janelas.set(threadId, ctx);
       atualizarScrim();
+      iniciarObservadorVisualViewport();
+      ajustarAlturaVisual();
       frente(ctx);
       ligarJanela(ctx);
       if (opcoes.carregar !== false) void carregarMensagens(ctx, true);
