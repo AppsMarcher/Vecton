@@ -532,10 +532,8 @@ body.auth-only {
 .auth-forgot-link:hover { opacity: .82; text-decoration: none; }
 .auth-feedback { min-height: 18px; margin: 8px 0 12px; padding: 0; color: rgba(194, 205, 221, .75); font-size: 12px; line-height: 1.45; }
 .auth-feedback:empty { min-height: 12px; margin-top: 2px; margin-bottom: 8px; }
-.auth-feedback.is-error,
-.auth-feedback.is-ok:not(:empty) { padding: 9px 11px; border-radius: 9px; }
-.auth-feedback.is-error { color: #ff829d; background: rgba(255, 59, 129, .09); border: 1px solid rgba(255, 59, 129, .18); }
-.auth-feedback.is-ok:not(:empty) { color: #42e6d5; background: rgba(18, 217, 196, .07); border: 1px solid rgba(18, 217, 196, .15); }
+.auth-feedback.is-error { color: #ff829d; }
+.auth-feedback.is-ok:not(:empty) { color: #42e6d5; }
 .auth-actions { display: block; width: 100%; }
 .auth-actions .primary-button.auth-submit {
   width: 100%;
