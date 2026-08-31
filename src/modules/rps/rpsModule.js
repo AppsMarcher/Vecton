@@ -473,6 +473,7 @@
     let saveRequested = false;
     let renderPending = false;
     let eventsBound = false;
+    const attachmentObjectUrls = new Set();
 
     // Perfis combinam (ex: alguém pode ser Comercial + RPS Gestão ao mesmo
     // tempo) — por isso checamos TODOS os perfis da pessoa (getAllAccessRoles),
@@ -857,6 +858,35 @@
     function closeAttachmentCarousel() {
       document.querySelector(".rps-attachment-carousel")?.remove();
       document.body.classList.remove("rps-carousel-open");
+      attachmentObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+      attachmentObjectUrls.clear();
+    }
+
+    async function createAttachmentViewUrl(attachment, expiresIn = 3600) {
+      try {
+        return await createStorageSignedUrl(ATTACHMENT_BUCKET, attachment.path, expiresIn);
+      } catch (signedUrlError) {
+        // Há instalações antigas em que a policy permite ler o objeto, mas o
+        // endpoint de assinatura ainda rejeita o caminho. Buscar autenticado
+        // mantém o bucket privado e permite exibir PNGs e demais mídias.
+        const encodedPath = String(attachment.path || "")
+          .split("/")
+          .map((segment) => encodeURIComponent(segment))
+          .join("/");
+        const response = await authenticatedFetch(
+          `${supabaseApiUrl}/storage/v1/object/authenticated/${ATTACHMENT_BUCKET}/${encodedPath}`,
+          { method: "GET" }
+        );
+        if (!response.ok) {
+          const detail = await response.text();
+          const error = new Error(detail || `Falha ao ler anexo (${response.status})`);
+          error.cause = signedUrlError;
+          throw error;
+        }
+        const objectUrl = URL.createObjectURL(await response.blob());
+        attachmentObjectUrls.add(objectUrl);
+        return objectUrl;
+      }
     }
 
     function ensureLaserPointer() {
@@ -974,6 +1004,9 @@
       const name = carousel.querySelector("[data-rps-carousel-name]");
       const meta = carousel.querySelector("[data-rps-carousel-meta]");
       const external = carousel.querySelector("[data-rps-carousel-external]");
+      const renderMediaError = () => {
+        viewport.innerHTML = `<div class="rps-carousel-error"><strong>Não foi possível carregar este arquivo.</strong><span>O arquivo pode ter sido removido ou você pode estar sem permissão de leitura.</span><button type="button" data-rps-carousel-retry>Tentar novamente</button></div>`;
+      };
 
       const mediaMarkup = (attachment, url) => {
         const safeUrl = escapeHtml(url);
@@ -999,18 +1032,24 @@
         try {
           let url = signedUrls.get(attachment.key);
           if (!url) {
-            url = await createStorageSignedUrl(ATTACHMENT_BUCKET, attachment.path, 3600);
+            url = await createAttachmentViewUrl(attachment, 3600);
             signedUrls.set(attachment.key, url);
           }
           if (generation !== renderGeneration || !carousel.isConnected) return;
           external.href = url;
           external.classList.remove("is-loading");
           viewport.innerHTML = mediaMarkup(attachment, url);
+          const media = viewport.querySelector(".rps-carousel-image, .rps-carousel-video, .rps-carousel-pdf, audio");
+          media?.addEventListener("error", () => {
+            if (generation !== renderGeneration || !carousel.isConnected) return;
+            signedUrls.delete(attachment.key);
+            renderMediaError();
+          }, { once: true });
         } catch (error) {
           if (generation !== renderGeneration || !carousel.isConnected) return;
           console.error("Falha ao apresentar anexo da RPS", error);
           external.classList.remove("is-loading");
-          viewport.innerHTML = `<div class="rps-carousel-error"><strong>Não foi possível carregar este arquivo.</strong><span>Tente novamente ou feche a apresentação.</span><button type="button" data-rps-carousel-retry>Tentar novamente</button></div>`;
+          renderMediaError();
         }
       };
 
@@ -1094,7 +1133,7 @@
           if (fileWindow) fileWindow.opener = null;
           openButton.disabled = true;
           try {
-            const url = await createStorageSignedUrl(ATTACHMENT_BUCKET, attachment.path, 300);
+            const url = await createAttachmentViewUrl(attachment, 300);
             if (fileWindow) fileWindow.location.replace(url);
             else window.location.href = url;
           } catch (error) {
