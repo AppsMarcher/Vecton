@@ -10670,6 +10670,26 @@ body.mobile-shell-active .vmob-shell {
    injetado por um módulo específico, senão o Menu (1ª tela que aparece)
    ficaria sem estilo antes do usuário abrir algum módulo. */
 .vmob-crumbbar { padding-top: 2px; }
+/* .vmob-crumb nunca tinha CSS -- os <button> ficavam com a aparência NATIVA
+   do navegador (fundo claro, borda, texto preto), sobrepondo visualmente o
+   título logo abaixo (bug reportado 2026-08-31, tela de território/coord). */
+.vmob-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  line-height: 1.3;
+}
+.vmob-crumb button {
+  all: unset;
+  cursor: pointer;
+  color: var(--vmob-soft);
+}
+.vmob-crumb button:hover,
+.vmob-crumb button:focus-visible { color: var(--vmob-text); }
+.vmob-crumb-sep { margin: 0 4px; color: var(--vmob-soft); opacity: 0.6; }
+.vmob-crumb-current { color: var(--vmob-text); font-weight: 600; }
 .vmob-level-title { margin: 2px 0 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; color: var(--vmob-text); }
 .vmob-level-title-center { text-align: center; }
 .vmob-level-sub { margin: 2px 0 0; font-size: 12px; color: var(--vmob-soft); }
