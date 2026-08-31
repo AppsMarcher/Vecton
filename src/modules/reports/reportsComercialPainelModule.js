@@ -22,7 +22,7 @@
     // própria soma; ver comentário no topo daquele arquivo.
     const {
       COORD_STYLE, COORD_ORDER, METRICS,
-      metricObj, transform, coordTotals, sumTerrLine, memoOwner, companyTotals,
+      metricObj, transform, coordTotals, sumTerrLine, memoOwner, companyTotals, buildCoordDetail, coordCardDelta,
       round, nf, fmtR$, fmtFullR$
     } = window.VECTON_COMERCIAL_PAINEL_DATA;
 
@@ -560,11 +560,7 @@
         const st = COORD_STYLE[c.nome] || { accent: "#4f7cff", soft: "rgba(79,124,255,0.16)" };
         const t = coordTotals(c);
         const initials = (c.gestor || c.nome).slice(0, 2).toUpperCase();
-        // delta da coordenacao: Faturado vs META do mesmo periodo (cenario atual).
-        // (Fat - Meta)/Meta -> positivo/verde = atingiu/passou a meta; negativo/vermelho = abaixo.
-        let cur = 0, prev = 0;
-        Object.values(c.terrs).forEach((tt) => ["grao", "pecuaria", "pecas"].forEach((lk) => { if (tt[lk]) { cur += tt[lk].fat.v; prev += tt[lk].meta.v; } }));
-        const delta = prev > 0 ? ((cur - prev) / prev) * 100 : 0;
+        const delta = coordCardDelta(c);
         const dCls = delta >= 0 ? "pos" : "neg", dSign = delta >= 0 ? "+" : "";
         let body;
         if (t.isPecas) {
@@ -724,31 +720,17 @@
       if (!c) { wrap.innerHTML = ""; return; }
       const st = COORD_STYLE[c.nome] || { accent: "#4f7cff", soft: "rgba(79,124,255,0.16)" };
       const isPecas = c.nome === "Peças";
-
-      // Consolidado da aba = rollup de ROTEAMENTO (c) -> bate com o card do topo.
-      // Sul/Norte ficam so-Grao (Pecuaria roteou pro Paulo); Oeste/Exportacao
-      // incluem a propria Pecuaria (que fica na regiao).
-      const sumFrom = (terrs, lk) => {
-        const acc = { fat: { q: 0, v: 0 }, cart: { q: 0, v: 0 }, meta: { q: 0, v: 0 }, y1: { q: 0, v: 0 }, y2: { q: 0, v: 0 }, y3: { q: 0, v: 0 } };
-        let has = false;
-        Object.values(terrs).forEach((t) => { if (t[lk]) { has = true; ["fat", "cart", "meta", "y1", "y2", "y3"].forEach((m) => { acc[m].q += t[lk][m].q; acc[m].v += t[lk][m].v; }); } });
-        return has ? acc : null;
-      };
-      const sumLine = (lk) => sumFrom(c.terrs, lk);
-
-      // Tabelas por territorio: por CASA geografica nas coordenacoes geograficas
-      // (Sul/Norte/Oeste/Exportacao) -> traz o territorio com Grao E Pecuaria,
-      // mesmo os "so Pecuaria" (informativa, ja somada no Paulo pelo rollup).
-      // Nas funcionais (Pecuaria/Pecas) o detalhe segue por roteamento.
-      const GEO = ["Sul", "Norte", "Oeste", "Exportação"];
-      const src = GEO.includes(c.nome) ? (regioes.find((x) => x.nome === c.nome) || c) : c;
-      const eff = (line) => (line && !line.orfao) ? line : null;  // orfao nao vira card
+      // Consolidado + territórios vêm de buildCoordDetail (comercialPainelDataModule.js)
+      // -- MESMA função que a versão mobile usa pro detalhe de coordenação/território.
+      // Deliberado: nenhuma soma daqui pode viver só no desktop ou só no mobile,
+      // senão os dois divergem silenciosamente com o tempo.
+      const det = buildCoordDetail(c.nome, coords, regioes);
 
       const cards = [];
       if (isPecas) {
         // 1) Consolidado: repete o total do card (100% das pecas, com a meta
         //    nacional). 2) Titular da atribuicao nacional. 3) Demais.
-        const consPecas = sumLine("pecas");
+        const consPecas = det.consolidado.pecas;
         // Drill de Peças (090): coordenacao 'Peças' + linha 'Peças'. As tabelas
         // por vendedor filtram por cod_vendedor (igual/diferente do titular).
         const pecasScope = { coord: c.nome, linhas: ["Peças"], pecas: true };
@@ -760,34 +742,15 @@
         } else {
           // Migration 087 ainda nao aplicada: mantem o detalhe antigo por
           // territorio em vez de deixar a aba vazia.
-          Object.entries(src.terrs).forEach(([terr, t]) => { if (t.pecas) cards.push(miniHtml(terr, t.pecas.resp || "", null, null, t.pecas, false, { ...pecasScope, terr })); });
+          det.territorios.forEach((t) => cards.push(miniHtml(t.terr, t.resp, null, null, t.pecas, false, { ...pecasScope, terr: t.terr })));
         }
       } else {
-        // Consolidado: drill pela coordenacao de roteamento (popover ganha col Territorio).
-        const graoSum = sumLine("grao"), pecSum = sumLine("pecuaria");
-        const consLinhas = [graoSum && "Grão", pecSum && "Pecuária"].filter(Boolean);
-        // Coordenacao geografica que nao consolida Pecuaria (Sul/Norte -> roteia
-        // pro Paulo): mostra a Pecuaria da CASA como linha memo, so ilustrativa.
-        // Drill, TTL, Faturado, Ticket e vs meta seguem so o roteamento.
-        const memoLine = (!pecSum && src !== c) ? sumFrom(src.terrs, "pecuaria") : null;
-        const memo = memoLine ? { line: memoLine, owner: memoOwner(src.terrs) } : null;
-        cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", graoSum, pecSum, null, true, { coord: c.nome, linhas: consLinhas }, memo));
-        // Territorios: resolve cada um (sameResp/split), depois funde os que
-        // tem o mesmo responsavel nomeado em territorios diferentes (MA+PI).
-        const terrBaseCards = [];
-        Object.entries(src.terrs).forEach(([terr, t]) => {
-          const g = eff(t.grao), p = eff(t.pecuaria);
-          if (!g && !p) return;
-          const sameResp = g && p && g.resp === p.resp;
-          if (sameResp || (g && !p) || (!g && p)) {
-            const linhas = [g && "Grão", p && "Pecuária"].filter(Boolean);
-            terrBaseCards.push({ terr, resp: (g || p).resp || "", grao: g, pec: p, linhas });
-          } else {
-            terrBaseCards.push({ terr, resp: g.resp || "", grao: g, pec: null, linhas: ["Grão"] });
-            terrBaseCards.push({ terr, resp: p.resp || "", grao: null, pec: p, linhas: ["Pecuária"] });
-          }
-        });
-        mergeSameRespCards(terrBaseCards).forEach((card) => {
+        const consLinhas = [det.consolidado.grao && "Grão", det.consolidado.pec && "Pecuária"].filter(Boolean);
+        cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", det.consolidado.grao, det.consolidado.pec, null, true, { coord: c.nome, linhas: consLinhas }, det.consolidado.memo));
+        // Funde os territórios com o MESMO responsável nomeado em territórios
+        // diferentes (ex.: MA+PI) -- único passo que fica só no desktop; é
+        // agrupamento visual, não muda nenhum total (ver nota em buildCoordDetail).
+        mergeSameRespCards(det.territorios).forEach((card) => {
           cards.push(miniHtml(card.terr, card.resp, card.grao, card.pec, null, false, { terr: card.terr, terrs: card.terrs, linhas: card.linhas }));
         });
       }

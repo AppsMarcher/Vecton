@@ -17,7 +17,7 @@
     const DATA = window.VECTON_COMERCIAL_PAINEL_DATA;
     const {
       COORD_STYLE, COORD_ORDER,
-      transform, coordTotals, companyTotals, buildCoordDetail,
+      transform, coordTotals, companyTotals, buildCoordDetail, coordCardDelta,
       nf, fmtR$, fmtFullR$
     } = DATA;
 
@@ -312,9 +312,7 @@
       }
       const t = coordTotals(c);
       const initials = (c.gestor || c.nome).slice(0, 2).toUpperCase();
-      let cur = 0, prev = 0;
-      Object.values(c.terrs).forEach((tt) => ["grao", "pecuaria", "pecas"].forEach((lk) => { if (tt[lk]) { cur += tt[lk].fat.v; prev += tt[lk].meta.v; } }));
-      const delta = prev > 0 ? ((cur - prev) / prev) * 100 : 0;
+      const delta = coordCardDelta(c);
       const dPos = delta >= 0;
 
       let body;

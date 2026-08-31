@@ -180,9 +180,20 @@
     return { coord: c, isPecas: false, consolidado: { grao: graoSum, pec: pecSum, pecas: null, memo }, territorios };
   }
 
+  // Delta do card de coordenação: Faturado vs Meta do período/cenário atual
+  // -- (Fat-Meta)/Meta, positivo = bateu/passou a meta. Usado pelo card do
+  // desktop (renderCards) e pelo card mobile (coordCardHtml); é DELTA (gap),
+  // não a razão Fat.+Cart./Meta que a pílula "vs meta" das mini-matrizes usa
+  // -- os dois indicadores coexistem no painel real, não são a mesma conta.
+  function coordCardDelta(c) {
+    let cur = 0, prev = 0;
+    Object.values(c.terrs).forEach((tt) => ["grao", "pecuaria", "pecas"].forEach((lk) => { if (tt[lk]) { cur += tt[lk].fat.v; prev += tt[lk].meta.v; } }));
+    return prev > 0 ? ((cur - prev) / prev) * 100 : 0;
+  }
+
   window.VECTON_COMERCIAL_PAINEL_DATA = {
     COORD_STYLE, COORD_ORDER, METRICS, GEO_COORDS,
-    metricObj, transform, coordTotals, sumTerrLine, memoOwner, companyTotals, buildCoordDetail,
+    metricObj, transform, coordTotals, sumTerrLine, memoOwner, companyTotals, buildCoordDetail, coordCardDelta,
     round, nf, fmtR$, fmtFullR$
   };
 })(window);
