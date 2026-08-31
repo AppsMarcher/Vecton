@@ -10803,21 +10803,17 @@ body.mobile-shell-active .vmob-shell {
    `!important` nas propriedades de posição/tamanho porque left/top/width/
    height do desktop são setados INLINE via JS (arrastar/redimensionar) --
    só uma regra de folha de estilo marcada `!important` vence inline
-   não-important. `top`+`bottom` (ou `left`+`right`) junto de `width:auto`/
-   `height:auto` faz o navegador calcular a medida que falta sozinho -- é
-   assim que sobra a margem visível ao redor sem precisar de cálculo manual.
+   não-important. No mobile, `top` e `height` são sincronizados pelo JS com
+   a área realmente visível quando o teclado abre.
    Alças de redimensionar (.msn-resize) somem (sem sentido em toque). z-index
    do Messenger (9400+) já é bem maior que o do shell mobile
    (.vmob-shell = 10), então sobrepõe normalmente sem precisar subir nada
    aqui. */
 
-/* Painel de contatos E janela de conversa: tela cheia de verdade (2026-08-31,
-   5ª rodada -- as 3 rodadas anteriores tentaram fazer os dois virarem card
-   flutuante com margem/cantos redondos/sombra; print comparando com o
-   WhatsApp real deixou claro que NENHUM dos dois é assim lá -- as duas
-   telas do WhatsApp são tela cheia, só com moldura de cor (nosso caso, a
-   borda azul, mantida de propósito -- não é "sem nenhuma moldura"). Regra
-   única pros dois em vez de duplicar. `min-width/min-height/transform`
+/* Painel de contatos E janela de conversa: ocupam a tela disponível, mas com
+   cantos arredondados para acompanhar a moldura física dos celulares. Não há
+   margem nem sombra de card flutuante: o raio aparece na própria borda azul.
+   Regra única pros dois em vez de duplicar. `min-width/min-height/transform`
    `!important` seguem cancelando os valores fixos do desktop (drag/resize
    com mouse); `left/right/bottom` `!important` cancelam o `style.left`
    que `abrirJanela()` sempre define inline (posição em cascata das
@@ -10838,18 +10834,28 @@ body.mobile-shell-active .msn-janela {
   left: 0 !important;
   right: 0 !important;
   top: 0;
-  bottom: 0 !important;
+  /* A altura/top reais são fornecidos pelo VisualViewport. Manter bottom:0
+     junto deles deixava três restrições verticais concorrendo no Safari. */
+  bottom: auto !important;
   width: 100% !important;
   height: 100%;
+  max-height: none !important;
   min-width: 0 !important;
   min-height: 0 !important;
   transform: none !important;
-  border-radius: 0 !important;
+  /* O arco acompanha melhor os cantos físicos do celular sem criar uma
+     margem/card flutuante ao redor da tela. */
+  border-radius: 20px !important;
   box-shadow: none !important;
 }
 body.mobile-shell-active .msn-resize { display: none; }
 body.mobile-shell-active .msn-head,
 body.mobile-shell-active .msn-jan-head {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  flex: none;
+  background: var(--panel, #000);
   padding-top: max(14px, env(safe-area-inset-top));
 }
 body.mobile-shell-active .msn-jan-compositor,

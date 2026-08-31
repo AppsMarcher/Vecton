@@ -141,6 +141,8 @@
     // abre/fecha, muda a altura) E `scroll` (o navegador pode rolar sem
     // disparar resize) do VisualViewport.
     let _vvBound = false;
+    let _vvRaf = 0;
+    let _vvTimers = [];
     function elementosTelaCheiaMobile() {
       const els = [];
       if (_painel) els.push(_painel);
@@ -151,18 +153,52 @@
     function ajustarAlturaVisual() {
       if (!estaNoShellMobile()) return;
       const vv = window.visualViewport;
-      const altura = vv ? `${vv.height}px` : "";
-      const topo = vv ? `${vv.offsetTop || 0}px` : "";
+      const alturaPx = Math.max(1, Math.round(vv?.height || window.innerHeight));
+      // Há versões do Safari em que offsetTop continua 0 enquanto o foco no
+      // textarea faz a página andar. Nesse intervalo curto, scrollY é o único
+      // valor que denuncia o deslocamento. Só usamos esse fallback durante a
+      // digitação, para não conservar um scroll residual depois do teclado.
+      const focadoNoCompositor = document.activeElement?.classList?.contains("msn-input");
+      const topoPx = Math.max(
+        0,
+        Math.round(vv?.offsetTop || 0),
+        focadoNoCompositor ? Math.round(window.scrollY || 0) : 0
+      );
+      const altura = `${alturaPx}px`;
+      const topo = `${topoPx}px`;
       elementosTelaCheiaMobile().forEach((el) => {
         el.style.height = altura;
         el.style.top = topo;
       });
     }
+
+    // O teclado do iPhone anima em etapas. O resize/scroll inicial pode trazer
+    // ainda os valores antigos do VisualViewport; por isso recalculamos no
+    // próximo frame e em alguns pontos curtos da animação, sem polling fixo.
+    function agendarAjusteVisual() {
+      if (!estaNoShellMobile()) return;
+      if (_vvRaf) window.cancelAnimationFrame(_vvRaf);
+      _vvRaf = window.requestAnimationFrame(() => {
+        _vvRaf = 0;
+        ajustarAlturaVisual();
+      });
+      _vvTimers.forEach((timer) => clearTimeout(timer));
+      _vvTimers = [70, 180, 360, 560].map((delay) => setTimeout(ajustarAlturaVisual, delay));
+    }
+
     function iniciarObservadorVisualViewport() {
-      if (_vvBound || !window.visualViewport) return;
+      if (_vvBound) return;
       _vvBound = true;
-      window.visualViewport.addEventListener("resize", ajustarAlturaVisual);
-      window.visualViewport.addEventListener("scroll", ajustarAlturaVisual);
+      window.visualViewport?.addEventListener("resize", agendarAjusteVisual);
+      window.visualViewport?.addEventListener("scroll", agendarAjusteVisual);
+      window.addEventListener("resize", agendarAjusteVisual);
+      window.addEventListener("scroll", agendarAjusteVisual, { passive: true });
+      document.addEventListener("focusin", (event) => {
+        if (event.target?.classList?.contains("msn-input")) agendarAjusteVisual();
+      }, true);
+      document.addEventListener("focusout", (event) => {
+        if (event.target?.classList?.contains("msn-input")) agendarAjusteVisual();
+      }, true);
     }
 
     // Estilo WhatsApp pro carimbo da última mensagem: hoje mostra hora,
