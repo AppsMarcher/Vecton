@@ -65,6 +65,8 @@ const { createCadastroModule } = window.VECTON_COMERCIAL_CADASTRO_MODULE;
 const { createComercialVendasCargaModule } = window.VECTON_COMERCIAL_VENDAS_CARGA;
 const { createComercialPlanejadoCargaModule } = window.VECTON_COMERCIAL_PLANEJADO_CARGA;
 const { createComercialPainelModule } = window.VECTON_COMERCIAL_PAINEL;
+const { createComercialPainelMobileModule } = window.VECTON_COMERCIAL_PAINEL_MOBILE;
+const { createMobileShellModule } = window.VECTON_MOBILE_SHELL;
 const { createComercialMapaModule } = window.VECTON_COMERCIAL_MAPA;
 const { createComercialMapaGeograficoModule } = window.VECTON_COMERCIAL_MAPA_GEOGRAFICO;
 const { createComercialReportsModule } = window.VECTON_COMERCIAL_REPORTS;
@@ -1326,6 +1328,22 @@ const comercialPainelModule = createComercialPainelModule({
     renderPeriodPicker();
   },
 });
+// Versão mobile do Painel de Vendas — mesma RPC/modelo de dados do
+// comercialPainelModule acima (comercialPainelDataModule.js), tela própria.
+// Não sincroniza com o período do cabeçalho desktop: o shell mobile nunca
+// mostra a sidebar/header desktop, então não há nada pra descasar.
+const comercialPainelMobileModule = createComercialPainelMobileModule({
+  resolveOrganizationId,
+  fetchSupabaseRowsSafe,
+  callSupabaseRpc,
+  isSupabaseConfigured,
+});
+const mobileShellModule = createMobileShellModule({
+  canSeeReport,
+  getCurrentUser: () => currentUser,
+  handleLogout,
+  comercialPainelMobileModule,
+});
 const comercialMapaModule = createComercialMapaModule({
   escapeHtml,
   state,
@@ -1520,6 +1538,25 @@ async function bootstrap() {
     console.error("Falha na inicializacao da interface", error);
     setSyncStatus("Interface carregada com restricoes", "warn");
   }
+  activateMobileShellIfNeeded();
+}
+
+// Abaixo de 767px o boot troca a sidebar/catálogo desktop pelo shell mobile
+// (Menu de módulos) -- decisão do usuário, 2026-08-31: incondicional, sem
+// escape pra tela cheia (nem admin). Só roda autenticado (currentUser); não
+// autenticado usa a tela de login normal, que já tem seu próprio ajuste
+// mobile em styles.css (independente disto). A checagem inicial é 1x no
+// boot; depois só reage a MUDANÇA de faixa (matchMedia 'change'), nunca a
+// cada pixel de resize -- ver mobileShellModule.init.
+function activateMobileShellIfNeeded() {
+  if (!currentUser) return;
+  const mobileRootEl = document.getElementById("mobile-shell");
+  if (!mobileRootEl) return;
+  const goesMobile = mobileShellModule.init(mobileRootEl, (isMobileNow) => {
+    if (isMobileNow) mobileShellModule.activate(mobileRootEl);
+    else mobileShellModule.deactivate();
+  });
+  if (goesMobile) mobileShellModule.activate(mobileRootEl);
 }
 
 function configureMainHeader() {

@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260831a">
+  <link rel="stylesheet" href="styles.css?v=20260831b">
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -1375,6 +1375,13 @@
     </main>
   </div>
 
+  <!-- ── SHELL MOBILE ─────────────────────────────────────────────────
+       Abaixo de 767px (detectado 1x no boot, ver app.js) o app troca
+       .app-layout por isto: Menu de módulos plugáveis (hoje só o Painel de
+       Vendas), sem sidebar/catálogo completo e sem escape pra tela cheia
+       (decisão do usuário, 2026-08-31). Vazio/oculto até então. -->
+  <div id="mobile-shell" class="vmob-shell" hidden></div>
+
   <!-- ── POPOVER PERFIL ──────────────────────────────────────────────── -->
   <dialog id="profile-dialog" class="profile-dialog" aria-labelledby="profile-dialog-title">
     <div class="profile-dialog-inner">
@@ -1499,7 +1506,10 @@
   <script src="src/modules/comercial/comercialCadastroModule.js?v=20260806c"></script>
   <script src="src/modules/comercial/comercialVendasCargaModule.js?v=20260828a"></script>
   <script src="src/modules/comercial/comercialPlanejadoCargaModule.js?v=20260828a"></script>
-  <script src="src/modules/reports/reportsComercialPainelModule.js?v=20260828b"></script>
+  <script src="src/modules/reports/comercialPainelDataModule.js?v=20260831a"></script>
+  <script src="src/modules/reports/reportsComercialPainelModule.js?v=20260831a"></script>
+  <script src="src/modules/reports/reportsComercialPainelMobileModule.js?v=20260831a"></script>
+  <script src="src/modules/mobile/mobileShellModule.js?v=20260831a"></script>
   <script src="src/modules/reports/brStatesGeo.js?v=20260711a"></script>
   <script src="src/modules/reports/reportsComercialMapaModule.js?v=20260827b"></script>
   <script src="src/modules/reports/reportsComercialMapaGeograficoModule.js?v=20260807b"></script>
@@ -1509,6 +1519,6 @@
   <script src="src/modules/dashboard/dashboardModule.js?v=20260720e"></script>
   <script src="src/modules/dashboard/dashboardVisuals.js?v=20260720e"></script>
   <script src="src/modules/dashboard/marketTicker.js?v=20260826c"></script>
-  <script src="app.js?v=20260829d"></script>
+  <script src="app.js?v=20260831a"></script>
 </body>
 </html>
