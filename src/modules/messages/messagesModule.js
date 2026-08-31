@@ -67,6 +67,7 @@
     let _timerAbertas = null;
     let _timerContatos = null;
     let _zIndex = 9500;
+    let _scrim = null;
     let _realtimeClient = null;
     let _realtimeChannel = null;
     let _realtimeOnline = false;
@@ -115,6 +116,30 @@
       const d = new Date(iso);
       if (Number.isNaN(d.getTime())) return "";
       return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    }
+
+    // Shell mobile (mobileShellModule.js) marca o <body> com esta classe --
+    // reaproveitada aqui pra decidir layout do painel (estilo WhatsApp) sem
+    // duplicar a query de breakpoint em 2 módulos.
+    function estaNoShellMobile() {
+      return document.body.classList.contains("mobile-shell-active");
+    }
+
+    // Estilo WhatsApp pro carimbo da última mensagem: hoje mostra hora,
+    // ontem mostra "Ontem", dentro de 6 dias mostra o dia da semana, mais
+    // antigo mostra data curta.
+    function formatUltimaEm(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return "";
+      const agora = new Date();
+      const hoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+      const dia = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const diffDias = Math.round((hoje - dia) / 86400000);
+      if (diffDias <= 0) return formatHora(iso);
+      if (diffDias === 1) return "Ontem";
+      if (diffDias < 7) return d.toLocaleDateString("pt-BR", { weekday: "long" });
+      return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
     }
 
     function formatTamanho(bytes) {
@@ -302,24 +327,45 @@
       return `<span class="msn-avatar ${presenca}">${escapeHtml((c.nome || "?").slice(0, 1).toUpperCase())}</span>`;
     }
 
+    // Bloco "nome+hora / subtítulo+badge" da linha de contato/grupo. No
+    // desktop mantém o markup ORIGINAL (grid de 2 linhas, badge fora,
+    // centralizado na altura da linha) -- zero mudança visual lá. No shell
+    // mobile ganha a "cara de WhatsApp": hora alinhada com o nome, badge
+    // descendo pra junto do subtítulo. `nome`/`subtitulo`/`badge` já chegam
+    // como HTML pronto (escapado pelo chamador); `hora` é texto puro.
+    function copiaContatoMarkup(nome, subtitulo, hora, badge, mobile) {
+      if (!mobile) {
+        return `
+          <span class="msn-contato-copy">
+            <strong>${nome}</strong>
+            <span>${subtitulo}</span>
+          </span>
+          ${badge}`;
+      }
+      return `
+        <span class="msn-contato-copy">
+          <span class="msn-wa-linha1"><strong>${nome}</strong><span class="msn-contato-hora">${escapeHtml(hora)}</span></span>
+          <span class="msn-wa-linha2"><span class="msn-contato-sub">${subtitulo}</span>${badge}</span>
+        </span>`;
+    }
+
     function painelMarkup() {
       if (_disabled) {
         return `<div class="msn-vazio">Correio interno ainda não configurado no banco.</div>`;
       }
+      const mobile = estaNoShellMobile();
       // "system" = aviso automático da Central de Notificações (canal
       // Messenger, ver notify_via_messenger na 178) — cai no mesmo bloco
       // "Grupos" da lista, só com um ícone/rodapé diferente pra não parecer
       // um grupo de gente de verdade.
       const grupos = _grupos.map((g) => {
         const sistema = g.audience === "system";
+        const badge = g.nao_lidas > 0 ? `<span class="msn-badge">${g.nao_lidas}</span>` : "";
+        const subtitulo = sistema ? "Aviso do sistema" : `${g.membros} participantes`;
         return `
         <div class="msn-contato msn-grupo${sistema ? " msn-grupo-sistema" : ""}" role="button" tabindex="0" data-thread="${escapeHtml(g.thread_id)}" data-titulo="${escapeHtml(g.titulo)}">
           <span class="msn-avatar grupo${sistema ? " sistema" : ""}">${sistema ? "🔔" : escapeHtml((g.titulo || "G").slice(0, 1).toUpperCase())}</span>
-          <span class="msn-contato-copy">
-            <strong>${escapeHtml(g.titulo)}</strong>
-            <span>${sistema ? "Aviso do sistema" : `${g.membros} participantes`}</span>
-          </span>
-          ${g.nao_lidas > 0 ? `<span class="msn-badge">${g.nao_lidas}</span>` : ""}
+          ${copiaContatoMarkup(escapeHtml(g.titulo), subtitulo, formatUltimaEm(g.ultima_em), badge, mobile)}
         </div>`;
       }).join("");
 
@@ -327,15 +373,15 @@
       const online = lista.filter((c) => c.presenca !== "offline");
       const offline = lista.filter((c) => c.presenca === "offline");
 
-      const bloco = (pessoas) => pessoas.map((c) => `
+      const bloco = (pessoas) => pessoas.map((c) => {
+        const badge = c.nao_lidas > 0 ? `<span class="msn-badge">${c.nao_lidas}</span>` : "";
+        const subtitulo = escapeHtml(c.recado || c.email);
+        return `
         <div class="msn-contato${c.__sel ? " selecionado" : ""}${c.presenca === "offline" ? " off" : ""}" role="button" tabindex="0" data-user="${escapeHtml(c.user_id)}" data-titulo="${escapeHtml(c.nome)}" title="Duplo clique para conversar">
           ${avatarMarkup(c)}
-          <span class="msn-contato-copy">
-            <strong>${escapeHtml(c.nome)}</strong>
-            <span>${escapeHtml(c.recado || c.email)}</span>
-          </span>
-          ${c.nao_lidas > 0 ? `<span class="msn-badge">${c.nao_lidas}</span>` : ""}
-        </div>`).join("");
+          ${copiaContatoMarkup(escapeHtml(c.nome), subtitulo, formatUltimaEm(c.ultima_em), badge, mobile)}
+        </div>`;
+      }).join("");
 
       const secaoContatos = (status, titulo, pessoas, vazio = "") => {
         const recolhida = _secoesRecolhidas[status];
@@ -866,6 +912,7 @@
 
       const ctx = { el, threadId, titulo: tituloExibido, fotoUrl, fotoNome: tituloExibido, mensagens: [], mensagensOcultas: new Set(), aba: "conversa", pendentes: [], ultimoId: null, focada: true };
       _janelas.set(threadId, ctx);
+      atualizarScrim();
       frente(ctx);
       ligarJanela(ctx);
       if (opcoes.carregar !== false) void carregarMensagens(ctx, true);
@@ -888,9 +935,32 @@
     function fecharJanela(ctx) {
       ctx.el.remove();
       _janelas.delete(ctx.threadId);
+      atualizarScrim();
       if (!_janelas.size && _timerAbertas) {
         clearInterval(_timerAbertas);
         _timerAbertas = null;
+      }
+    }
+
+    // Esmaece o painel de contatos por trás da janela de conversa no shell
+    // mobile (pedido do usuário, 2026-08-31) -- no desktop as janelas
+    // convivem lado a lado com o painel de propósito, então o scrim só
+    // aparece dentro de body.mobile-shell-active. Existe 1 só, reaproveitado
+    // por todas as janelas abertas (o de cima sempre por cima dele, já que
+    // seu z-index fica entre o do painel e o inicial das janelas).
+    function atualizarScrim() {
+      const precisa = estaNoShellMobile() && _janelas.size > 0;
+      if (precisa && !_scrim) {
+        _scrim = document.createElement("div");
+        _scrim.className = "msn-scrim";
+        _scrim.addEventListener("click", () => {
+          const topo = [..._janelas.values()].find((c) => c.focada) || [..._janelas.values()].pop();
+          if (topo) fecharJanela(topo);
+        });
+        document.body.appendChild(_scrim);
+      } else if (!precisa && _scrim) {
+        _scrim.remove();
+        _scrim = null;
       }
     }
 
@@ -1534,6 +1604,7 @@
     function parar() {
       _janelas.forEach((c) => c.el.remove());
       _janelas.clear();
+      atualizarScrim();
       fecharPainel();
       if (_timerAbertas) clearInterval(_timerAbertas);
       _timerAbertas = null;

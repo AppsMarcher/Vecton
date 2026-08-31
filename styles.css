@@ -10829,13 +10829,16 @@ body.mobile-shell-active .msn-painel {
   border-radius: 24px !important;
   box-shadow: 0 24px 70px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
-/* Janela de conversa: por cima do painel, ainda mais recuada -- 60% da
-   altura, centralizada (20% de vão em cima e embaixo, pedido explícito do
-   usuário), reforçando que é uma 2ª camada sobre a 1ª. */
+/* Janela de conversa: por cima do painel, ainda mais recuada. `top:5%`
+   (em vez dos 20% da 1ª versão) -- com o teclado aberto (input na base da
+   janela) o navegador mobile encolhe a viewport visual por baixo; deixando
+   pouca folga em cima sobra altura de sobra pra isso não cortar/empurrar o
+   compositor pra debaixo do teclado (pedido do usuário, 2026-08-31, 2ª
+   rodada de ajuste). `bottom:20%` sem mudança. */
 body.mobile-shell-active .msn-janela {
   left: 22px !important;
   right: 22px !important;
-  top: 20% !important;
+  top: 5% !important;
   bottom: 20% !important;
   width: auto !important;
   height: auto !important;
@@ -10853,5 +10856,72 @@ body.mobile-shell-active .msn-jan-head {
 body.mobile-shell-active .msn-jan-compositor,
 body.mobile-shell-active .msn-rodape {
   padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+
+/* Esmaece o painel de contatos por trás quando uma janela de conversa abre
+   (pedido do usuário, 2026-08-31) -- criado/removido por
+   messagesModule.js::atualizarScrim(), z-index entre o painel (9400) e o
+   z-index inicial das janelas (9500+), então fica sempre atrás de todas
+   elas e na frente do painel, qualquer que seja a ordem de abertura. Clique
+   nele fecha a janela em foco, como um modal comum. */
+.msn-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 9450;
+  animation: msn-scrim-in 140ms ease;
+}
+@keyframes msn-scrim-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Lista de contatos/grupos com "cara de WhatsApp" (pedido do usuário,
+   2026-08-31): linha divisória entre contatos, avatar circular, hora/dia da
+   última mensagem alinhado com o nome, badge de não-lidas descendo pra
+   junto do subtítulo. Regras abaixo só entram em jogo quando
+   copiaContatoMarkup() (messagesModule.js) gera o markup mobile (com
+   .msn-wa-linha1/.msn-wa-linha2) -- no desktop o markup nem tem essas
+   classes, então o `.msn-contato-copy` genérico (display:grid, styles.css
+   ~9553) continua valendo sem qualquer mudança visual lá. */
+body.mobile-shell-active .msn-contato {
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 10px 6px;
+}
+body.mobile-shell-active .msn-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  font-size: 0.9rem;
+}
+body.mobile-shell-active .msn-contato-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+/* Especificidade `.msn-contato-copy .msn-wa-linhaN` (2 classes) de propósito
+   -- precisa vencer `.msn-contato-copy span` (styles.css ~9553, 1 classe +
+   1 elemento, mas ainda maior que 1 classe sozinha) pra não herdar o
+   white-space/overflow/font-size pensados pro span único do desktop. */
+.msn-contato-copy .msn-wa-linha1,
+.msn-contato-copy .msn-wa-linha2 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+}
+.msn-contato-copy .msn-wa-linha2 { align-items: center; }
+.msn-contato-copy .msn-wa-linha1 strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msn-contato-hora { flex: none; font-size: 0.64rem; color: var(--text-faint); }
+.msn-contato-sub {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  color: var(--text-faint);
 }
 
