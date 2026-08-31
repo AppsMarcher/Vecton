@@ -80,4 +80,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 assert.match(source, /rpc\/rps_save_snapshot_atomic/);
 assert.match(source, /data-rps-status/);
 assert.doesNotMatch(source, /"Rascunho recuperado" : statusLabel\(\)/);
+assert.match(source, /function renderWhenIdle\(\)/);
+assert.match(source, /if \(isEditingField\(\)\) return;/);
+assert.doesNotMatch(source, /void requestSave\(\);\s*renderShell\(\);/);
 console.log("RPS concurrency tests passed");

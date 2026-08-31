@@ -468,8 +468,10 @@
     let saveTimer = null;
     let maxSaveTimer = null;
     let remotePollTimer = null;
+    let idleRenderTimer = null;
     let saveInFlight = null;
     let saveRequested = false;
+    let renderPending = false;
     let eventsBound = false;
 
     // Perfis combinam (ex: alguém pode ser Comercial + RPS Gestão ao mesmo
@@ -1450,6 +1452,27 @@
       saveTimer = setTimeout(() => requestSave(), delay);
     }
 
+    function isEditingField() {
+      const active = document.activeElement;
+      return Boolean(active && root?.contains(active) && active.matches(
+        "[data-rps-value-key], [data-rps-target-key], [data-rps-label-id]"
+      ));
+    }
+
+    function renderWhenIdle() {
+      renderPending = true;
+      clearTimeout(idleRenderTimer);
+      idleRenderTimer = setTimeout(() => {
+        idleRenderTimer = null;
+        // Trocar de uma célula para outra dispara change/focusout antes do
+        // click/focusin do destino. Renderizar aqui destruiria o segundo
+        // input no meio dessa sequência e a tecla digitada desapareceria.
+        if (isEditingField()) return;
+        renderPending = false;
+        renderShell();
+      }, 0);
+    }
+
     function newRequestId() {
       if (window.crypto?.randomUUID) return window.crypto.randomUUID();
       return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
@@ -1482,7 +1505,7 @@
       clearTimeout(remotePollTimer);
       remotePollTimer = setTimeout(async () => {
         try {
-          if (!state.loading && !state.dirty && !saveInFlight && document.visibilityState !== "hidden") {
+          if (!state.loading && !state.dirty && !saveInFlight && !isEditingField() && document.visibilityState !== "hidden") {
             const remote = await readRemote();
             const version = Number(remote?.version || 0);
             if (remote?.payload && version > state.remoteVersion) {
@@ -1539,7 +1562,7 @@
           maxSaveTimer = null;
         }
         setStatus(state.dirty ? "dirty" : "ready", state.dirty ? "Novas alterações pendentes" : `Salvo na nuvem às ${state.lastSavedAt}`);
-        renderShell();
+        renderWhenIdle();
         return true;
       } catch (error) {
         state.dirty = true;
@@ -1694,26 +1717,26 @@
         if (labelInput) {
           renameIndicator(labelInput.dataset.rpsLabelArea, labelInput.dataset.rpsLabelId, labelInput.value);
           void requestSave();
-          renderShell();
+          renderWhenIdle();
           return;
         }
         const valueInput = event.target.closest("[data-rps-value-key]");
         if (valueInput) {
           void requestSave();
-          renderShell();
+          renderWhenIdle();
           return;
         }
         const targetInput = event.target.closest("[data-rps-target-key]");
         if (targetInput) {
           void requestSave();
-          renderShell();
+          renderWhenIdle();
         }
       });
 
       root.addEventListener("focusout", (event) => {
-        if (event.target.closest("[data-rps-value-key], [data-rps-target-key]")) {
+        if (event.target.closest("[data-rps-value-key], [data-rps-target-key], [data-rps-label-id]")) {
           void requestSave();
-          renderShell();
+          renderWhenIdle();
         }
       });
 
@@ -1884,6 +1907,11 @@
         void switchPeriod(currentPeriod());
         return;
       }
+      if (isEditingField()) {
+        renderPending = true;
+        return;
+      }
+      renderPending = false;
       renderShell();
     }
 
@@ -1895,6 +1923,7 @@
       clearTimeout(saveTimer);
       clearTimeout(maxSaveTimer);
       clearTimeout(remotePollTimer);
+      clearTimeout(idleRenderTimer);
       closeAttachmentModal();
       closeAttachmentCarousel();
       removeLaserPointer();
