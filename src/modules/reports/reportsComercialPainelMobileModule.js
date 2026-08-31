@@ -43,7 +43,7 @@
     let scenarios = [], scenarioUserSet = false;
 
     let ui = {
-      level: "brasil", coordKey: null, terrIdx: null,
+      level: "brasil", coordKey: null,
       periodMode: "mes", scenarioId: null,
       filtersOpen: false, cenarioListOpen: false, periodListOpen: false, pickerYear: null
     };
@@ -60,7 +60,7 @@
            .vmob-card base ficam em styles.css -- compartilhados com o Menu
            mobile (mobileShellModule.js), que renderiza ANTES deste módulo
            montar (senão a tela de Menu ficaria sem estilo no 1º load). */
-        .vmob-crumb { display:flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; flex-wrap:wrap; margin-bottom:6px; }
+        .vmob-crumb { display:flex; align-items:center; gap:5px; font-size:13px; font-weight:600; flex-wrap:wrap; margin-bottom:6px; }
         .vmob-crumb button { all:unset; color:var(--vmob-faint); cursor:pointer; padding:2px 1px; }
         .vmob-crumb button:hover { color:var(--vmob-soft); }
         .vmob-crumb .vmob-crumb-current { color:var(--vmob-text); }
@@ -127,9 +127,10 @@
         .vmob-matrix-sub { font-weight:500; color:var(--vmob-faint); font-size:11.5px; }
         .vmob-vsmeta { font-size:11px; font-weight:700; color:var(--vmob-soft); white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
         .vmob-vsmeta::before { content:""; width:7px; height:7px; border-radius:999px; background:var(--dot); box-shadow:0 0 0 3px color-mix(in srgb, var(--dot) 18%, transparent); flex-shrink:0; }
-        .vmob-matrix-tap { all:unset; box-sizing:border-box; display:block; width:100%; cursor:pointer; }
-        .vmob-matrix-tap:active { background:var(--vmob-panel-elevated); }
-        .vmob-matrix-tap-hint { display:flex; align-items:center; gap:4px; justify-content:flex-end; margin-top:9px; padding-top:9px; border-top:1px solid var(--vmob-line); font-size:11px; font-weight:700; color:var(--vmob-accent); }
+        /* Rodapé decorativo dos cards de território (screenCoord): sem link
+           "Ver território" (mobile não tem mais esse 3º nível de detalhe,
+           2026-08-31) -- só uma linha na cor da coordenação, fechando o card. */
+        .vmob-matrix-foot-divider { margin-top:9px; border-top:2px solid var(--vmob-card-accent, var(--vmob-accent)); }
 
         .vmob-coord-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
         .vmob-coord-card { all:unset; box-sizing:border-box; display:flex; flex-direction:column; width:100%; min-width:0; background:var(--vmob-panel); border:1px solid var(--vmob-line); border-top:3px solid var(--vmob-card-accent, var(--vmob-accent)); border-radius:14px; padding:12px 11px; cursor:pointer; }
@@ -152,22 +153,6 @@
 
         .vmob-terr-list { display:flex; flex-direction:column; gap:8px; }
         /* .vmob-chev fica em styles.css (usado também pelo Menu mobile) */
-
-        .vmob-terr-hero { background:var(--vmob-panel); border:1px solid var(--vmob-line); border-left:3px solid var(--vmob-card-accent, var(--vmob-accent)); border-radius:16px; padding:16px; }
-        .vmob-terr-hero-top { display:flex; align-items:center; gap:10px; }
-        .vmob-terr-hero-sigla { width:44px; height:44px; border-radius:12px; background:var(--vmob-panel-elevated); border:1px solid var(--vmob-line); display:grid; place-items:center; font-size:13px; font-weight:800; flex-shrink:0; }
-        .vmob-terr-hero-name { display:block; font-size:16px; font-weight:800; }
-        .vmob-terr-hero-resp { display:block; font-size:12px; color:var(--vmob-faint); margin-top:1px; }
-        .vmob-stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
-        .vmob-stat { background:var(--vmob-bg); border:1px solid var(--vmob-line); border-radius:12px; padding:10px 11px; }
-        .vmob-stat-label { font-size:10px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; color:var(--vmob-faint); }
-        .vmob-stat-value { font-size:15px; font-weight:800; margin-top:4px; }
-        .vmob-stat-value.vmob-pos { color:var(--vmob-positive); }
-        .vmob-stat-value.vmob-neg { color:var(--vmob-negative); }
-        .vmob-stat-sub { font-size:10.5px; color:var(--vmob-faint); margin-top:2px; }
-
-        .vmob-back-btn { all:unset; box-sizing:border-box; display:flex; align-items:center; gap:6px; margin-top:16px; padding:11px 14px; border-radius:12px; background:var(--vmob-panel); border:1px solid var(--vmob-line); color:var(--vmob-soft); font-size:13px; font-weight:700; cursor:pointer; width:100%; justify-content:center; }
-        .vmob-back-btn:active { background:var(--vmob-panel-elevated); }
 
         .vmob-empty { padding:40px 20px; text-align:center; color:var(--vmob-faint); font-size:13px; line-height:1.6; }
 
@@ -220,7 +205,7 @@
       loadedKey = paramsKey();
       loading = false;
       if (ui.level !== "brasil" && (!ui.coordKey || !coords.some((c) => c.nome === ui.coordKey))) {
-        ui.level = "brasil"; ui.coordKey = null; ui.terrIdx = null;
+        ui.level = "brasil"; ui.coordKey = null;
       }
     }
 
@@ -330,14 +315,12 @@
         }
       }
 
-      const tag = opts.action ? "button" : "div";
-      const dataAttrs = opts.action ? (' type="button" data-action="' + opts.action + '"' + (opts.actionIdx !== undefined ? ' data-idx="' + opts.actionIdx + '"' : "")) : "";
-      return "<" + tag + ' class="vmob-card vmob-matrix-card' + (opts.action ? " vmob-matrix-tap" : "") + '" style="--vmob-card-accent:' + (opts.accent || "var(--vmob-accent)") + '"' + dataAttrs + ">" +
+      return '<div class="vmob-card vmob-matrix-card" style="--vmob-card-accent:' + (opts.accent || "var(--vmob-accent)") + '">' +
         '<div class="vmob-matrix-head"><span class="vmob-matrix-title">' + opts.title + (opts.sub ? (' <span class="vmob-matrix-sub">&middot; ' + opts.sub + "</span>") : "") + "</span>" + vsMetaPill(cartVal, metaVal) + "</div>" +
         '<div class="vmob-matrix-wrap"><table class="vmob-matrix"><thead><tr><th></th><th>Fatur.</th><th>Fat.+Cart.</th><th>Meta</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" +
         memoFoot +
-        (opts.action ? '<span class="vmob-matrix-tap-hint">Ver território <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' : "") +
-        "</" + tag + ">";
+        (opts.footerDivider ? '<div class="vmob-matrix-foot-divider"></div>' : "") +
+        "</div>";
     }
 
     function coordCardHtml(nome) {
@@ -373,16 +356,14 @@
     // ---------------------------------------------------------------- navegação/estado
 
     function crumb() {
+      // Só 2 níveis (Painel de Vendas > coordenação) -- mobile não tem mais
+      // o 3º nível de detalhe por território (2026-08-31), então o item da
+      // coordenação é sempre o último/atual, nunca clicável de verdade.
       const parts = [{ label: "Painel de Vendas", action: "back-brasil" }];
-      if (ui.coordKey) parts.push({ label: ui.coordKey, action: "back-coord" });
-      if (ui.level === "territorio") {
-        const det = buildCoordDetail(ui.coordKey, coords, regioes);
-        const t = det && det.territorios[ui.terrIdx];
-        if (t) parts.push({ label: t.terr, action: null });
-      }
+      if (ui.coordKey) parts.push({ label: ui.coordKey, action: null });
       const html = parts.map((p, i) => {
         const isLast = i === parts.length - 1;
-        if (isLast) return '<span class="vmob-crumb-current" aria-current="page">' + p.label + "</span>";
+        if (isLast) return '<span class="vmob-crumb-current" aria-current="page" tabindex="-1">' + p.label + "</span>";
         return '<button type="button" data-action="' + p.action + '">' + p.label + '</button><span class="vmob-crumb-sep">&rsaquo;</span>';
       }).join("");
       return '<nav class="vmob-crumb" aria-label="Caminho de navegação">' + html + "</nav>";
@@ -486,55 +467,20 @@
         title: ui.coordKey.toUpperCase(), sub: "Gestor " + (det.coord.gestor || "—"), accent,
         grao: det.consolidado.grao, pec: det.consolidado.pec, pecas: det.consolidado.pecas, memo: det.consolidado.memo
       });
-      const terrHtml = det.territorios.map((t, idx) => renderMiniMatrix({
+      const terrHtml = det.territorios.map((t) => renderMiniMatrix({
         title: t.terr, sub: t.resp || "Sem responsável definido", accent,
         grao: t.grao, pec: t.pec, pecas: t.pecas,
-        action: "open-terr", actionIdx: idx
+        footerDivider: true
       })).join("") || '<p class="vmob-empty">Nenhum território com dado neste período.</p>';
+      // Sem <h2> de título aqui -- ficaria redundante com o "Sul" que o
+      // breadcrumb logo acima já mostra como item atual (2026-08-31).
       return '<div class="vmob-crumbbar">' + crumb() +
-        '<h2 class="vmob-level-title" tabindex="-1">' + ui.coordKey + "</h2>" +
         '<p class="vmob-level-sub">' + det.territorios.length + " território" + (det.territorios.length === 1 ? "" : "s") + " &middot; " + periodLabel() + "</p>" +
         filtersBlock() + "</div>" +
         '<div class="vmob-section">' + consolidadoHtml + "</div>" +
         '<div class="vmob-section"><div class="vmob-section-head"><span class="vmob-section-title">Territórios</span><span class="vmob-section-count">' + det.territorios.length + "</span></div>" +
         '<div class="vmob-terr-list">' + terrHtml + "</div></div>";
     }
-
-    function screenTerritorio() {
-      const det = buildCoordDetail(ui.coordKey, coords, regioes);
-      const t = det && det.territorios[ui.terrIdx];
-      if (!t) return screenEmpty("Território sem dado neste período.");
-      const accent = (COORD_STYLE[ui.coordKey] || {}).accent || "#4f7cff";
-      const valLines = t.pecas ? [t.pecas] : [t.grao, t.pec].filter(Boolean);
-      const fatSum = valLines.reduce((s, l) => s + (l ? l.fat.v : 0), 0);
-      const cartSum = valLines.reduce((s, l) => s + (l ? l.cart.v : 0), 0);
-      const metaSum = valLines.reduce((s, l) => s + (l ? l.meta.v : 0), 0);
-      const hasMeta = metaSum > 0;
-      const diff = hasMeta ? fatSum - metaSum : 0;
-      const diffPositive = diff >= 0;
-      const cov = hasMeta ? (cartSum / metaSum) * 100 : null;
-      const covText = cov === null ? "Meta não definida neste período/cenário." : (cov >= 100 ? "Carteira já cobre a meta inteira" : "Carteira cobre parte da meta");
-
-      return '<div class="vmob-crumbbar">' + crumb() +
-        '<h2 class="vmob-level-title" tabindex="-1">' + t.terr + "</h2>" +
-        '<p class="vmob-level-sub">' + (t.resp || "Sem responsável definido") + " &middot; " + periodLabel() + "</p>" +
-        filtersBlock() + "</div>" +
-        '<div class="vmob-section"><div class="vmob-terr-hero" style="--vmob-card-accent:' + accent + '">' +
-        '<div class="vmob-terr-hero-top"><span class="vmob-terr-hero-sigla">' + escapeSigla(t.terr) + '</span><span><span class="vmob-terr-hero-name">' + t.terr + '</span><span class="vmob-terr-hero-resp">' + (t.resp || "Sem responsável definido") + "</span></span></div>" +
-        '<div class="vmob-stat-grid">' +
-        '<div class="vmob-stat"><div class="vmob-stat-label">Diferença p/ meta</div><div class="vmob-stat-value' + (hasMeta ? (diffPositive ? " vmob-pos" : " vmob-neg") : "") + '">' + (hasMeta ? ((diffPositive ? "+" : "−") + fmtR$Mobile(Math.abs(diff))) : "—") + "</div><div class=\"vmob-stat-sub\">" + (hasMeta ? (diffPositive ? "acima da meta" : "abaixo da meta") : "Meta não definida neste período/cenário.") + "</div></div>" +
-        '<div class="vmob-stat"><div class="vmob-stat-label">Cobertura</div><div class="vmob-stat-value">' + (cov === null ? "—" : Math.round(cov) + "%") + '</div><div class="vmob-stat-sub">' + covText + "</div></div>" +
-        "</div></div></div>" +
-        '<div class="vmob-section">' + renderMiniMatrix({
-          title: t.terr, sub: t.resp, accent,
-          grao: t.grao, pec: t.pec, pecas: t.pecas, memo: (!t.pec && det.consolidado.memo) ? det.consolidado.memo : null
-        }) + "</div>" +
-        '<button type="button" class="vmob-back-btn" data-action="back-coord">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Voltar para ' + ui.coordKey +
-        "</button>";
-    }
-
-    function escapeSigla(terr) { return (terr || "?").trim().slice(0, 2).toUpperCase(); }
 
     function screenEmpty(msg) {
       return '<div class="vmob-crumbbar">' + crumb() + "</div>" +
@@ -559,14 +505,15 @@
       if (loading && !coords.length) html = screenLoading();
       else if (!coords.length) html = screenNoData();
       else if (ui.level === "coord") html = screenCoord();
-      else if (ui.level === "territorio") html = screenTerritorio();
       else html = screenBrasil();
       containerEl.innerHTML = '<div class="vmob-pv">' + html + "</div>";
     }
 
     function afterNav() {
       render();
-      const title = containerEl && containerEl.querySelector(".vmob-level-title");
+      // screenCoord não tem mais <h2> (redundante com o breadcrumb, 2026-08-31)
+      // -- foca o item atual do breadcrumb como alvo de a11y equivalente.
+      const title = containerEl && containerEl.querySelector(".vmob-level-title, .vmob-crumb-current");
       if (title) title.focus();
     }
 
@@ -574,10 +521,8 @@
       const el = event.target.closest("[data-action]");
       if (!el || !containerEl || !containerEl.contains(el)) return;
       const action = el.dataset.action;
-      if (action === "back-brasil") { ui.level = "brasil"; ui.coordKey = null; ui.terrIdx = null; afterNav(); }
-      else if (action === "back-coord") { ui.level = "coord"; ui.terrIdx = null; afterNav(); }
-      else if (action === "open-coord") { ui.level = "coord"; ui.coordKey = el.dataset.coord; ui.terrIdx = null; afterNav(); }
-      else if (action === "open-terr") { ui.level = "territorio"; ui.terrIdx = Number(el.dataset.idx); afterNav(); }
+      if (action === "back-brasil") { ui.level = "brasil"; ui.coordKey = null; afterNav(); }
+      else if (action === "open-coord") { ui.level = "coord"; ui.coordKey = el.dataset.coord; afterNav(); }
       else if (action === "toggle-filters") { ui.filtersOpen = !ui.filtersOpen; render(); }
       else if (action === "toggle-cenario-list") { ui.cenarioListOpen = !ui.cenarioListOpen; ui.periodListOpen = false; render(); }
       else if (action === "toggle-period-list") {
@@ -621,7 +566,7 @@
         const today = new Date();
         year = today.getFullYear();
         month = today.getMonth() + 1;
-        ui = { level: "brasil", coordKey: null, terrIdx: null, periodMode: "mes", scenarioId: null, filtersOpen: false, cenarioListOpen: false, periodListOpen: false, pickerYear: null };
+        ui = { level: "brasil", coordKey: null, periodMode: "mes", scenarioId: null, filtersOpen: false, cenarioListOpen: false, periodListOpen: false, pickerYear: null };
         enteredPainel = true;
       }
       containerEl.removeEventListener("click", handleClick);
