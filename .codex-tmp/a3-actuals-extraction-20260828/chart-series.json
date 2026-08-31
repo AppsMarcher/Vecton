@@ -1,0 +1,5118 @@
+[
+  {
+    "sheet": "A3 EBITDA",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 EBITDA'!$AB$2:$AB$13",
+        "categoryFormula": "'A3 EBITDA'!$W$2:$W$13",
+        "values": [
+          -0.007022556533826027,
+          0.159,
+          0.11,
+          -0.005,
+          0.115,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 EBITDA'!$AC$2:$AC$13",
+        "categoryFormula": "'A3 EBITDA'!$W$2:$W$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.076,
+          0.043,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta EBITDA Mês",
+        "formula": "'A3 EBITDA'!$X$2:$X$13",
+        "categoryFormula": "'A3 EBITDA'!$W$2:$W$13",
+        "values": [
+          -0.007022556533826027,
+          0.159,
+          0.11,
+          -0.005,
+          0.115,
+          0.196,
+          0.117,
+          0.034,
+          -0.153,
+          -0.115,
+          -0.356,
+          -0.51
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 EBITDA",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 EBITDA'!$AE$2:$AE$13",
+        "categoryFormula": "'A3 EBITDA'!$W$2:$W$13",
+        "values": [
+          null,
+          0.102,
+          0.104,
+          0.079,
+          0.088,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 EBITDA'!$AF$2:$AF$13",
+        "categoryFormula": "'A3 EBITDA'!$W$2:$W$13",
+        "values": [
+          -0.007022556533826027,
+          null,
+          null,
+          null,
+          null,
+          0.086,
+          0.08,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta EBITDA Acumulado",
+        "formula": "'A3 EBITDA'!$Y$2:$Y$13",
+        "categoryFormula": "'A3 EBITDA'!$W$2:$W$13",
+        "values": [
+          -0.007,
+          0.102,
+          0.104,
+          0.079,
+          0.088,
+          0.111,
+          0.112,
+          0.104,
+          0.087,
+          0.075,
+          0.058,
+          0.045
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 EBITDA",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da Meta Mensal",
+        "formula": "'A3 EBITDA'!$AM$2:$AM$13",
+        "categoryFormula": "'A3 EBITDA'!$AH$2:$AH$13",
+        "values": [
+          null,
+          0.52,
+          0.516,
+          null,
+          0.508,
+          0.501,
+          0.507,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 EBITDA'!$AN$2:$AN$13",
+        "categoryFormula": "'A3 EBITDA'!$AH$2:$AH$13",
+        "values": [
+          0.49406401829924806,
+          null,
+          null,
+          0.488,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta MC1 Mês",
+        "formula": "'A3 EBITDA'!$AI$2:$AI$13",
+        "categoryFormula": "'A3 EBITDA'!$AH$2:$AH$13",
+        "values": [
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 EBITDA",
+    "title": {},
+    "series": [
+      {
+        "name": "Meta 2026",
+        "formula": "'A3 EBITDA'!$AO$14:$AO$17",
+        "categoryFormula": "'A3 EBITDA'!$AH$14:$AH$17",
+        "values": [
+          null,
+          null,
+          null,
+          0.5
+        ]
+      },
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 EBITDA'!$AP$14",
+        "categoryFormula": "'A3 EBITDA'!$AH$14:$AH$17",
+        "values": null
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 EBITDA'!$AQ$14",
+        "categoryFormula": "'A3 EBITDA'!$AH$14:$AH$17",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3  COMERCIAL",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget",
+        "formula": "'A3  COMERCIAL'!$X$2:$X$13",
+        "categoryFormula": "'A3  COMERCIAL'!$W$2:$W$13",
+        "values": [
+          5343000,
+          10312834,
+          8947255,
+          7619000,
+          11534000,
+          12204000,
+          12026000,
+          8112661,
+          6185098,
+          5594550,
+          3074000,
+          176960
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  COMERCIAL'!$AD$2:$AD$16",
+        "categoryFormula": "'A3  COMERCIAL'!$W$2:$W$13",
+        "values": [
+          5432232,
+          10464603,
+          9156470.05995188,
+          7880360,
+          11702751,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  COMERCIAL'!$AE$2:$AE$16",
+        "categoryFormula": "'A3  COMERCIAL'!$W$2:$W$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          10719334,
+          7919000,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  COMERCIAL",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget Amumulado",
+        "formula": "'A3  COMERCIAL'!$Z$2:$Z$13",
+        "categoryFormula": "'A3  COMERCIAL'!$W$2:$W$13",
+        "values": [
+          5343000,
+          15655834,
+          24603089,
+          32222089,
+          43756089,
+          55960089,
+          67986089,
+          76098750,
+          82283848,
+          87878398,
+          90952398,
+          91129358
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  COMERCIAL'!$AB$2:$AB$16",
+        "categoryFormula": "'A3  COMERCIAL'!$W$2:$W$13",
+        "values": [
+          5432232,
+          15896835,
+          25053305.05995188,
+          32933665.05995188,
+          44636416.05995188,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  COMERCIAL'!$AC$2:$AC$16",
+        "categoryFormula": "'A3  COMERCIAL'!$W$2:$W$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          55355750.05995188,
+          63274750.05995188,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  COMERCIAL",
+    "title": {},
+    "series": [
+      {
+        "name": "Volume Budget",
+        "formula": "'A3  COMERCIAL'!$AH$2:$AH$13",
+        "categoryFormula": "'A3  COMERCIAL'!$AG$2:$AG$13",
+        "values": [
+          57,
+          93,
+          88,
+          74,
+          94,
+          114,
+          98,
+          72,
+          50,
+          47,
+          33,
+          21
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  COMERCIAL'!$AN$2:$AN$16",
+        "categoryFormula": "'A3  COMERCIAL'!$AG$2:$AG$13",
+        "values": [
+          57,
+          93,
+          88,
+          74,
+          94,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  COMERCIAL'!$AO$2:$AO$16",
+        "categoryFormula": "'A3  COMERCIAL'!$AG$2:$AG$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          79,
+          57,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  COMERCIAL",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget Amumulado",
+        "formula": "'A3  COMERCIAL'!$AJ$2:$AJ$13",
+        "categoryFormula": "'A3  COMERCIAL'!$AG$2:$AG$13",
+        "values": [
+          57,
+          150,
+          238,
+          312,
+          406,
+          520,
+          618,
+          690,
+          740,
+          787,
+          820,
+          841
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  COMERCIAL'!$AL$2:$AL$16",
+        "categoryFormula": "'A3  COMERCIAL'!$AG$2:$AG$13",
+        "values": [
+          57,
+          150,
+          238,
+          312,
+          406,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  COMERCIAL'!$AM$2:$AM$16",
+        "categoryFormula": "'A3  COMERCIAL'!$AG$2:$AG$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          485,
+          542,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  COMERCIAL",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3  COMERCIAL'!$X$21:$X$23",
+        "categoryFormula": "'A3  COMERCIAL'!$W$21:$W$23",
+        "values": [
+          120000000,
+          65000000,
+          102000000
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  COMERCIAL",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3  COMERCIAL'!$AH$21:$AH$23",
+        "categoryFormula": "'A3  COMERCIAL'!$AG$21:$AG$23",
+        "values": [
+          1276,
+          670,
+          986
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  COMERCIAL",
+    "title": {},
+    "series": [
+      {
+        "name": "Acurácia Forecast Geral",
+        "formula": "'A3  COMERCIAL'!$AR$40:$AR$52",
+        "categoryFormula": "'A3  COMERCIAL'!$AQ$40:$AQ$52",
+        "values": [
+          0.472972972972973,
+          0.59375,
+          0.711864406779661,
+          0.42666666666666664,
+          0.6407766990291262,
+          0.47572815533980584,
+          0.4387755102040817,
+          0.3472222222222222,
+          0,
+          null,
+          null,
+          null,
+          0.6304878048780488
+        ]
+      },
+      {
+        "name": "Acurácia Forecast Grãos",
+        "formula": "'A3  COMERCIAL'!$AT$40:$AT$52",
+        "categoryFormula": "'A3  COMERCIAL'!$AQ$40:$AQ$52",
+        "values": [
+          0.5076923076923077,
+          0.6329113924050633,
+          0.7669902912621359,
+          0.4833333333333333,
+          0.6506024096385542,
+          0.4691358024691358,
+          0.4285714285714286,
+          1,
+          null,
+          null,
+          null,
+          null,
+          0.6326836581709145
+        ]
+      },
+      {
+        "name": "Acurácia Forecast Pecuária",
+        "formula": "'A3  COMERCIAL'!$AV$40:$AV$52",
+        "categoryFormula": "'A3  COMERCIAL'!$AQ$40:$AQ$52",
+        "values": [
+          0.2222222222222222,
+          0.4117647058823529,
+          0.33333333333333337,
+          0.19999999999999996,
+          0.7,
+          0.5,
+          0.6111111111111112,
+          0.0625,
+          0,
+          null,
+          null,
+          null,
+          0.6339869281045751
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  COMERCIAL",
+    "title": {},
+    "series": [
+      {
+        "name": "Assertividade  do  MIX",
+        "formula": "'A3  COMERCIAL'!$AR$57:$AR$62",
+        "categoryFormula": "'A3  COMERCIAL'!$AQ$57:$AQ$62",
+        "values": [
+          0.7667140825035562,
+          0.7943548387096774,
+          0.862095531587057,
+          0.8055855855855856,
+          0.8222474695310886,
+          0.7136536807177093
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AX$2:$AX$13",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AV$2:$AV$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          40.09,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AY$2:$AY$13",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AV$2:$AV$13",
+        "values": [
+          152,
+          101.09,
+          149.11,
+          94.8,
+          145.48,
+          null,
+          112.63,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Total horas",
+        "formula": "('A3 SUPPLY CHAIN'!$BD$2:$BD$13,'A3 SUPPLY CHAIN'!$BD$17)",
+        "categoryFormula": "('A3 SUPPLY CHAIN'!$AU$2:$AU$13,'A3 SUPPLY CHAIN'!$AU$17)",
+        "values": null
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AV$2:$AV$13",
+        "categoryFormula": "('A3 SUPPLY CHAIN'!$AU$2:$AU$13,'A3 SUPPLY CHAIN'!$AU$17)",
+        "values": [
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AX$14:$AX$15",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AU$14:$AU$15",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AY$14:$AY$15",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AU$14:$AU$15",
+        "values": [
+          null,
+          0.570407876230661
+        ]
+      },
+      {
+        "name": "Meta de Redução",
+        "formula": "'A3 SUPPLY CHAIN'!$BB$14:$BB$15",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AU$14:$AU$15",
+        "values": [
+          0.7,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 SUPPLY CHAIN'!$AW$16",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AU$16",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AC$2:$AC$14",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$X$2:$X$14",
+        "values": [
+          0.5059361139733883,
+          null,
+          null,
+          0.5117784201456765,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AD$2:$AD$14",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$X$2:$X$14",
+        "values": [
+          null,
+          0.47962166084803376,
+          0.4838449605540587,
+          null,
+          0.49202701470513116,
+          0.4986124353789922,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.4937736995117743
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 SUPPLY CHAIN'!$Y$2:$Y$14",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$X$2:$X$14",
+        "values": [
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          0.5,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 SUPPLY CHAIN'!$Y$15:$Y$16",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$X$15:$X$16",
+        "values": [
+          0.5053,
+          0.5242
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AN$2:$AN$13",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+        "values": [
+          null,
+          0.36488249029769493,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AO$2:$AO$13",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+        "values": [
+          0.21883701076658255,
+          null,
+          0.30255102363009356,
+          0.21960324438147785,
+          0.32412933494399354,
+          0.29560409409411026,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta Mês",
+        "formula": "'A3 SUPPLY CHAIN'!$AK$2:$AK$13",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+        "values": [
+          0.3333,
+          0.3333,
+          0.3333,
+          0.3333,
+          0.3333,
+          0.3333,
+          0.3333,
+          0.3333,
+          0.3333,
+          0.3333,
+          0.3333,
+          0.3333
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "Meta acumulada",
+        "formula": "'A3 SUPPLY CHAIN'!$AL$2:$AL$13",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+        "values": [
+          0.3333,
+          0.6666,
+          0.9999,
+          1.3332,
+          1.6664999999999999,
+          1.9997999999999998,
+          2.3331,
+          2.6664,
+          2.9997,
+          3.3329999999999997,
+          3.6662999999999997,
+          3.9995999999999996
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AP$2:$AP$13",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 SUPPLY CHAIN'!$AQ$2:$AQ$13",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+        "values": [
+          0.21883701076658255,
+          0.5844090052408338,
+          0.8874610377520508,
+          1.089627953247404,
+          1.4202310521518289,
+          1.7167885278696882,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 SUPPLY CHAIN'!$AJ$16:$AJ$17",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$AG$16:$AG$17",
+        "values": [
+          3.1,
+          3.1
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro do prazo",
+        "formula": "'A3 SUPPLY CHAIN'!$BI$2:$BI$14",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$BF$2:$BF$14",
+        "values": [
+          null,
+          39,
+          47,
+          57,
+          56,
+          48,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          46.333333333333336
+        ]
+      },
+      {
+        "name": "Fora do prazo",
+        "formula": "'A3 SUPPLY CHAIN'!$BJ$2:$BJ$14",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$BF$2:$BF$14",
+        "values": [
+          31,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 SUPPLY CHAIN'!$BG$2:$BG$14",
+        "categoryFormula": "'A3 SUPPLY CHAIN'!$BF$2:$BF$14",
+        "values": [
+          35,
+          35,
+          35,
+          35,
+          35,
+          35,
+          35,
+          35,
+          35,
+          35,
+          35,
+          35,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho estoques'!$AR$2:$AR$14",
+        "categoryFormula": "'A3 Filho estoques'!$AO$2:$AO$14",
+        "values": [
+          null,
+          0.91,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho estoques'!$AS$2:$AS$14",
+        "categoryFormula": "'A3 Filho estoques'!$AO$2:$AO$14",
+        "values": [
+          null,
+          null,
+          0.97,
+          0.95,
+          0.9774,
+          0.98,
+          0.98,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "META",
+        "formula": "'A3 Filho estoques'!$AP$2:$AP$14",
+        "categoryFormula": "'A3 Filho estoques'!$AO$2:$AO$14",
+        "values": [
+          null,
+          null,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 SUPPLY CHAIN",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho estoques'!$AX$2:$AX$14",
+        "categoryFormula": "'A3 Filho estoques'!$AU$2:$AU$14",
+        "values": [
+          null,
+          0.32,
+          0.35,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho estoques'!$AY$2:$AY$14",
+        "categoryFormula": "'A3 Filho estoques'!$AU$2:$AU$14",
+        "values": [
+          null,
+          null,
+          null,
+          0.34,
+          0.3277,
+          0.38,
+          0.45,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "META",
+        "formula": "'A3 Filho estoques'!$AV$2:$AV$13",
+        "categoryFormula": "'A3 Filho estoques'!$AU$2:$AU$14",
+        "values": [
+          null,
+          null,
+          0.35,
+          0.35,
+          0.4,
+          0.45,
+          0.5,
+          0.55,
+          0.6,
+          0.65,
+          0.7,
+          0.75
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  FABRIL",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3  FABRIL'!$X$15:$X$16",
+        "categoryFormula": "'A3  FABRIL'!$W$15:$W$16",
+        "values": [
+          0.47,
+          0.68
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  FABRIL",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3  FABRIL'!$BD$15:$BD$16",
+        "categoryFormula": "'A3  FABRIL'!$BC$15:$BC$16",
+        "values": [
+          4.1,
+          4.2
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  FABRIL",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3  FABRIL'!$AH$15:$AH$16",
+        "categoryFormula": "'A3  FABRIL'!$AG$15:$AG$16",
+        "values": [
+          0.1491,
+          0.1522
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  FABRIL",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  FABRIL'!$AM$2:$AM$13",
+        "categoryFormula": "'A3  FABRIL'!$AG$2:$AG$13",
+        "values": [
+          0.21409203963342427,
+          null,
+          0.16268547378580756,
+          0.20270135415044277,
+          0.1300667822805769,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  FABRIL'!$AN$2:$AN$13",
+        "categoryFormula": "'A3  FABRIL'!$AG$2:$AG$13",
+        "values": [
+          null,
+          0.1248699515585074,
+          null,
+          null,
+          null,
+          0.14190349776952665,
+          0.2049450294419001,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3  FABRIL'!$AL$2:$AL$13",
+        "categoryFormula": "'A3  FABRIL'!$AG$2:$AG$13",
+        "values": [
+          0.2141,
+          0.1236,
+          0.1627,
+          0.20270142175998368,
+          0.13006682067359174,
+          0.12179617018416897,
+          0.15472547189763133,
+          0.1742624507480284,
+          0.24725780774248746,
+          0.25493912085218207,
+          0.3546789675847763,
+          0.4090450407049894
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  FABRIL",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  FABRIL'!$BF$2:$BF$14",
+        "categoryFormula": "'A3  FABRIL'!$BC$2:$BC$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  FABRIL'!$BG$2:$BG$14",
+        "categoryFormula": "'A3  FABRIL'!$BC$2:$BC$14",
+        "values": [
+          3.88,
+          4.24,
+          4.04,
+          4.1,
+          3.9,
+          null,
+          4.2,
+          null,
+          null,
+          null,
+          null,
+          null,
+          4.06
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3  FABRIL'!$BD$2:$BD$14",
+        "categoryFormula": "'A3  FABRIL'!$BC$2:$BC$14",
+        "values": [
+          4.5,
+          4.5,
+          4.5,
+          4.5,
+          4.5,
+          4.5,
+          4.5,
+          4.5,
+          4.5,
+          4.5,
+          4.5,
+          4.5,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  FABRIL",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  FABRIL'!$AX$2:$AX$14",
+        "categoryFormula": "'A3  FABRIL'!$AS$2:$AS$14",
+        "values": [
+          0.0925150130811811,
+          null,
+          0.078263133375886,
+          0.09322208693632865,
+          0.05945478397736012,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.0739154284241116
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  FABRIL'!$AY$2:$AY$14",
+        "categoryFormula": "'A3  FABRIL'!$AS$2:$AS$14",
+        "values": [
+          null,
+          0.06647038542822406,
+          null,
+          null,
+          null,
+          0.059908270230459186,
+          0.08753924678985622,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3  FABRIL'!$AW$2:$AW$14",
+        "categoryFormula": "'A3  FABRIL'!$AS$2:$AS$14",
+        "values": [
+          0.09251502095808566,
+          0.06576995226608882,
+          0.078263133375886,
+          0.09322208693632865,
+          0.05945478397736012,
+          0.05724163499590908,
+          0.07412610334715049,
+          0.08495496462702962,
+          0.12190506294983387,
+          0.12462585528071767,
+          0.16974695105379017,
+          0.19456529326298472,
+          0.08519508816461621
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  FABRIL",
+    "title": {},
+    "series": [
+      {
+        "name": "GGF Projetado Acumulado",
+        "formula": "'A3  FABRIL'!$AJ$2:$AJ$13",
+        "categoryFormula": "'A3  FABRIL'!$AG$2:$AG$13",
+        "values": [
+          0.2141,
+          0.1547,
+          0.1576,
+          0.1682,
+          0.1582,
+          0.1505,
+          0.1512,
+          0.1535,
+          0.1597,
+          0.1652,
+          0.1726,
+          0.1784
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  FABRIL'!$AP$2:$AP$13",
+        "categoryFormula": "'A3  FABRIL'!$AG$2:$AG$13",
+        "values": [
+          0.21409203963342427,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  FABRIL'!$AQ$2:$AQ$13",
+        "categoryFormula": "'A3  FABRIL'!$AG$2:$AG$13",
+        "values": [
+          null,
+          0.15580179638720534,
+          0.15832303979702242,
+          0.16880335603510097,
+          0.15901878229522423,
+          0.1553776003932379,
+          0.16143251625970248,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 FORMATAÇÃO ÁREA TÉCNICA",
+    "title": {},
+    "series": [
+      {
+        "name": "Tempo de parada por máquina no lote piloto",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BF$4",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BD$4",
+        "values": null
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BE$4",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BD$4",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 FORMATAÇÃO ÁREA TÉCNICA",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AC$2:$AC$13",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$1:$X$13",
+        "values": [
+          0.10526315789473684,
+          0.06451612903225806,
+          0.09090909090909091,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AD$2:$AD$13",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$1:$X$13",
+        "values": [
+          null,
+          null,
+          null,
+          0.1891891891891892,
+          0.1702127659574468,
+          0.24050632911392406,
+          0.3157894736842105,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Distribuição esperada",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AA$2:$AA$13",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$2:$X$13",
+        "values": [
+          0.11,
+          0.1035,
+          0.1129,
+          0.1176,
+          0.1176,
+          0.127,
+          0.1459,
+          0.1553,
+          0.1412,
+          0.1223,
+          0.0988,
+          0.08
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 FORMATAÇÃO ÁREA TÉCNICA",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AC$14:$AC$15",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$14:$X$15",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AD$14:$AD$15",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$14:$X$15",
+        "values": [
+          0.16051660516605165,
+          null
+        ]
+      },
+      {
+        "name": "Meta do ano",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AE$14:$AE$15",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$14:$X$15",
+        "values": [
+          null,
+          0.122
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 FORMATAÇÃO ÁREA TÉCNICA",
+    "title": {},
+    "series": [
+      {
+        "name": "Total de garantias do mês",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$Y$2:$Y$14",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$2:$X$14",
+        "values": [
+          6,
+          6,
+          8,
+          14,
+          16,
+          19,
+          18,
+          null,
+          null,
+          null,
+          null,
+          null,
+          87
+        ]
+      },
+      {
+        "name": "Total de máquinas vendidas / com TG",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$Z$2:$Z$14",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$2:$X$14",
+        "values": [
+          57,
+          93,
+          88,
+          74,
+          94,
+          79,
+          57,
+          null,
+          null,
+          null,
+          null,
+          null,
+          542
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 FORMATAÇÃO ÁREA TÉCNICA",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AP$2:$AP$13",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$13",
+        "values": [
+          0,
+          0.14285714285714285,
+          0,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AQ$2:$AQ$13",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$13",
+        "values": [
+          null,
+          null,
+          null,
+          0.8333333333333334,
+          0.36363636363636365,
+          0.3333333333333333,
+          0.8,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AN$2:$AN$13",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$13",
+        "values": [
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 FORMATAÇÃO ÁREA TÉCNICA",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$Y$17:$Y$18",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$17:$X$18",
+        "values": [
+          0.24,
+          0.1634
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 FORMATAÇÃO ÁREA TÉCNICA",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AP$14:$AP$15",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$14:$AK$15",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AQ$14:$AQ$15",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$14:$AK$15",
+        "values": [
+          0.36,
+          null
+        ]
+      },
+      {
+        "name": "Meta do ano",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AR$14:$AR$15",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$14:$AK$15",
+        "values": [
+          null,
+          0.3
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 FORMATAÇÃO ÁREA TÉCNICA",
+    "title": {},
+    "series": [
+      {
+        "name": "Total de garantias mês",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AL$2:$AL$14",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$14",
+        "values": [
+          0,
+          1,
+          0,
+          5,
+          4,
+          4,
+          4,
+          null,
+          null,
+          null,
+          null,
+          null,
+          18
+        ]
+      },
+      {
+        "name": "Total máquinas novas vendidas",
+        "formula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AM$2:$AM$14",
+        "categoryFormula": "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$14",
+        "values": [
+          5,
+          7,
+          4,
+          6,
+          11,
+          12,
+          5,
+          null,
+          null,
+          null,
+          null,
+          null,
+          50
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  PEP",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  PEP'!$AO$2:$AO$13",
+        "categoryFormula": "'A3  PEP'!$AI$2:$AI$13",
+        "values": [
+          0.5971462545487063,
+          0.6287865170252216,
+          0.698573264472736,
+          0.7115149671066471,
+          0.5404977693314356,
+          0.4902386967300674,
+          0.519259112252253,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  PEP'!$AP$2:$AP$13",
+        "categoryFormula": "'A3  PEP'!$AI$2:$AI$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3  PEP'!$AN$2:$AN$13",
+        "categoryFormula": "'A3  PEP'!$AI$2:$AI$13",
+        "values": [
+          0.876,
+          0.876,
+          0.876,
+          0.876,
+          0.876,
+          0.876,
+          0.876,
+          0.876,
+          0.876,
+          0.876,
+          0.876,
+          0.876
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  PEP",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "('A3  PEP'!$AQ$14,'A3  PEP'!$AQ$17)",
+        "categoryFormula": "('A3  PEP'!$AI$14,'A3  PEP'!$AI$17)",
+        "values": null
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "('A3  PEP'!$AR$14,'A3  PEP'!$AR$17)",
+        "categoryFormula": "('A3  PEP'!$AI$14,'A3  PEP'!$AI$17)",
+        "values": null
+      },
+      {
+        "name": "Meta",
+        "formula": "('A3  PEP'!$AN$14,'A3  PEP'!$AN$17)",
+        "categoryFormula": "('A3  PEP'!$AI$14,'A3  PEP'!$AI$17)",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3  PEP",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  PEP'!$BG$2:$BG$13",
+        "categoryFormula": "'A3  PEP'!$AT$2:$AT$13",
+        "values": [
+          0.17374270447789464,
+          null,
+          null,
+          0.11734568271519924,
+          0.19423317196594944,
+          0.257412831885063,
+          0.168148497289788,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  PEP'!$BH$2:$BH$13",
+        "categoryFormula": "'A3  PEP'!$AT$2:$AT$13",
+        "values": [
+          null,
+          0.09519597238234812,
+          0.07829810233005044,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3  PEP'!$BF$2:$BF$13",
+        "categoryFormula": "'A3  PEP'!$AT$2:$AT$13",
+        "values": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  PEP",
+    "title": {},
+    "series": [
+      {
+        "name": "Meta",
+        "formula": "'A3  PEP'!$BF$14",
+        "categoryFormula": "'A3  PEP'!$AT$14",
+        "values": null
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  PEP'!$BI$14",
+        "categoryFormula": "'A3  PEP'!$AT$14",
+        "values": null
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  PEP'!$BJ$14",
+        "categoryFormula": "'A3  PEP'!$AT$14",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3  PEP",
+    "title": {},
+    "series": [
+      {
+        "name": "NPS dentro do lote pilotoda fase 7",
+        "formula": "'A3  PEP'!$Z$2:$Z$5",
+        "categoryFormula": "'A3  PEP'!$X$2:$X$5",
+        "values": [
+          6.67,
+          5.56,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3  PEP'!$Y$2:$Y$5",
+        "categoryFormula": "'A3  PEP'!$X$2:$X$5",
+        "values": [
+          5,
+          5,
+          5,
+          5
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  MARKETING",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  MARKETING'!$AC$2:$AC$13",
+        "categoryFormula": "'A3  MARKETING'!$X$2:$X$13",
+        "values": [
+          null,
+          null,
+          0.1422924901185771,
+          0.6422924901185771,
+          null,
+          0.7522924901185771,
+          null,
+          0.8722924901185771,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  MARKETING'!$AD$2:$AD$13",
+        "categoryFormula": "'A3  MARKETING'!$X$2:$X$13",
+        "values": [
+          null,
+          0,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta acumulada",
+        "formula": "'A3  MARKETING'!$AA$2:$AA$13",
+        "categoryFormula": "'A3  MARKETING'!$X$2:$X$13",
+        "values": [
+          null,
+          0.12,
+          0.12,
+          0.47,
+          0.47,
+          0.58,
+          0.58,
+          0.7,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  MARKETING",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  MARKETING'!$AK$2:$AK$13",
+        "categoryFormula": "'A3  MARKETING'!$AH$1:$AH$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  MARKETING'!$AL$2:$AL$13",
+        "categoryFormula": "'A3  MARKETING'!$AH$1:$AH$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.4,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3  MARKETING'!$AI$2:$AI$13",
+        "categoryFormula": "'A3  MARKETING'!$AH$2:$AH$13",
+        "values": [
+          0,
+          0.2,
+          0.4,
+          0.6,
+          0.8,
+          1,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  MARKETING",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  MARKETING'!$BA$2:$BA$13",
+        "categoryFormula": "'A3  MARKETING'!$AX$2:$AX$13",
+        "values": [
+          0,
+          0.2,
+          0.6000000000000001,
+          null,
+          0.8,
+          0.8,
+          0.8,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  MARKETING'!$BB$2:$BB$13",
+        "categoryFormula": "'A3  MARKETING'!$AX$2:$AX$13",
+        "values": [
+          null,
+          null,
+          null,
+          0.8,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3  MARKETING'!$AY$2:$AY$13",
+        "categoryFormula": "'A3  MARKETING'!$AX$2:$AX$13",
+        "values": [
+          0,
+          0.2,
+          0.4,
+          1,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  MARKETING",
+    "title": {},
+    "series": [
+      {
+        "name": "Meta",
+        "formula": "'A3  MARKETING'!$AP$2:$AP$13",
+        "categoryFormula": "'A3  MARKETING'!$AO$2:$AO$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.8,
+          0.8,
+          0.8,
+          0.8,
+          0.8,
+          0.8
+        ]
+      },
+      {
+        "name": "Realizado",
+        "formula": "'A3  MARKETING'!$AQ$2:$AQ$13",
+        "categoryFormula": "'A3  MARKETING'!$AO$2:$AO$13",
+        "values": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.8,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  ENGENHARIA",
+    "title": {},
+    "series": [
+      {
+        "name": "Horas acumulada ano",
+        "formula": "('A3  ENGENHARIA'!$AL$2:$AL$13,'A3  ENGENHARIA'!$AL$16)",
+        "categoryFormula": "('A3  ENGENHARIA'!$AI$2:$AI$13,'A3  ENGENHARIA'!$AI$16)",
+        "values": null
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "('A3  ENGENHARIA'!$AM$2:$AM$13,'A3  ENGENHARIA'!$AM$16)",
+        "categoryFormula": "('A3  ENGENHARIA'!$AI$2:$AI$13,'A3  ENGENHARIA'!$AI$16)",
+        "values": null
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "('A3  ENGENHARIA'!$AN$2:$AN$13,'A3  ENGENHARIA'!$AN$16)",
+        "categoryFormula": "('A3  ENGENHARIA'!$AI$2:$AI$13,'A3  ENGENHARIA'!$AI$16)",
+        "values": null
+      },
+      {
+        "name": "Meta",
+        "formula": "('A3  ENGENHARIA'!$AJ$2:$AJ$13,'A3  ENGENHARIA'!$AJ$16)",
+        "categoryFormula": "('A3  ENGENHARIA'!$AI$2:$AI$13,'A3  ENGENHARIA'!$AI$16)",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3  ENGENHARIA",
+    "title": {},
+    "series": [
+      {
+        "name": "Meta de Redução",
+        "formula": "'A3  ENGENHARIA'!$AQ$14:$AQ$15",
+        "categoryFormula": "'A3  ENGENHARIA'!$AI$14:$AI$15",
+        "values": [
+          0.3,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta.",
+        "formula": "'A3  ENGENHARIA'!$AS$14:$AS$15",
+        "categoryFormula": "'A3  ENGENHARIA'!$AI$14:$AI$15",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Dentro da meta.",
+        "formula": "'A3  ENGENHARIA'!$AT$14:$AT$15",
+        "categoryFormula": "'A3  ENGENHARIA'!$AI$14:$AI$15",
+        "values": [
+          null,
+          0.8850652271704903
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  ENGENHARIA",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3  ENGENHARIA'!$BB$2:$BB$14",
+        "categoryFormula": "'A3  ENGENHARIA'!$AW$2:$AW$14",
+        "values": [
+          0.03508771929824561,
+          0,
+          0,
+          0,
+          0.02127659574468085,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.02029520295202952
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3  ENGENHARIA'!$BC$2:$BC$14",
+        "categoryFormula": "'A3  ENGENHARIA'!$AW$2:$AW$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.05063291139240506,
+          0.05263157894736842,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3  ENGENHARIA'!$AX$2:$AX$14",
+        "categoryFormula": "'A3  ENGENHARIA'!$AW$2:$AW$14",
+        "values": [
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3  ENGENHARIA",
+    "title": {},
+    "series": [
+      {
+        "name": "Horas acumulada ano",
+        "formula": "'A3  ENGENHARIA'!$AL$17",
+        "categoryFormula": "'A3  ENGENHARIA'!$AI$17",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$AN$16:$AN$17",
+        "categoryFormula": "'A3 PESSOAS '!$AF$16:$AF$17",
+        "values": [
+          null,
+          0.2292732855680655
+        ]
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$AO$16:$AO$17",
+        "categoryFormula": "'A3 PESSOAS '!$AF$16:$AF$17",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta anual",
+        "formula": "'A3 PESSOAS '!$AP$16:$AP$17",
+        "categoryFormula": "'A3 PESSOAS '!$AF$16:$AF$17",
+        "values": [
+          0.3,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da Meta",
+        "formula": "('A3 PESSOAS '!$AN$2:$AN$13,'A3 PESSOAS '!$AN$15)",
+        "categoryFormula": "('A3 PESSOAS '!$AF$2:$AF$13,'A3 PESSOAS '!$AF$15)",
+        "values": null
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "('A3 PESSOAS '!$AO$2:$AO$13,'A3 PESSOAS '!$AO$15)",
+        "categoryFormula": "('A3 PESSOAS '!$AF$2:$AF$13,'A3 PESSOAS '!$AF$15)",
+        "values": null
+      },
+      {
+        "name": " Meta",
+        "formula": "('A3 PESSOAS '!$AK$2:$AK$13,'A3 PESSOAS '!$AK$15)",
+        "categoryFormula": "('A3 PESSOAS '!$AF$2:$AF$13,'A3 PESSOAS '!$AF$15)",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$AY$2:$AY$14",
+        "categoryFormula": "'A3 PESSOAS '!$AT$2:$AT$14",
+        "values": [
+          null,
+          0.011505681818181818,
+          0.013248229993563614,
+          0.014683447749809305,
+          0.011177347242921014,
+          null,
+          0.014993592481845366,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$AZ$2:$AZ$14",
+        "categoryFormula": "'A3 PESSOAS '!$AT$2:$AT$14",
+        "values": [
+          0.015568181818181818,
+          null,
+          null,
+          null,
+          null,
+          0.018961818961818963,
+          null,
+          0.028166638556248947,
+          null,
+          null,
+          null,
+          null,
+          0.016038117327821358
+        ]
+      },
+      {
+        "name": " Meta",
+        "formula": "'A3 PESSOAS '!$AX$2:$AX$14",
+        "categoryFormula": "'A3 PESSOAS '!$AT$2:$AT$14",
+        "values": [
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          0.015,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$AA$14:$AA$15",
+        "categoryFormula": "'A3 PESSOAS '!$X$14:$X$15",
+        "values": [
+          null,
+          11235255
+        ]
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$AB$14:$AB$15",
+        "categoryFormula": "'A3 PESSOAS '!$X$14:$X$15",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Orçado 2026",
+        "formula": "'A3 PESSOAS '!$AC$14:$AC$15",
+        "categoryFormula": "'A3 PESSOAS '!$X$14:$X$15",
+        "values": [
+          19584024,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "CARGOS PREVISTOS",
+        "formula": "'A3 PESSOAS '!$BF$2:$BF$13",
+        "categoryFormula": "'A3 PESSOAS '!$BD$2:$BD$13",
+        "values": [
+          null,
+          null,
+          2,
+          2,
+          2,
+          2,
+          2,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$BG$2:$BG$13",
+        "categoryFormula": "'A3 PESSOAS '!$BD$2:$BD$13",
+        "values": [
+          null,
+          null,
+          2,
+          2,
+          2,
+          2,
+          2,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$BH$2:$BH$13",
+        "categoryFormula": "'A3 PESSOAS '!$BD$2:$BD$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$BQ$2:$BQ$14",
+        "categoryFormula": "'A3 PESSOAS '!$BL$2:$BL$13",
+        "values": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          null,
+          null,
+          null,
+          null,
+          null,
+          1
+        ]
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$BR$2:$BR$14",
+        "categoryFormula": "'A3 PESSOAS '!$BL$2:$BL$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 PESSOAS '!$BP$2:$BP$13",
+        "categoryFormula": "'A3 PESSOAS '!$BL$2:$BL$14",
+        "values": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Feedbacks  planejado para o mês",
+        "formula": "'A3 PESSOAS '!$CA$2:$CA$13",
+        "categoryFormula": "'A3 PESSOAS '!$BX$2:$BX$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          58,
+          null,
+          null,
+          58,
+          null
+        ]
+      },
+      {
+        "name": "Meta mínima",
+        "formula": "'A3 PESSOAS '!$BZ$2:$BZ$13",
+        "categoryFormula": "'A3 PESSOAS '!$BX$2:$BX$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          46,
+          null,
+          null,
+          46.400000000000006,
+          null
+        ]
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$CC$2:$CC$13",
+        "categoryFormula": "'A3 PESSOAS '!$BX$2:$BX$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$CD$2:$CD$13",
+        "categoryFormula": "'A3 PESSOAS '!$BX$2:$BX$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": " Realizado acumulado",
+        "formula": "'A3 PESSOAS '!$CB$2:$CB$14",
+        "categoryFormula": "'A3 PESSOAS '!$BX$2:$BX$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$BR$15:$BR$16",
+        "categoryFormula": "'A3 PESSOAS '!$BL$15:$BM$16",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Total func. Novos",
+        "formula": "'A3 PESSOAS '!$BT$15:$BT$16",
+        "categoryFormula": "'A3 PESSOAS '!$BL$15:$BM$16",
+        "values": [
+          28,
+          null
+        ]
+      },
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$BQ$15:$BQ$16",
+        "categoryFormula": "",
+        "values": [
+          null,
+          28
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Meta acumulada",
+        "formula": "'A3 PESSOAS '!$CM$2:$CM$13",
+        "categoryFormula": "'A3 PESSOAS '!$CF$2:$CF$13",
+        "values": [
+          0,
+          0,
+          3.55,
+          7.1,
+          10.649999999999999,
+          14.2,
+          17.75,
+          21.3,
+          24.85,
+          28.400000000000002,
+          31.950000000000003,
+          null
+        ]
+      },
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$CN$2:$CN$13",
+        "categoryFormula": "'A3 PESSOAS '!$CF$2:$CF$13",
+        "values": [
+          0,
+          0,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$CO$2:$CO$13",
+        "categoryFormula": "'A3 PESSOAS '!$CF$2:$CF$13",
+        "values": [
+          null,
+          null,
+          0,
+          0,
+          4,
+          0,
+          1,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 PESSOAS '!$AG$18:$AG$19",
+        "categoryFormula": "'A3 PESSOAS '!$AF$18:$AF$19",
+        "values": [
+          0.5122,
+          0.422
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 PESSOAS '!$AU$15:$AU$16",
+        "categoryFormula": "'A3 PESSOAS '!$AT$15:$AT$16",
+        "values": [
+          0.03,
+          0.019
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 PESSOAS '!$Y$16:$Y$17",
+        "categoryFormula": "'A3 PESSOAS '!$X$16:$X$17",
+        "values": [
+          1399000,
+          2282000
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Meta acumulada",
+        "formula": "'A3 PESSOAS '!$DA$2:$DA$13",
+        "categoryFormula": "'A3 PESSOAS '!$CT$2:$CT$13",
+        "values": [
+          2.66,
+          5.32,
+          7.98,
+          10.64,
+          13.3,
+          15.96,
+          18.62,
+          21.28,
+          23.94,
+          26.6,
+          29.26,
+          31.92
+        ]
+      },
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$DB$2:$DB$13",
+        "categoryFormula": "'A3 PESSOAS '!$CT$2:$CT$13",
+        "values": [
+          2.7416666666666667,
+          null,
+          null,
+          null,
+          null,
+          15.999999999999998,
+          18.708333333333332,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$DC$2:$DC$13",
+        "categoryFormula": "'A3 PESSOAS '!$CT$2:$CT$13",
+        "values": [
+          null,
+          4.691666666666666,
+          6.85,
+          9.899999999999999,
+          12.991666666666665,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Valor Orçado",
+        "formula": "'A3 PESSOAS '!$Y$2:$Y$13",
+        "categoryFormula": "'A3 PESSOAS '!$X$2:$X$13",
+        "values": [
+          1534320,
+          1541943,
+          1541943,
+          1545190,
+          1545190,
+          1633264,
+          1707029,
+          1707029,
+          1707029,
+          1707029,
+          1707029,
+          1707029
+        ]
+      },
+      {
+        "name": "Dentro da Meta",
+        "formula": "'A3 PESSOAS '!$AA$2:$AA$13",
+        "categoryFormula": "'A3 PESSOAS '!$X$2:$X$13",
+        "values": [
+          1470092,
+          null,
+          1541000,
+          null,
+          null,
+          1599000,
+          1596948,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da Meta",
+        "formula": "'A3 PESSOAS '!$AB$2:$AB$13",
+        "categoryFormula": "'A3 PESSOAS '!$X$2:$X$13",
+        "values": [
+          null,
+          1740895,
+          null,
+          1615000,
+          1672320,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "ACIDENTES",
+        "formula": "'A3 PESSOAS '!$DH$2:$DH$14",
+        "categoryFormula": "'A3 PESSOAS '!$DG$2:$DG$14",
+        "values": [
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          1,
+          null,
+          null,
+          null,
+          null,
+          null,
+          2
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 PESSOAS '!$CU$15:$CU$16",
+        "categoryFormula": "'A3 PESSOAS '!$CT$15:$CT$16",
+        "values": [
+          30,
+          36
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 PESSOAS '!$DH$15:$DH$16",
+        "categoryFormula": "'A3 PESSOAS '!$DG$15:$DG$16",
+        "values": [
+          6,
+          2
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "Pesquisa anual",
+        "formula": "'A3 PESSOAS '!$DN$15:$DN$17",
+        "categoryFormula": "'A3 PESSOAS '!$DM$15:$DM$17",
+        "values": [
+          0.65,
+          0.76,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 PESSOAS ",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 PESSOAS '!#REF!",
+        "categoryFormula": "",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho exportação ",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget Exportação",
+        "formula": "'A3 Filho exportação '!$X$2:$X$13",
+        "categoryFormula": "'A3 Filho exportação '!$W$2:$W$13",
+        "values": [
+          201478,
+          504168,
+          293192,
+          1491341,
+          379691,
+          351491,
+          685730,
+          550767,
+          247414,
+          150000,
+          100000,
+          50000
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho exportação '!$AD$2:$AD$14",
+        "categoryFormula": "'A3 Filho exportação '!$W$2:$W$13",
+        "values": [
+          649000,
+          null,
+          null,
+          null,
+          696666.8195,
+          537864.4928,
+          1806011.76,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho exportação '!$AE$2:$AE$14",
+        "categoryFormula": "'A3 Filho exportação '!$W$2:$W$13",
+        "values": [
+          null,
+          0,
+          0,
+          113035.5,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho exportação ",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget Amumulado",
+        "formula": "'A3 Filho exportação '!$Z$2:$Z$13",
+        "categoryFormula": "'A3 Filho exportação '!$W$2:$W$13",
+        "values": [
+          201478,
+          705646,
+          998838,
+          2490179,
+          2869870,
+          3221361,
+          3907091,
+          4457858,
+          4705272,
+          4855272,
+          4955272,
+          5005272
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho exportação '!$AB$2:$AB$14",
+        "categoryFormula": "'A3 Filho exportação '!$W$2:$W$13",
+        "values": [
+          649000,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho exportação '!$AC$2:$AC$14",
+        "categoryFormula": "'A3 Filho exportação '!$W$2:$W$13",
+        "values": [
+          null,
+          649000,
+          649000,
+          762035.5,
+          1458702.3195,
+          1996566.8122999999,
+          3802578.5723,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho exportação ",
+    "title": {},
+    "series": [
+      {
+        "name": "Volume Budget",
+        "formula": "'A3 Filho exportação '!$AH$2:$AH$13",
+        "categoryFormula": "'A3 Filho exportação '!$AG$2:$AG$13",
+        "values": [
+          8,
+          0,
+          0,
+          3,
+          1,
+          4,
+          5,
+          4,
+          4,
+          3,
+          2,
+          2
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho exportação '!$AN$2:$AN$14",
+        "categoryFormula": "'A3 Filho exportação '!$AG$2:$AG$13",
+        "values": [
+          8,
+          0,
+          0,
+          3,
+          1,
+          4,
+          7,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho exportação '!$AO$2:$AO$14",
+        "categoryFormula": "'A3 Filho exportação '!$AG$2:$AG$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho exportação ",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget Amumulado",
+        "formula": "'A3 Filho exportação '!$AJ$2:$AJ$13",
+        "categoryFormula": "'A3 Filho exportação '!$AG$2:$AG$13",
+        "values": [
+          8,
+          8,
+          8,
+          11,
+          12,
+          16,
+          21,
+          25,
+          29,
+          32,
+          34,
+          36
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho exportação '!$AL$2:$AL$14",
+        "categoryFormula": "'A3 Filho exportação '!$AG$2:$AG$13",
+        "values": [
+          8,
+          8,
+          8,
+          11,
+          12,
+          16,
+          23,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho exportação '!$AM$2:$AM$14",
+        "categoryFormula": "'A3 Filho exportação '!$AG$2:$AG$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho exportação ",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 Filho exportação '!$X$18:$X$20",
+        "categoryFormula": "'A3 Filho exportação '!$W$18:$W$20",
+        "values": [
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho exportação ",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 Filho exportação '!$AH$18:$AH$20",
+        "categoryFormula": "'A3 Filho exportação '!$AG$18:$AG$20",
+        "values": [
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho exportação ",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho exportação '!$AV$2:$AV$13",
+        "categoryFormula": "'A3 Filho exportação '!$AQ$2:$AQ$13",
+        "values": [
+          "  ",
+          2,
+          4,
+          4,
+          4,
+          4,
+          4,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho exportação '!$AW$2:$AW$13",
+        "categoryFormula": "'A3 Filho exportação '!$AQ$2:$AQ$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta acumulada",
+        "formula": "'A3 Filho exportação '!$AT$2:$AT$13",
+        "categoryFormula": "'A3 Filho exportação '!$AQ$2:$AQ$13",
+        "values": [
+          2,
+          2,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          5,
+          6,
+          7,
+          7
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho exportação ",
+    "title": {},
+    "series": [
+      {
+        "name": "Resultado Mês",
+        "formula": "'A3 Filho exportação '!$BB$2:$BB$13",
+        "categoryFormula": "'A3 Filho exportação '!$AY$2:$AY$13",
+        "values": [
+          0.11947206967596377,
+          0,
+          0,
+          0.01434395129156536,
+          0,
+          0.05017704390963095,
+          0.22806058340699584,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho exportação ",
+    "title": {},
+    "series": [
+      {
+        "name": "Acumulado 2026",
+        "formula": "'A3 Filho exportação '!$BC$14",
+        "categoryFormula": "'A3 Filho exportação '!$BC$1",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho pecuária",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget",
+        "formula": "'A3 Filho pecuária'!$X$2:$X$13",
+        "categoryFormula": "'A3 Filho pecuária'!$W$2:$W$13",
+        "values": [
+          905232,
+          2333972,
+          2337727,
+          3426572,
+          4172580,
+          3478343,
+          2903297,
+          2736500,
+          1122105,
+          1379720,
+          132327,
+          0
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho pecuária'!$AD$2:$AD$14",
+        "categoryFormula": "'A3 Filho pecuária'!$W$2:$W$13",
+        "values": [
+          1342000,
+          3116210,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho pecuária'!$AE$2:$AE$14",
+        "categoryFormula": "'A3 Filho pecuária'!$W$2:$W$13",
+        "values": [
+          null,
+          null,
+          1956320,
+          983134,
+          2978233,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho pecuária",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget Amumulado",
+        "formula": "'A3 Filho pecuária'!$Z$2:$Z$13",
+        "categoryFormula": "'A3 Filho pecuária'!$W$2:$W$13",
+        "values": [
+          905232,
+          3239204,
+          5576931,
+          9003503,
+          13176083,
+          16654426,
+          19557723,
+          22294223,
+          23416328,
+          24796048,
+          24928375,
+          null
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho pecuária'!$AB$2:$AB$14",
+        "categoryFormula": "'A3 Filho pecuária'!$W$2:$W$13",
+        "values": [
+          1342000,
+          4458210,
+          6414530,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho pecuária'!$AC$2:$AC$14",
+        "categoryFormula": "'A3 Filho pecuária'!$W$2:$W$13",
+        "values": [
+          null,
+          null,
+          null,
+          7397664,
+          10375897,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho pecuária",
+    "title": {},
+    "series": [
+      {
+        "name": "Volume Budget",
+        "formula": "'A3 Filho pecuária'!$AH$2:$AH$13",
+        "categoryFormula": "'A3 Filho pecuária'!$AG$2:$AG$13",
+        "values": [
+          0,
+          2,
+          0,
+          0,
+          3,
+          0,
+          2,
+          0,
+          0,
+          0,
+          3,
+          0
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho pecuária'!$AN$2:$AN$14",
+        "categoryFormula": "'A3 Filho pecuária'!$AG$2:$AG$13",
+        "values": [
+          null,
+          2,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho pecuária'!$AO$2:$AO$14",
+        "categoryFormula": "'A3 Filho pecuária'!$AG$2:$AG$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          1,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho pecuária",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget Amumulado",
+        "formula": "'A3 Filho pecuária'!$AJ$2:$AJ$13",
+        "categoryFormula": "'A3 Filho pecuária'!$AG$2:$AG$13",
+        "values": [
+          null,
+          2,
+          2,
+          2,
+          5,
+          5,
+          7,
+          7,
+          7,
+          7,
+          10,
+          10
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho pecuária'!$AL$2:$AL$14",
+        "categoryFormula": "'A3 Filho pecuária'!$AG$2:$AG$13",
+        "values": [
+          null,
+          2,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho pecuária'!$AM$2:$AM$14",
+        "categoryFormula": "'A3 Filho pecuária'!$AG$2:$AG$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          3,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho pecuária",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 Filho pecuária'!$X$18:$X$20",
+        "categoryFormula": "'A3 Filho pecuária'!$W$18:$W$20",
+        "values": [
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho pecuária",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 Filho pecuária'!$AH$18:$AH$20",
+        "categoryFormula": "'A3 Filho pecuária'!$AG$18:$AG$20",
+        "values": [
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho pecuária",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho pecuária'!$AV$2:$AV$13",
+        "categoryFormula": "'A3 Filho pecuária'!$AQ$2:$AQ$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho pecuária'!$AW$2:$AW$13",
+        "categoryFormula": "'A3 Filho pecuária'!$AQ$2:$AQ$13",
+        "values": [
+          0.2,
+          null,
+          0.2222222222222222,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 Filho pecuária'!$AT$2:$AT$13",
+        "categoryFormula": "'A3 Filho pecuária'!$AQ$2:$AQ$13",
+        "values": [
+          0.11,
+          0.11,
+          0.11,
+          0.11,
+          0.11,
+          0.11,
+          0.11,
+          0.11,
+          0.11,
+          0.11,
+          0.11,
+          0.11
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho pecuária",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho pecuária'!$AV$14:$AV$15",
+        "categoryFormula": "'A3 Filho pecuária'!$AQ$14:$AQ$15",
+        "values": [
+          0.07547169811320754,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho pecuária'!$AW$14:$AW$15",
+        "categoryFormula": "'A3 Filho pecuária'!$AQ$14:$AQ$15",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta do ano",
+        "formula": "'A3 Filho pecuária'!$AX$14:$AX$15",
+        "categoryFormula": "'A3 Filho pecuária'!$AQ$14:$AQ$15",
+        "values": [
+          null,
+          0.11
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Peças",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget Peças",
+        "formula": "'A3 Filho Peças'!$X$2:$X$13",
+        "categoryFormula": "'A3 Filho Peças'!$W$2:$W$13",
+        "values": [
+          300000,
+          400000,
+          450000,
+          460000,
+          350000,
+          375000,
+          375000,
+          320000,
+          250000,
+          350000,
+          170000,
+          200000
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Peças'!$AD$2:$AD$14",
+        "categoryFormula": "'A3 Filho Peças'!$W$2:$W$13",
+        "values": [
+          null,
+          null,
+          609345,
+          null,
+          404197.23,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Peças'!$AE$2:$AE$14",
+        "categoryFormula": "'A3 Filho Peças'!$W$2:$W$13",
+        "values": [
+          223349,
+          286279,
+          null,
+          384493,
+          null,
+          262395.9,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Peças",
+    "title": {},
+    "series": [
+      {
+        "name": "Budget Amumulado",
+        "formula": "'A3 Filho Peças'!$Z$2:$Z$13",
+        "categoryFormula": "'A3 Filho Peças'!$W$2:$W$13",
+        "values": [
+          300000,
+          700000,
+          1150000,
+          1610000,
+          1960000,
+          2335000,
+          2710000,
+          3030000,
+          3280000,
+          3630000,
+          3800000,
+          4000000
+        ]
+      },
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Peças'!$AB$2:$AB$14",
+        "categoryFormula": "'A3 Filho Peças'!$W$2:$W$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Peças'!$AC$2:$AC$14",
+        "categoryFormula": "'A3 Filho Peças'!$W$2:$W$13",
+        "values": [
+          223349,
+          509628,
+          1118973,
+          1503466,
+          1907663.23,
+          2170059.13,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Peças",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 Filho Peças'!$X$18:$X$20",
+        "categoryFormula": "'A3 Filho Peças'!$W$18:$W$20",
+        "values": [
+          4078000,
+          3570000,
+          3243000
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Peças",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Peças'!$AO$14:$AO$15",
+        "categoryFormula": "'A3 Filho Peças'!$AG$14:$AG$15",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Peças'!$AP$14:$AP$15",
+        "categoryFormula": "'A3 Filho Peças'!$AG$14:$AG$15",
+        "values": [
+          0.03465122777647523,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 Filho Peças'!$AL$14:$AL$15",
+        "categoryFormula": "",
+        "values": [
+          null,
+          0.0386
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Peças",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Peças'!$AM$2:$AM$13",
+        "categoryFormula": "'A3 Filho Peças'!$AG$2:$AG$13",
+        "values": [
+          0.046694159932029224,
+          null,
+          0.066548025168031,
+          0.0487912988746707,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Peças'!$AN$2:$AN$13",
+        "categoryFormula": "'A3 Filho Peças'!$AG$2:$AG$13",
+        "values": [
+          null,
+          0.027356890653185792,
+          null,
+          null,
+          0.034538650783905424,
+          0.024478750265641506,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 Filho Peças'!$AL$2:$AL$13",
+        "categoryFormula": "'A3 Filho Peças'!$AG$2:$AG$13",
+        "values": [
+          0.0386,
+          0.0386,
+          0.0386,
+          0.0386,
+          0.0386,
+          0.0386,
+          0.0386,
+          0.0386,
+          0.0386,
+          0.0386,
+          0.0386,
+          0.0386
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho estoques",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho estoques'!$AA$2:$AA$13",
+        "categoryFormula": "'A3 Filho estoques'!$Y$2:$Y$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          40.09,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho estoques'!$AB$2:$AB$13",
+        "categoryFormula": "'A3 Filho estoques'!$Y$2:$Y$13",
+        "values": [
+          152,
+          116.3,
+          149.11,
+          94.8,
+          145.48,
+          null,
+          112.63,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Total horas",
+        "formula": "('A3 Filho estoques'!$AG$2:$AG$13,'A3 Filho estoques'!$AG$17)",
+        "categoryFormula": "('A3 Filho estoques'!$X$2:$X$13,'A3 Filho estoques'!$X$17)",
+        "values": null
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 Filho estoques'!$Y$2:$Y$13",
+        "categoryFormula": "('A3 Filho estoques'!$X$2:$X$13,'A3 Filho estoques'!$X$17)",
+        "values": [
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32,
+          53.32
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho estoques",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho estoques'!$AA$14:$AA$15",
+        "categoryFormula": "'A3 Filho estoques'!$X$14:$X$15",
+        "values": [
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho estoques'!$AB$14:$AB$15",
+        "categoryFormula": "'A3 Filho estoques'!$X$14:$X$15",
+        "values": [
+          0.7,
+          0.570407876230661
+        ]
+      },
+      {
+        "name": "Meta de Redução",
+        "formula": "'A3 Filho estoques'!$AE$14",
+        "categoryFormula": "'A3 Filho estoques'!$X$14:$X$15",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho estoques",
+    "title": {},
+    "series": [
+      {
+        "name": "",
+        "formula": "'A3 Filho estoques'!$Z$16",
+        "categoryFormula": "'A3 Filho estoques'!$X$16",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho estoques",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro do prazo",
+        "formula": "'A3 Filho estoques'!$AL$2:$AL$14",
+        "categoryFormula": "'A3 Filho estoques'!$AI$2:$AI$14",
+        "values": [
+          null,
+          null,
+          0.42,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora do prazo",
+        "formula": "'A3 Filho estoques'!$AM$2:$AM$14",
+        "categoryFormula": "'A3 Filho estoques'!$AI$2:$AI$14",
+        "values": [
+          null,
+          0.29,
+          null,
+          0.56,
+          0.54,
+          0.49,
+          0.73,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.43285714285714283
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 Filho estoques'!$AJ$2:$AJ$14",
+        "categoryFormula": "'A3 Filho estoques'!$AI$2:$AI$14",
+        "values": [
+          0.3,
+          0.3,
+          0.4,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1,
+          1,
+          1,
+          1,
+          1,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho estoques",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho estoques'!$BF$2:$BF$14",
+        "categoryFormula": "'A3 Filho estoques'!$BA$2:$BA$14",
+        "values": [
+          null,
+          null,
+          null,
+          0.033437137192594724,
+          0.029459541958661437,
+          0.029,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho estoques'!$BG$2:$BG$14",
+        "categoryFormula": "'A3 Filho estoques'!$BA$2:$BA$14",
+        "values": [
+          null,
+          0.0439903035006656,
+          0.04376827896512936,
+          null,
+          null,
+          null,
+          0.03301138550730604,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.03544444118739286
+        ]
+      },
+      {
+        "name": "META",
+        "formula": "'A3 Filho estoques'!$BB$2:$BB$14",
+        "categoryFormula": "'A3 Filho estoques'!$BA$2:$BA$14",
+        "values": [
+          0.04,
+          0.04,
+          0.04,
+          0.04,
+          0.035,
+          0.03,
+          0.025,
+          0.02,
+          0.015,
+          0.01,
+          0.01,
+          0.01,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho estoques",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho estoques'!$AR$2:$AR$14",
+        "categoryFormula": "'A3 Filho estoques'!$AO$2:$AO$14",
+        "values": [
+          null,
+          0.91,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho estoques'!$AS$2:$AS$14",
+        "categoryFormula": "'A3 Filho estoques'!$AO$2:$AO$14",
+        "values": [
+          null,
+          null,
+          0.97,
+          0.95,
+          0.9774,
+          0.98,
+          0.98,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "META",
+        "formula": "'A3 Filho estoques'!$AP$2:$AP$14",
+        "categoryFormula": "'A3 Filho estoques'!$AO$2:$AO$14",
+        "values": [
+          null,
+          null,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          0.985,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho estoques",
+    "title": {},
+    "series": [
+      {
+        "name": "Resultado",
+        "formula": "'A3 Filho estoques'!$BK$2:$BK$4",
+        "categoryFormula": "'A3 Filho estoques'!$BI$2:$BI$4",
+        "values": [
+          0.95,
+          0.8,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho estoques",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho estoques'!$AX$2:$AX$14",
+        "categoryFormula": "'A3 Filho estoques'!$AU$2:$AU$14",
+        "values": [
+          null,
+          0.32,
+          0.35,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho estoques'!$AY$2:$AY$14",
+        "categoryFormula": "'A3 Filho estoques'!$AU$2:$AU$14",
+        "values": [
+          null,
+          null,
+          null,
+          0.34,
+          0.3277,
+          0.38,
+          0.45,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "META",
+        "formula": "'A3 Filho estoques'!$AV$2:$AV$13",
+        "categoryFormula": "'A3 Filho estoques'!$AU$2:$AU$14",
+        "values": [
+          null,
+          null,
+          0.35,
+          0.35,
+          0.4,
+          0.45,
+          0.5,
+          0.55,
+          0.6,
+          0.65,
+          0.7,
+          0.75
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Compras'!$Z$2:$Z$14",
+        "categoryFormula": "'A3 Filho Compras'!$W$2:$W$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          56.285714285714285
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Compras'!$AA$2:$AA$14",
+        "categoryFormula": "'A3 Filho Compras'!$W$2:$W$14",
+        "values": [
+          58,
+          51,
+          48,
+          52,
+          55,
+          64,
+          66,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "META",
+        "formula": "'A3 Filho Compras'!$X$2:$X$14",
+        "categoryFormula": "'A3 Filho Compras'!$W$2:$W$14",
+        "values": [
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Compras'!$AF$2:$AF$14",
+        "categoryFormula": "'A3 Filho Compras'!$AC$2:$AC$14",
+        "values": [
+          81.45,
+          null,
+          84.14,
+          80.71,
+          null,
+          86.82,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          80.2
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Compras'!$AG$2:$AG$14",
+        "categoryFormula": "'A3 Filho Compras'!$AC$2:$AC$14",
+        "values": [
+          null,
+          74.87,
+          null,
+          null,
+          73.64,
+          null,
+          79.77,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "META",
+        "formula": "'A3 Filho Compras'!$AD$2:$AD$14",
+        "categoryFormula": "'A3 Filho Compras'!$W$2:$W$14",
+        "values": [
+          80,
+          80,
+          80,
+          80,
+          80,
+          80,
+          80,
+          80,
+          80,
+          80,
+          80,
+          80,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Compras'!$AL$2:$AL$14",
+        "categoryFormula": "'A3 Filho Compras'!$AI$2:$AI$14",
+        "values": [
+          80.78,
+          78.3,
+          87.65,
+          76.69,
+          75.33,
+          87.34,
+          82.34,
+          null,
+          null,
+          null,
+          null,
+          null,
+          81.2042857142857
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Compras'!$AM$2:$AM$14",
+        "categoryFormula": "'A3 Filho Compras'!$AI$2:$AI$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "META",
+        "formula": "'A3 Filho Compras'!$AJ$2:$AJ$14",
+        "categoryFormula": "'A3 Filho Compras'!$AI$2:$AI$14",
+        "values": [
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          75,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta mensal",
+        "formula": "'A3 Filho Compras'!$AW$2:$AW$13",
+        "categoryFormula": "'A3 Filho Compras'!$AO$2:$AO$13",
+        "values": [
+          null,
+          206079.24606856765,
+          956457.676809915,
+          314833.0914546448,
+          350808.4862751812,
+          311132.5932956026,
+          289430.68,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta mensal",
+        "formula": "'A3 Filho Compras'!$AX$2:$AX$13",
+        "categoryFormula": "'A3 Filho Compras'!$AO$2:$AO$13",
+        "values": [
+          169771.96609608893,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta Valor",
+        "formula": "'A3 Filho Compras'!$AP$2:$AP$13",
+        "categoryFormula": "'A3 Filho Compras'!$AO$2:$AO$13",
+        "values": [
+          200000,
+          200000,
+          200000,
+          200000,
+          200000,
+          200000,
+          200000,
+          200000,
+          200000,
+          200000,
+          200000,
+          200000
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Compras'!$BI$2:$BI$13",
+        "categoryFormula": "'A3 Filho Compras'!$BD$2:$BD$13",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Compras'!$BJ$2:$BJ$13",
+        "categoryFormula": "'A3 Filho Compras'!$BD$2:$BD$13",
+        "values": [
+          0,
+          2,
+          2,
+          2,
+          2,
+          2,
+          2,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta acumulada",
+        "formula": "'A3 Filho Compras'!$BG$2:$BG$13",
+        "categoryFormula": "'A3 Filho Compras'!$BD$2:$BD$13",
+        "values": [
+          1.9166,
+          3.8332,
+          5.7498000000000005,
+          7.6664,
+          9.583,
+          11.499600000000001,
+          13.416200000000002,
+          15.332800000000002,
+          17.2494,
+          19.166,
+          21.0826,
+          22.9992
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Acumulado",
+        "formula": "('A3 Filho Compras'!$AU$14,'A3 Filho Compras'!$AY$14,'A3 Filho Compras'!$AZ$14)",
+        "categoryFormula": "('A3 Filho Compras'!$AU$1,'A3 Filho Compras'!$AY$1,'A3 Filho Compras'!$AZ$1)",
+        "values": null
+      },
+      {
+        "name": "Meta acumulada",
+        "formula": "('A3 Filho Compras'!$AU$15,'A3 Filho Compras'!$AY$15,'A3 Filho Compras'!$AZ$15)",
+        "categoryFormula": "('A3 Filho Compras'!$AU$1,'A3 Filho Compras'!$AY$1,'A3 Filho Compras'!$AZ$1)",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Compras'!$BO$2:$BO$14",
+        "categoryFormula": "'A3 Filho Compras'!$BL$2:$BL$14",
+        "values": [
+          0.0097,
+          0.0235,
+          0.0052,
+          null,
+          null,
+          0.0259,
+          0.0153,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.02447142857142857
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Compras'!$BP$2:$BP$14",
+        "categoryFormula": "'A3 Filho Compras'!$BL$2:$BL$14",
+        "values": [
+          null,
+          null,
+          null,
+          0.0379,
+          0.0538,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 Filho Compras'!$BM$2:$BM$14",
+        "categoryFormula": "'A3 Filho Compras'!$BL$2:$BL$14",
+        "values": [
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          0.03,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Compras'!$BU$2:$BU$14",
+        "categoryFormula": "'A3 Filho Compras'!$BR$2:$BR$14",
+        "values": [
+          null,
+          0.0589,
+          null,
+          null,
+          null,
+          null,
+          0.0644,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Compras'!$BV$2:$BV$14",
+        "categoryFormula": "'A3 Filho Compras'!$BR$2:$BR$14",
+        "values": [
+          0.4046,
+          null,
+          0.11,
+          0.1369,
+          0.1101,
+          0.1205,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.14362857142857144
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 Filho Compras'!$BS$2:$BS$14",
+        "categoryFormula": "'A3 Filho Compras'!$BR$2:$BR$14",
+        "values": [
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          0.1,
+          null
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta %",
+        "formula": "'A3 Filho Compras'!$BB$2:$BB$13",
+        "categoryFormula": "'A3 Filho Compras'!$AO$2:$AO$13",
+        "values": [
+          0.034415973370873265,
+          null,
+          0.11630739206736508,
+          0.045354032764793294,
+          0.033494690797459044,
+          0.03236134919226302,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Fora da meta %",
+        "formula": "'A3 Filho Compras'!$BA$2:$BA$13",
+        "categoryFormula": "'A3 Filho Compras'!$AO$2:$AO$13",
+        "values": [
+          null,
+          0.022168598365508215,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta %",
+        "formula": "'A3 Filho Compras'!$AQ$2:$AQ$13",
+        "categoryFormula": "'A3 Filho Compras'!$AO$2:$AO$13",
+        "values": [
+          0.028,
+          0.028,
+          0.028,
+          0.028,
+          0.028,
+          0.028,
+          0.028,
+          0.028,
+          0.028,
+          0.028,
+          0.028,
+          0.028
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Meta %",
+        "formula": "'A3 Filho Compras'!$AQ$14",
+        "categoryFormula": "'A3 Filho Compras'!$AO$14",
+        "values": null
+      },
+      {
+        "name": "Fora da meta %",
+        "formula": "'A3 Filho Compras'!$BA$14",
+        "categoryFormula": "'A3 Filho Compras'!$AO$14",
+        "values": null
+      },
+      {
+        "name": "Dentro da meta %",
+        "formula": "'A3 Filho Compras'!$BB$14",
+        "categoryFormula": "'A3 Filho Compras'!$AO$14",
+        "values": null
+      }
+    ]
+  },
+  {
+    "sheet": "A3 Filho Compras",
+    "title": {},
+    "series": [
+      {
+        "name": "Dentro da meta",
+        "formula": "'A3 Filho Compras'!$CA$2:$CA$14",
+        "categoryFormula": "'A3 Filho Compras'!$BX$2:$BX$14",
+        "values": [
+          0.002786,
+          0.00131,
+          0.000512,
+          0.004561,
+          null,
+          0.00278,
+          0.00093,
+          null,
+          null,
+          null,
+          null,
+          null,
+          0.002601571428571429
+        ]
+      },
+      {
+        "name": "Fora da meta",
+        "formula": "'A3 Filho Compras'!$CB$2:$CB$14",
+        "categoryFormula": "'A3 Filho Compras'!$BX$2:$BX$14",
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          0.005332,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "name": "Meta",
+        "formula": "'A3 Filho Compras'!$BY$2:$BY$14",
+        "categoryFormula": "'A3 Filho Compras'!$BX$2:$BX$14",
+        "values": [
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          0.005,
+          null
+        ]
+      }
+    ]
+  }
+]

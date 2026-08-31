@@ -1,0 +1,4244 @@
+{
+  "sheets": [
+    {
+      "name": "#Capa#",
+      "state": "visible",
+      "part": "xl/worksheets/sheet1.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing1.xml",
+          "objects": [
+            {
+              "name": "Conector reto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 65",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 10",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 11",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 13",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 15",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 16",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 17",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 18",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 19",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 20",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 21",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 29",
+              "text": "A3 PECUÁRIA",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 30",
+              "text": "A3 EXPORTAÇÃO",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 31",
+              "text": "A3 PEÇAS",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 33",
+              "text": "A3 ESTOQUES",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 36",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Retângulo 39",
+              "text": "NORTE VERDADEIRO - Até 2028 Receita Líquida R$ 200.000.000 Receita Líquida de R$ 40.000.000 na Pecuária Receita Líquida de R$ 10.000.000 na Exportação EBITDA > 20% Oportunidade de crescimento de carreira Fábrica adequada ao tamanho do mercado",
+              "chart": null
+            },
+            {
+              "name": "Seta: para a Direita 41",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para a Direita 42",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para a Direita 43",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para a Direita 44",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para a Direita 45",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para a Direita 46",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 49",
+              "text": "A3 EBITDA",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 50",
+              "text": "A3 COMERCIAL",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 51",
+              "text": "A3  SUPPLY CHAIN",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 53",
+              "text": "A3 PRODUTO",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 54",
+              "text": "A3 ÁREAS TÉCNICAS",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 55",
+              "text": "A3 ENGENHARIA",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 56",
+              "text": "A3 MARKETING",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 57",
+              "text": "A3 PESSOAS",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 58",
+              "text": "A3 COMPRAS",
+              "chart": null
+            },
+            {
+              "name": "Conector reto 1",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 52",
+              "text": "A3 FABRIL",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 4",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 5",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 7",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 12",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 22",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 25",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 28",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 32",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 34",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 48",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 49",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 59",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 60",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 61",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 8",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector reto 9",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 14",
+              "text": "A3 PROCESSOS",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 27",
+              "text": "SITUAÇÃO DAS AÇÕES DE TODOS OS A3 (A3 MÃES + A3 FILHOS)",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 37",
+              "text": "SITUAÇÃO DAS AÇÕES DOS A3 MÃES",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 39",
+              "text": "SITUAÇÃO DAS AÇÕES DOS A3 FILHOS",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 42",
+              "text": "RNC'S DE CLIENTE SEM TRATAMENTO",
+              "chart": null
+            },
+            {
+              "name": "Imagem 44",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 47",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 6",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 23",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 41",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 43",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 47",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 62",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para Baixo 63",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para Baixo 64",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para Baixo 65",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para Baixo 67",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Seta: para Baixo 68",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 69",
+              "text": "Posição Julho 2026",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 70",
+              "text": "Posição atual  (19/08/26)",
+              "chart": null
+            },
+            {
+              "name": "Retângulo 71",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 72",
+              "text": "Idade das RNCs sem tratamento",
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 EBITDA",
+      "state": "visible",
+      "part": "xl/worksheets/sheet2.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing2.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 1",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart1.xml",
+                "title_text": "EBITDA MENSAL (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 EBITDA'!$AB$1",
+                  "'A3 EBITDA'!$W$2:$W$13",
+                  "'A3 EBITDA'!$AB$2:$AB$13",
+                  "'A3 EBITDA'!$AC$1",
+                  "'A3 EBITDA'!$W$2:$W$13",
+                  "'A3 EBITDA'!$AC$2:$AC$13",
+                  "'A3 EBITDA'!$X$1",
+                  "'A3 EBITDA'!$W$2:$W$13",
+                  "'A3 EBITDA'!$X$2:$X$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 6",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart2.xml",
+                "title_text": "EBITDA ACUMULADO (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 EBITDA'!$AE$1",
+                  "'A3 EBITDA'!$W$2:$W$13",
+                  "'A3 EBITDA'!$AE$2:$AE$13",
+                  "'A3 EBITDA'!$AF$1",
+                  "'A3 EBITDA'!$W$2:$W$13",
+                  "'A3 EBITDA'!$AF$2:$AF$13",
+                  "'A3 EBITDA'!$Y$1",
+                  "'A3 EBITDA'!$W$2:$W$13",
+                  "'A3 EBITDA'!$Y$2:$Y$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 4",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart3.xml",
+                "title_text": "MC1 MENSAL (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 EBITDA'!$AM$1",
+                  "'A3 EBITDA'!$AH$2:$AH$13",
+                  "'A3 EBITDA'!$AM$2:$AM$13",
+                  "'A3 EBITDA'!$AN$1",
+                  "'A3 EBITDA'!$AH$2:$AH$13",
+                  "'A3 EBITDA'!$AN$2:$AN$13",
+                  "'A3 EBITDA'!$AI$1",
+                  "'A3 EBITDA'!$AH$2:$AH$13",
+                  "'A3 EBITDA'!$AI$2:$AI$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 5",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart4.xml",
+                "title_text": "MC1 ACUMULADA [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 EBITDA'!$AO$1",
+                  "'A3 EBITDA'!$AH$14:$AH$17",
+                  "'A3 EBITDA'!$AO$14:$AO$17",
+                  "'A3 EBITDA'!$AP$1",
+                  "'A3 EBITDA'!$AH$14:$AH$17",
+                  "'A3 EBITDA'!$AP$14",
+                  "'A3 EBITDA'!$AQ$1",
+                  "'A3 EBITDA'!$AH$14:$AH$17",
+                  "'A3 EBITDA'!$AQ$14"
+                ]
+              }
+            },
+            {
+              "name": "Agrupar 7",
+              "text": "HISTÓRICO EBITDA",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "OBJETIVOS DO A3 EBITDA : Retomar o patamar histórico de EBITDA em torno de 20% sobre a Receita Líquida nos próximos anos, tendo como referência o desempenho obtido em 2021, 2022 e 2023. Médio prazo : 2026: promover ajustes operacionais e de custos que permitam elevar a margem para níveis acima de 10%. 2027: promover ajustes operacionais e de custos que permitam elevar a margem para níveis acima de 15%. Longo prazo: 2028 em diante: consolidar um modelo sustentável que garanta margens superiores a 20% de EBITDA, com estabilidade de volumes e maior eficiência no uso de matérias-primas e despesas operacionais.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 4",
+              "text": "FEVEREIRO Análise:",
+              "chart": null
+            },
+            {
+              "name": "Imagem 25",
+              "text": null,
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3  COMERCIAL",
+      "state": "visible",
+      "part": "xl/worksheets/sheet3.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing5.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart5.xml",
+                "title_text": "FATURAMENTO MENSAL VS BUDGET (REVISADO MAIO) (R$) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  COMERCIAL'!$X$1",
+                  "'A3  COMERCIAL'!$W$2:$W$13",
+                  "'A3  COMERCIAL'!$X$2:$X$13",
+                  "'A3  COMERCIAL'!$AD$1",
+                  "'A3  COMERCIAL'!$W$2:$W$13",
+                  "'A3  COMERCIAL'!$AD$2:$AD$16",
+                  "'A3  COMERCIAL'!$AE$1",
+                  "'A3  COMERCIAL'!$W$2:$W$13",
+                  "'A3  COMERCIAL'!$AE$2:$AE$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 11",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart6.xml",
+                "title_text": "FATURAMENTO ACUMULADO VS BUDGET(R$) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  COMERCIAL'!$Z$1",
+                  "'A3  COMERCIAL'!$W$2:$W$13",
+                  "'A3  COMERCIAL'!$Z$2:$Z$13",
+                  "'A3  COMERCIAL'!$AB$1",
+                  "'A3  COMERCIAL'!$W$2:$W$13",
+                  "'A3  COMERCIAL'!$AB$2:$AB$16",
+                  "'A3  COMERCIAL'!$AC$1",
+                  "'A3  COMERCIAL'!$W$2:$W$13",
+                  "'A3  COMERCIAL'!$AC$2:$AC$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 13",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart7.xml",
+                "title_text": "VOLUME MENSAL VS BUDGET (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  COMERCIAL'!$AH$1",
+                  "'A3  COMERCIAL'!$AG$2:$AG$13",
+                  "'A3  COMERCIAL'!$AH$2:$AH$13",
+                  "'A3  COMERCIAL'!$AN$1",
+                  "'A3  COMERCIAL'!$AG$2:$AG$13",
+                  "'A3  COMERCIAL'!$AN$2:$AN$16",
+                  "'A3  COMERCIAL'!$AO$1",
+                  "'A3  COMERCIAL'!$AG$2:$AG$13",
+                  "'A3  COMERCIAL'!$AO$2:$AO$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 15",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart8.xml",
+                "title_text": "VOLUME ACUMULADO VS BUDGET (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  COMERCIAL'!$AJ$1",
+                  "'A3  COMERCIAL'!$AG$2:$AG$13",
+                  "'A3  COMERCIAL'!$AJ$2:$AJ$13",
+                  "'A3  COMERCIAL'!$AL$1",
+                  "'A3  COMERCIAL'!$AG$2:$AG$13",
+                  "'A3  COMERCIAL'!$AL$2:$AL$16",
+                  "'A3  COMERCIAL'!$AM$1",
+                  "'A3  COMERCIAL'!$AG$2:$AG$13",
+                  "'A3  COMERCIAL'!$AM$2:$AM$16"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 1",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 3",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 6",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart9.xml",
+                "title_text": "HISTÓRICO FATURAMENTO",
+                "formulas": [
+                  "'A3  COMERCIAL'!$W$21:$W$23",
+                  "'A3  COMERCIAL'!$X$21:$X$23"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 8",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart10.xml",
+                "title_text": "HISTÓRICO VOLUME (QT)",
+                "formulas": [
+                  "'A3  COMERCIAL'!$AG$21:$AG$23",
+                  "'A3  COMERCIAL'!$AH$21:$AH$23"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 18",
+              "text": "MARÇO CAUSAS: Aumento de Preço , Safra atrasada , Produtor descapitalizado , expectativa agrishow, Incerteza mercado (Diesel, preço commodities) . Frete Filial (-10 maquinas) Maquinas Exportação (-3) Pedido Coplacana (-4) AÇÕES: (Ações Janeiro) , +30 dias Prazo ,Campanha 110 MT ,  Campanha Vendedor Parceiro , ExpoDireto, Show Safra , Cooperativas",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 6",
+              "text": "OBJETIVOS A3 COMERCIAL 1- FATURAMENTO 91 milhões – 2026 150 milhões – 2027 200 milhões – 2028",
+              "chart": null
+            },
+            {
+              "name": "Imagem 14",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 59",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 60",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 2",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 7",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 8",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 9",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 14",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 17",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 18",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 19",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 22",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 24",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 25",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 26",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 27",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 28",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 29",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 30",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 31",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 32",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 33",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 34",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 37",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 40",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 41",
+              "text": "PCP",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 47",
+              "text": "comercial",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 48",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart11.xml",
+                "title_text": "Acurária do forecast [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  COMERCIAL'!$AR$39",
+                  "'A3  COMERCIAL'!$AQ$40:$AQ$52",
+                  "'A3  COMERCIAL'!$AR$40:$AR$52",
+                  "'A3  COMERCIAL'!$AT$39",
+                  "'A3  COMERCIAL'!$AQ$40:$AQ$52",
+                  "'A3  COMERCIAL'!$AT$40:$AT$52",
+                  "'A3  COMERCIAL'!$AV$39",
+                  "'A3  COMERCIAL'!$AQ$40:$AQ$52",
+                  "'A3  COMERCIAL'!$AV$40:$AV$52"
+                ]
+              }
+            },
+            {
+              "name": "Imagem 52",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 57",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 59",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 61",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 62",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector de Seta Reta 12290",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Conector de Seta Reta 12291",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Gráfico 12295",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart12.xml",
+                "title_text": "Assertividade do MIX",
+                "formulas": [
+                  "'A3  COMERCIAL'!$AQ$56:$AR$56",
+                  "'A3  COMERCIAL'!$AQ$57:$AQ$62",
+                  "'A3  COMERCIAL'!$AR$57:$AR$62"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 12296",
+              "text": "Mede o quanto acertou a quantidade por Máquina",
+              "chart": null
+            },
+            {
+              "name": "Imagem 12297",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 12298",
+              "text": "Mede o quanto a composição do mix vendido mudou do mix planejado",
+              "chart": null
+            },
+            {
+              "name": "Imagem 12299",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "TextBox 12",
+              "text": "JANEIRO Principal detrator forecast: IN 100: - 15 máquinas Forecast:37  Real: 22 Principal detrator mix: IN 100 = erro de mix 11,40%",
+              "chart": null
+            },
+            {
+              "name": "TextBox 13",
+              "text": "Fevereiro Principal detrat or forecast: OUT 215: +10 máquinas Forecast: 13  Real: 23 Principal detrator mix: IN100 = erro de mix 11,19%",
+              "chart": null
+            },
+            {
+              "name": "Imagem 38",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 45",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 51",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 54",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 59",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 62",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 18",
+              "text": "JANEIRO CAUSAS: -Promoção Novembro , Revendas Estocadas , Inicio de Safra , Preço Commodities , Inadimplência Revendas A (AGY/APL/TEF). AÇÕES: -Bonus por Pacote 2% , Bonus por atingimento 1% , Bonus abertura 1,5% , Bateu-levou 5k , Aumento de Preços Março , Demo 900.",
+              "chart": null
+            },
+            {
+              "name": "TextBox 13",
+              "text": "Junho Principal detrat or forecast: IN 100 Forecast de 43 e realizaram-se 15. Principal detrator mix: IN100 Ela sozinha respondeu por um erro de mix de 22,8 pontos percentuais : o forecast previa 43 unidades (41,7% do mix do mês), mas o realizado foi de apenas 15 (19,0% do mix).",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 11",
+              "text": "Visão Geral Plano de ação A3 COMERCIAL",
+              "chart": null
+            },
+            {
+              "name": "Imagem 13",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 59",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 18",
+              "text": "JULHO CAUSAS: Aumento de Preço , Safra atrasada , Produtor descapitalizado , Incerteza mercado (preço commodities) . Super el nino (alagamentos região sul e  seca região norte), quebra de safrinha 50% minas e Goias, cenário politico, falta recursos bancos. AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "Imagem 6",
+              "text": null,
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 SUPPLY CHAIN",
+      "state": "visible",
+      "part": "xl/worksheets/sheet4.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing8.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 12",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart13.xml",
+                "title_text": "PARADA POR FALTA DE MATERIAL (HORAS/MÊS) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 SUPPLY CHAIN'!$AX$1",
+                  "'A3 SUPPLY CHAIN'!$AV$2:$AV$13",
+                  "'A3 SUPPLY CHAIN'!$AX$2:$AX$13",
+                  "'A3 SUPPLY CHAIN'!$AY$1",
+                  "'A3 SUPPLY CHAIN'!$AV$2:$AV$13",
+                  "'A3 SUPPLY CHAIN'!$AY$2:$AY$13",
+                  "'A3 SUPPLY CHAIN'!$BD$1",
+                  "('A3 SUPPLY CHAIN'!$AU$2:$AU$13,'A3 SUPPLY CHAIN'!$AU$17)",
+                  "('A3 SUPPLY CHAIN'!$BD$2:$BD$13,'A3 SUPPLY CHAIN'!$BD$17)",
+                  "'A3 SUPPLY CHAIN'!$AV$1",
+                  "('A3 SUPPLY CHAIN'!$AU$2:$AU$13,'A3 SUPPLY CHAIN'!$AU$17)",
+                  "'A3 SUPPLY CHAIN'!$AV$2:$AV$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 14",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart14.xml",
+                "title_text": "% DE REDUÇÃO ACUMULADA [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 SUPPLY CHAIN'!$AX$1",
+                  "'A3 SUPPLY CHAIN'!$AU$14:$AU$15",
+                  "'A3 SUPPLY CHAIN'!$AX$14:$AX$15",
+                  "'A3 SUPPLY CHAIN'!$AY$1",
+                  "'A3 SUPPLY CHAIN'!$AU$14:$AU$15",
+                  "'A3 SUPPLY CHAIN'!$AY$14:$AY$15",
+                  "'A3 SUPPLY CHAIN'!$BB$1",
+                  "'A3 SUPPLY CHAIN'!$AU$14:$AU$15",
+                  "'A3 SUPPLY CHAIN'!$BB$14:$BB$15"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 15",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart15.xml",
+                "title_text": "HISTÓRICO PARADAS 2025 (HORAS)",
+                "formulas": [
+                  "'A3 SUPPLY CHAIN'!$AU$16",
+                  "'A3 SUPPLY CHAIN'!$AW$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 16",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart16.xml",
+                "title_text": "CPV (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 SUPPLY CHAIN'!$AC$1",
+                  "'A3 SUPPLY CHAIN'!$X$2:$X$14",
+                  "'A3 SUPPLY CHAIN'!$AC$2:$AC$14",
+                  "'A3 SUPPLY CHAIN'!$AD$1",
+                  "'A3 SUPPLY CHAIN'!$X$2:$X$14",
+                  "'A3 SUPPLY CHAIN'!$AD$2:$AD$14",
+                  "'A3 SUPPLY CHAIN'!$Y$1",
+                  "'A3 SUPPLY CHAIN'!$X$2:$X$14",
+                  "'A3 SUPPLY CHAIN'!$Y$2:$Y$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 17",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart17.xml",
+                "title_text": "HISTÓRICO CPV",
+                "formulas": [
+                  "'A3 SUPPLY CHAIN'!$X$15:$X$16",
+                  "'A3 SUPPLY CHAIN'!$Y$15:$Y$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 18",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart18.xml",
+                "title_text": "GIRO DE ESTOQUE MENSAL (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] 0 [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 SUPPLY CHAIN'!$AN$1",
+                  "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+                  "'A3 SUPPLY CHAIN'!$AN$2:$AN$13",
+                  "'A3 SUPPLY CHAIN'!$AO$1",
+                  "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+                  "'A3 SUPPLY CHAIN'!$AO$2:$AO$13",
+                  "'A3 SUPPLY CHAIN'!$AK$1",
+                  "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+                  "'A3 SUPPLY CHAIN'!$AK$2:$AK$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 19",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart19.xml",
+                "title_text": "GIRO DE ESTOQUE ACUMULADO (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 SUPPLY CHAIN'!$AL$1",
+                  "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+                  "'A3 SUPPLY CHAIN'!$AL$2:$AL$13",
+                  "'A3 SUPPLY CHAIN'!$AP$1",
+                  "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+                  "'A3 SUPPLY CHAIN'!$AP$2:$AP$13",
+                  "'A3 SUPPLY CHAIN'!$AQ$1",
+                  "'A3 SUPPLY CHAIN'!$AG$2:$AG$13",
+                  "'A3 SUPPLY CHAIN'!$AQ$2:$AQ$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 21",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart20.xml",
+                "title_text": "HISTÓRICO  GIRO DE ESTOQUES",
+                "formulas": [
+                  "'A3 SUPPLY CHAIN'!$AG$16:$AG$17",
+                  "'A3 SUPPLY CHAIN'!$AJ$16:$AJ$17"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart21.xml",
+                "title_text": "PRAZO DE PAGAMENTO (DIAS) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 SUPPLY CHAIN'!$BI$1",
+                  "'A3 SUPPLY CHAIN'!$BF$2:$BF$14",
+                  "'A3 SUPPLY CHAIN'!$BI$2:$BI$14",
+                  "'A3 SUPPLY CHAIN'!$BJ$1",
+                  "'A3 SUPPLY CHAIN'!$BF$2:$BF$14",
+                  "'A3 SUPPLY CHAIN'!$BJ$2:$BJ$14",
+                  "'A3 SUPPLY CHAIN'!$BG$1",
+                  "'A3 SUPPLY CHAIN'!$BF$2:$BF$14",
+                  "'A3 SUPPLY CHAIN'!$BG$2:$BG$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 32",
+              "text": "FEVEREIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preenchido no A3 de estoques",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: Custo IN180 acima do BUD (ben - 6k / 2,6 ben/ 1,5 cab/ 1,5 pint reservatório/ 1k cardan) AÇÕES: Revisão do custo linha a linha ( desmontagem acarretou um custo menor em dezembro máquina sem rodado)",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 469",
+              "text": "FEVEREIRO CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: compra acompanhando a meta  comercial. AÇÕES: acompanhar a compra conforme a demanda de vendas",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: Engrenagens (compra do MRP assumiu a data de chegada da importação em 10/01/26) Retorno fornecedores e mudança de planta (80% aderente). AÇÕES: Revisada compra de das engrenagens Disparada a compra dos itens C (inicio chegada 18/02/26)",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: troca de modelo máquinas/ atraso fornecedores (destaque Metalgava)  (15% fora do prazo) Itens que antes eram beneficiados e passaram a comprados MRP não esta reconhecendo na rodada AÇÕES: FLW - fornecedores exclusão das estruturas de 150 componentes",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: Recebimento de material com o prazo de 120 dias ocorrerá a partir de fevereiro. AÇÕES: Negociação com fornecedores (contratos)",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: AÇÕES: Em Janeiro não tivemos inventário cíclico, o mesmo será retomado no mes de fevereiro.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: AÇÕES: Implantação central xml/ transferencia",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 8",
+              "text": "OBJETIVOS DO A3 SUPPLY CHAIN  2026: Redução custo produto: 1- Redução do CPV para ≤ 50% (2.400 mil) – 2,8% da RL (88M) Ciclo Operacional: 2- Giro de estoque - 4 3- Prazo médio pagamento - elevar de 25 para 35 dias. Disponibilidade Produção: 4- Reduzir em 70% o tempo de paradas por falta de material.",
+              "chart": null
+            },
+            {
+              "name": "TextBox 30",
+              "text": "FEVEREIRO CAUSAS: 50hs Engrenagens /21 hs Atraso fornecedor/ 30 hs de pagamento lista almoxarifado AÇÕES: Estabiliza em Março (prazo de entrega) Metalgava e Cofelma (troca de fábricas) Metalgava - dividindo Spend com Braslaser",
+              "chart": null
+            },
+            {
+              "name": "TextBox 33",
+              "text": "FEVEREIRO CAUSAS: AÇÕES: Implementação da separação em lote (44 horas Leef)",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 35",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart22.xml",
+                "title_text": "Acurácia inventário cíclico VALOR [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho estoques'!$AR$1",
+                  "'A3 Filho estoques'!$AO$2:$AO$14",
+                  "'A3 Filho estoques'!$AR$2:$AR$14",
+                  "'A3 Filho estoques'!$AS$1",
+                  "'A3 Filho estoques'!$AO$2:$AO$14",
+                  "'A3 Filho estoques'!$AS$2:$AS$14",
+                  "'A3 Filho estoques'!$AP$1",
+                  "'A3 Filho estoques'!$AO$2:$AO$14",
+                  "'A3 Filho estoques'!$AP$2:$AP$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 35",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart23.xml",
+                "title_text": "Acurácia inventário cíclico ITENS [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho estoques'!$AX$1",
+                  "'A3 Filho estoques'!$AU$2:$AU$14",
+                  "'A3 Filho estoques'!$AX$2:$AX$14",
+                  "'A3 Filho estoques'!$AY$1",
+                  "'A3 Filho estoques'!$AU$2:$AU$14",
+                  "'A3 Filho estoques'!$AY$2:$AY$14",
+                  "'A3 Filho estoques'!$AV$1",
+                  "'A3 Filho estoques'!$AU$2:$AU$14",
+                  "'A3 Filho estoques'!$AV$2:$AV$13"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: AÇÕES:4",
+              "chart": null
+            },
+            {
+              "name": "TextBox 33",
+              "text": "FEVEREIRO CAUSAS: AÇÕES: Implementação da separação em lote (44 horas Leef)",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: AÇÕES: Em Janeiro não tivemos inventário cíclico, o mesmo será retomado no mes de fevereiro.",
+              "chart": null
+            },
+            {
+              "name": "TextBox 7",
+              "text": "ABRIL CAUSAS: FATURAMENTO ESTOQUE VENDA FUTURA/ VENDA 110 MARGEM DE 21% AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 13",
+              "text": "ABRIL CAUSAS: compra acompanhando a meta  comercial. AÇÕES: REVISÃO DE COMPRAS PARA NOVO CENÁRIO 2026",
+              "chart": null
+            },
+            {
+              "name": "TextBox 18",
+              "text": "ABRIL CAUSAS: 36 paradas  ( 28 não critico e 8 criticas) AÇÕES: Revisão do processo de pagamento e listas",
+              "chart": null
+            },
+            {
+              "name": "Imagem 12",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 12",
+              "text": "Visão Geral Plano de ação A3 Supply",
+              "chart": null
+            },
+            {
+              "name": "Imagem 21",
+              "text": null,
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3  FABRIL",
+      "state": "visible",
+      "part": "xl/worksheets/sheet5.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing15.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": ",95",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart24.xml",
+                "title_text": "HISTÓRICO OEE",
+                "formulas": [
+                  "'A3  FABRIL'!$W$15:$W$16",
+                  "'A3  FABRIL'!$X$15:$X$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 5",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart25.xml",
+                "title_text": "HISTÓRICO 5'S FABRICA",
+                "formulas": [
+                  "'A3  FABRIL'!$BC$15:$BC$16",
+                  "'A3  FABRIL'!$BD$15:$BD$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 11",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart26.xml",
+                "title_text": "HISTÓRICO GGF",
+                "formulas": [
+                  "'A3  FABRIL'!$AG$15:$AG$16",
+                  "'A3  FABRIL'!$AH$15:$AH$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 8",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart27.xml",
+                "title_text": "GGF GERAL - MENSAL [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  FABRIL'!$AM$1",
+                  "'A3  FABRIL'!$AG$2:$AG$13",
+                  "'A3  FABRIL'!$AM$2:$AM$13",
+                  "'A3  FABRIL'!$AN$1",
+                  "'A3  FABRIL'!$AG$2:$AG$13",
+                  "'A3  FABRIL'!$AN$2:$AN$13",
+                  "'A3  FABRIL'!$AL$1",
+                  "'A3  FABRIL'!$AG$2:$AG$13",
+                  "'A3  FABRIL'!$AL$2:$AL$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 4",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart28.xml",
+                "title_text": "5's FÁBRICA [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  FABRIL'!$BF$1",
+                  "'A3  FABRIL'!$BC$2:$BC$14",
+                  "'A3  FABRIL'!$BF$2:$BF$14",
+                  "'A3  FABRIL'!$BG$1",
+                  "'A3  FABRIL'!$BC$2:$BC$14",
+                  "'A3  FABRIL'!$BG$2:$BG$14",
+                  "'A3  FABRIL'!$BD$1",
+                  "'A3  FABRIL'!$BC$2:$BC$14",
+                  "'A3  FABRIL'!$BD$2:$BD$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart29.xml",
+                "title_text": "GGF PRODUÇÃO MENSAL E ACUMULADO [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  FABRIL'!$AX$1",
+                  "'A3  FABRIL'!$AS$2:$AS$14",
+                  "'A3  FABRIL'!$AX$2:$AX$14",
+                  "'A3  FABRIL'!$AY$1",
+                  "'A3  FABRIL'!$AS$2:$AS$14",
+                  "'A3  FABRIL'!$AY$2:$AY$14",
+                  "'A3  FABRIL'!$AW$1",
+                  "'A3  FABRIL'!$AS$2:$AS$14",
+                  "'A3  FABRIL'!$AW$2:$AW$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS:  Disponibilidade e Performance - 1° - 223,07 - Falta de operador 2° - 149,11 - Falta de Material (101,05 FM. Compras) 3° - 92,65 - Retrabalhos (46,38h Ret. engenharia) AÇÕES: 1° - SUBSTITUIÇÃO DE UM AFASTAMENTO (IMPACTO 99H) 2° - A3 SUPPLY CHAIN 3° - A3 ENGENHARIA",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: Pintura AÇÕES: 1° levantar e analisar os pontos de impacto na Auditoria de 5s",
+              "chart": null
+            },
+            {
+              "name": "Agrupar 29",
+              "text": "Meta 2026: ≥ 72%",
+              "chart": {
+                "part": "xl/charts/chart30.xml",
+                "title_text": "OEE GERAL (%) Mensal e Média do ano [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  FABRIL'!$Z$1",
+                  "'A3  FABRIL'!$W$2:$W$14",
+                  "'A3  FABRIL'!$Z$2:$Z$14",
+                  "'A3  FABRIL'!$AA$1",
+                  "'A3  FABRIL'!$W$2:$W$14",
+                  "'A3  FABRIL'!$AA$2:$AA$14",
+                  "'A3  FABRIL'!$X$1",
+                  "'A3  FABRIL'!$W$2:$W$14",
+                  "'A3  FABRIL'!$X$2:$X$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 31",
+              "text": "OBJETIVOS DO A3 FABRIL 2026: 1. Produtividade: Aumentar o OEE Geral de 67% para 72%. 2. GGF Diminuir o GGF de 15,22% para 14,3%(ALTERADO A META 17,84%) 3. 5's Aumentar a nota de 4,2 para 4,5.",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 6",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart31.xml",
+                "title_text": "GGF GERAL - ACUMULADO [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  FABRIL'!$AJ$1",
+                  "'A3  FABRIL'!$AG$2:$AG$13",
+                  "'A3  FABRIL'!$AJ$2:$AJ$13",
+                  "'A3  FABRIL'!$AP$1",
+                  "'A3  FABRIL'!$AG$2:$AG$13",
+                  "'A3  FABRIL'!$AP$2:$AP$13",
+                  "'A3  FABRIL'!$AQ$1",
+                  "'A3  FABRIL'!$AG$2:$AG$13",
+                  "'A3  FABRIL'!$AQ$2:$AQ$13"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS:  Disponibilidade e Performance - 1° - 222,35- Falta de operador 2° - 94,55 - Falta de Material ( 48,08 FM. Almox) 3° - 92,65 - Retrabalhos (29,87 Ret. engenharia) AÇÕES: 1° - REMOÇÃO DE UM TERCEIRO DA SOLDA . 2° - A3 SUPPLY CHAIN 3° - A3 ENGENHARIA",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: 1° - FATURAMENTO - 36% ABAIXO DO PREVISTO ( R$ 3.979.316,00 ). PREVISTO R$ 10.920.995,00 --> RL R$ 6.941.678,00 2° GASTOS DE FABRICAÇÃO 5,3% A MAIS QUE O ORÇADO (R$ 30.388,52) PREVISTO R$ 573.269,60 --> R$ 603.658,12 - PRODUZIDO 26 ACIMA DO PLANEJADO DO BUDGE ORÇADO AÇÕES: 1° - A3 COMERCIAL 2° - DEFINIR SE AINDA DEVE SER SEGUIDO PLANO DE 1041 MÁQUINAS. 3° - VALIDAR A NECESSIDADE DE TERCEIROS.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MAIO CAUSAS: 1° - FATURAMENTO -19,6 % ABAIXO DO PREVISTO ( R$ 2.548,622,08 ). PREVISTO R$ 13.022.177,08 --> RL R$ 10.473.555,00 2° GASTOS DE FABRICAÇÃO 5,36 % A MENOS QUE O ORÇADO (R$ 77.118,82). PREVISTO R$ 1.439.380,82 --> Gasto R$ 1.362.262,00 AÇÕES : 1° - A3 COMERCIAL.",
+              "chart": null
+            },
+            {
+              "name": "Conector de Seta Reta 17",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "TextBox 10",
+              "text": "MAIO CAUSAS: MONTAGEM , PINTURA E SOLDA AÇÕES: REUNIOES COM TODAS AS AREA ELABORAR PLANO DE AÇÃO",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JUNHO CAUSAS: 1° - FATURAMENTO 12,9 % ABAIXO DO PREVISTO ( R$1.420.550,21). PREVISTO R$ 11.034.877,21  --> RL R$ 9.614.327,00 2° GASTOS DE FABRICAÇÃO 15,6 % A MAIS QUE O ORÇADO (R$ 184.162,42). PREVISTO R$  1.180.144,58 -->  Gasto R$ 1.364.307,00 AÇÕES : 1° - A3 COMERCIAL. 2°-",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JUNHO CAUSAS: 1° - FATURAMENTO 12,9% ABAIXO DO PREVISTO ( R$ 1.420.550,21 ). PREVISTO R$11.034.877,21--> RL R$9.614.327,00 OBS: GASTOS DE FABRICAÇÃO 7,57% A MENOS QUE O ORÇADO ( R$ 42.496,91 ) PREVISTO R$ 561.698,91 --> GASTO R$519,202,00 AÇÕES: 1° - A3 COMERCIAL",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Visão Geral Plano de ação A3 Fabril",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JULHO CAUSAS: 1° - FATURAMENTO 24,70 % ABAIXO DO PREVISTO ( R$2.259.079,00). PREVISTO R$ 9.144.674,00  --> RL R$ 6.885.595,00 2° GASTOS DE FABRICAÇÃO 0,26 % A MAIS QUE O ORÇADO (R$ 3.745,53). PREVISTO R$  1.414.914,00 -->  Gasto R$ 1.411.168,47 AÇÕES : 1° - A3 COMERCIAL.",
+              "chart": null
+            },
+            {
+              "name": "Imagem 8",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JULHO CAUSAS: 1° - FATURAMENTO 24,70 % ABAIXO DO PREVISTO ( R$2.259.079,00). PREVISTO R$ 9.144.674,00  --> RL R$ 6.885.595,00 2° GASTOS DE FABRICAÇÃO 11,08 % A MENOS QUE O ORÇADO (R$ 75.099,25). PREVISTO R$  677.859,05 -->  Gasto R$ 602.759,80 AÇÕES : 1° - A3 COMERCIAL.",
+              "chart": null
+            },
+            {
+              "name": "Imagem 23",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Elipse 8",
+              "text": "- 4 prorrogada - 2 do Willian  atrasou os gabaritos devido a outras demandas. 1 do João Gabriel (box Padrão) e 1 Raquel, sequenciameno do Robô; - 1 Cancelada: ação repetida (box padrão)",
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 FORMATAÇÃO ÁREA TÉCNICA",
+      "state": "visible",
+      "part": "xl/worksheets/sheet6.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing19.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Gráfico 13",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart32.xml",
+                "title_text": "Tempo de parada áreas técnicas por máquina na pré-série",
+                "formulas": [
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BF$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BD$4",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BF$4",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BE$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BD$4",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$BE$4"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 1",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart33.xml",
+                "title_text": "INDICE DE GARANTIAS GERAL MENSAL (%) Total de garantia /máquinas vendidas [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AC$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$1:$X$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AC$2:$AC$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AD$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$1:$X$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AD$2:$AD$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AA$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$2:$X$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AA$2:$AA$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 11",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart34.xml",
+                "title_text": "% GARANTIA ACUMULADO X META ANUAL",
+                "formulas": [
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AC$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$14:$X$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AC$14:$AC$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AD$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$14:$X$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AD$14:$AD$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AE$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$14:$X$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AE$14:$AE$15"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 12",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart35.xml",
+                "title_text": "OCORÊNCIAS X VOLUME",
+                "formulas": [
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$Y$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$2:$X$14",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$Y$2:$Y$14",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$Z$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$2:$X$14",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$Z$2:$Z$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart36.xml",
+                "title_text": "INDÍCE DE GARANTIAS MÁQUINAS NOVAS MENSAL [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AP$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AP$2:$AP$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AQ$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AQ$2:$AQ$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AN$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$13",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AN$2:$AN$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 537",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart37.xml",
+                "title_text": "HISTÓRICO % GARANTIA",
+                "formulas": [
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$X$17:$X$18",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$Y$17:$Y$18"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 542",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart38.xml",
+                "title_text": "% GARANTIA ACUMULADO VS META ANUAL [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AP$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$14:$AK$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AP$14:$AP$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AQ$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$14:$AK$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AQ$14:$AQ$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AR$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$14:$AK$15",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AR$14:$AR$15"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 543",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart39.xml",
+                "title_text": "OCORRÊNCIAS x VOLUME",
+                "formulas": [
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AL$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$14",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AL$2:$AL$14",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AM$1",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AK$2:$AK$14",
+                  "'A3 FORMATAÇÃO ÁREA TÉCNICA'!$AM$2:$AM$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 5",
+              "text": "Objetivo: Melhorar a eficácia das áreas técnicas Metas: Diminuir o índice de garantias Geral em 25% (de 16,34 % para 12,2%) Diminuir o índice de garantias de máquinas novas em 25 % (de 40% para 30%) Reduzir tempo de parada por causa \"áreas técnicas\" por máquina montada em 25% (de 3,35h por máquina para 2,5h) *Dados Setembro 2025",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 38",
+              "text": "Máquinas Janeiro 2026: IN 180 - 3 IN 91 - 2 OUT 221- 0 IN 101 -  0",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "Máquinas Fevereiro 2026: IN 180 - 2 IN 91 - 3 OUT 221- 0 IN 101 -  2 RNC - 01 IN 101",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "Máquinas Fevereiro 2026: IN 180 - 2 IN 91 - 3 OUT 221- 0 IN 101 -  2 RNC - 01 IN 101",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "Máquinas Fevereiro 2026: IN 180 - 2 IN 91 - 3 OUT 221- 0 IN 101 -  2 RNC - 01 IN 101",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "Máquinas Fevereiro 2026: IN 180 - 2 IN 91 - 3 OUT 221- 0 IN 101 -  2 RNC - 01 IN 101",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "Máquinas Março 2026: IN 180 - 2 IN 91 - 1 OUT 221- 1 IN 101 -  0 RNC - 0",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "Máquinas Abril 2026: IN 180 - 3 IN 91 - 1 OUT 221- 1 IN 101 -  1 RNC - 180-3 RNC 91-1 RNC 101 -  1",
+              "chart": null
+            },
+            {
+              "name": "TextBox 4",
+              "text": "ABRIL CAUSAS: IN180 3 CHAMADOS: ENVIO 3 MOTOR 180 URUGUAY/PARAGUAY/CONSORTE PEÇA COM FALHA NA SOLDA IN180 PARAGUAY IN100 1 CHAMADO: BOMBAS E REENVIO DAS BOMBAS DA IROPEL OUT220 5 CHAMADOS : 1 CASO PASSIVO DA CHAPA PEGANDO NO TUBO. / 1 PROBLEMA DE EMPENAMENTO DO CILINDRO (FORNECEDOR) / 1 PROBLEMA DA HASTE CENTRALIZADORA QUEBRA / 1 PROBLEMA DE QUEBRA DO EIXO NA CAIXA. / 1 PROBLEMA NYLON QUEBRADO. IN101 1 CHAMADO :  PROBLEMA DE DESGASTE DO EIXO DO CARRACOL IN91 1 CHAMADO: QUEBRADA FLANGE DA POLIA AÇÕES: IN180: ENGENHARIA VERIFICANDO PROJETO IN100 BOMBAS: TRATATIVA E DEVOLUÇÃO AO FORNECEDOR OUT220: RETORNO DA PEÇA AO FORNECEDOR CILINDRO / RETORNO DAS PEÇAS A MARCHER VERIFICAR. IN101: REFORÇADO UM EIXO E ENVIADO AO CLIENTE IN91: REVISÃO DA FIXAÇÃO DO FLANGE E ALINHAMENTO",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 4",
+              "text": "0",
+              "chart": null
+            },
+            {
+              "name": "Imagem 911",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "TextBox 4",
+              "text": "MAIO CAUSAS: IN100 2 CHAMADOS: VALVULA COM VAZAMENTO  / CHAMADO RECORRENTE BOMBA OUT220: CAIXA DE TRASMISSÃO SEM OLEO IN150: PRODUTO ENVIADO SEM CABIDE IN180 2 MAQUINAS: PEÇA COM FALHA NA SOLDA PARAGUAY (OUTRA MAQUINA) / MAQUINA COM AVARIA DE PINTURA (FILIAL) OUT215+ 2 CHAMADOS: ENVIO DO CARDAN ERRADO / GANCHO DO ROLO INVERTIDO IN90 : CHAMADO RECORRENTE BOMBA AÇÕES: IN100 TRATATIVA COM FORNECEDOR OUT220 CONTER O QUE TINHAMOS NO ESTOQUE / COBRANÇA FORNECEDOR IN150: SEM EVIDENCIAS DE ENVIO / CHECK LIST IN180: ENGENHARIA VERIFICANDO PROJETO OUT215+: REALIZADO CONTENÇÃO E RETRABALHADO OS GANCHOS. IN90: TRATATIVA COM FORNECEDOR",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "Máquinas Maio 2026: IN 180 - 3 IN 91 - 7 OUT 221- 1 RNC - 180-3 RNC 91-1",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 9",
+              "text": "Visão Geral Plano de ação A3 Áreas  Técnicas",
+              "chart": null
+            },
+            {
+              "name": "TextBox 1",
+              "text": "JUNHO CAUSAS: OUT220 4 CHAMADOS : VALVULA DIRECIONAL(PASSIVO) / CAIXA DE TRANSMISSÃO VAZANDO / PROBLEMA PISTÃO / SUPORTE FORA DE POSIÇÃO OUT215 2 CHAMADOS: VAZAMENTO DO MOTOR HIDRAULICO DO ROLO IN90: MACACO (PASSIVO) / POSSIVEL DESALINHAMENTO NA TORRE IN180: QUEBRA DOS ESTRIADOS DA CAIXA , CARACOL IN100 : CHAMADO RECORRENTE BOMBA IN91 3 CHAMADOS : QUEBRA DO EIXO DE BAIXO/ ALINHAMENTO DE POLIA/ MANCAL DANIFICADO AÇÕES: IN100 TRATATIVA COM FORNECEDOR OUT220 RETORNO DA PEÇA VERIFICAR FORNECEDOR OUT215: TRATATIVA JUNTO AO FORNECEDOR IN180: ENGENHARIA FOI JUNTO AO CLIENTE IN91: ENVIADO NOVO EIXO REFORÇADO / PASSADO AO SETOR RESPONSAVEL",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "Máquinas Junho 2026: IN 180 - 6 IN 91 - 6 RNC - 180- 1 RNC 91-3",
+              "chart": null
+            },
+            {
+              "name": "AutoShape 8",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 20",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "TextBox 13",
+              "text": "JULHO CAUSAS: IN200 : PROBLEMA NO MACACO / VAZAMENTO DA BOMBA OUT220: PROBLEMA NA CAIXA DE TRANSMISSÃO / PROBLEMA DE RUPTURA DO CHASSI / SUPORTE PEGANDO NO EIXO (PASSIVO) / PROBLEMA NO EIXO INFERIOR DE ACIONAMENTO / MANGUEIRAS DESGASTADAS IN91: QUEBRA DO MANCAL / QUEBRA TECNIL OUT215: DESGASTE DA LUVA DO CARACOL / SEM MOSQUINHA IN180 : PROBLEMA NO MACACO E NOS REGISTROS IN100: BOMBA DE FREIO COM REGULADOR ROSCA ESPANADA AÇÕES: IN200 BOMBAS DE FREIO FORNECEDOR / MACACO FORNECEDOR OUT220 TRATATIVA JUNTO AO FORNECEDOR  / MANGUEIRAS TRATATIVA CORRETA DE ENVIO DA MAQUINA. OUT215: FEITO A CONTEÇÃO DO QUE TINHAMOS EM ESTOQUE IN180 : TRATATIVA JUNTO AO FORNECEDOR IN91 : ENGENHARIA ESTA ANALISANDO POSSIVEIS CAUSAS QUE ESTA GERANDO O CALOR E DANIFICANDO O TECNIL.",
+              "chart": null
+            },
+            {
+              "name": "Imagem 10",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 1",
+              "text": null,
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3  PEP",
+      "state": "visible",
+      "part": "xl/worksheets/sheet7.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing23.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 1",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart40.xml",
+                "title_text": "% Máquinas críticas no faturamento mensal [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  PEP'!$AO$1",
+                  "'A3  PEP'!$AI$2:$AI$13",
+                  "'A3  PEP'!$AO$2:$AO$13",
+                  "'A3  PEP'!$AP$1",
+                  "'A3  PEP'!$AI$2:$AI$13",
+                  "'A3  PEP'!$AP$2:$AP$13",
+                  "'A3  PEP'!$AN$1",
+                  "'A3  PEP'!$AI$2:$AI$13",
+                  "'A3  PEP'!$AN$2:$AN$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 4",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart41.xml",
+                "title_text": "% Máquinas críticas no faturamento acumulado",
+                "formulas": [
+                  "'A3  PEP'!$AQ$1",
+                  "('A3  PEP'!$AI$14,'A3  PEP'!$AI$17)",
+                  "('A3  PEP'!$AQ$14,'A3  PEP'!$AQ$17)",
+                  "'A3  PEP'!$AR$1",
+                  "('A3  PEP'!$AI$14,'A3  PEP'!$AI$17)",
+                  "('A3  PEP'!$AR$14,'A3  PEP'!$AR$17)",
+                  "'A3  PEP'!$AN$1",
+                  "('A3  PEP'!$AI$14,'A3  PEP'!$AI$17)",
+                  "('A3  PEP'!$AN$14,'A3  PEP'!$AN$17)"
+                ]
+              }
+            },
+            {
+              "name": "Imagem 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 6",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Gráfico 5",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart42.xml",
+                "title_text": "NOVOS PRODUTOS SOBRE O FATURAMENTO MENSAL (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  PEP'!$BG$1",
+                  "'A3  PEP'!$AT$2:$AT$13",
+                  "'A3  PEP'!$BG$2:$BG$13",
+                  "'A3  PEP'!$BH$1",
+                  "'A3  PEP'!$AT$2:$AT$13",
+                  "'A3  PEP'!$BH$2:$BH$13",
+                  "'A3  PEP'!$BF$1",
+                  "'A3  PEP'!$AT$2:$AT$13",
+                  "'A3  PEP'!$BF$2:$BF$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 6",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart43.xml",
+                "title_text": "NOVOS PRODUTOS SOBRE O FATURAMENTO ACUMULADO (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  PEP'!$BF$1",
+                  "'A3  PEP'!$AT$14",
+                  "'A3  PEP'!$BF$14",
+                  "'A3  PEP'!$BI$1",
+                  "'A3  PEP'!$AT$14",
+                  "'A3  PEP'!$BI$14",
+                  "'A3  PEP'!$BJ$1",
+                  "'A3  PEP'!$AT$14",
+                  "'A3  PEP'!$BJ$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 13",
+              "text": "ANÁLISE 1° TRIMESTRE:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "OBJETIVOS DO A3 PRODUTO 2026: Estratégia de Defesa de Mercado: Dificultar a expansão da concorrência através de redução de custos em alguns modelos; e também a permanência dos atuais clientes, oferecendo novos diferenciais ou novas funcionalidades. Expansão e Inovação: Desenvolver novos produtos que possam entregar soluções inteligentes e inovadoras nos sistemas de armazenagem para as linhas de grãos e pecuária; entendendo as necessidades dos clientes. METAS 2026 1- Reduzir a concentração de faturamento nos quatro produtos líderes de 91,92% para 87,6% . 2-Elevar a participação de produtos novos para 10% do faturamento . 3-Alcançar NPS acima de 50 para produtos novos (fase 6).",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 6",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart44.xml",
+                "title_text": "NPS Lote piloto",
+                "formulas": [
+                  "'A3  PEP'!$Z$1",
+                  "'A3  PEP'!$X$2:$X$5",
+                  "'A3  PEP'!$Z$2:$Z$5",
+                  "'A3  PEP'!$Y$1",
+                  "'A3  PEP'!$X$2:$X$5",
+                  "'A3  PEP'!$Y$2:$Y$5"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 13",
+              "text": "ANÁLISE :",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "ANÁLISE 1° TRIMESTRE:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 14",
+              "text": "Visão Geral Plano de ação A3 Produto",
+              "chart": null
+            },
+            {
+              "name": "Imagem 8",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 12",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 16",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 18",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 4",
+              "text": null,
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3  MARKETING",
+      "state": "visible",
+      "part": "xl/worksheets/sheet8.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing26.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 1",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart45.xml",
+                "title_text": "REVENDAS COM CANAL DIRETO (%) Meta acumulada X resultado acumulado [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  MARKETING'!$AC$1",
+                  "'A3  MARKETING'!$X$2:$X$13",
+                  "'A3  MARKETING'!$AC$2:$AC$13",
+                  "'A3  MARKETING'!$AD$1",
+                  "'A3  MARKETING'!$X$2:$X$13",
+                  "'A3  MARKETING'!$AD$2:$AD$13",
+                  "'A3  MARKETING'!$AA$1",
+                  "'A3  MARKETING'!$X$2:$X$13",
+                  "'A3  MARKETING'!$AA$2:$AA$13"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 3",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 4",
+              "text": "Preencher       aqui",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 6",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart46.xml",
+                "title_text": "Estruturação da inteligência de mercado (%) Porcentagem de evolução [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  MARKETING'!$AK$1",
+                  "'A3  MARKETING'!$AH$1:$AH$13",
+                  "'A3  MARKETING'!$AK$2:$AK$13",
+                  "'A3  MARKETING'!$AL$1",
+                  "'A3  MARKETING'!$AH$1:$AH$13",
+                  "'A3  MARKETING'!$AL$2:$AL$13",
+                  "'A3  MARKETING'!$AI$1",
+                  "'A3  MARKETING'!$AH$2:$AH$13",
+                  "'A3  MARKETING'!$AI$2:$AI$13"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 7",
+              "text": "Preencher       aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 8",
+              "text": "Colocar etapas",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 9",
+              "text": "Colocar etapas",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 5",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart47.xml",
+                "title_text": "Processo Padronizado para funil de vendas (%) Porcentagem de evolução [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  MARKETING'!$BA$1",
+                  "'A3  MARKETING'!$AX$2:$AX$13",
+                  "'A3  MARKETING'!$BA$2:$BA$13",
+                  "'A3  MARKETING'!$BB$1",
+                  "'A3  MARKETING'!$AX$2:$AX$13",
+                  "'A3  MARKETING'!$BB$2:$BB$13",
+                  "'A3  MARKETING'!$AY$1",
+                  "'A3  MARKETING'!$AX$2:$AX$13",
+                  "'A3  MARKETING'!$AY$2:$AY$13"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 10",
+              "text": "Preencher       aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 18",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart48.xml",
+                "title_text": "CONHECIMENTO DO CLIENTE FINAL (%)",
+                "formulas": [
+                  "'A3  MARKETING'!$AP$1",
+                  "'A3  MARKETING'!$AO$2:$AO$13",
+                  "'A3  MARKETING'!$AP$2:$AP$13",
+                  "'A3  MARKETING'!$AQ$1",
+                  "'A3  MARKETING'!$AO$2:$AO$13",
+                  "'A3  MARKETING'!$AQ$2:$AQ$13"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 39",
+              "text": "OBJETIVOS DO A3 MARKETING 2026: Canal direto com revendas: 1- Estabelecer canal de comunicação direto com as revendas (70% das revendas por região) – Até ago/2026 Inteligência de mercado: 2- Estruturar dados de Inteligência de Mercado para report – Até jun / 2026 Funil de vendas: 3- Medir a taxa de conversão de leads, revendas e clientes finais, com processo e canal padronizado – Até abr/2026 Conhecimento do cliente final: Elevar de 25% para 80% o nível de conhecimento dos dados do cliente final (nome, e-mail, localização, modelo da máquina e data de aquisição) – Até dez/2026",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 11",
+              "text": "Meta 2026: ≥ 80 %",
+              "chart": null
+            },
+            {
+              "name": "TextBox 12",
+              "text": "FEVEREIRO CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 1",
+              "text": "Total revendas 239 Meta (70%) 167 Realizado 156",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 14",
+              "text": "VISÃO GERAL PLANO A3 MARKETING",
+              "chart": null
+            },
+            {
+              "name": "Imagem 14",
+              "text": null,
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3  ENGENHARIA",
+      "state": "visible",
+      "part": "xl/worksheets/sheet9.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing30.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Imagem 1",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 8",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart49.xml",
+                "title_text": "PARADAS ENGENHARIA NA PRODUÇÃO (HORAS) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  ENGENHARIA'!$AL$1",
+                  "('A3  ENGENHARIA'!$AI$2:$AI$13,'A3  ENGENHARIA'!$AI$16)",
+                  "('A3  ENGENHARIA'!$AL$2:$AL$13,'A3  ENGENHARIA'!$AL$16)",
+                  "'A3  ENGENHARIA'!$AM$1",
+                  "('A3  ENGENHARIA'!$AI$2:$AI$13,'A3  ENGENHARIA'!$AI$16)",
+                  "('A3  ENGENHARIA'!$AM$2:$AM$13,'A3  ENGENHARIA'!$AM$16)",
+                  "'A3  ENGENHARIA'!$AN$1",
+                  "('A3  ENGENHARIA'!$AI$2:$AI$13,'A3  ENGENHARIA'!$AI$16)",
+                  "('A3  ENGENHARIA'!$AN$2:$AN$13,'A3  ENGENHARIA'!$AN$16)",
+                  "'A3  ENGENHARIA'!$AJ$1",
+                  "('A3  ENGENHARIA'!$AI$2:$AI$13,'A3  ENGENHARIA'!$AI$16)",
+                  "('A3  ENGENHARIA'!$AJ$2:$AJ$13,'A3  ENGENHARIA'!$AJ$16)"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 9",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart50.xml",
+                "title_text": "REDUÇÃO SOBRE 2025 (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  ENGENHARIA'!$AQ$1:$AQ$13",
+                  "'A3  ENGENHARIA'!$AI$14:$AI$15",
+                  "'A3  ENGENHARIA'!$AQ$14:$AQ$15",
+                  "'A3  ENGENHARIA'!$AS$1:$AS$13",
+                  "'A3  ENGENHARIA'!$AI$14:$AI$15",
+                  "'A3  ENGENHARIA'!$AS$14:$AS$15",
+                  "'A3  ENGENHARIA'!$AT$1:$AT$13",
+                  "'A3  ENGENHARIA'!$AI$14:$AI$15",
+                  "'A3  ENGENHARIA'!$AT$14:$AT$15"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 10",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart51.xml",
+                "title_text": "GARANTIAS POR ERRO DE PROJETO (%) Máquinas vendidas/RNC Eng. [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3  ENGENHARIA'!$BB$1",
+                  "'A3  ENGENHARIA'!$AW$2:$AW$14",
+                  "'A3  ENGENHARIA'!$BB$2:$BB$14",
+                  "'A3  ENGENHARIA'!$BC$1",
+                  "'A3  ENGENHARIA'!$AW$2:$AW$14",
+                  "'A3  ENGENHARIA'!$BC$2:$BC$14",
+                  "'A3  ENGENHARIA'!$AX$1",
+                  "'A3  ENGENHARIA'!$AW$2:$AW$14",
+                  "'A3  ENGENHARIA'!$AX$2:$AX$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 6",
+              "text": "OBJETIVOS DO A3 ENGENHARIA 2026: Melhorar a eficácia no desenvolvimento de produtos: 1 - Atendimento dos prazos de tarefas críticas do PDP em  90%. 2- Diminuir as paradas de produção associadas a erros de projetos em 30%. 3-  Atingimento dos valores acordados durante o desenvolvimento com no máximo 10% do desvio de mais. 4- Nível de garantia dos produtos associadas à erros de projeto máximo em 5% Melhoria do custo dos produtos 1- Desenvolver soluções de design e processos com foco em custo de fabricação nos modelos 60,65, 900, 910 , 215,220 em 2026. 2- 544 itens a serem comunizados ou cancelados em 2026. Aumento do controle de propriedade industrial: 1-Aumentar o nível de segurança da informação técnica em (de / para) 2-Mapear e apresentar as sugestões de patente dos projetos lançados de 2025 em diante.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: Implementação das novas versões de 100/215/220 - A melhoria sobre o cabeçalho de comando para melhor acomodação das mangueiras gerou atualização de peças apontadas como retrabalho parra Engenharia, elevando o nível de horas. AÇÕES: As demandas foram pontuais devido à implementação, foram solucionadas e as mesmas não devem se repetir.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Plano de ações",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 35",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart52.xml",
+                "title_text": "Histórico - Horas acumulada ano",
+                "formulas": [
+                  "'A3  ENGENHARIA'!$AL$1",
+                  "'A3  ENGENHARIA'!$AI$17",
+                  "'A3  ENGENHARIA'!$AL$17"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: Implementação das novas versões de 100/215/220 - A melhoria sobre o cabeçalho de comando para melhor acomodação das mangueiras gerou atualização de peças apontadas como retrabalho parra Engenharia, elevando o nível de horas. AÇÕES: As demandas foram pontuais devido à implementação, foram solucionadas e as mesmas não devem se repetir.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: Implementação das novas versões de 215/220 - saldo de Março - Retrabalhos IN180 e tryout 181. AÇÕES: As demandas foram pontuais devido à implementação tendem a reduzir ja a partir de maio.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JUNHO CAUSAS: RNCs relativos aos problemas de quebras na IN180, cada máquina abrindo um RNC. AÇÕES: Alterações de projeto na IN180 em andamento.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JULHO CAUSAS: 2 RNCs remanescente de problemas ocorrido no mês anterior  (1x  180 Cvale, 1x  IN91 eixo entrada). AÇÕES: Alterações de projeto na IN180 e do eixo IN91 em andamento - implementação.",
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 PESSOAS ",
+      "state": "visible",
+      "part": "xl/worksheets/sheet10.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing33.xml",
+          "objects": [
+            {
+              "name": "Gráfico 14",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart53.xml",
+                "title_text": "TURNOVER ANUAL 2026 (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$AN$1",
+                  "'A3 PESSOAS '!$AF$16:$AF$17",
+                  "'A3 PESSOAS '!$AN$16:$AN$17",
+                  "'A3 PESSOAS '!$AO$1",
+                  "'A3 PESSOAS '!$AF$16:$AF$17",
+                  "'A3 PESSOAS '!$AO$16:$AO$17",
+                  "'A3 PESSOAS '!$AP$1",
+                  "'A3 PESSOAS '!$AF$16:$AF$17",
+                  "'A3 PESSOAS '!$AP$16:$AP$17"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 10",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart54.xml",
+                "title_text": "TURNOVER MENSAL (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$AN$1",
+                  "('A3 PESSOAS '!$AF$2:$AF$13,'A3 PESSOAS '!$AF$15)",
+                  "('A3 PESSOAS '!$AN$2:$AN$13,'A3 PESSOAS '!$AN$15)",
+                  "'A3 PESSOAS '!$AO$1",
+                  "('A3 PESSOAS '!$AF$2:$AF$13,'A3 PESSOAS '!$AF$15)",
+                  "('A3 PESSOAS '!$AO$2:$AO$13,'A3 PESSOAS '!$AO$15)",
+                  "'A3 PESSOAS '!$AK$1",
+                  "('A3 PESSOAS '!$AF$2:$AF$13,'A3 PESSOAS '!$AF$15)",
+                  "('A3 PESSOAS '!$AK$2:$AK$13,'A3 PESSOAS '!$AK$15)"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 11",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart55.xml",
+                "title_text": "ABSENTEISMO (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$AY$1",
+                  "'A3 PESSOAS '!$AT$2:$AT$14",
+                  "'A3 PESSOAS '!$AY$2:$AY$14",
+                  "'A3 PESSOAS '!$AZ$1",
+                  "'A3 PESSOAS '!$AT$2:$AT$14",
+                  "'A3 PESSOAS '!$AZ$2:$AZ$14",
+                  "'A3 PESSOAS '!$AX$1",
+                  "'A3 PESSOAS '!$AT$2:$AT$14",
+                  "'A3 PESSOAS '!$AX$2:$AX$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 13",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart56.xml",
+                "title_text": "CUSTOS MO ACUMULADO 2026 [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$AA$1",
+                  "'A3 PESSOAS '!$X$14:$X$15",
+                  "'A3 PESSOAS '!$AA$14:$AA$15",
+                  "'A3 PESSOAS '!$AB$1",
+                  "'A3 PESSOAS '!$X$14:$X$15",
+                  "'A3 PESSOAS '!$AB$14:$AB$15",
+                  "'A3 PESSOAS '!$AC$1",
+                  "'A3 PESSOAS '!$X$14:$X$15",
+                  "'A3 PESSOAS '!$AC$14:$AC$15"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 4",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart57.xml",
+                "title_text": "Trilha de carreira  - cargos planejados X realizados",
+                "formulas": [
+                  "'A3 PESSOAS '!$BF$1",
+                  "'A3 PESSOAS '!$BD$2:$BD$13",
+                  "'A3 PESSOAS '!$BF$2:$BF$13",
+                  "'A3 PESSOAS '!$BG$1",
+                  "'A3 PESSOAS '!$BD$2:$BD$13",
+                  "'A3 PESSOAS '!$BG$2:$BG$13",
+                  "'A3 PESSOAS '!$BH$1",
+                  "'A3 PESSOAS '!$BD$2:$BD$13",
+                  "'A3 PESSOAS '!$BH$2:$BH$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 6",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart58.xml",
+                "title_text": "REALIZAÇÃO ONBOARDING [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$BQ$1",
+                  "'A3 PESSOAS '!$BL$2:$BL$13",
+                  "'A3 PESSOAS '!$BQ$2:$BQ$14",
+                  "'A3 PESSOAS '!$BR$1",
+                  "'A3 PESSOAS '!$BL$2:$BL$13",
+                  "'A3 PESSOAS '!$BR$2:$BR$14",
+                  "'A3 PESSOAS '!$BP$1",
+                  "'A3 PESSOAS '!$BL$2:$BL$14",
+                  "'A3 PESSOAS '!$BP$2:$BP$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 21",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart59.xml",
+                "title_text": "FEEDBACK  - PLANEJADOS vs REALIZADOS (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$CA$1",
+                  "'A3 PESSOAS '!$BX$2:$BX$14",
+                  "'A3 PESSOAS '!$CA$2:$CA$13",
+                  "'A3 PESSOAS '!$BZ$1",
+                  "'A3 PESSOAS '!$BX$2:$BX$14",
+                  "'A3 PESSOAS '!$BZ$2:$BZ$13",
+                  "'A3 PESSOAS '!$CC$1",
+                  "'A3 PESSOAS '!$BX$2:$BX$14",
+                  "'A3 PESSOAS '!$CC$2:$CC$13",
+                  "'A3 PESSOAS '!$CD$1",
+                  "'A3 PESSOAS '!$BX$2:$BX$14",
+                  "'A3 PESSOAS '!$CD$2:$CD$13",
+                  "'A3 PESSOAS '!$CB$1",
+                  "'A3 PESSOAS '!$BX$2:$BX$14",
+                  "'A3 PESSOAS '!$CB$2:$CB$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 26",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart60.xml",
+                "title_text": "QUANTIDADE DE PESSOAS NO ONBOARDING [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$BR$1",
+                  "'A3 PESSOAS '!$BL$15:$BM$16",
+                  "'A3 PESSOAS '!$BR$15:$BR$16",
+                  "'A3 PESSOAS '!$BT$1",
+                  "'A3 PESSOAS '!$BL$15:$BM$16",
+                  "'A3 PESSOAS '!$BT$15:$BT$16",
+                  "'A3 PESSOAS '!$BQ$1",
+                  "'A3 PESSOAS '!$BQ$15:$BQ$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 30",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart61.xml",
+                "title_text": "HORAS TREINAMENTO GESTÃO - HORAS POR GESTOR [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$CM$1",
+                  "'A3 PESSOAS '!$CF$2:$CF$13",
+                  "'A3 PESSOAS '!$CM$2:$CM$13",
+                  "'A3 PESSOAS '!$CN$1",
+                  "'A3 PESSOAS '!$CF$2:$CF$13",
+                  "'A3 PESSOAS '!$CN$2:$CN$13",
+                  "'A3 PESSOAS '!$CO$1",
+                  "'A3 PESSOAS '!$CF$2:$CF$13",
+                  "'A3 PESSOAS '!$CO$2:$CO$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 33",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart62.xml",
+                "title_text": "HISTÓRICO TURNOVER",
+                "formulas": [
+                  "'A3 PESSOAS '!$AF$18:$AF$19",
+                  "'A3 PESSOAS '!$AG$18:$AG$19"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 86",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart63.xml",
+                "title_text": "HISTÓRICO ABSENTEISMO (%)",
+                "formulas": [
+                  "'A3 PESSOAS '!$AT$15:$AT$16",
+                  "'A3 PESSOAS '!$AU$15:$AU$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 487",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart64.xml",
+                "title_text": "HISTÓRICO CUSTO MO",
+                "formulas": [
+                  "'A3 PESSOAS '!$X$16:$X$17",
+                  "'A3 PESSOAS '!$Y$16:$Y$17"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 86",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart65.xml",
+                "title_text": "TREINAMENTOS GERAIS - HORAS POR PESSOA (sem gestores) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$DA$1",
+                  "'A3 PESSOAS '!$CT$2:$CT$13",
+                  "'A3 PESSOAS '!$DA$2:$DA$13",
+                  "'A3 PESSOAS '!$DB$1",
+                  "'A3 PESSOAS '!$CT$2:$CT$13",
+                  "'A3 PESSOAS '!$DB$2:$DB$13",
+                  "'A3 PESSOAS '!$DC$1",
+                  "'A3 PESSOAS '!$CT$2:$CT$13",
+                  "'A3 PESSOAS '!$DC$2:$DC$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 1",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart66.xml",
+                "title_text": "CUSTOS MÃO DE OBRA - R$ MENSAL [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 PESSOAS '!$Y$1",
+                  "'A3 PESSOAS '!$X$2:$X$13",
+                  "'A3 PESSOAS '!$Y$2:$Y$13",
+                  "'A3 PESSOAS '!$AA$1",
+                  "'A3 PESSOAS '!$X$2:$X$13",
+                  "'A3 PESSOAS '!$AA$2:$AA$13",
+                  "'A3 PESSOAS '!$AB$1",
+                  "'A3 PESSOAS '!$X$2:$X$13",
+                  "'A3 PESSOAS '!$AB$2:$AB$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 343",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart67.xml",
+                "title_text": "ACIDENTES",
+                "formulas": [
+                  "'A3 PESSOAS '!$DH$1",
+                  "'A3 PESSOAS '!$DG$2:$DG$14",
+                  "'A3 PESSOAS '!$DH$2:$DH$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 1",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart68.xml",
+                "title_text": "HISTÓRICO TREINAMENTO GERAL (HORAS)",
+                "formulas": [
+                  "'A3 PESSOAS '!$CT$15:$CT$16",
+                  "'A3 PESSOAS '!$CU$15:$CU$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 13",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart69.xml",
+                "title_text": "NÚMERO DE ACIDENTES",
+                "formulas": [
+                  "'A3 PESSOAS '!$DG$15:$DG$16",
+                  "'A3 PESSOAS '!$DH$15:$DH$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 460",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart70.xml",
+                "title_text": "SATISFAÇÃO DOS COLABORADORES",
+                "formulas": [
+                  "'A3 PESSOAS '!$DN$1",
+                  "'A3 PESSOAS '!$DM$15:$DM$17",
+                  "'A3 PESSOAS '!$DN$15:$DN$17"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 461",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart71.xml",
+                "title_text": "Título do Gráfico",
+                "formulas": [
+                  "'A3 PESSOAS '!#REF!"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 4",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO E ABRIL CAUSAS : 08 adm Mariangela -- Robson - Gessimara - Pablo - Yuri - Comercial ,  Rafaela / Kiara/ Victoria - J.A 05 dem Marco Aurelio - Solda Maria Luiza - J.A. William - Montagem  Iago - Robo , Edvan - Almox AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: Casos isolados de atestado (montagem e pintura) AÇÕES:Acompanhamento desses casos",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 471",
+              "text": "MARÇO CAUSAS: AÇÕES:4",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 6",
+              "text": "MAIO CAUSAS: Priorizar os treinamentos no segundo semestre AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 14",
+              "text": "Meta 2026: ≤ 2,5 %",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 16",
+              "text": "OBJETIVOS DO A3 PESSOAS 2026: 1. Turnover Diminuir o turnover mensal de 3,5% para 2,5% . 2. Satisfação colaboradores Aumentar a taxa de satisfação de 76% para 80% . 3. Segurança do Trabalho Acidente zero",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 17",
+              "text": "META ZERO",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 18",
+              "text": "Pesquisa a ser realizada em Outubro",
+              "chart": null
+            },
+            {
+              "name": "TextBox 5",
+              "text": "ABRIL CAUSAS: % de INSS (RAT - Risco Ambiental do Trabalho) e reflexo na provisões e indenizações (RCT) AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 28",
+              "text": "FEVEREIRO CAUSAS: Período de alta, priorizado os treinamentos obrigatórios AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 5",
+              "text": "Fevereiro CAUSAS: Pagamento de bonus AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 5",
+              "text": "MAIO CAUSAS: % de INSS (RAT - Risco Ambiental do Trabalho) e reflexo na provisões e indenizações (RCT Letiere/Renata) AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 14",
+              "text": "VISÃO GERAL PLANO A3 PESSOAS",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JUNHO CAUSAS : 06 adm - Marcelo -Qualidade, Caio -Alox, Antonio -Montagem, Anderson - Pintura, Jair - Pintura, Maicon - Montagem. 02 dem -  Hugo e Cleiton - Montagem AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JUNHO CAUSAS : Atestados (Marcos Paulo - solda/ Diego, Rosana e Ramon - Almox AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "Imagem 6",
+              "text": null,
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 Filho exportação ",
+      "state": "visible",
+      "part": "xl/worksheets/sheet11.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing42.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 13",
+              "text": "JANEIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 14",
+              "text": "FEVEREIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 69",
+              "text": "MARÇO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart72.xml",
+                "title_text": "FATURAMENTO MENSAL EXPORTAÇÃO VS BUDGET (R$) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho exportação '!$X$1",
+                  "'A3 Filho exportação '!$W$2:$W$13",
+                  "'A3 Filho exportação '!$X$2:$X$13",
+                  "'A3 Filho exportação '!$AD$1",
+                  "'A3 Filho exportação '!$W$2:$W$13",
+                  "'A3 Filho exportação '!$AD$2:$AD$14",
+                  "'A3 Filho exportação '!$AE$1",
+                  "'A3 Filho exportação '!$W$2:$W$13",
+                  "'A3 Filho exportação '!$AE$2:$AE$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 11",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart73.xml",
+                "title_text": "FATURAMENTO ACUMULADO EXPORTAÇÃO VS BUDGET(R$) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho exportação '!$Z$1",
+                  "'A3 Filho exportação '!$W$2:$W$13",
+                  "'A3 Filho exportação '!$Z$2:$Z$13",
+                  "'A3 Filho exportação '!$AB$1",
+                  "'A3 Filho exportação '!$W$2:$W$13",
+                  "'A3 Filho exportação '!$AB$2:$AB$14",
+                  "'A3 Filho exportação '!$AC$1",
+                  "'A3 Filho exportação '!$W$2:$W$13",
+                  "'A3 Filho exportação '!$AC$2:$AC$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 13",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart74.xml",
+                "title_text": "VOLUME EXPORTAÇÃO MENSAL (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho exportação '!$AH$1",
+                  "'A3 Filho exportação '!$AG$2:$AG$13",
+                  "'A3 Filho exportação '!$AH$2:$AH$13",
+                  "'A3 Filho exportação '!$AN$1",
+                  "'A3 Filho exportação '!$AG$2:$AG$13",
+                  "'A3 Filho exportação '!$AN$2:$AN$14",
+                  "'A3 Filho exportação '!$AO$1",
+                  "'A3 Filho exportação '!$AG$2:$AG$13",
+                  "'A3 Filho exportação '!$AO$2:$AO$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 15",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart75.xml",
+                "title_text": "VOLUME ACUMULADO VS BUDGET (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho exportação '!$AJ$1",
+                  "'A3 Filho exportação '!$AG$2:$AG$13",
+                  "'A3 Filho exportação '!$AJ$2:$AJ$13",
+                  "'A3 Filho exportação '!$AL$1",
+                  "'A3 Filho exportação '!$AG$2:$AG$13",
+                  "'A3 Filho exportação '!$AL$2:$AL$14",
+                  "'A3 Filho exportação '!$AM$1",
+                  "'A3 Filho exportação '!$AG$2:$AG$13",
+                  "'A3 Filho exportação '!$AM$2:$AM$14"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 10",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 11",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 13",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart76.xml",
+                "title_text": "HISTÓRICO FATURAMENTO EXPORTAÇÃO",
+                "formulas": [
+                  "'A3 Filho exportação '!$W$18:$W$20",
+                  "'A3 Filho exportação '!$X$18:$X$20"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 14",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart77.xml",
+                "title_text": "HISTÓRICO VOLUME (QT)",
+                "formulas": [
+                  "'A3 Filho exportação '!$AG$18:$AG$20",
+                  "'A3 Filho exportação '!$AH$18:$AH$20"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 13",
+              "text": "JANEIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 14",
+              "text": "FEVEREIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 69",
+              "text": "MARÇO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 23",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 25",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart78.xml",
+                "title_text": "Novas revendas (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho exportação '!$AV$1",
+                  "'A3 Filho exportação '!$AQ$2:$AQ$13",
+                  "'A3 Filho exportação '!$AV$2:$AV$13",
+                  "'A3 Filho exportação '!$AW$1",
+                  "'A3 Filho exportação '!$AQ$2:$AQ$13",
+                  "'A3 Filho exportação '!$AW$2:$AW$13",
+                  "'A3 Filho exportação '!$AT$1",
+                  "'A3 Filho exportação '!$AQ$2:$AQ$13",
+                  "'A3 Filho exportação '!$AT$2:$AT$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 28",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart79.xml",
+                "title_text": "REPRESENTATIVIDADE EXPORTAÇÃO NO FATURAMENTO TOTAL (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho exportação '!$BB$1",
+                  "'A3 Filho exportação '!$AY$2:$AY$13",
+                  "'A3 Filho exportação '!$BB$2:$BB$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 29",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart80.xml",
+                "title_text": "REPRESENTATIVIDADE ACUMULAD A 2026 [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho exportação '!$AY$14",
+                  "'A3 Filho exportação '!$BC$1",
+                  "'A3 Filho exportação '!$BC$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 14",
+              "text": "- Faturamento final 2026 = 5 milhões Faturamento anual de R$8.5 milhões até final de 2027 Faturamento anual de R$ 10 milhões até final de 2028 - Desenvolver ao menos 10 revendas parceiras até 2028 - Atingir a marca de 100 maquinas exportadas no ano 2028",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 22",
+              "text": "Ativas: Surenâ - UY Cotripar - PY Ensilados Santa Cruz - BOL Agromai - MEX",
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 Filho pecuária",
+      "state": "visible",
+      "part": "xl/worksheets/sheet12.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing43.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 69",
+              "text": "MARÇO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart81.xml",
+                "title_text": "FATURAMENTO MENSAL PECUÁRIA VS BUDGET (R$) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho pecuária'!$X$1",
+                  "'A3 Filho pecuária'!$W$2:$W$13",
+                  "'A3 Filho pecuária'!$X$2:$X$13",
+                  "'A3 Filho pecuária'!$AD$1",
+                  "'A3 Filho pecuária'!$W$2:$W$13",
+                  "'A3 Filho pecuária'!$AD$2:$AD$14",
+                  "'A3 Filho pecuária'!$AE$1",
+                  "'A3 Filho pecuária'!$W$2:$W$13",
+                  "'A3 Filho pecuária'!$AE$2:$AE$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 11",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart82.xml",
+                "title_text": "FATURAMENTO ACUMULADO PECUÁRIA VS BUDGET(R$) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho pecuária'!$Z$1",
+                  "'A3 Filho pecuária'!$W$2:$W$13",
+                  "'A3 Filho pecuária'!$Z$2:$Z$13",
+                  "'A3 Filho pecuária'!$AB$1",
+                  "'A3 Filho pecuária'!$W$2:$W$13",
+                  "'A3 Filho pecuária'!$AB$2:$AB$14",
+                  "'A3 Filho pecuária'!$AC$1",
+                  "'A3 Filho pecuária'!$W$2:$W$13",
+                  "'A3 Filho pecuária'!$AC$2:$AC$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 13",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart83.xml",
+                "title_text": "VOLUME 900/910 (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] ; [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho pecuária'!$AH$1",
+                  "'A3 Filho pecuária'!$AG$2:$AG$13",
+                  "'A3 Filho pecuária'!$AH$2:$AH$13",
+                  "'A3 Filho pecuária'!$AN$1",
+                  "'A3 Filho pecuária'!$AG$2:$AG$13",
+                  "'A3 Filho pecuária'!$AN$2:$AN$14",
+                  "'A3 Filho pecuária'!$AO$1",
+                  "'A3 Filho pecuária'!$AG$2:$AG$13",
+                  "'A3 Filho pecuária'!$AO$2:$AO$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 15",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart84.xml",
+                "title_text": "VOLUME ACUMULADO VS BUDGET (QT) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho pecuária'!$AJ$1",
+                  "'A3 Filho pecuária'!$AG$2:$AG$13",
+                  "'A3 Filho pecuária'!$AJ$2:$AJ$13",
+                  "'A3 Filho pecuária'!$AL$1",
+                  "'A3 Filho pecuária'!$AG$2:$AG$13",
+                  "'A3 Filho pecuária'!$AL$2:$AL$14",
+                  "'A3 Filho pecuária'!$AM$1",
+                  "'A3 Filho pecuária'!$AG$2:$AG$13",
+                  "'A3 Filho pecuária'!$AM$2:$AM$14"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 10",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 11",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 14",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart85.xml",
+                "title_text": "HISTÓRICO FATURAMENTO PECUÁRIA",
+                "formulas": [
+                  "'A3 Filho pecuária'!$W$18:$W$20",
+                  "'A3 Filho pecuária'!$X$18:$X$20"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 15",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart86.xml",
+                "title_text": "HISTÓRICO VOLUME (QT)",
+                "formulas": [
+                  "'A3 Filho pecuária'!$AG$18:$AG$20",
+                  "'A3 Filho pecuária'!$AH$18:$AH$20"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 69",
+              "text": "MARÇO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 22",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart87.xml",
+                "title_text": "GARANTIAS DA PECUÁRIA - MENSAL (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho pecuária'!$AV$1",
+                  "'A3 Filho pecuária'!$AQ$2:$AQ$13",
+                  "'A3 Filho pecuária'!$AV$2:$AV$13",
+                  "'A3 Filho pecuária'!$AW$1",
+                  "'A3 Filho pecuária'!$AQ$2:$AQ$13",
+                  "'A3 Filho pecuária'!$AW$2:$AW$13",
+                  "'A3 Filho pecuária'!$AT$1",
+                  "'A3 Filho pecuária'!$AQ$2:$AQ$13",
+                  "'A3 Filho pecuária'!$AT$2:$AT$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 23",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart88.xml",
+                "title_text": "GARANTIAS DA PECUÁRIA - ACUMULADO (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho pecuária'!$AV$1",
+                  "'A3 Filho pecuária'!$AQ$14:$AQ$15",
+                  "'A3 Filho pecuária'!$AV$14:$AV$15",
+                  "'A3 Filho pecuária'!$AW$1",
+                  "'A3 Filho pecuária'!$AQ$14:$AQ$15",
+                  "'A3 Filho pecuária'!$AW$14:$AW$15",
+                  "'A3 Filho pecuária'!$AX$1",
+                  "'A3 Filho pecuária'!$AQ$14:$AQ$15",
+                  "'A3 Filho pecuária'!$AX$14:$AX$15"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 6",
+              "text": "OBJETIVOS DO A3 PECUÁRIA 2026: Atingir faturamento em pecuária de: 2026 = 25M 2027 = 34M 2028 = 40M Aumentar vendas da Ingrain900 | 910 em 2026 para 10 unidades Diminuir indicador de garantia de 30,7% para 11% até Dez de 2026",
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 Filho Processos",
+      "state": "visible",
+      "part": "xl/worksheets/sheet13.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing44.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 4",
+              "text": "JANEIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 6",
+              "text": "MARÇO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 32",
+              "text": "FEVEREIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 4",
+              "text": "JANEIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 16",
+              "text": "FEVEREIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 17",
+              "text": "MARÇO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 4",
+              "text": "JANEIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 20",
+              "text": "MARÇO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 25",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 4",
+              "text": "JANEIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 29",
+              "text": "FEVEREIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 30",
+              "text": "MARÇO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 3",
+              "text": "FEVEREIRO CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 4",
+              "text": "FEVEREIRO CAUSAS: AÇÕES:",
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 Filho Peças",
+      "state": "visible",
+      "part": "xl/worksheets/sheet14.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing45.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 14",
+              "text": "FEVEREIRO Causas: Falta de peças, por não estar rodando o ponto de pedido e por atraso na solicitação de compra para itens sem ponto de pedidos. carteira: 439,00 Ações: Efetuado compra emergencial dos itens do pomto de pedido para abasteciamneto do estoque e dos itens em carteira para atendimento dos pedidos em atraso.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 69",
+              "text": "MARÇO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart89.xml",
+                "title_text": "FATURAMENTO MENSAL PEÇAS (R$) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Peças'!$X$1",
+                  "'A3 Filho Peças'!$W$2:$W$13",
+                  "'A3 Filho Peças'!$X$2:$X$13",
+                  "'A3 Filho Peças'!$AD$1",
+                  "'A3 Filho Peças'!$W$2:$W$13",
+                  "'A3 Filho Peças'!$AD$2:$AD$14",
+                  "'A3 Filho Peças'!$AE$1",
+                  "'A3 Filho Peças'!$W$2:$W$13",
+                  "'A3 Filho Peças'!$AE$2:$AE$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 11",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart90.xml",
+                "title_text": "FATURAMENTO ACUMULADO PEÇAS (R$) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Peças'!$Z$1",
+                  "'A3 Filho Peças'!$W$2:$W$13",
+                  "'A3 Filho Peças'!$Z$2:$Z$13",
+                  "'A3 Filho Peças'!$AB$1",
+                  "'A3 Filho Peças'!$W$2:$W$13",
+                  "'A3 Filho Peças'!$AB$2:$AB$14",
+                  "'A3 Filho Peças'!$AC$1",
+                  "'A3 Filho Peças'!$W$2:$W$13",
+                  "'A3 Filho Peças'!$AC$2:$AC$14"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 10",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 13",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart91.xml",
+                "title_text": "HISTÓRICO FATURAMENTO PEÇAS",
+                "formulas": [
+                  "'A3 Filho Peças'!$W$18:$W$20",
+                  "'A3 Filho Peças'!$X$18:$X$20"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 14",
+              "text": "JANEIRO Causas: Falta de peças, Valor em carteira R$ 417,333 Ações:",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart92.xml",
+                "title_text": "Representatividade peças no faturamento acumulado [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Peças'!$AO$1",
+                  "'A3 Filho Peças'!$AG$14:$AG$15",
+                  "'A3 Filho Peças'!$AO$14:$AO$15",
+                  "'A3 Filho Peças'!$AP$1",
+                  "'A3 Filho Peças'!$AG$14:$AG$15",
+                  "'A3 Filho Peças'!$AP$14:$AP$15",
+                  "'A3 Filho Peças'!$AL$1",
+                  "'A3 Filho Peças'!$AL$14:$AL$15"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 4",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart93.xml",
+                "title_text": "Representatividade Peças no faturamento total Marcher (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Peças'!$AM$1",
+                  "'A3 Filho Peças'!$AG$2:$AG$13",
+                  "'A3 Filho Peças'!$AM$2:$AM$13",
+                  "'A3 Filho Peças'!$AN$1",
+                  "'A3 Filho Peças'!$AG$2:$AG$13",
+                  "'A3 Filho Peças'!$AN$2:$AN$13",
+                  "'A3 Filho Peças'!$AL$1",
+                  "'A3 Filho Peças'!$AG$2:$AG$13",
+                  "'A3 Filho Peças'!$AL$2:$AL$13"
+                ]
+              }
+            },
+            {
+              "name": "Imagem 6",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Plano de ações",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 9",
+              "text": "OBJETIVOS DO A3 DE PEÇAS 2026: - Atingir R$ 4.000 milhões em 2026 , R$5.500 em 2027,  R$8.0000 em 2028 - Aumentar a participação de peças BR no faturamento de 3,30% para 3,85% em 2026.",
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 Filho estoques",
+      "state": "visible",
+      "part": "xl/worksheets/sheet15.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing48.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 12",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart94.xml",
+                "title_text": "PARADA POR FALTA DE MATERIAL (HORAS/MÊS) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho estoques'!$AA$1",
+                  "'A3 Filho estoques'!$Y$2:$Y$13",
+                  "'A3 Filho estoques'!$AA$2:$AA$13",
+                  "'A3 Filho estoques'!$AB$1",
+                  "'A3 Filho estoques'!$Y$2:$Y$13",
+                  "'A3 Filho estoques'!$AB$2:$AB$13",
+                  "'A3 Filho estoques'!$AG$1",
+                  "('A3 Filho estoques'!$X$2:$X$13,'A3 Filho estoques'!$X$17)",
+                  "('A3 Filho estoques'!$AG$2:$AG$13,'A3 Filho estoques'!$AG$17)",
+                  "'A3 Filho estoques'!$Y$1",
+                  "('A3 Filho estoques'!$X$2:$X$13,'A3 Filho estoques'!$X$17)",
+                  "'A3 Filho estoques'!$Y$2:$Y$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 14",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart95.xml",
+                "title_text": "% DE REDUÇÃO ACUMULADA [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho estoques'!$AA$1",
+                  "'A3 Filho estoques'!$X$14:$X$15",
+                  "'A3 Filho estoques'!$AA$14:$AA$15",
+                  "'A3 Filho estoques'!$AB$1",
+                  "'A3 Filho estoques'!$X$14:$X$15",
+                  "'A3 Filho estoques'!$AB$14:$AB$15",
+                  "'A3 Filho estoques'!$AE$1",
+                  "'A3 Filho estoques'!$X$14:$X$15",
+                  "'A3 Filho estoques'!$AE$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 15",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart96.xml",
+                "title_text": "HISTÓRICO PARADAS 2025 (HORAS)",
+                "formulas": [
+                  "'A3 Filho estoques'!$X$16",
+                  "'A3 Filho estoques'!$Z$16"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 3",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart97.xml",
+                "title_text": "CUMPRIMENTO ESTOQUE DE SEGURANÇA (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho estoques'!$AL$1",
+                  "'A3 Filho estoques'!$AI$2:$AI$14",
+                  "'A3 Filho estoques'!$AL$2:$AL$14",
+                  "'A3 Filho estoques'!$AM$1",
+                  "'A3 Filho estoques'!$AI$2:$AI$14",
+                  "'A3 Filho estoques'!$AM$2:$AM$14",
+                  "'A3 Filho estoques'!$AJ$1",
+                  "'A3 Filho estoques'!$AI$2:$AI$14",
+                  "'A3 Filho estoques'!$AJ$2:$AJ$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 32",
+              "text": "FEVEREIRO Causas: Ações:",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 5",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 29",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Plano de ações",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 23",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 8",
+              "text": "OBJETIVOS DO A3 DE ESTOQUES 2026:",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 10",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart98.xml",
+                "title_text": "% ESTOQUE OBSOLETO [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho estoques'!$BF$1",
+                  "'A3 Filho estoques'!$BA$2:$BA$14",
+                  "'A3 Filho estoques'!$BF$2:$BF$14",
+                  "'A3 Filho estoques'!$BG$1",
+                  "'A3 Filho estoques'!$BA$2:$BA$14",
+                  "'A3 Filho estoques'!$BG$2:$BG$14",
+                  "'A3 Filho estoques'!$BB$1",
+                  "'A3 Filho estoques'!$BA$2:$BA$14",
+                  "'A3 Filho estoques'!$BB$2:$BB$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: AÇÕES: Definido as metas",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 35",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart99.xml",
+                "title_text": "Acurácia inventário ciclico VALOR [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho estoques'!$AR$1",
+                  "'A3 Filho estoques'!$AO$2:$AO$14",
+                  "'A3 Filho estoques'!$AR$2:$AR$14",
+                  "'A3 Filho estoques'!$AS$1",
+                  "'A3 Filho estoques'!$AO$2:$AO$14",
+                  "'A3 Filho estoques'!$AS$2:$AS$14",
+                  "'A3 Filho estoques'!$AP$1",
+                  "'A3 Filho estoques'!$AO$2:$AO$14",
+                  "'A3 Filho estoques'!$AP$2:$AP$14"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 3",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "TextBox 20",
+              "text": "FEVEREIRO CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "TextBox 21",
+              "text": "FEVEREIRO CAUSAS: AÇÕES:",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 42",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart100.xml",
+                "title_text": "ACURÁCIA INVENTÁRIO GERAL",
+                "formulas": [
+                  "'A3 Filho estoques'!$BK$1",
+                  "'A3 Filho estoques'!$BI$2:$BI$4",
+                  "'A3 Filho estoques'!$BK$2:$BK$4"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 10",
+              "text": "Preencher aqui",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 35",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart101.xml",
+                "title_text": "Acurácia inventário ciclico ITENS [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho estoques'!$AX$1",
+                  "'A3 Filho estoques'!$AU$2:$AU$14",
+                  "'A3 Filho estoques'!$AX$2:$AX$14",
+                  "'A3 Filho estoques'!$AY$1",
+                  "'A3 Filho estoques'!$AU$2:$AU$14",
+                  "'A3 Filho estoques'!$AY$2:$AY$14",
+                  "'A3 Filho estoques'!$AV$1",
+                  "'A3 Filho estoques'!$AU$2:$AU$14",
+                  "'A3 Filho estoques'!$AV$2:$AV$13"
+                ]
+              }
+            },
+            {
+              "name": "Imagem 20",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "TextBox 18",
+              "text": "ABRIL CAUSAS: 36 paradas  ( 28 não critico e 8 criticas) AÇÕES: Revisão do processo de pagamento e listas, Nova liderança com foco em acompanhamento dos processos e mudança de cultura de pagar peças pequenas  (almox 01 ) e depois pagar as peças  maiores corredor 02 - chaparia Atuar no inventario ciclico de itens.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: troca de modelo máquinas/ atraso fornecedores (destaque Metalgava)  (15% fora do prazo) Itens que antes eram beneficiados e passaram a comprados MRP não esta reconhecendo na rodada AÇÕES: FLW - fornecedores exclusão das estruturas de 150 componentes",
+              "chart": null
+            },
+            {
+              "name": "TextBox 30",
+              "text": "FEVEREIRO CAUSAS: 50hs Engrenagens /21 hs Atraso fornecedor/ 30 hs de pagamento lista almoxarifado AÇÕES: Estabiliza em Março (prazo de entrega) Metalgava e Cofelma (troca de fábricas) Metalgava - dividindo Spend com Braslaser",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: Engrenagens (compra do MRP assumiu a data de chegada da importação em 10/01/26) Retorno fornecedores e mudança de planta (80% aderente). AÇÕES: Revisada compra de das engrenagens Disparada a compra dos itens C (inicio chegada 18/02/26)",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: AÇÕES: Implantação central xml/ transferencia",
+              "chart": null
+            },
+            {
+              "name": "TextBox 33",
+              "text": "FEVEREIRO CAUSAS: AÇÕES: Implementação da separação em lote (44 horas Leef)",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: AÇÕES: Em Janeiro não tivemos inventário cíclico, o mesmo será retomado no mes de fevereiro.",
+              "chart": null
+            },
+            {
+              "name": "TextBox 18",
+              "text": "ABRIL CAUSAS: Entradas e saidas de material sem saldo no almox AÇÕES: Implantação central xml -                     Dia 11/05/26 iniciado processo de entradas de forma correta com saldo para armazenagem Mudança de cultura - nova liderança Ainda esta pendente o processo de baixa do material , hoje é feito manualemente Inicio do novo processo de baixa via OP previsto para 27/05/26.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: AÇÕES: Em Janeiro não tivemos inventário cíclico, o mesmo será retomado no mes de fevereiro.",
+              "chart": null
+            },
+            {
+              "name": "TextBox 33",
+              "text": "FEVEREIRO CAUSAS: AÇÕES: Iniciado invenatrio ciclico com meta de contagem de 35 itens dia",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: Falta de pessoa no invetario, era uma pessoa Terceira que começou a faltar e saiu da empresa AÇÕES: Direcionado uma colaboradora da Marcher para iniciar o processo ( treinamento ), precisamos considerar que esta vaga deve ser adiconada ao quadro de funcionários efetivos",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "FEVEREIRO CAUSAS: AÇÕES:: Defnição das metas",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: FALTA MATERIAL - cabos 215+ e 220+ AÇÕES: Considerar Lead time fornecedor quando rodar o MRP ( rodar MRP com 60 dias antecedencia), ajustar parametros de estoque, ( reuniao com a Leef dia 27/05 para teste )",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: AÇÕES: Dentro da Meta,  analise lista dos TOP 20",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "MAIO CAUSAS: AÇÕES: Dentro da Meta,  analise lista dos TOP 20",
+              "chart": null
+            },
+            {
+              "name": "TextBox 18",
+              "text": "MAIO CAUSAS: 112 paradas  ( 67 não critico e  45 criticas) AÇÕES: Revisão do processo de pagamento e listas, Nova liderança esta fazendo conferencia dos kits de separação antes de ser entregue na linha, pagar kits completos , inclunindo kardans, cubos de rodas , etc. Estamis monitorando com indicador diario de conferencia",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MAIO CAUSAS: Ajustado plano de produção AÇÕES: Revisão do plano de produção x forecast Comercial Revisar junto a Gerencia meta 2026",
+              "chart": null
+            },
+            {
+              "name": "TextBox 18",
+              "text": "MAIO CAUSAS: Entradas e saidas de material sem saldo no almox / falta de inventário ciclico AÇÕES: Aguardando resultados do plano anterior Processos de entradas de notas ja estabilizado Sistema de transferencia via OP com alguns ajustes ainda pendentes - tratativas com a Leef  -  80% das OPs ja estamos conseguindo fazer a operação.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MAIO CAUSAS: Falta de pessoa no invetario, era uma pessoa Terceira que começou a faltar e saiu da empresa AÇÕES: Ajustado processo de inventario para realizar contagem dos itens da curva A até dia 30/06 / itens curva B até 30/08 e itens da curva C até dia 20/10 - indicador diario para controle do andamento das contagens e ajustes.",
+              "chart": null
+            },
+            {
+              "name": "TextBox 24",
+              "text": "JUNHO CAUSAS: Ajustado plano de produção AÇÕES: Revisão do plano de produção x forecast Comercial Revisar junto a Gerencia meta 2026",
+              "chart": null
+            },
+            {
+              "name": "TextBox 9",
+              "text": "JUNHO CAUSAS: AÇÕES: Dentro da Meta,  analise lista dos TOP 20",
+              "chart": null
+            },
+            {
+              "name": "TextBox 18",
+              "text": "JUNHO CAUSAS:  E rro separação AÇÕES: Conferencia dos kits de separação antes de ser entregue na linha, pagar kits completos , inclunindo kardans, cubos de rodas , etc. Junto com a Ordem de Separação tambem será impresso uma etiqueta para identificação dos itens na Conferencia e na Montagem",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JUNHO CAUSAS: Falta de pessoa no invetario, era uma pessoa Terceira que começou a faltar e saiu da empresa AÇÕES: Ajustado processo de inventario para realizar contagem dos itens da curva A até dia 30/06  itens curva B até 30/08 e itens da curva C até dia 20/10 - indicador diario para controle do andamento das contagens e ajustes. Transferencia dos itens via coletor junto a OS",
+              "chart": null
+            },
+            {
+              "name": "TextBox 18",
+              "text": "JUNHO CAUSAS: Entradas e saidas de material sem saldo no almox / falta de inventário ciclico AÇÕES: Aguardando resultados do plano anterior Processos de entradas de notas ja estabilizado Sistema de transferencia via OP com alguns ajustes ainda pendentes - tratativas com a Leef  -  80% das OPs ja estamos conseguindo fazer a operação.",
+              "chart": null
+            },
+            {
+              "name": "TextBox 24",
+              "text": "JULHO CAUSAS: Ajustado plano de produção AÇÕES: Revisão do plano de produção x forecast Comercial Revisar estoque de máquinas junto a Gerencia meta 2026",
+              "chart": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "A3 Filho Compras",
+      "state": "visible",
+      "part": "xl/worksheets/sheet16.xml",
+      "drawings": [
+        {
+          "part": "xl/drawings/drawing55.xml",
+          "objects": [
+            {
+              "name": "CaixaDeTexto 3",
+              "text": "S",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 11",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Início",
+              "chart": null
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 21",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 25",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart102.xml",
+                "title_text": "PRAZO DE PAGAMENTO MÉDIO (DIAS) Fornecedores A [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Compras'!$Z$1",
+                  "'A3 Filho Compras'!$W$2:$W$14",
+                  "'A3 Filho Compras'!$Z$2:$Z$14",
+                  "'A3 Filho Compras'!$AA$1",
+                  "'A3 Filho Compras'!$W$2:$W$14",
+                  "'A3 Filho Compras'!$AA$2:$AA$14",
+                  "'A3 Filho Compras'!$X$1",
+                  "'A3 Filho Compras'!$W$2:$W$14",
+                  "'A3 Filho Compras'!$X$2:$X$14"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 26",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 27",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart103.xml",
+                "title_text": "IQF FORNECEDORES A (%) [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Compras'!$AF$1",
+                  "'A3 Filho Compras'!$AC$2:$AC$14",
+                  "'A3 Filho Compras'!$AF$2:$AF$14",
+                  "'A3 Filho Compras'!$AG$1",
+                  "'A3 Filho Compras'!$AC$2:$AC$14",
+                  "'A3 Filho Compras'!$AG$2:$AG$14",
+                  "'A3 Filho Compras'!$AD$1",
+                  "'A3 Filho Compras'!$W$2:$W$14",
+                  "'A3 Filho Compras'!$AD$2:$AD$14"
+                ]
+              }
+            },
+            {
+              "name": "Texto Explicativo: Seta para a Direita 28",
+              "text": "Preencher  aqui",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 29",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart104.xml",
+                "title_text": "IQF GERAL [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Compras'!$AL$1",
+                  "'A3 Filho Compras'!$AI$2:$AI$14",
+                  "'A3 Filho Compras'!$AL$2:$AL$14",
+                  "'A3 Filho Compras'!$AM$1",
+                  "'A3 Filho Compras'!$AI$2:$AI$14",
+                  "'A3 Filho Compras'!$AM$2:$AM$14",
+                  "'A3 Filho Compras'!$AJ$1",
+                  "'A3 Filho Compras'!$AI$2:$AI$14",
+                  "'A3 Filho Compras'!$AJ$2:$AJ$14"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 30",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart105.xml",
+                "title_text": "SAVING FORNECEDORES MENSAL - R$ [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Compras'!$AW$1",
+                  "'A3 Filho Compras'!$AO$2:$AO$13",
+                  "'A3 Filho Compras'!$AW$2:$AW$13",
+                  "'A3 Filho Compras'!$AX$1",
+                  "'A3 Filho Compras'!$AO$2:$AO$13",
+                  "'A3 Filho Compras'!$AX$2:$AX$13",
+                  "'A3 Filho Compras'!$AP$1",
+                  "'A3 Filho Compras'!$AO$2:$AO$13",
+                  "'A3 Filho Compras'!$AP$2:$AP$13"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 1",
+              "text": "Plano de ações",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 8",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart106.xml",
+                "title_text": "% FORNECEDORES COM CONTRATO CURVA A",
+                "formulas": [
+                  "'A3 Filho Compras'!$BI$1",
+                  "'A3 Filho Compras'!$BD$2:$BD$13",
+                  "'A3 Filho Compras'!$BI$2:$BI$13",
+                  "'A3 Filho Compras'!$BJ$1",
+                  "'A3 Filho Compras'!$BD$2:$BD$13",
+                  "'A3 Filho Compras'!$BJ$2:$BJ$13",
+                  "'A3 Filho Compras'!$BG$1",
+                  "'A3 Filho Compras'!$BD$2:$BD$13",
+                  "'A3 Filho Compras'!$BG$2:$BG$13"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 7",
+              "text": "OBJETIVOS DO A3 DE COMPRAS 2026: Reduzir os custos com matérias-primas, fortalecendo parcerias com os fornecedores, melhorando prazos e condições de pagamento e aumentando a eficiência e competitividade do processo de Compras. METAS ° Saving (real/financeiro) de 2,4M em MP dentro do ano de 2026 / 2.8% RL. ° Prazo médio de pagamento (real/financeiro) dos fornecedores A 75 dias. ° Elevar o índice de performance de fornecedores A para 80% até dezembro de 2026. ° Medir e manter a % do valor de compras emergenciais abaixo de 3%. Medir e manter o índice de sobrepreço das compras emergenciais abaixo de 10%. (valor pago na urgência - valor cotado regularmente)/preço normal dos itens).",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 14",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart107.xml",
+                "title_text": "Saving acumulado [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Compras'!$AO$14",
+                  "('A3 Filho Compras'!$AU$1,'A3 Filho Compras'!$AY$1,'A3 Filho Compras'!$AZ$1)",
+                  "('A3 Filho Compras'!$AU$14,'A3 Filho Compras'!$AY$14,'A3 Filho Compras'!$AZ$14)",
+                  "'A3 Filho Compras'!$AO$15",
+                  "('A3 Filho Compras'!$AU$1,'A3 Filho Compras'!$AY$1,'A3 Filho Compras'!$AZ$1)",
+                  "('A3 Filho Compras'!$AU$15,'A3 Filho Compras'!$AY$15,'A3 Filho Compras'!$AZ$15)"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: - Não implementado BID no sistema Totvs. AÇÕES: - Incluir tabelas de preço negociadas no BID no sistema Totvs.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "JANEIRO CAUSAS: - Recebimento de materiais com novo prazo de pagamento ocorrerá a partir de fevereiro. AÇÕES: - Negociação com fornecedores (contratos).",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MARÇO CAUSAS: - A lterações do prazo de pagamento ainda não estão refletindo melhoria no indicador. AÇÕES: - Negociação em andamento com fornecedores da curva A (80% spend).",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 469",
+              "text": "FEVEREIRO CAUSAS: - Aumento da produção, antecipações refletindo em baixo índice no indicador. AÇÕES: -Auditorias nos fornecedores da curva A. -Rodar p lanejamento da produção para itens da curva C (3 meses), curva B (2 meses) curva A (1 mês).",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 37",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart108.xml",
+                "title_text": "% do valor de Compras emergenciais [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Compras'!$BO$1",
+                  "'A3 Filho Compras'!$BL$2:$BL$14",
+                  "'A3 Filho Compras'!$BO$2:$BO$14",
+                  "'A3 Filho Compras'!$BP$1",
+                  "'A3 Filho Compras'!$BL$2:$BL$14",
+                  "'A3 Filho Compras'!$BP$2:$BP$14",
+                  "'A3 Filho Compras'!$BM$1",
+                  "'A3 Filho Compras'!$BL$2:$BL$14",
+                  "'A3 Filho Compras'!$BM$2:$BM$14"
+                ]
+              }
+            },
+            {
+              "name": "TextBox 3",
+              "text": "FEVEREIRO CAUSAS: -Médio índice de itens com saving em implementação. AÇÕES: -Realizar mapeamento, extratificar curva ABC, cotações e oportunidades de saving com atuais e novos fornecedores.",
+              "chart": null
+            },
+            {
+              "name": "TextBox 15",
+              "text": "FEVEREIRO CAUSAS: - Recebimento de materiais com novo prazo de pagamento ocorrerá a partir de fevereiro. AÇÕES: - Negociação em andamento com fornecedores da curva A (80% spend).",
+              "chart": null
+            },
+            {
+              "name": "TextBox 3",
+              "text": "MARÇO CAUSAS: - Menor produção de máquinas montadas (93 equipamentos, redução -13,08% em relação a fevereiro. AÇÕES: -",
+              "chart": null
+            },
+            {
+              "name": "Gráfico 37",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart109.xml",
+                "title_text": "% do índice de sobrepreço",
+                "formulas": [
+                  "'A3 Filho Compras'!$BU$1",
+                  "'A3 Filho Compras'!$BR$2:$BR$14",
+                  "'A3 Filho Compras'!$BU$2:$BU$14",
+                  "'A3 Filho Compras'!$BV$1",
+                  "'A3 Filho Compras'!$BR$2:$BR$14",
+                  "'A3 Filho Compras'!$BV$2:$BV$14",
+                  "'A3 Filho Compras'!$BS$1",
+                  "'A3 Filho Compras'!$BR$2:$BR$14",
+                  "'A3 Filho Compras'!$BS$2:$BS$14"
+                ]
+              }
+            },
+            {
+              "name": "TextBox 3",
+              "text": "ABRIL CAUSAS: - Menor produção de máquinas montadas (76 equipamentos, redução -18,28% em relação a março e -28,97% em relação a fevereiro. -Saving em implementação. AÇÕES: - Potencial saving em implementação, oportunidades de saving com atuais e novos fornecedores.",
+              "chart": null
+            },
+            {
+              "name": "Imagem 1",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Gráfico 30",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart110.xml",
+                "title_text": "SAVING FORNECEDORES  - % SOBRE A RECEITA MENSAL [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA] [INTERVALODACÉLULA]",
+                "formulas": [
+                  "'A3 Filho Compras'!$BB$1",
+                  "'A3 Filho Compras'!$AO$2:$AO$13",
+                  "'A3 Filho Compras'!$BB$2:$BB$13",
+                  "'A3 Filho Compras'!$BA$1",
+                  "'A3 Filho Compras'!$AO$2:$AO$13",
+                  "'A3 Filho Compras'!$BA$2:$BA$13",
+                  "'A3 Filho Compras'!$AQ$1",
+                  "'A3 Filho Compras'!$AO$2:$AO$13",
+                  "'A3 Filho Compras'!$AQ$2:$AQ$13"
+                ]
+              }
+            },
+            {
+              "name": "Gráfico 30",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart111.xml",
+                "title_text": "SAVING FORNECEDORES  - % SOBRE A RECEITA ACUMULADO",
+                "formulas": [
+                  "'A3 Filho Compras'!$AQ$1",
+                  "'A3 Filho Compras'!$AO$14",
+                  "'A3 Filho Compras'!$AQ$14",
+                  "'A3 Filho Compras'!$BA$1",
+                  "'A3 Filho Compras'!$AO$14",
+                  "'A3 Filho Compras'!$BA$14",
+                  "'A3 Filho Compras'!$BB$1",
+                  "'A3 Filho Compras'!$AO$14",
+                  "'A3 Filho Compras'!$BB$14"
+                ]
+              }
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: - A lterações do prazo de pagamento ainda representam uma pequena melhoria no indicador sendo pouco significativa. AÇÕES: - Negociação em andamento com fornecedores da curva A (80% spend). -66,24 % já migraram para acima de 75. -19,40 % ficaram na faixa entre 60 e 70, porém para migrar acima de 75 precisam de reajuste do custo financeiro no preço dos itens. -14,36 % em negociação.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "ABRIL CAUSAS: - Indicador em acompanhamento, como não havia histórico de 2025 precisamos medir/monitorar. AÇÕES: - Rodar p lanejamento da produção para itens da curva C (3 meses), curva B (2 meses) curva A (1 mês).",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MAIO CAUSAS: - A lterações do prazo de pagamento ainda representam uma pequena melhoria no indicador. AÇÕES: - Negociação em andamento com fornecedores da curva A (80% spend). -73,76 % já migraram para acima de 75. -25,08 % ficaram na faixa entre 45 e 70, porém para migrar acima de 75 precisam de reajuste do custo financeiro no preço dos itens. -1,16 % em negociação. Iniciado negociação com fornecedores da curva B (faixa de 80 a 90% do spend).",
+              "chart": null
+            },
+            {
+              "name": "TextBox 3",
+              "text": "MAIO CAUSAS: - Saving em implementação. - - AÇÕES: - Potencial saving em implementação, oportunidades de saving com atuais e novos fornecedores.",
+              "chart": null
+            },
+            {
+              "name": "Imagem 1",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 13",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 15",
+              "text": "JUNHO CAUSAS: - A lterações do prazo de pagamento já representam uma melhoria significativa indicador. AÇÕES: - Negociação em andamento com fornecedores da curva A (80% spend). -76,51 % já migraram para acima de 75. -22,45 % ficaram na faixa entre 45 e 70, porém para migrar acima de 75 precisam de reajuste do custo financeiro no preço dos itens. -1,04 % em negociação. - Negociação em andamento com fornecedores da curva B (faixa de 80 a 90% do spend).",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 16",
+              "text": "JUNHO CAUSAS: - Saving em implementação. AÇÕES: -Potencial saving em implementação, oportunidades de saving com atuais e novos fornecedores.",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 468",
+              "text": "MAIO CAUSAS: - Indicador em acompanhamento, como não havia histórico de 2025 precisamos medir/monitorar. AÇÕES: - Rodar p lanejamento da produção para itens da curva C (3 meses), curva B (2 meses) curva A (1 mês).",
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 469",
+              "text": "MAIO CAUSAS: -Falha no retorno de resposta de RNC. -Falha taxa de defeitos. -Entregas em atraso. AÇÕES: -Auditorias nos fornecedores da curva A. -Reforçar a cobrança dos RNC em atraso.",
+              "chart": null
+            },
+            {
+              "name": "Imagem 1",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Gráfico 37",
+              "text": null,
+              "chart": {
+                "part": "xl/charts/chart112.xml",
+                "title_text": "% do índice de sobrepreço sobre total",
+                "formulas": [
+                  "'A3 Filho Compras'!$CA$1",
+                  "'A3 Filho Compras'!$BX$2:$BX$14",
+                  "'A3 Filho Compras'!$CA$2:$CA$14",
+                  "'A3 Filho Compras'!$CB$1",
+                  "'A3 Filho Compras'!$BX$2:$BX$14",
+                  "'A3 Filho Compras'!$CB$2:$CB$14",
+                  "'A3 Filho Compras'!$BY$1",
+                  "'A3 Filho Compras'!$BX$2:$BX$14",
+                  "'A3 Filho Compras'!$BY$2:$BY$14"
+                ]
+              }
+            },
+            {
+              "name": "Imagem 33",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "CaixaDeTexto 36",
+              "text": "JUNHO CAUSAS: - Saving em implementação. AÇÕES: -Potencial saving em implementação, oportunidades de saving com atuais e novos fornecedores.",
+              "chart": null
+            },
+            {
+              "name": "Imagem 29",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 24",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 29",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 14",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 22",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 35",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 36",
+              "text": null,
+              "chart": null
+            },
+            {
+              "name": "Imagem 19",
+              "text": null,
+              "chart": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
