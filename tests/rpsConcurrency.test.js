@@ -6,13 +6,47 @@ const modulePath = path.join(__dirname, "..", "src", "modules", "rps", "rpsModul
 let source = fs.readFileSync(modulePath, "utf8");
 source = source.replace(
   "window.VECTON_RPS = { createRpsModule };",
-  "window.VECTON_RPS = { createRpsModule, defaultPayload, normalizePayload, calculatedIndicatorsNeedRepair, mergePayloads, recoverLegacyPayload, evaluateFormula };"
+  "window.VECTON_RPS = { createRpsModule, defaultPayload, normalizePayload, calculatedIndicatorsNeedRepair, mergePayloads, recoverLegacyPayload, evaluateFormula, parseNumber, formatValueForUnit };"
 );
 global.window = {};
 eval(source);
 
-const { defaultPayload, normalizePayload, calculatedIndicatorsNeedRepair, mergePayloads, recoverLegacyPayload, evaluateFormula } = window.VECTON_RPS;
+const { defaultPayload, normalizePayload, calculatedIndicatorsNeedRepair, mergePayloads, recoverLegacyPayload, evaluateFormula, parseNumber, formatValueForUnit } = window.VECTON_RPS;
 const clone = (value) => JSON.parse(JSON.stringify(value));
+
+{
+  const base = defaultPayload();
+  const local = clone(base);
+  const seenIds = new Set();
+  let indicatorCount = 0;
+  Object.entries(local.indicadores).forEach(([areaId, indicators]) => {
+    indicators.filter((indicator) => indicator.type !== "spacer").forEach((indicator) => {
+      const scopedId = `${areaId}|${indicator.id}`;
+      assert.equal(seenIds.has(scopedId), false, `ID duplicado: ${scopedId}`);
+      seenIds.add(scopedId);
+      indicatorCount += 1;
+      ["S1", "S2", "S3", "S4", "S5"].forEach((week, index) => {
+        local.dados[`${scopedId}|${week}`] = String(indicatorCount * 10 + index);
+      });
+      local.dadosMeta[`vmeta:${scopedId}`] = String(indicatorCount * 100);
+    });
+  });
+  assert.equal(indicatorCount, 70);
+  const merged = mergePayloads(base, base, local).payload;
+  assert.deepEqual(merged.dados, local.dados);
+  assert.deepEqual(merged.dadosMeta, local.dadosMeta);
+}
+
+{
+  assert.equal(parseNumber("5:17"), 5 + 17 / 60);
+  assert.equal(parseNumber("98:00"), 98);
+  assert.equal(parseNumber("5:75"), null);
+  assert.equal(formatValueForUnit("5:17", "h"), "5:17 hrs");
+  assert.equal(formatValueForUnit("1,5", "hrs"), "1:30 hrs");
+  assert.equal(formatValueForUnit("1.234,56", "R$"), "R$ 1.235");
+  assert.equal(formatValueForUnit("3,2", "%"), "3,2%");
+  assert.equal(formatValueForUnit("40", "dias"), "40 dias");
+}
 
 {
   const base = defaultPayload();
@@ -91,6 +125,8 @@ assert.match(source, /media\?\.addEventListener\("error"/);
 assert.match(source, /function syncEditableField\(input\)/);
 assert.match(source, /const editableInput = event\.target\.closest\("\[data-rps-value-key\], \[data-rps-target-key\]"\);/);
 assert.match(source, /if \(editableInput\) \{\s*syncEditableField\(editableInput\);\s*markDirty\(\);\s*void requestSave\(\);/);
+assert.match(source, /function renderShell\(\) \{[^]*?syncEditableField\(activeEditor\)[^]*?markDirty\(\)/);
+assert.match(source, /const remote = await readRemote\(\);\s*\/\/[^]*?if \(state\.loading \|\| state\.dirty \|\| saveInFlight \|\| isEditingField\(\)/);
 assert.match(source, /if \(isEditingField\(\)\) return;/);
 assert.doesNotMatch(source, /void requestSave\(\);\s*renderShell\(\);/);
 assert.doesNotMatch(source, /setStatus\(state\.dirty[\s\S]{0,250}renderWhenIdle\(\);/);

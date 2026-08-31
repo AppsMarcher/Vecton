@@ -296,6 +296,12 @@
     if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
     const text = String(raw ?? "").trim();
     if (!text) return null;
+    if (text.includes(":")) {
+      const duration = text.match(/^([+-]?)(\d+):([0-5]\d)(?:\s*(?:h|hrs|horas?))?$/i);
+      if (!duration) return null;
+      const sign = duration[1] === "-" ? -1 : 1;
+      return sign * (Number(duration[2]) + (Number(duration[3]) / 60));
+    }
     const numericText = text.replace(/[^0-9+,\-.]/g, "");
     const normalized = numericText.includes(",")
       ? numericText.replace(/\./g, "").replace(",", ".")
@@ -329,7 +335,10 @@
       return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value)}%`;
     }
     if (normalizedUnit === "hrs") {
-      return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value)} hrs`;
+      const totalMinutes = Math.round(Math.abs(value) * 60);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = String(totalMinutes % 60).padStart(2, "0");
+      return `${value < 0 ? "-" : ""}${hours}:${minutes} hrs`;
     }
     if (normalizedUnit === "dias") {
       return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value)} dias`;
@@ -1276,7 +1285,7 @@
             const comment = state.payload.comentarios[commentKey(area.id, indicator.id, week)];
             return `<td class="rps-value-cell ${week === focusWeek ? "is-focused" : ""}">
               <div class="rps-week-entry">
-                <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(formatValueForUnit(state.payload.dados[key], weekUnit))}" inputmode="decimal" autocomplete="off" ${fillable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
+                <input class="rps-cell-input" data-rps-value-key="${escapeHtml(key)}" value="${escapeHtml(formatValueForUnit(state.payload.dados[key], weekUnit))}" inputmode="${weekUnit === "hrs" ? "text" : "decimal"}" autocomplete="off" ${fillable ? "" : "disabled"} aria-label="${escapeHtml(`${indicator.label} ${week}`)}">
                 ${structural
                   ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<span class="rps-unit-readonly">${escapeHtml(weekUnit)}</span>`}
@@ -1298,7 +1307,7 @@
               ${structural ? `<button type="button" class="rps-month-mode-cycle" data-rps-month-mode-cycle="${escapeHtml(monthModeKey)}" data-current-mode="${escapeHtml(monthMode)}" title="${escapeHtml(monthModeInfo.label)}" aria-label="${escapeHtml(`${monthModeInfo.label} de ${indicator.label}`)}"><span>${escapeHtml(monthModeInfo.icon)}</span></button>` : ""}
             </td>
             <td class="rps-value-cell rps-target-cell">
-              <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="decimal" autocomplete="off" ${fillable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
+              <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="${monthUnit === "hrs" ? "text" : "decimal"}" autocomplete="off" ${fillable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
               ${state.presentation ? "" : `<button class="rps-comment-button ${state.payload.comentarios[commentKey(area.id, indicator.id, "meta")] ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, "meta"))}" title="Comentário">●</button>`}
             </td>
             <td class="rps-variation ${trendClass}" data-rps-variation-value>${variation === null ? "—" : `${variation > 0 ? "+" : ""}${escapeHtml(formatValueForUnit(variation, monthUnit))}`}</td>
@@ -1373,6 +1382,13 @@
 
     function renderShell() {
       if (!root) return;
+      // Última barreira contra perda visual: qualquer reconstrução inesperada
+      // da grade captura primeiro o editor ativo. Os fluxos normais já fazem
+      // isso em input/change/focusout, mas esta proteção cobre ações futuras.
+      if (!state.loading && !state.switchingPeriod) {
+        const activeEditor = document.activeElement?.closest?.("[data-rps-value-key], [data-rps-target-key]");
+        if (activeEditor && root.contains(activeEditor) && syncEditableField(activeEditor)) markDirty();
+      }
       const currentTableScroll = root.querySelector(".rps-table-scroll");
       if (currentTableScroll) state.tableScrollLeft = currentTableScroll.scrollLeft;
       const { year, month } = activePeriod();
@@ -1608,6 +1624,9 @@
         try {
           if (!state.loading && !state.dirty && !saveInFlight && !isEditingField() && document.visibilityState !== "hidden") {
             const remote = await readRemote();
+            // O usuário pode começar a editar enquanto a consulta está em
+            // trânsito. Revalide depois do await antes de substituir estado/DOM.
+            if (state.loading || state.dirty || saveInFlight || isEditingField() || document.visibilityState === "hidden") return;
             const version = Number(remote?.version || 0);
             if (remote?.payload && version > state.remoteVersion) {
               state.remoteVersion = version;
