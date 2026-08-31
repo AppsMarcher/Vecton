@@ -10598,7 +10598,7 @@ body.mobile-shell-active .vmob-shell {
   cursor: pointer;
 }
 .vmob-brand-logo {
-  height: 40px;
+  height: 48px;
   width: auto;
   object-fit: contain;
   display: block;
@@ -10607,13 +10607,13 @@ body.mobile-shell-active .vmob-shell {
 .vmob-avatar {
   all: unset;
   box-sizing: border-box;
-  width: 49px;
-  height: 49px;
-  border-radius: 16px;
+  width: 59px;
+  height: 59px;
+  border-radius: 19px;
   background: var(--vmob-accent-soft);
   color: var(--vmob-accent);
   border: 1px solid rgba(79, 124, 255, 0.35);
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   display: grid;
   place-items: center;
