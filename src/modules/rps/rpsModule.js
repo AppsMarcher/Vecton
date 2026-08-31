@@ -12,6 +12,7 @@
   const ATTACHMENT_BUCKET = "rps-attachments";
   const BACKUP_MANAGER_FUNCTION = "rps-backup-manager";
   const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+  const ESTOQUE_MARCHER_FORMULA = "={Produto Acabado - Matriz}+{Produto Acabado - Filial}+{Produto Intermediário}+{Matéria-prima}+{Material de Consumo + MANUTENÇÃO}+{Peças}+{Sucatas}+{Engenharia}+{Mão-de-obra estocada}+{Qualidade}+{Estoque - DE TERCEIROS}+{Estoque - EM TERCEIROS}";
 
   const DEFAULT_AREAS = [
     { id: "comercial", nome: "COMERCIAL", cor: "#4f7cff" },
@@ -47,7 +48,7 @@
     ],
     supply: [
       item("Compras MP (entrada) (SD1)", "R$"), item("Compras a Receber (MP)", "R$"), item("Compras a Receber (outros)", "R$"), spacer(),
-      calculated("Estoque Marcher", "R$", "={Produto Acabado - Matriz}+{Produto Acabado - Filial}+{Produto Intermediário}+{Matéria-prima}+{Material de Consumo + MANUTENÇÃO}+{Peças}+{Sucatas}+{Engenharia}+{Mão-de-obra estocada}+{Qualidade}+{Estoque - DE TERCEIROS}+{Estoque - EM TERCEIROS}"),
+      calculated("Estoque Marcher", "R$", ESTOQUE_MARCHER_FORMULA),
       item("Produto Acabado - Matriz", "R$"), item("Produto Acabado - Filial", "R$"), item("Produto Intermediário", "R$"), item("Matéria-prima", "R$"),
       item("Material de Consumo + MANUTENÇÃO", "R$"), item("Peças", "R$"), item("Sucatas", "R$"), item("Engenharia", "R$"),
       item("Mão-de-obra estocada", "R$"), item("Qualidade", "R$"), item("Estoque - DE TERCEIROS", "R$"), item("Estoque - EM TERCEIROS", "R$"), spacer(),
@@ -138,6 +139,22 @@
     };
   }
 
+  function restoreRequiredCalculatedIndicators(areaId, indicators) {
+    if (areaId !== "supply") return indicators;
+    return indicators.map((indicator) => {
+      const label = String(indicator.label || "").replace(/^\s*\(\s*=\s*\)\s*/, "");
+      if (slugify(label) !== slugify("Estoque Marcher")) return indicator;
+      return {
+        ...indicator,
+        label,
+        type: "calculated",
+        unit: indicator.unit || "R$",
+        formula: ESTOQUE_MARCHER_FORMULA,
+        editableFields: { ...indicator.editableFields, semanas: false, mes: false }
+      };
+    });
+  }
+
   function normalizePayload(raw) {
     const fallback = defaultPayload();
     const source = raw && typeof raw === "object" ? raw : {};
@@ -151,7 +168,7 @@
         && legacyLabels.length === sourceLabels.length
         && legacyLabels.every((label, index) => label === sourceLabels[index]);
       const list = !sourceList || isLegacySeed ? fallback.indicadores[area.id] || [] : sourceList;
-      indicadores[area.id] = list.map(normalizeIndicator);
+      indicadores[area.id] = restoreRequiredCalculatedIndicators(area.id, list.map(normalizeIndicator));
     });
     return {
       version: Math.max(Number(source.version) || 4, 4),
