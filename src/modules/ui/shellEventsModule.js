@@ -54,6 +54,43 @@
     } = deps;
 
     function bindShellEvents() {
+      // Abaixo de 1120px a sidebar vira um drawer sobreposto (CSS: position:fixed,
+      // ver styles.css). Ela some por padrão nessa faixa e o botão de menu a abre
+      // por cima do conteúdo. Acima de 1120px o comportamento de sempre é mantido
+      // (visível, toggle manual empurrando o layout).
+      const narrowSidebarQuery = window.matchMedia("(max-width: 1120px)");
+      function setSidebarCollapsed(collapsed) {
+        sidebar.classList.toggle("collapsed", collapsed);
+        appLayout.classList.toggle("sidebar-collapsed", collapsed);
+      }
+      function closeSidebarDrawerIfNarrow() {
+        if (narrowSidebarQuery.matches) {
+          setSidebarCollapsed(true);
+        }
+      }
+      // Estado inicial no boot + toda vez que a janela cruza o breakpoint
+      // (não dispara em todo resize, só na transição — evita custo à toa).
+      setSidebarCollapsed(narrowSidebarQuery.matches);
+      narrowSidebarQuery.addEventListener("change", (event) => {
+        setSidebarCollapsed(event.matches);
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!narrowSidebarQuery.matches || sidebar.classList.contains("collapsed")) {
+          return;
+        }
+        if (sidebar.contains(event.target) || event.target.closest("#sidebar-toggle")) {
+          return;
+        }
+        setSidebarCollapsed(true);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeSidebarDrawerIfNarrow();
+        }
+      });
+
       profileTrigger.addEventListener("click", () => {
         closePeriodPicker();
         openProfileDialog();
@@ -91,6 +128,7 @@
             return;
           }
           closePeriodPicker();
+          closeSidebarDrawerIfNarrow();
           if (button.dataset.view === "reports") {
             setSelectedReportId(null);
           }
@@ -128,6 +166,7 @@
         button.addEventListener("click", async (event) => {
           closePeriodPicker();
           if (!button.dataset.view) return;
+          closeSidebarDrawerIfNarrow();
 
           if (button.dataset.view === "actualsLoad") {
             event.preventDefault();
@@ -210,8 +249,7 @@
 
       document.querySelector("#sidebar-toggle").addEventListener("click", () => {
         closePeriodPicker();
-        sidebar.classList.toggle("collapsed");
-        appLayout.classList.toggle("sidebar-collapsed");
+        setSidebarCollapsed(!sidebar.classList.contains("collapsed"));
       });
 
       periodTrigger.addEventListener("click", (event) => {

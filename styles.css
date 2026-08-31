@@ -4612,8 +4612,46 @@ textarea[disabled] {
     grid-template-columns: 1fr;
   }
 
-  .sidebar {
-    min-height: auto;
+  /* Abaixo de 1120px a sidebar vira um drawer sobreposto (position:fixed),
+     saindo do fluxo do grid — corrige o bug em que ".sidebar{height:100vh}"
+     (incondicional, ver bloco perto do fim do arquivo) consumia a única
+     linha do grid e empurrava o .main-panel pra fora da viewport (com
+     overflow:hidden no body/.app-layout, ficava inacessível). O seletor
+     "#sidebar.sidebar" tem especificidade maior que ".sidebar" pra garantir
+     que esta regra vence independente da ordem no arquivo. Colapsada por
+     padrão nesta faixa (ver shellEventsModule.js); o botão de menu abre
+     como drawer, com fechamento ao tocar fora ou Esc.  */
+  #sidebar.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    width: min(84vw, 300px);
+    height: 100dvh;
+    min-height: 0;
+    padding: calc(22px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition: transform 200ms ease;
+    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.45);
+  }
+
+  #sidebar.sidebar.collapsed {
+    width: min(84vw, 300px);
+    padding: calc(22px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+    opacity: 1;
+    pointer-events: none;
+    transform: translateX(-100%);
+  }
+
+  /* Fundo escurecido atrás do drawer aberto; clicar nele fecha (ver JS). */
+  .app-layout:not(.sidebar-collapsed)::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 999;
   }
 
   .main-header {
