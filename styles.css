@@ -10887,6 +10887,16 @@ body.mobile-shell-active .msn-jan-acoes .msn-icon-btn:not([data-action="fechar"]
   border-radius: 10px;
   font-size: 1.05rem;
 }
+/* X de fechar com a mesma "bordinha" (fundo pretinho mais claro) do X do
+   painel de contatos -- pedido do usuário, 2026-08-31, comparando print
+   dos dois: o do painel já tinha esse fundo, o da conversa estava sem
+   nada por trás. Fundo permanente (não só no :hover), tamanho compacto
+   preservado. */
+body.mobile-shell-active [data-action="fechar-painel"],
+body.mobile-shell-active [data-action="fechar"] {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
 body.mobile-shell-active .msn-contato,
 body.mobile-shell-active .msg-bubble {
   touch-action: pan-y;
