@@ -26,7 +26,7 @@
         accent: "#4F7CFF", icon: "pie", reportId: "comercialPainel", available: true
       },
       {
-        key: "a3", nome: "A3 Estratégico",
+        key: "a3", nome: "A3 Estratégicos",
         desc: "Norte Verdadeiro, metas e indicadores por gestão.",
         accent: "#8b5cf6", icon: "target", reportId: null, available: false
       }
