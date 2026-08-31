@@ -10857,7 +10857,7 @@ body.mobile-shell-active .msn-janela {
      junto deles deixava três restrições verticais concorrendo no Safari. */
   bottom: auto !important;
   width: calc(100% - 2px) !important;
-  height: calc(100% - 1px);
+  height: calc(100% - 2px);
   max-height: none !important;
   min-width: 0 !important;
   min-height: 0 !important;

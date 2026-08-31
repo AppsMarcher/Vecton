@@ -166,9 +166,10 @@
         Math.round(vv?.offsetTop || 0),
         focadoNoCompositor ? Math.round(window.scrollY || 0) : 0
       );
-      // Um pixel de respiro na base acompanha o recuo das laterais; o topo
-      // permanece exatamente ancorado no início da área visível.
-      const altura = `${Math.max(1, alturaPx - 1)}px`;
+      // 2px de respiro na base (pedido do usuário, 2026-08-31) -- as
+      // laterais ficam com 1px cada (styles.css); o topo permanece
+      // exatamente ancorado no início da área visível.
+      const altura = `${Math.max(1, alturaPx - 2)}px`;
       const topo = `${topoPx}px`;
       elementosTelaCheiaMobile().forEach((el) => {
         el.style.height = altura;
