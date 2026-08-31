@@ -847,6 +847,12 @@
       const avatarBloco = fotoUrl
         ? `<button type="button" class="msn-jan-avatar-btn" data-action="ver-foto" title="Ver foto" aria-label="Ver foto de ${escapeHtml(titulo || "")}">${avatar}</button>`
         : avatar;
+      // No mobile o hint "(Enter envia, Shift+Enter quebra linha)" não faz
+      // sentido (não tem teclado físico) e estourava a largura do campo,
+      // quebrando em 2 linhas dentro de uma caixa de 1 linha só (print do
+      // usuário, 2026-08-31) -- placeholder mais curto lá, resto some via
+      // CSS (font-size menor).
+      const placeholder = estaNoShellMobile() ? "Escreva uma mensagem..." : "Escreva... (Enter envia, Shift+Enter quebra linha)";
       return `
         <div class="msn-jan-head">
           <div class="msn-jan-identidade">
@@ -868,7 +874,7 @@
           <button type="button" class="msn-icon-btn" data-action="anexar" title="Anexar">＋</button>
           <input type="file" class="msn-file" multiple hidden>
           <div class="msn-input-wrap">
-            <textarea class="msn-input" rows="2" placeholder="Escreva... (Enter envia, Shift+Enter quebra linha)"></textarea>
+            <textarea class="msn-input" rows="2" placeholder="${placeholder}"></textarea>
             <button type="button" class="msn-emoji-trigger" data-action="emoji-menu" title="Emojis" aria-label="Abrir seletor de emojis" aria-expanded="false">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="9" cy="10" r="1" class="msn-emoji-olho"></circle><circle cx="15" cy="10" r="1" class="msn-emoji-olho"></circle><path d="M8.5 14c.9 1.4 2 2 3.5 2s2.6-.6 3.5-2"></path></svg>
             </button>
