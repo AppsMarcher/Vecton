@@ -666,6 +666,10 @@ body.auth-only .vp-update-banner { display: none; }
   .auth-panel { min-height: 0; padding: 30px 22px; border-radius: 22px; }
   .brand-logo-auth { width: 185px; }
   .auth-footer { flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0; line-height: 1.5; }
+  /* Tagline com ícone-alvo é decoração de desktop (ao lado do hero, que some
+     no mobile) -- sobrando sozinha no rodapé do celular ela não tem contexto
+     e só disputa espaço com o crédito. Mantém só "Desenvolvido por". */
+  .auth-footer p:first-child { display: none; }
 }
 
 @media (max-width: 420px) {
