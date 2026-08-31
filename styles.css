@@ -1195,6 +1195,7 @@ body.auth-only .vp-update-banner { display: none; }
 }
 
 .header-icon-button {
+  position: relative;
   width: 28px;
   height: 28px;
   border-radius: 9px;
@@ -1207,6 +1208,48 @@ body.auth-only .vp-update-banner { display: none; }
   border-color: var(--line);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text);
+}
+
+/* Tooltip padrão dos ícones do header (fundo do app, fonte no azul padrão) */
+.header-icon-button[data-tooltip]::after,
+.header-icon-button[data-tooltip]::before {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.header-icon-button[data-tooltip]::after {
+  content: attr(data-tooltip);
+  top: calc(100% + 10px);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--blue);
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow, 0 8px 20px rgba(0, 0, 0, 0.35));
+  z-index: 60;
+}
+
+.header-icon-button[data-tooltip]::before {
+  content: "";
+  top: calc(100% + 4px);
+  border: 5px solid transparent;
+  border-bottom-color: var(--panel);
+  z-index: 61;
+}
+
+.header-icon-button[data-tooltip]:hover::after,
+.header-icon-button[data-tooltip]:hover::before,
+.header-icon-button[data-tooltip]:focus-visible::after,
+.header-icon-button[data-tooltip]:focus-visible::before {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .header-select {
