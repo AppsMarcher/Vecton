@@ -10885,19 +10885,29 @@ body.mobile-shell-active .msn-input { font-size: 0.68rem; }
    .msn-wa-linha1/.msn-wa-linha2) -- no desktop o markup nem tem essas
    classes, então o `.msn-contato-copy` genérico (display:grid, styles.css
    ~9553) continua valendo sem qualquer mudança visual lá. */
-/* A lista tinha padding horizontal próprio (8px) -- a linha divisória
-   (border-bottom da .msn-contato) ficava 8px aquém da borda real do
-   painel dos 2 lados, sem passar por baixo do avatar (comparação direta
-   com print do WhatsApp, onde a linha é de ponta a ponta, 2026-08-31).
-   Fix: zera o padding da lista e devolve o respiro como padding de CADA
-   linha -- agora o border-bottom nasce na largura inteira do painel. */
-body.mobile-shell-active .msn-lista { padding-left: 0; padding-right: 0; }
-body.mobile-shell-active .msn-secao { padding-left: 16px; padding-right: 16px; }
-body.mobile-shell-active .msn-vazio { padding-left: 16px; padding-right: 16px; }
+/* Linha divisória igual ao WhatsApp de verdade: NÃO é de ponta a ponta --
+   começa depois do avatar (alinhada com o nome), vai até a borda direita.
+   Corrigido 2026-08-31 depois do usuário comparar com print real: a 1ª
+   tentativa (zerar padding da lista + border-bottom na .msn-contato
+   inteira) tinha ido pro lado ERRADO -- linha de ponta a ponta, passando
+   por baixo do avatar, exatamente o oposto do que o WhatsApp faz.
+   `::after` absoluto em vez de border-bottom porque border sempre nasce
+   na largura INTEIRA do elemento -- só um pseudo-elemento à parte permite
+   recuar um lado só. `left` soma padding(16px) + avatar(46px) + gap(9px)
+   da própria .msn-contato (valores logo abaixo). */
 body.mobile-shell-active .msn-contato {
-  border-bottom: 1px solid var(--line);
+  position: relative;
   border-radius: 0;
   padding: 10px 16px;
+}
+body.mobile-shell-active .msn-contato::after {
+  content: "";
+  position: absolute;
+  left: 71px;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--line);
 }
 body.mobile-shell-active .msn-avatar {
   width: 46px;
