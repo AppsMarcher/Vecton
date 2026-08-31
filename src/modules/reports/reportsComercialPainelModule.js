@@ -23,6 +23,7 @@
     const {
       COORD_STYLE, COORD_ORDER, METRICS,
       metricObj, transform, coordTotals, sumTerrLine, memoOwner, companyTotals, buildCoordDetail, coordCardDelta,
+      pecasVendLines,
       round, nf, fmtR$, fmtFullR$
     } = window.VECTON_COMERCIAL_PAINEL_DATA;
 
@@ -674,44 +675,14 @@
         ${pecMemo ? `<div class="cvp-mini-foot">* Pecuária da região — ilustrativo, consolidado em ${escapeHtml(memo.owner)}. Fora do TTL, do Faturado e do vs meta.</div>` : ""}</div>`;
     }
 
-    // Quebra de Peças por vendedor (087) no formato que o miniHtml consome.
-    // - "demais" e calculado como TOTAL - titular (decisao do usuario), nao
-    //   somando linhas: garante que as duas tabelas fechem no consolidado mesmo
-    //   se a RPC e o rollup do painel divergirem por algum filtro.
-    // - Meta so no titular, igual a do total (decisao do usuario). "Demais"
-    //   fica com meta zero -> o miniHtml mostra "vs meta —" em vez de um
-    //   percentual que nao significa nada.
-    function pecasVendLines(consolidado) {
-      if (!consolidado || !pecasVend.length) return [];
-      const titular = pecasVend.find((r) => r.bucket === "titular");
-      if (!titular) return [];
-      const num = (v) => Number(v) || 0;
-      const zero = { q: 0, v: 0 };
-      const tLine = {
-        fat:  { q: 0, v: num(titular.fat_val) },
-        cart: { q: 0, v: num(titular.cart_val) },
-        meta: { ...consolidado.meta },
-        y1:   { q: 0, v: num(titular.y1_val) },
-        y2:   { q: 0, v: num(titular.y2_val) },
-        y3:   { q: 0, v: num(titular.y3_val) }
-      };
-      const resto = (m) => ({ q: 0, v: num(consolidado[m].v) - num(tLine[m].v) });
-      const dLine = {
-        fat: resto("fat"), cart: resto("cart"),
-        meta: { ...zero },
-        y1: resto("y1"), y2: resto("y2"), y3: resto("y3")
-      };
-      const nome = titular.vendedor || "Titular de Peças";
-      const cod = titular.cod_vendedor ? `cód. ${titular.cod_vendedor}` : "sem código na atribuição";
-      // `vendModo` alimenta o drill (090): 'igual' = so o titular, 'diferente' =
-      // todo o resto (inclusive linha sem cod_vendedor), mesma regra da 087.
-      // Sem codigo na atribuicao nao ha como filtrar -> as duas tabelas ficam
-      // sem drill, em vez de abrir um popover que nao corresponde ao numero.
-      return [
-        { label: nome.toUpperCase(), sub: cod, line: tLine, vend: titular.cod_vendedor || null, vendModo: "igual" },
-        { label: "DEMAIS", sub: "Demais vendedores", line: dLine, vend: titular.cod_vendedor || null, vendModo: "diferente" }
-      ];
-    }
+    // pecasVendLines (titular/Jenifer vs Demais) mora em comercialPainelDataModule.js
+    // -- COMPARTILHADA com o mobile desde 2026-08-31 (mesmo motivo do
+    // comentário no topo daquele arquivo: nenhuma tela pode ter sua própria
+    // conta). `vendModo` alimenta o drill (090): 'igual' = só o titular,
+    // 'diferente' = todo o resto (inclusive linha sem cod_vendedor), mesma
+    // regra da 087. Sem código na atribuição não há como filtrar -> as duas
+    // tabelas ficam sem drill, em vez de abrir um popover que não corresponde
+    // ao número.
 
     function renderDetail(container) {
       closeDetailPopover();
@@ -735,7 +706,7 @@
         // por vendedor filtram por cod_vendedor (igual/diferente do titular).
         const pecasScope = { coord: c.nome, linhas: ["Peças"], pecas: true };
         cards.push(miniHtml(c.nome.toUpperCase(), c.gestor || "", null, null, consPecas, true, pecasScope));
-        const vendCards = pecasVendLines(consPecas);
+        const vendCards = pecasVendLines(consPecas, pecasVend);
         if (vendCards.length) {
           vendCards.forEach((vc) => cards.push(miniHtml(vc.label, vc.sub, null, null, vc.line, false,
             vc.vend ? { ...pecasScope, vend: vc.vend, vendModo: vc.vendModo, label: vc.label } : null)));

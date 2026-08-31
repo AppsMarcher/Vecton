@@ -18,6 +18,7 @@
     const {
       COORD_STYLE, COORD_ORDER,
       transform, coordTotals, companyTotals, buildCoordDetail, coordCardDelta,
+      pecasVendLines,
       nf, fmtR$, fmtFullR$
     } = DATA;
 
@@ -39,6 +40,7 @@
     let year = new Date().getFullYear();
     let month = new Date().getMonth() + 1;
     let coords = [], regioes = [], tipos = [];
+    let pecasVend = []; // [{bucket:'titular'|'demais', cod_vendedor, vendedor, fat_val, cart_val, ...}] (087) -- ver pecasVendLines
     let loading = false, loadedKey = null;
     let scenarios = [], scenarioUserSet = false;
 
@@ -147,13 +149,16 @@
         .vmob-card-vs { color:var(--vmob-faint); font-weight:600; }
         .vmob-card-delta { font-weight:800; font-size:12px; }
 
-        /* Lista de territórios: 1 card único (não 1 card por território) --
-           cada território é só conteúdo (.vmob-matrix-flat, sem fundo/borda
-           própria); a linha entre eles usa a cor da coordenação (a mesma do
-           --vmob-card-accent de cada item), servindo SÓ de separador, nunca
-           de borda lateral de "card" (pedido do usuário, 2026-08-31). */
-        .vmob-terr-list { background:var(--vmob-panel); border:1px solid var(--vmob-line); border-radius:16px; padding:14px; }
-        .vmob-matrix-flat + .vmob-matrix-flat { margin-top:14px; padding-top:14px; border-top:2px solid var(--vmob-card-accent, var(--vmob-accent)); }
+        /* Lista de territórios: SEM borda ao redor (nem por território, nem
+           no grupo todo) -- só as mesmas linhas finas de 1px que já separam
+           as linhas dentro de cada mini-matriz (.vmob-matrix td), com o
+           ajuste de cor: a linha que separa um território do próximo usa a
+           cor da coordenação (--vmob-card-accent) em vez do cinza neutro
+           (pedido do usuário, 2026-08-31 -- 2ª rodada, a 1ª ainda tinha
+           virado uma "caixa" com borda/padding grande demais). */
+        .vmob-matrix-flat { padding:12px 0; }
+        .vmob-matrix-flat:first-child { padding-top:0; }
+        .vmob-matrix-flat + .vmob-matrix-flat { border-top:1px solid var(--vmob-card-accent, var(--vmob-accent)); }
         /* .vmob-chev fica em styles.css (usado também pelo Menu mobile) */
 
         .vmob-empty { padding:40px 20px; text-align:center; color:var(--vmob-faint); font-size:13px; line-height:1.6; }
@@ -191,19 +196,28 @@
     async function loadData() {
       loading = true;
       await loadScenarios();
-      let rows = [], tiposRows = [];
+      let rows = [], tiposRows = [], pecasVendRows = [];
       if (isSupabaseConfigured()) {
         const org = await resolveOrganizationId();
         const payload = { p_org: org, p_year: year, p_month: month, p_period: ui.periodMode, p_scenario_id: ui.scenarioId };
-        [rows, tiposRows] = await Promise.all([
+        // Quebra de Peças por vendedor (087), mesma RPC do desktop -- sem
+        // p_scenario_id: a meta não é quebrada, o detalhe do titular
+        // reaproveita a meta consolidada. Tolera 404 (migration ainda não
+        // aplicada) -> screenCoord("Peças") cai no formato antigo por
+        // território em vez de quebrar o painel inteiro.
+        const { p_scenario_id, ...pecasPayload } = payload;
+        [rows, tiposRows, pecasVendRows] = await Promise.all([
           callSupabaseRpc("comercial_painel_vendas", payload),
-          callSupabaseRpc("comercial_painel_tipos", payload)
+          callSupabaseRpc("comercial_painel_tipos", payload),
+          callSupabaseRpc("comercial_painel_pecas_vendedor", pecasPayload)
+            .catch((e) => { console.warn("pecas por vendedor indisponivel (mobile):", e); return []; })
         ]);
       }
       const tr = transform(rows || []);
       coords = tr.coords;
       regioes = tr.regioes;
       tipos = tiposRows || [];
+      pecasVend = pecasVendRows || [];
       loadedKey = paramsKey();
       loading = false;
       if (ui.level !== "brasil" && (!ui.coordKey || !coords.some((c) => c.nome === ui.coordKey))) {
@@ -474,18 +488,29 @@
         title: ui.coordKey.toUpperCase(), sub: "Gestor " + (det.coord.gestor || "—"), accent,
         grao: det.consolidado.grao, pec: det.consolidado.pec, pecas: det.consolidado.pecas, memo: det.consolidado.memo
       });
-      const terrHtml = det.territorios.map((t) => renderMiniMatrix({
-        title: t.terr, sub: t.resp || "Sem responsável definido", accent,
-        grao: t.grao, pec: t.pec, pecas: t.pecas,
-        flat: true
-      })).join("") || '<p class="vmob-empty">Nenhum território com dado neste período.</p>';
+      // "Peças" abre por VENDEDOR (titular/Jenifer vs Demais), não por
+      // território -- MESMA informação do desktop (renderDetail/isPecas em
+      // reportsComercialPainelModule.js), só a aparência muda (2026-08-31).
+      // Sem a migration 087 (pecasVendLines devolve []), cai no formato
+      // antigo por território, igual ao desktop.
+      const vendCards = det.isPecas ? pecasVendLines(det.consolidado.pecas, pecasVend) : [];
+      const sectionLabel = vendCards.length ? "Por vendedor" : "Territórios";
+      const items = vendCards.length
+        ? vendCards.map((vc) => renderMiniMatrix({ title: vc.label, sub: vc.sub, accent, pecas: vc.line, flat: true }))
+        : det.territorios.map((t) => renderMiniMatrix({
+            title: t.terr, sub: t.resp || "Sem responsável definido", accent,
+            grao: t.grao, pec: t.pec, pecas: t.pecas,
+            flat: true
+          }));
+      const itemCount = vendCards.length || det.territorios.length;
+      const terrHtml = items.join("") || '<p class="vmob-empty">Nenhum território com dado neste período.</p>';
       // Sem <h2> nem <p> de sub aqui -- ficariam redundantes com o "Sul" que
-      // o breadcrumb já mostra e com a contagem no cabeçalho da seção
-      // "Territórios" logo abaixo (2026-08-31).
+      // o breadcrumb já mostra e com a contagem no cabeçalho da seção logo
+      // abaixo (2026-08-31).
       return '<div class="vmob-crumbbar">' + crumb() +
         filtersBlock() + "</div>" +
         '<div class="vmob-section">' + consolidadoHtml + "</div>" +
-        '<div class="vmob-section"><div class="vmob-section-head"><span class="vmob-section-title">Territórios</span><span class="vmob-section-count">' + det.territorios.length + "</span></div>" +
+        '<div class="vmob-section"><div class="vmob-section-head"><span class="vmob-section-title">' + sectionLabel + '</span><span class="vmob-section-count">' + itemCount + "</span></div>" +
         '<div class="vmob-terr-list">' + terrHtml + "</div></div>";
     }
 

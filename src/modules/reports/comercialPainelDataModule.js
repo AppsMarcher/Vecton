@@ -180,6 +180,47 @@
     return { coord: c, isPecas: false, consolidado: { grao: graoSum, pec: pecSum, pecas: null, memo }, territorios };
   }
 
+  // Quebra de Peças por vendedor (087) no formato que os renderizadores
+  // (miniHtml do desktop, renderMiniMatrix do mobile) consomem --
+  // COMPARTILHADA entre os dois (mesmo motivo do comentário no topo do
+  // arquivo: nenhuma tela pode ter sua própria conta). Extraída do desktop
+  // em 2026-08-31 pro mobile parar de mostrar a lista genérica de
+  // territórios em "Peças" e passar a abrir com a MESMA informação do
+  // desktop (titular/Jenifer vs Demais).
+  // - "demais" é calculado como TOTAL - titular (decisão do usuário), não
+  //   somando linhas: garante que as duas linhas fecham no consolidado mesmo
+  //   se a RPC e o rollup do painel divergirem por algum filtro.
+  // - Meta só no titular, igual à do total (decisão do usuário). "Demais"
+  //   fica com meta zero -> a UI mostra "vs meta —" em vez de um percentual
+  //   que não significa nada.
+  function pecasVendLines(consolidado, pecasVend) {
+    if (!consolidado || !pecasVend || !pecasVend.length) return [];
+    const titular = pecasVend.find((r) => r.bucket === "titular");
+    if (!titular) return [];
+    const num = (v) => Number(v) || 0;
+    const zero = { q: 0, v: 0 };
+    const tLine = {
+      fat:  { q: 0, v: num(titular.fat_val) },
+      cart: { q: 0, v: num(titular.cart_val) },
+      meta: { ...consolidado.meta },
+      y1:   { q: 0, v: num(titular.y1_val) },
+      y2:   { q: 0, v: num(titular.y2_val) },
+      y3:   { q: 0, v: num(titular.y3_val) }
+    };
+    const resto = (m) => ({ q: 0, v: num(consolidado[m].v) - num(tLine[m].v) });
+    const dLine = {
+      fat: resto("fat"), cart: resto("cart"),
+      meta: { ...zero },
+      y1: resto("y1"), y2: resto("y2"), y3: resto("y3")
+    };
+    const nome = titular.vendedor || "Titular de Peças";
+    const cod = titular.cod_vendedor ? `cód. ${titular.cod_vendedor}` : "sem código na atribuição";
+    return [
+      { label: nome.toUpperCase(), sub: cod, line: tLine, vend: titular.cod_vendedor || null, vendModo: "igual" },
+      { label: "DEMAIS", sub: "Demais vendedores", line: dLine, vend: titular.cod_vendedor || null, vendModo: "diferente" }
+    ];
+  }
+
   // Delta do card de coordenação: Faturado vs Meta do período/cenário atual
   // -- (Fat-Meta)/Meta, positivo = bateu/passou a meta. Usado pelo card do
   // desktop (renderCards) e pelo card mobile (coordCardHtml); é DELTA (gap),
@@ -194,6 +235,7 @@
   window.VECTON_COMERCIAL_PAINEL_DATA = {
     COORD_STYLE, COORD_ORDER, METRICS, GEO_COORDS,
     metricObj, transform, coordTotals, sumTerrLine, memoOwner, companyTotals, buildCoordDetail, coordCardDelta,
+    pecasVendLines,
     round, nf, fmtR$, fmtFullR$
   };
 })(window);

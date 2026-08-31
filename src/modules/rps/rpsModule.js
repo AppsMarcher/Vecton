@@ -12,6 +12,7 @@
   const ATTACHMENT_BUCKET = "rps-attachments";
   const BACKUP_MANAGER_FUNCTION = "rps-backup-manager";
   const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+  const REMOTE_POLL_MS = 15000;
   const ESTOQUE_MARCHER_FORMULA = "={Produto Acabado - Matriz}+{Produto Acabado - Filial}+{Produto Intermediário}+{Matéria-prima}+{Material de Consumo + MANUTENÇÃO}+{Peças}+{Sucatas}+{Engenharia}+{Mão-de-obra estocada}+{Qualidade}+{Estoque - DE TERCEIROS}+{Estoque - EM TERCEIROS}";
 
   const DEFAULT_AREAS = [
@@ -185,6 +186,21 @@
       modoMeta: clone(source.modoMeta || {}),
       configuracoes: { ...clone(fallback.configuracoes), ...clone(source.configuracoes || {}) }
     };
+  }
+
+  function recoverLegacyPayload(remotePayload, draftPayload) {
+    const remote = normalizePayload(remotePayload);
+    const draft = normalizePayload(draftPayload);
+    const result = clone(remote);
+    let conflicts = 0;
+    ["unidades", "dados", "cellStyles", "comentarios", "dadosMes", "dadosMeta", "anexos", "modoMes", "modoMeta", "configuracoes"].forEach((section) => {
+      Object.entries(draft[section] || {}).forEach(([key, value]) => {
+        const remoteEntry = entry(remote[section], key);
+        if (!remoteEntry.exists || equal(remoteEntry.value, value)) result[section][key] = clone(value);
+        else conflicts += 1;
+      });
+    });
+    return { payload: result, conflicts };
   }
 
   function entry(object, key) {
@@ -376,6 +392,7 @@
 
     const state = {
       periodKey: "",
+      loadedPeriod: null,
       organizationId: null,
       payload: defaultPayload(),
       basePayload: null,
@@ -388,6 +405,7 @@
       collapsed: new Set(),
       backendAvailable: true,
       loadGeneration: 0,
+      switchingPeriod: false,
       presentation: false,
       presentationZoom: 0,
       tableScrollLeft: 0,
@@ -405,6 +423,7 @@
 
     let saveTimer = null;
     let maxSaveTimer = null;
+    let remotePollTimer = null;
     let saveInFlight = null;
     let saveRequested = false;
     let eventsBound = false;
@@ -425,6 +444,7 @@
       const period = getPeriod();
       return { year: Number(period.year), month: Number(period.month) };
     };
+    const activePeriod = () => state.loadedPeriod || currentPeriod();
     const currentPeriodKey = () => {
       const { year, month } = currentPeriod();
       return `${year}-${String(month).padStart(2, "0")}`;
@@ -433,7 +453,18 @@
 
     function persistDraft() {
       try {
-        localStorage.setItem(draftKey(), JSON.stringify({ savedAt: new Date().toISOString(), payload: state.payload }));
+        localStorage.setItem(draftKey(), JSON.stringify({
+          savedAt: new Date().toISOString(),
+          payload: state.payload,
+          basePayload: state.basePayload,
+          baseVersion: state.remoteVersion
+        }));
+      } catch (_) { /* best effort */ }
+    }
+
+    function preserveLegacyDraft(draft) {
+      try {
+        localStorage.setItem(`${draftKey()}:legacy:${Date.now()}`, JSON.stringify(draft));
       } catch (_) { /* best effort */ }
     }
 
@@ -495,7 +526,7 @@
 
     async function callBackupManager(action, extra = {}) {
       if (!callEdgeFunction) throw new Error("Função de backup indisponível nesta versão do aplicativo.");
-      const { year, month } = currentPeriod();
+      const { year, month } = activePeriod();
       state.organizationId = state.organizationId || await resolveOrganizationId();
       return callEdgeFunction(BACKUP_MANAGER_FUNCTION, {
         action,
@@ -519,7 +550,7 @@
         if (!state.backupManager.backups.some((item) => item.id === state.backupManager.selectedId)) {
           // A lista empilha todos os períodos; se o mês aberto na tela tiver
           // backup, seleciona ele por padrão — senão cai pro mais recente.
-          const { year, month } = currentPeriod();
+          const { year, month } = activePeriod();
           const ownPeriod = state.backupManager.backups.find((item) => Number(item.ano) === year && Number(item.mes) === month);
           state.backupManager.selectedId = ownPeriod?.id || state.backupManager.backups[0]?.id || "";
         }
@@ -569,7 +600,7 @@
       // está aberto na tela, já que a lista agora empilha todos os meses.
       const targetYear = Number(selected.ano);
       const targetMonth = Number(selected.mes);
-      const targetsOpenPeriod = targetYear === currentPeriod().year && targetMonth === currentPeriod().month;
+      const targetsOpenPeriod = targetYear === activePeriod().year && targetMonth === activePeriod().month;
       if (targetsOpenPeriod && state.dirty && !await requestSave()) {
         await appAlert("Não foi possível salvar as alterações atuais. A restauração foi cancelada.", "error");
         return;
@@ -776,7 +807,7 @@
     }
 
     function attachmentPath(areaId, indicatorId, column, attachmentId, fileName) {
-      const { year, month } = currentPeriod();
+      const { year, month } = activePeriod();
       const period = `${year}-${String(month).padStart(2, "0")}`;
       return `${state.organizationId}/${period}/${slugify(areaId)}/${slugify(indicatorId)}/${column}/${attachmentId}_${safeFileName(fileName)}`;
     }
@@ -1205,7 +1236,7 @@
       if (!root) return;
       const currentTableScroll = root.querySelector(".rps-table-scroll");
       if (currentTableScroll) state.tableScrollLeft = currentTableScroll.scrollLeft;
-      const { year, month } = currentPeriod();
+      const { year, month } = activePeriod();
       const fillable = canFillValues() && !state.presentation;
       const structural = canEditStructure() && !state.presentation;
       const focusWeek = focusedWeek();
@@ -1238,6 +1269,7 @@
               </div>
             </div>
             <div class="rps-toolbar">
+              <strong class="rps-status-pill" data-rps-status data-state="${escapeHtml(state.status)}"><i></i><span data-rps-status-text>${escapeHtml(statusLabel())}</span></strong>
               ${canManageBackups() && !state.presentation ? `<button type="button" class="rps-action rps-action-backup" data-rps-action="backups" title="Backups verificados e recuperação deste mês">⟲ <span>Backup</span></button>` : ""}
               <button type="button" class="rps-action" data-rps-action="refresh" title="Recarregar dados">↻ <span>Atualizar</span></button>
               ${structural ? `<button type="button" class="rps-action" data-rps-action="add">＋ <span>Indicador</span></button>` : ""}
@@ -1272,8 +1304,8 @@
       updateStatusElements();
     }
 
-    async function readRemote() {
-      const { year, month } = currentPeriod();
+    async function readRemote(period = activePeriod()) {
+      const { year, month } = period;
       const query = `organization_id=eq.${encodeURIComponent(state.organizationId)}&ano=eq.${year}&mes=eq.${month}&select=payload,version,updated_at&limit=1`;
       const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/${TABLE}?${query}`);
       if (!response.ok) throw new Error(await response.text());
@@ -1304,7 +1336,18 @@
         if (draft?.payload && !equal(normalizePayload(draft.payload), state.payload)) {
           const recover = await appConfirm("Há alterações locais da RPS que ainda não chegaram à nuvem. Deseja recuperá-las?", "warn");
           if (recover) {
-            state.payload = normalizePayload(draft.payload);
+            if (draft.basePayload) {
+              state.basePayload = normalizePayload(draft.basePayload);
+              state.remoteVersion = Number(draft.baseVersion || state.remoteVersion);
+              state.payload = normalizePayload(draft.payload);
+            } else {
+              preserveLegacyDraft(draft);
+              const recovered = recoverLegacyPayload(state.payload, draft.payload);
+              state.payload = recovered.payload;
+              if (recovered.conflicts) {
+                void appAlert(`${recovered.conflicts} valor(es) do rascunho antigo divergiam da nuvem. A versão da nuvem foi preservada e uma cópia local de segurança foi mantida.`, "warn");
+              }
+            }
             state.dirty = true;
             scheduleSave(500);
           } else {
@@ -1330,6 +1373,7 @@
         if (generation === state.loadGeneration) {
           state.loading = false;
           renderShell();
+          scheduleRemotePoll();
         }
       }
     }
@@ -1353,92 +1397,104 @@
       saveTimer = setTimeout(() => requestSave(), delay);
     }
 
-    async function insertSnapshot(payload) {
-      const { year, month } = currentPeriod();
-      const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/${TABLE}`, {
+    function newRequestId() {
+      if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+        const value = Math.floor(Math.random() * 16);
+        return (char === "x" ? value : (value & 0x3) | 0x8).toString(16);
+      });
+    }
+
+    async function saveAtomic(basePayload, localPayload, period) {
+      const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/rpc/rps_save_snapshot_atomic`, {
         method: "POST",
-        headers: { Prefer: "return=representation" },
         body: JSON.stringify({
-          organization_id: state.organizationId,
-          ano: year,
-          mes: month,
-          payload,
-          version: 1,
-          updated_by: getCurrentUser?.()?.id || null
+          p_organization_id: state.organizationId,
+          p_ano: period.year,
+          p_mes: period.month,
+          p_base_payload: basePayload,
+          p_local_payload: localPayload,
+          p_request_id: newRequestId()
         })
       });
-      if (response.status === 409) return null;
-      if (!response.ok) throw new Error(await response.text());
-      const rows = await response.json();
-      return rows[0] || { payload, version: 1 };
-    }
-
-    async function updateSnapshot(payload, version) {
-      const { year, month } = currentPeriod();
-      const query = `organization_id=eq.${encodeURIComponent(state.organizationId)}&ano=eq.${year}&mes=eq.${month}&version=eq.${version}`;
-      const response = await authenticatedFetch(`${supabaseApiUrl}/rest/v1/${TABLE}?${query}`, {
-        method: "PATCH",
-        headers: { Prefer: "return=representation" },
-        body: JSON.stringify({ payload, version: version + 1, updated_by: getCurrentUser?.()?.id || null })
-      });
-      if (!response.ok) throw new Error(await response.text());
-      const rows = await response.json();
-      return rows[0] || null;
-    }
-
-    async function writeWithRetry(localPayload) {
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        const remote = await readRemote();
-        const merged = mergePayloads(state.basePayload, remote?.payload, localPayload);
-        if (!remote) {
-          const inserted = await insertSnapshot(merged.payload);
-          if (inserted) return { row: inserted, merged };
-          continue;
-        }
-        const version = Number(remote.version || 0);
-        const updated = await updateSnapshot(merged.payload, version);
-        if (updated) return { row: updated, merged };
+      if (!response.ok) {
+        const error = new Error(await response.text());
+        error.status = response.status;
+        throw error;
       }
-      throw new Error("Não foi possível concluir a gravação concorrente após seis tentativas.");
+      return response.json();
+    }
+
+    function scheduleRemotePoll() {
+      clearTimeout(remotePollTimer);
+      remotePollTimer = setTimeout(async () => {
+        try {
+          if (!state.loading && !state.dirty && !saveInFlight && document.visibilityState !== "hidden") {
+            const remote = await readRemote();
+            const version = Number(remote?.version || 0);
+            if (remote?.payload && version > state.remoteVersion) {
+              state.remoteVersion = version;
+              state.basePayload = normalizePayload(remote.payload);
+              state.payload = normalizePayload(remote.payload);
+              state.lastSavedAt = remote.updated_at ? new Date(remote.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+              setStatus("ready", "Atualizado com alterações da equipe");
+              renderShell();
+            }
+          }
+        } catch (error) {
+          console.warn("Falha ao verificar atualizações da RPS", error);
+        } finally {
+          scheduleRemotePoll();
+        }
+      }, REMOTE_POLL_MS);
     }
 
     async function doSave() {
       if (!state.dirty || !state.backendAvailable || !canFillValues()) return true;
       clearTimeout(saveTimer);
       const captured = normalizePayload(state.payload);
+      const capturedBase = state.basePayload ? normalizePayload(state.basePayload) : null;
+      const capturedPeriod = { ...activePeriod() };
       persistDraft();
-      setStatus("saving", "Salvando alterações...");
+      setStatus("saving", "Salvando na nuvem...");
       try {
-        const result = await writeWithRetry(captured);
+        const result = await saveAtomic(capturedBase, captured, capturedPeriod);
         const live = normalizePayload(state.payload);
-        state.remoteVersion = Number(result.row.version || state.remoteVersion + 1);
-        state.basePayload = normalizePayload(result.merged.payload);
-        state.lastSavedAt = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const savedPayload = normalizePayload(result.payload);
+        state.remoteVersion = Number(result.version || state.remoteVersion + 1);
+        state.basePayload = savedPayload;
+        state.lastSavedAt = result.updated_at
+          ? new Date(result.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+          : new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
         if (!equal(live, captured)) {
-          state.payload = mergePayloads(captured, result.merged.payload, live).payload;
+          state.payload = mergePayloads(captured, savedPayload, live).payload;
           state.dirty = true;
           persistDraft();
           scheduleSave(350);
         } else {
-          state.payload = normalizePayload(result.merged.payload);
+          state.payload = savedPayload;
           state.dirty = false;
           clearDraft();
           clearTimeout(maxSaveTimer);
           maxSaveTimer = null;
         }
-        const conflictText = result.merged.conflicts
-          ? `${result.merged.conflicts} conflito(s) conciliado(s); o valor local prevaleceu`
-          : statusLabel();
-        setStatus(state.dirty ? "dirty" : "ready", conflictText);
+        setStatus(state.dirty ? "dirty" : "ready", state.dirty ? "Novas alterações pendentes" : `Salvo na nuvem às ${state.lastSavedAt}`);
         renderShell();
         return true;
       } catch (error) {
         state.dirty = true;
         persistDraft();
-        const locked = String(error?.message || error || "").includes("RPS_LOCKED_FOR_RESTORE");
+        const errorText = String(error?.message || error || "");
+        const locked = errorText.includes("RPS_LOCKED_FOR_RESTORE");
+        const conflict = errorText.includes("RPS_CONCURRENT_CONFLICT") || errorText.includes('"40001"');
+        const forbidden = errorText.includes("RPS_WRITE_FORBIDDEN") || Number(error?.status) === 403;
         setStatus(locked ? "dirty" : "error", locked
           ? "Mês temporariamente bloqueado para backup ou restauração; rascunho preservado"
-          : "Falha ao salvar; rascunho preservado");
+          : conflict
+            ? "Conflito na mesma célula; rascunho preservado. Atualize para conferir."
+            : forbidden
+              ? "Sem permissão de gravação no banco; rascunho preservado"
+              : "Falha ao salvar na nuvem; rascunho preservado");
         console.error("Falha ao salvar RPS", error);
         return false;
       }
@@ -1460,7 +1516,7 @@
     }
 
     function exportTable() {
-      const { year, month } = currentPeriod();
+      const { year, month } = activePeriod();
       const lines = [["Área", "Indicador", ...WEEKS, "Mês", "Meta", "Variação", "Variação %"]];
       state.payload.areas.forEach((area) => getIndicators(area.id).filter((indicator) => indicator.type !== "spacer").forEach((indicator) => {
         const monthValue = getMonthValue(area.id, indicator);
@@ -1577,22 +1633,26 @@
         const labelInput = event.target.closest("[data-rps-label-id]");
         if (labelInput) {
           renameIndicator(labelInput.dataset.rpsLabelArea, labelInput.dataset.rpsLabelId, labelInput.value);
+          void requestSave();
           renderShell();
           return;
         }
         const valueInput = event.target.closest("[data-rps-value-key]");
         if (valueInput) {
+          void requestSave();
           renderShell();
           return;
         }
         const targetInput = event.target.closest("[data-rps-target-key]");
         if (targetInput) {
+          void requestSave();
           renderShell();
         }
       });
 
       root.addEventListener("focusout", (event) => {
         if (event.target.closest("[data-rps-value-key], [data-rps-target-key]")) {
+          void requestSave();
           renderShell();
         }
       });
@@ -1702,6 +1762,7 @@
         } else if (action === "refresh") {
           if (state.dirty && !await appConfirm("Descartar alterações locais e recarregar a RPS?", "warn")) return;
           state.dirty = false;
+          clearDraft();
           await loadPeriod(true);
         } else if (action === "export") {
           exportTable();
@@ -1729,31 +1790,51 @@
       document.addEventListener("fullscreenchange", handleFullscreenChange);
     }
 
-    function render() {
-      if (!root) return;
-      bindEvents();
-      const nextPeriodKey = currentPeriodKey();
-      if (nextPeriodKey !== state.periodKey) {
+    async function switchPeriod(nextPeriod) {
+      if (state.switchingPeriod) return;
+      state.switchingPeriod = true;
+      try {
+        if (state.periodKey && state.dirty) {
+          persistDraft();
+          await requestSave();
+        }
         closeAttachmentModal();
         closeAttachmentCarousel();
         state.backupManager.open = false;
         state.backupManager.selectedId = "";
-        state.periodKey = nextPeriodKey;
+        state.loadedPeriod = { year: Number(nextPeriod.year), month: Number(nextPeriod.month) };
+        state.periodKey = `${state.loadedPeriod.year}-${String(state.loadedPeriod.month).padStart(2, "0")}`;
         state.payload = defaultPayload();
         state.basePayload = null;
         state.remoteVersion = 0;
         state.dirty = false;
         state.loading = true;
         renderShell();
-        void loadPeriod();
+        await loadPeriod();
+      } finally {
+        state.switchingPeriod = false;
+      }
+    }
+
+    function render() {
+      if (!root) return;
+      bindEvents();
+      const nextPeriodKey = currentPeriodKey();
+      if (nextPeriodKey !== state.periodKey) {
+        void switchPeriod(currentPeriod());
         return;
       }
       renderShell();
     }
 
     function destroy() {
+      if (state.dirty) {
+        persistDraft();
+        void requestSave();
+      }
       clearTimeout(saveTimer);
       clearTimeout(maxSaveTimer);
+      clearTimeout(remotePollTimer);
       closeAttachmentModal();
       closeAttachmentCarousel();
       removeLaserPointer();
@@ -1779,6 +1860,8 @@
       if (document.visibilityState === "hidden" && state.dirty) {
         persistDraft();
         requestSave();
+      } else if (document.visibilityState === "visible") {
+        scheduleRemotePoll();
       }
     });
 
