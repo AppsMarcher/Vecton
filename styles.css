@@ -645,33 +645,33 @@ body.auth-only .vp-update-banner { display: none; }
 }
 
 @media (max-width: 767px) {
-  .auth-page { gap: 38px; padding: 25px 18px 0; }
-  .auth-hero { display: contents; }
-  .auth-hero-logo { grid-row: 1; width: 170px; }
-  .auth-hero-copy { grid-row: 2; width: 100%; margin: 3px 0 0; }
-  .auth-hero-copy h1 { font-size: clamp(39px, calc(12vw + 1px), 52px); }
-  .auth-hero-copy > p { max-width: 520px; font-size: 17px; }
-  .auth-login-region { grid-row: 3; }
+  /* Celular: só o painel de login, centralizado na tela, + rodapé — o
+     hero de boas-vindas (logo grande, texto "Bem-vindo...", os 5 cards de
+     recursos e a animação de analytics) é conteúdo de vitrine pra desktop,
+     não cabe (nem ajuda) numa tela de 390px. .auth-panel já tem sua
+     própria logo/título, então nada se perde escondendo o hero inteiro.
+     Grid de 6 linhas vira uma coluna flex simples, evita sobrar vão vazio
+     onde as linhas do hero ficavam. */
+  .auth-hero { display: none; }
+
+  .auth-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100dvh;
+    gap: 28px;
+    padding: max(28px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom));
+  }
+  .auth-login-region { transform: none; margin-top: 0; }
   .auth-panel { min-height: 0; padding: 30px 22px; border-radius: 22px; }
   .brand-logo-auth { width: 185px; }
-  .auth-features { grid-row: 4; width: 100%; margin: 4px 0 0; gap: 18px; }
-  .auth-feature { grid-template-columns: 48px minmax(0, 1fr); }
-  .auth-feature-icon { width: 48px; }
-  .auth-feature h2 { font-size: 16px; }
-  .auth-feature p { font-size: 13px; }
-  .analytics-stage { grid-row: 5; position: relative; top: auto; right: auto; bottom: auto; width: calc(100% + 20px); min-width: 0; height: 540px; margin-left: -10px; }
-  .analytics-growth { inset: 7% 0 0; height: 85%; }
-  .analytics-widget { width: 145px; padding: 11px; }
-  .widget-revenue { left: 28%; }.widget-ebitda { right: 0; width: 140px; }.widget-kpi { left: 0; width: 168px; }.widget-expenses { right: 3%; width: 148px; }.widget-people { left: 12%; width: 160px; }
-  .auth-footer { grid-row: 6; flex-direction: column; align-items: flex-start; justify-content: center; padding: 20px 0 24px; line-height: 1.5; }
+  .auth-footer { flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0; line-height: 1.5; }
 }
 
 @media (max-width: 420px) {
-  .auth-hero-copy h1 { font-size: 40px; }
   .auth-panel { padding: 28px 18px; }
   .auth-title { font-size: 26px; }
   .auth-input-wrap input { padding-left: 44px; }
-  .analytics-stage { height: 500px; transform: scale(.93); transform-origin: center top; width: 108%; margin-left: -4%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
