@@ -88,6 +88,9 @@ assert.match(source, /function createAttachmentViewUrl\(attachment, expiresIn = 
 assert.match(source, /storage\/v1\/object\/authenticated\/\$\{ATTACHMENT_BUCKET\}/);
 assert.match(source, /URL\.revokeObjectURL/);
 assert.match(source, /media\?\.addEventListener\("error"/);
+assert.match(source, /function syncEditableField\(input\)/);
+assert.match(source, /const editableInput = event\.target\.closest\("\[data-rps-value-key\], \[data-rps-target-key\]"\);/);
+assert.match(source, /if \(editableInput\) \{\s*syncEditableField\(editableInput\);\s*markDirty\(\);\s*void requestSave\(\);/);
 assert.match(source, /if \(isEditingField\(\)\) return;/);
 assert.doesNotMatch(source, /void requestSave\(\);\s*renderShell\(\);/);
 assert.doesNotMatch(source, /setStatus\(state\.dirty[\s\S]{0,250}renderWhenIdle\(\);/);

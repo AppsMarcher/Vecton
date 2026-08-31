@@ -1790,6 +1790,25 @@
       return true;
     }
 
+    function syncEditableField(input) {
+      if (!input) return false;
+      const valueKeyName = input.dataset.rpsValueKey;
+      if (valueKeyName) {
+        const value = input.value.trim();
+        if (value) state.payload.dados[valueKeyName] = value;
+        else delete state.payload.dados[valueKeyName];
+        return true;
+      }
+      const targetKeyName = input.dataset.rpsTargetKey;
+      if (targetKeyName) {
+        const value = input.value.trim();
+        if (value) state.payload.dadosMeta[targetKeyName] = value;
+        else delete state.payload.dadosMeta[targetKeyName];
+        return true;
+      }
+      return false;
+    }
+
     function bindEvents() {
       if (!root || eventsBound) return;
       eventsBound = true;
@@ -1797,20 +1816,14 @@
         if (state.presentation) return;
         const valueInput = event.target.closest("[data-rps-value-key]");
         if (valueInput) {
-          const key = valueInput.dataset.rpsValueKey;
-          const value = valueInput.value.trim();
-          if (value) state.payload.dados[key] = value;
-          else delete state.payload.dados[key];
+          syncEditableField(valueInput);
           markDirty();
           refreshVisibleCells();
           return;
         }
         const targetInput = event.target.closest("[data-rps-target-key]");
         if (targetInput) {
-          const key = targetInput.dataset.rpsTargetKey;
-          const value = targetInput.value.trim();
-          if (value) state.payload.dadosMeta[key] = value;
-          else delete state.payload.dadosMeta[key];
+          syncEditableField(targetInput);
           markDirty();
           refreshVisibleCells();
         }
@@ -1827,19 +1840,26 @@
         }
         const valueInput = event.target.closest("[data-rps-value-key]");
         if (valueInput) {
+          syncEditableField(valueInput);
+          markDirty();
           void requestSave();
           refreshVisibleCells();
           return;
         }
         const targetInput = event.target.closest("[data-rps-target-key]");
         if (targetInput) {
+          syncEditableField(targetInput);
+          markDirty();
           void requestSave();
           refreshVisibleCells();
         }
       });
 
       root.addEventListener("focusout", (event) => {
-        if (event.target.closest("[data-rps-value-key], [data-rps-target-key]")) {
+        const editableInput = event.target.closest("[data-rps-value-key], [data-rps-target-key]");
+        if (editableInput) {
+          syncEditableField(editableInput);
+          markDirty();
           void requestSave();
           refreshVisibleCells();
           return;
