@@ -62,11 +62,17 @@
            .vmob-card base ficam em styles.css -- compartilhados com o Menu
            mobile (mobileShellModule.js), que renderiza ANTES deste módulo
            montar (senão a tela de Menu ficaria sem estilo no 1º load). */
-        .vmob-crumb { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; flex-wrap:wrap; margin-bottom:6px; }
+        .vmob-crumb { display:flex; align-items:center; font-size:13px; font-weight:600; flex-wrap:wrap; margin-bottom:6px; }
         .vmob-crumb button { all:unset; color:var(--vmob-faint); cursor:pointer; padding:2px 1px; }
         .vmob-crumb button:hover { color:var(--vmob-soft); }
         .vmob-crumb .vmob-crumb-current { color:var(--vmob-text); }
-        .vmob-crumb-sep { color:var(--vmob-faint); }
+        /* Margem explícita no separador (não só flex "gap" no container) --
+           o glyph "›" tem espaçamento interno assimétrico em várias fontes
+           (mais "ar" à esquerda que à direita), então só "gap" deixava o lado
+           de "Oeste"/"Sul" parecendo colado mesmo com folga de verdade entre
+           as caixas. Margem nos dois lados do próprio separador garante
+           respiro visível e simétrico nos dois lados, glyph ou não. */
+        .vmob-crumb-sep { margin:0 6px; color:var(--vmob-faint); }
 
         .vmob-filters { margin-top:12px; background:var(--vmob-panel); border:1px solid var(--vmob-line); border-radius:14px; overflow:hidden; }
         .vmob-filters-summary { all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; width:100%; padding:10px 12px; cursor:pointer; font-size:12.5px; color:var(--vmob-soft); }
