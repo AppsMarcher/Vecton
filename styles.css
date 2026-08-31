@@ -9609,6 +9609,22 @@ body.rps-laser-mode .rps-attachment-carousel * {
   cursor: pointer;
 }
 .msn-rodape-btn:hover { color: var(--text); border-color: var(--blue); background: rgba(255, 255, 255, 0.05); }
+.msn-grupo-selecao { display: grid; gap: 8px; }
+.msn-grupo-selecao-status { color: var(--text-soft); font-size: 0.68rem; text-align: center; }
+.msn-grupo-selecao-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.msn-grupo-selecao-acoes button {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-soft);
+  font-family: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.msn-grupo-selecao-acoes .msn-grupo-criar { border-color: var(--blue); background: var(--blue); color: #fff; }
+.msn-grupo-selecao-acoes button:disabled { opacity: 0.42; cursor: default; }
 .msn-rodape-btn-icone {
   position: absolute;
   left: 10px;
@@ -9638,7 +9654,8 @@ body.rps-laser-mode .rps-attachment-carousel * {
 }
 .msn-vazio { padding: 22px 12px; text-align: center; font-size: 0.72rem; color: var(--text-faint); }
 
-/* Menu do contato (clique simples) — ancorado no cursor, acima do painel. */
+/* Menu contextual de contato/mensagem — ancorado no cursor ou no ponto da
+   pressão longa, acima do painel. */
 .msn-menu {
   position: fixed;
   z-index: 9600;
@@ -10086,6 +10103,8 @@ body.rps-laser-mode .rps-attachment-carousel * {
 }
 .msg-bubble-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
 .msg-bubble-head strong { font-size: 0.7rem; font-weight: 600; }
+.msg-bubble-head.sem-autor { position: relative; height: 0; margin: 0; justify-content: flex-end; }
+.msg-bubble-head.sem-autor .msg-del { position: absolute; top: -6px; right: -7px; }
 .msg-bubble p { margin: 0; font-size: 0.76rem; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
 
 /* Hora + tiques no rodapé da bolha, como em mensageiro. */
@@ -10831,14 +10850,14 @@ body.mobile-shell-active .vmob-shell {
    de volta pro `0` daqui (funciona igual a antes). */
 body.mobile-shell-active .msn-painel,
 body.mobile-shell-active .msn-janela {
-  left: 0 !important;
-  right: 0 !important;
+  left: 1px !important;
+  right: 1px !important;
   top: 0;
   /* A altura/top reais são fornecidos pelo VisualViewport. Manter bottom:0
      junto deles deixava três restrições verticais concorrendo no Safari. */
   bottom: auto !important;
-  width: 100% !important;
-  height: 100%;
+  width: calc(100% - 2px) !important;
+  height: calc(100% - 1px);
   max-height: none !important;
   min-width: 0 !important;
   min-height: 0 !important;
@@ -10858,6 +10877,25 @@ body.mobile-shell-active .msn-jan-head {
   background: var(--panel, #000);
   padding-top: max(14px, env(safe-area-inset-top));
 }
+/* Quatro ações ganham alvo maior para toque. O X conserva o tamanho compacto
+   aprovado, evitando sacrificar o nome do contato em aparelhos estreitos. */
+body.mobile-shell-active .msn-jan-acoes { gap: 1px; }
+body.mobile-shell-active .msn-jan-acoes .msn-icon-btn:not([data-action="fechar"]) {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
+  font-size: 1.05rem;
+}
+body.mobile-shell-active .msn-contato,
+body.mobile-shell-active .msg-bubble {
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
+}
+body.mobile-shell-active .msg-bubble { user-select: none; }
+/* No celular a exclusão fica no menu de pressão longa; o X de hover continua
+   existindo no desktop. */
+body.mobile-shell-active .msg-del { display: none; }
 body.mobile-shell-active .msn-jan-compositor,
 body.mobile-shell-active .msn-rodape {
   padding-bottom: max(10px, env(safe-area-inset-bottom));

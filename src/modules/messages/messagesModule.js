@@ -74,6 +74,8 @@
     let _iniciandoRealtime = null;
     let _audioContext = null;
     let _ajustes = { ...AJUSTES_PADRAO };
+    let _modoGrupo = false;
+    let _ultimoLayoutPainelMobile = null;
     const _secoesRecolhidas = { online: false, offline: false };
     const _audioBuffers = new Map();
     const _audiosCarregando = new Map();
@@ -164,7 +166,9 @@
         Math.round(vv?.offsetTop || 0),
         focadoNoCompositor ? Math.round(window.scrollY || 0) : 0
       );
-      const altura = `${alturaPx}px`;
+      // Um pixel de respiro na base acompanha o recuo das laterais; o topo
+      // permanece exatamente ancorado no início da área visível.
+      const altura = `${Math.max(1, alturaPx - 1)}px`;
       const topo = `${topoPx}px`;
       elementosTelaCheiaMobile().forEach((el) => {
         el.style.height = altura;
@@ -453,7 +457,7 @@
         const badge = c.nao_lidas > 0 ? `<span class="msn-badge">${c.nao_lidas}</span>` : "";
         const subtitulo = escapeHtml(c.recado || c.email);
         return `
-        <div class="msn-contato${c.__sel ? " selecionado" : ""}${c.presenca === "offline" ? " off" : ""}" role="button" tabindex="0" data-user="${escapeHtml(c.user_id)}" data-titulo="${escapeHtml(c.nome)}" title="Duplo clique para conversar">
+        <div class="msn-contato${c.__sel ? " selecionado" : ""}${c.presenca === "offline" ? " off" : ""}" role="button" tabindex="0"${_modoGrupo ? ` aria-pressed="${String(Boolean(c.__sel))}"` : ""} data-user="${escapeHtml(c.user_id)}" data-titulo="${escapeHtml(c.nome)}" title="${mobile ? (_modoGrupo ? "Toque para selecionar" : "Toque para conversar; mantenha pressionado para mais opções") : (_modoGrupo ? "Clique para selecionar" : "Duplo clique para conversar")}">
           ${avatarMarkup(c)}
           ${copiaContatoMarkup(escapeHtml(c.nome), subtitulo, formatUltimaEm(c.ultima_em), badge, mobile)}
         </div>`;
@@ -469,6 +473,20 @@
             ${pessoas.length ? bloco(pessoas) : vazio}
           </div>`;
       };
+
+      const selecionados = _contatos.filter((c) => c.__sel).length;
+      const rodape = _modoGrupo
+        ? `<div class="msn-grupo-selecao">
+            <span class="msn-grupo-selecao-status">${selecionados} selecionado${selecionados === 1 ? "" : "s"}</span>
+            <span class="msn-grupo-selecao-acoes">
+              <button type="button" data-action="cancelar-grupo">Cancelar</button>
+              <button type="button" class="msn-grupo-criar" data-action="criar-grupo"${selecionados < 2 ? " disabled" : ""}>Criar grupo</button>
+            </span>
+          </div>`
+        : `<button type="button" class="msn-rodape-btn" data-action="novo-grupo">
+            <span class="msn-rodape-btn-icone" aria-hidden="true">+</span>
+            <span>Conversa em grupo</span>
+          </button>`;
 
       return `
         <div class="msn-head">
@@ -497,16 +515,14 @@
           ${!lista.length ? `<div class="msn-vazio">Nenhum contato encontrado.</div>` : ""}
         </div>
         <div class="msn-rodape">
-          <button type="button" class="msn-rodape-btn" data-action="novo-grupo">
-            <span class="msn-rodape-btn-icone" aria-hidden="true">+</span>
-            <span>Conversa em grupo</span>
-          </button>
+          ${rodape}
         </div>
       `;
     }
 
     function pintarPainel() {
       if (!_painel) return;
+      _painel.classList.toggle("modo-grupo", _modoGrupo);
       const markup = painelMarkup() + alcasRedimensionamentoMarkup();
       const foco = _painel.contains(document.activeElement) ? document.activeElement?.id : "";
       const campoFocado = foco ? _painel.querySelector(`#${foco}`) : null;
@@ -553,11 +569,15 @@
     async function carregarContatos() {
       if (_disabled || !isSupabaseConfigured()) return;
       try {
+        const selecionados = new Set(_contatos.filter((c) => c.__sel).map((c) => String(c.user_id)));
         const [contatos, grupos] = await Promise.all([
           callSupabaseRpc("contacts_list"),
           callSupabaseRpc("groups_list")
         ]);
-        _contatos = Array.isArray(contatos) ? contatos : [];
+        _contatos = (Array.isArray(contatos) ? contatos : []).map((c) => ({
+          ...c,
+          __sel: _modoGrupo && selecionados.has(String(c.user_id))
+        }));
         _grupos = Array.isArray(grupos) ? grupos : [];
         pintarPainel();
       } catch (error) {
@@ -569,6 +589,11 @@
     function abrirPainel() {
       pararAlertaCartinha();
       if (_painel) { fecharPainel(); return; }
+      const mobile = estaNoShellMobile();
+      if (_ultimoLayoutPainelMobile !== mobile) {
+        _secoesRecolhidas.offline = mobile;
+        _ultimoLayoutPainelMobile = mobile;
+      }
       _painel = document.createElement("div");
       _painel.className = "msn-painel";
       const markupInicial = painelMarkup() + alcasRedimensionamentoMarkup();
@@ -584,7 +609,9 @@
         const acao = event.target.closest("[data-action]")?.dataset.action;
         if (acao === "fechar-painel") { fecharPainel(); return; }
         if (acao === "abrir-ajustes") { abrirConfiguracoes(); return; }
-        if (acao === "novo-grupo") { void criarGrupo(); return; }
+        if (acao === "novo-grupo") { iniciarSelecaoGrupo(); return; }
+        if (acao === "cancelar-grupo") { cancelarSelecaoGrupo(); return; }
+        if (acao === "criar-grupo") { void criarGrupo(); return; }
         if (acao === "alternar-secao") {
           const status = event.target.closest("[data-status]")?.dataset.status;
           if (status === "online" || status === "offline") {
@@ -595,15 +622,36 @@
           return;
         }
         const linha = event.target.closest("[data-user], [data-thread]");
-        if (linha) abrirMenuContato(linha, event.clientX, event.clientY);
+        if (!linha) return;
+        if (_modoGrupo) {
+          if (linha.dataset.user) alternarContatoDoGrupo(linha.dataset.user);
+          return;
+        }
+        if (estaNoShellMobile()) {
+          if (linha.dataset.thread) abrirJanela(linha.dataset.thread, linha.dataset.titulo);
+          else void abrirConversaCom(linha.dataset.user, linha.dataset.titulo);
+          return;
+        }
+        abrirMenuContato(linha, event.clientX, event.clientY);
       });
       _painel.addEventListener("dblclick", (event) => {
+        if (estaNoShellMobile() || _modoGrupo) return;
         // O duplo clique dispara um clique antes, que abriu o menu — fecha.
         fecharMenu();
         const alvo = event.target.closest("[data-user], [data-thread]");
         if (!alvo) return;
         if (alvo.dataset.thread) abrirJanela(alvo.dataset.thread, alvo.dataset.titulo);
         else void abrirConversaCom(alvo.dataset.user, alvo.dataset.titulo);
+      });
+      ligarPressaoLonga(_painel, ".msn-contato", (linha, event) => {
+        if (!estaNoShellMobile() || _modoGrupo) return;
+        abrirMenuContato(linha, event.clientX, event.clientY);
+      });
+      _painel.addEventListener("contextmenu", (event) => {
+        const linha = event.target.closest(".msn-contato");
+        if (!linha || _modoGrupo) return;
+        event.preventDefault();
+        abrirMenuContato(linha, event.clientX, event.clientY);
       });
       _painel.addEventListener("input", (event) => {
         if (event.target.id === "msn-busca") { _busca = event.target.value; pintarPainel(); }
@@ -629,6 +677,8 @@
     function fecharPainel() {
       _painel?.remove();
       _painel = null;
+      _modoGrupo = false;
+      _contatos.forEach((c) => { c.__sel = false; });
       fecharConfiguracoes(true);
       if (_timerContatos) clearInterval(_timerContatos);
       _timerContatos = null;
@@ -813,17 +863,58 @@
       });
     }
 
-    // ── Menu do contato ──────────────────────────────────────────────────────
-    // O clique simples abre este menu em vez de marcar direto: marcar repintava
-    // o painel e destruía o elemento ENTRE os dois cliques, fazendo o navegador
-    // disparar o dblclick no painel (ancestral comum, sem data-user) — o duplo
-    // clique nunca abria a conversa. Aqui nada é repintado no clique.
+    // ── Menus contextuais e pressão longa ────────────────────────────────────
+    // Desktop conserva clique/duplo clique; no mobile, toque abre a conversa e
+    // pressão longa abre o menu contextual. Selecionar pessoas só acontece no
+    // modo explícito iniciado pelo rodapé "Conversa em grupo".
     let _menu = null;
+
+    // Safari e Chrome expõem toque como Pointer Events. Movimento acima de
+    // 10px cancela a pressão longa para a lista continuar rolando normalmente.
+    // O clique sintetizado depois do toque longo é suprimido por alguns
+    // milissegundos, evitando abrir a conversa por trás do menu recém-aberto.
+    function ligarPressaoLonga(container, seletor, callback) {
+      let estado = null;
+      let ignorarCliqueAte = 0;
+
+      const cancelar = () => {
+        if (estado?.timer) clearTimeout(estado.timer);
+        estado = null;
+      };
+
+      container.addEventListener("pointerdown", (event) => {
+        if (event.pointerType === "mouse" || event.button !== 0) return;
+        if (event.target.closest("button, input, textarea, select, a")) return;
+        const alvo = event.target.closest(seletor);
+        if (!alvo) return;
+        cancelar();
+        estado = { alvo, x: event.clientX, y: event.clientY, pointerId: event.pointerId, timer: null };
+        estado.timer = setTimeout(() => {
+          if (!estado) return;
+          const atual = estado;
+          estado = null;
+          ignorarCliqueAte = Date.now() + 800;
+          callback(atual.alvo, { clientX: atual.x, clientY: atual.y });
+        }, 520);
+      });
+      container.addEventListener("pointermove", (event) => {
+        if (!estado || estado.pointerId !== event.pointerId) return;
+        if (Math.hypot(event.clientX - estado.x, event.clientY - estado.y) > 10) cancelar();
+      });
+      container.addEventListener("pointerup", cancelar);
+      container.addEventListener("pointercancel", cancelar);
+      container.addEventListener("click", (event) => {
+        if (Date.now() > ignorarCliqueAte || !event.target.closest(seletor)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        ignorarCliqueAte = 0;
+      }, true);
+    }
 
     function fecharMenu() {
       _menu?.remove();
       _menu = null;
-      document.removeEventListener("mousedown", aoClicarFora, true);
+      document.removeEventListener("pointerdown", aoClicarFora, true);
       document.removeEventListener("keydown", aoTeclarNoMenu);
     }
 
@@ -835,29 +926,29 @@
       if (event.key === "Escape") fecharMenu();
     }
 
+    function posicionarMenu(menu, x, y) {
+      const r = menu.getBoundingClientRect();
+      menu.style.left = `${Math.max(8, Math.min(x, window.innerWidth - r.width - 8))}px`;
+      menu.style.top = `${Math.max(8, Math.min(y, window.innerHeight - r.height - 8))}px`;
+    }
+
     function abrirMenuContato(linha, x, y) {
       fecharMenu();
       const ehGrupo = Boolean(linha.dataset.thread);
       const titulo = linha.dataset.titulo || "";
-      const contato = ehGrupo ? null : _contatos.find((c) => c.user_id === linha.dataset.user);
-      const marcado = Boolean(contato?.__sel);
 
       _menu = document.createElement("div");
       _menu.className = "msn-menu";
       _menu.innerHTML = `
         <div class="msn-menu-titulo">${escapeHtml(titulo)}</div>
         <button type="button" data-item="abrir">Iniciar bate-papo</button>
-        ${ehGrupo
-          ? `<button type="button" data-item="sair-grupo">Sair do grupo</button>`
-          : `<button type="button" data-item="marcar">${marcado ? "Desmarcar da seleção" : "Marcar para grupo"}</button>`}
+        ${ehGrupo ? `<button type="button" data-item="sair-grupo">Sair do grupo</button>` : ""}
       `;
       document.body.appendChild(_menu);
       aplicarTemaEm(_menu);
 
       // Posiciona no cursor, sem deixar vazar pra fora da tela.
-      const r = _menu.getBoundingClientRect();
-      _menu.style.left = `${Math.min(x, window.innerWidth - r.width - 8)}px`;
-      _menu.style.top = `${Math.min(y, window.innerHeight - r.height - 8)}px`;
+      posicionarMenu(_menu, x, y);
 
       _menu.addEventListener("click", (event) => {
         const item = event.target.closest("[data-item]")?.dataset.item;
@@ -868,13 +959,6 @@
           else void abrirConversaCom(linha.dataset.user, titulo);
           return;
         }
-        if (item === "marcar" && contato) {
-          contato.__sel = !contato.__sel;
-          // Alterna a classe no próprio elemento: repintar aqui traria de volta
-          // o bug que quebrava o duplo clique.
-          linha.classList.toggle("selecionado", contato.__sel);
-          return;
-        }
         if (item === "sair-grupo") {
           const ctx = _janelas.get(linha.dataset.thread)
             || { threadId: linha.dataset.thread, el: document.createElement("div") };
@@ -883,7 +967,33 @@
       });
 
       setTimeout(() => {
-        document.addEventListener("mousedown", aoClicarFora, true);
+        document.addEventListener("pointerdown", aoClicarFora, true);
+        document.addEventListener("keydown", aoTeclarNoMenu);
+      }, 0);
+    }
+
+    function abrirMenuMensagem(ctx, bolha, x, y) {
+      const excluir = bolha.querySelector(".msg-del[data-id]");
+      const id = excluir?.dataset.id;
+      if (!id) return;
+      const minha = excluir.dataset.minha === "1";
+      fecharMenu();
+      _menu = document.createElement("div");
+      _menu.className = "msn-menu msn-menu-mensagem";
+      _menu.innerHTML = `
+        <div class="msn-menu-titulo">Mensagem</div>
+        <button type="button" data-item="excluir-msg">Excluir mensagem</button>
+      `;
+      document.body.appendChild(_menu);
+      aplicarTemaEm(_menu);
+      posicionarMenu(_menu, x, y);
+      _menu.addEventListener("click", (event) => {
+        if (event.target.closest("[data-item]")?.dataset.item !== "excluir-msg") return;
+        fecharMenu();
+        void excluirMensagem(ctx, id, minha);
+      });
+      setTimeout(() => {
+        document.addEventListener("pointerdown", aoClicarFora, true);
         document.addEventListener("keydown", aoTeclarNoMenu);
       }, 0);
     }
@@ -898,10 +1008,30 @@
       }
     }
 
+    function iniciarSelecaoGrupo() {
+      fecharMenu();
+      _modoGrupo = true;
+      _contatos.forEach((c) => { c.__sel = false; });
+      pintarPainel();
+    }
+
+    function cancelarSelecaoGrupo() {
+      _modoGrupo = false;
+      _contatos.forEach((c) => { c.__sel = false; });
+      pintarPainel();
+    }
+
+    function alternarContatoDoGrupo(userId) {
+      const contato = _contatos.find((c) => String(c.user_id) === String(userId));
+      if (!contato) return;
+      contato.__sel = !contato.__sel;
+      pintarPainel();
+    }
+
     async function criarGrupo() {
       const escolhidos = _contatos.filter((c) => c.__sel);
       if (escolhidos.length < 2) {
-        showToast("Marque pelo menos duas pessoas com um clique antes de criar o grupo.", "error");
+        showToast("Selecione pelo menos duas pessoas para criar o grupo.", "error");
         return;
       }
       // Sem nome: o título cai nos nomes dos participantes (groups_list resolve).
@@ -912,6 +1042,7 @@
           p_user_ids: escolhidos.map((c) => c.user_id)
         });
         _contatos.forEach((c) => { c.__sel = false; });
+        _modoGrupo = false;
         await carregarContatos();
         abrirJanela(threadId, nome || "Grupo");
       } catch (error) {
@@ -1003,7 +1134,11 @@
       el.style.left = `${Math.max(12, direitaDoEspaco - larguraJanela - n * 26)}px`;
       el.style.top = `${Math.max(12, (painelRect?.top ?? 60) + n * 26)}px`;
 
-      const ctx = { el, threadId, titulo: tituloExibido, fotoUrl, fotoNome: tituloExibido, mensagens: [], mensagensOcultas: new Set(), aba: "conversa", pendentes: [], ultimoId: null, focada: true };
+      const ctx = {
+        el, threadId, titulo: tituloExibido, fotoUrl, fotoNome: tituloExibido,
+        ehGrupo: Boolean(grupo), mensagens: [], mensagensOcultas: new Set(),
+        aba: "conversa", pendentes: [], ultimoId: null, focada: true
+      };
       _janelas.set(threadId, ctx);
       atualizarScrim();
       iniciarObservadorVisualViewport();
@@ -1180,6 +1315,19 @@
         if (anexoArquivo) { void baixarAnexo(anexoArquivo.dataset.path, anexoArquivo.dataset.nome); }
       });
 
+      // No toque, manter a bolha pressionada abre a ação de exclusão. Com
+      // mouse, o X no hover continua disponível e o botão direito oferece o
+      // mesmo menu, mantendo desktop e mobile coerentes.
+      ligarPressaoLonga(el, ".msg-bubble", (bolha, event) => {
+        abrirMenuMensagem(ctx, bolha, event.clientX, event.clientY);
+      });
+      el.addEventListener("contextmenu", (event) => {
+        const bolha = event.target.closest(".msg-bubble");
+        if (!bolha || event.target.closest("button, input, textarea, a")) return;
+        event.preventDefault();
+        abrirMenuMensagem(ctx, bolha, event.clientX, event.clientY);
+      });
+
       const input = el.querySelector(".msn-input");
       input.addEventListener("keydown", (ev) => {
         if (ev.key === "Escape") {
@@ -1262,11 +1410,12 @@
         }
         const minha = m.autor_id === eu;
         const somenteEmoji = Boolean(m.body) && !(m.anexos || []).length && apenasEmojisGrandes(m.body);
+        const mostrarAutor = Boolean(ctx.ehGrupo);
         return `
           <div class="msg-bubble${minha ? " mine" : ""}${somenteEmoji ? " emoji-only" : ""}" data-id="${escapeHtml(m.id)}">
-            <div class="msg-bubble-head">
-              <strong>${escapeHtml(m.autor || "")}</strong>
-              <button type="button" class="msg-del" data-action="excluir-msg" data-id="${escapeHtml(m.id)}" data-minha="${minha ? "1" : "0"}" title="Excluir">✕</button>
+            <div class="msg-bubble-head${mostrarAutor ? "" : " sem-autor"}">
+              ${mostrarAutor ? `<strong>${escapeHtml(m.autor || "")}</strong>` : ""}
+              <button type="button" class="msg-del" data-action="excluir-msg" data-id="${escapeHtml(m.id)}" data-minha="${minha ? "1" : "0"}" title="Excluir" aria-label="Excluir mensagem">✕</button>
             </div>
             ${m.body ? `<p class="${somenteEmoji ? "msg-emoji-grande" : ""}">${escapeHtml(m.body)}</p>` : ""}
             ${anexosMarkup(m.anexos)}
