@@ -1579,7 +1579,14 @@ function setupHeaderSearch() {
 }
 
 function bindEvents() {
-  loginForm.addEventListener("submit", handleLoginSubmit);
+  // No primeiro acesso (sem sessão restaurada), bootstrap() ainda não pode
+  // ativar o shell mobile porque currentUser é nulo. Depois que o login
+  // termina, a sessão e o perfil já estão prontos; reavaliamos o breakpoint
+  // aqui para o iPhone entrar direto no shell mobile, sem exigir refresh.
+  loginForm.addEventListener("submit", async (event) => {
+    await handleLoginSubmit(event);
+    activateMobileShellIfNeeded();
+  });
   const forgotLink = document.querySelector("#login-forgot-link");
   if (forgotLink) {
     forgotLink.addEventListener("click", requestPasswordRecovery);
