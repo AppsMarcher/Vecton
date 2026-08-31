@@ -24,6 +24,35 @@
       setProfileDraft
     } = deps;
 
+    // Sincroniza a sessão entre ABAS/JANELAS do mesmo navegador (2026-08-31,
+    // bug real: admin com Usuários aberto em 2 abas levava "Invalid Refresh
+    // Token: Refresh Token Not Found" ao reenviar convite/senha). O Supabase
+    // rotaciona o refresh token a cada uso (é de uso único) — com 2 abas da
+    // mesma sessão, se UMA renova, a token em memória da OUTRA fica obsoleta;
+    // na próxima renovação dela, o servidor rejeita porque aquele token já
+    // foi consumido. O evento "storage" só dispara nas abas que NÃO fizeram a
+    // escrita, então isso mantém toda aba aberta com o token mais recente sem
+    // precisar de round-trip nenhum. Ver também o retry defensivo em
+    // refreshSession() abaixo, que cobre a janela de corrida bem estreita em
+    // que a requisição desta aba já saiu com o token velho antes do evento
+    // "storage" chegar.
+    window.addEventListener("storage", (event) => {
+      if (event.key !== AUTH_STORAGE_KEY) return;
+      if (!event.newValue) {
+        // Logout (ou sessão derrubada) em outra aba — reflete aqui também.
+        clearSessionState();
+        showAuthShell("Sessao encerrada.", "ok");
+        return;
+      }
+      try {
+        const session = JSON.parse(event.newValue);
+        setCurrentSession(session);
+        setCurrentUser(session?.user || null);
+      } catch (error) {
+        console.error("Falha ao sincronizar sessao entre abas", error);
+      }
+    });
+
     async function initializeAuth() {
       if (!hasSupabaseBaseConfig()) {
         showAuthShell("Preencha projectUrl, anonKey e organizationName em supabase-config.js.", "error");
@@ -393,15 +422,27 @@
       });
 
       if (!response.ok) {
+        const bodyText = await response.text();
         // Só derruba a sessão quando o servidor REJEITA o token de fato
         // (400/401/403). Em 5xx ou instabilidade do lado do Supabase o token
         // continua válido — apagar a sessão aí é jogar o usuário pra fora à toa,
         // e com o polling do sininho rodando o dia todo essa chance deixou de
         // ser desprezível.
         if ([400, 401, 403].includes(response.status)) {
+          // Antes de desistir: outra aba/janela da MESMA sessão pode ter
+          // rotacionado esse refresh token entre o momento em que ESTA aba
+          // leu o valor da memória e o momento em que a requisição chegou no
+          // servidor (o listener de "storage" acima cobre o caso comum,
+          // fora dessa janela de corrida bem estreita) — se o localStorage
+          // já tem um token DIFERENTE do que acabou de falhar, tenta uma
+          // vez com ele antes de encerrar a sessão de verdade.
+          const stored = readStoredSession();
+          if (stored?.refresh_token && stored.refresh_token !== refreshToken) {
+            return refreshSession(stored.refresh_token);
+          }
           clearStoredSession();
         }
-        throw new Error(await response.text());
+        throw new Error(bodyText);
       }
 
       return response.json();
