@@ -10799,27 +10799,51 @@ body.mobile-shell-active .vmob-shell {
    width:20vw (mín. 240px) e cada janela com 560x400px fixos, arrastáveis/
    redimensionáveis -- em tela de celular isso sobrava pra fora da viewport
    e o botão fechar (✕, que já existe no cabeçalho de ambos) ficava
-   inalcançável. Aqui os dois viram overlay de tela cheia, empilhados um
-   sobre o outro (janela de conversa por cima do painel de contatos), com o
-   ✕ sempre visível. `!important` porque left/top/width/height do desktop
-   são setados inline via JS (arrastar/redimensionar) -- só assim a regra da
-   folha de estilo vence. Alças de redimensionar (.msn-resize) não fazem
-   sentido em tela cheia por toque, ficam escondidas. z-index do Messenger
-   (9400+) já é bem maior que o do shell mobile (.vmob-shell = 10), então
-   sobrepõe normalmente sem precisar subir nada aqui. */
-body.mobile-shell-active .msn-painel,
-body.mobile-shell-active .msn-janela {
-  left: 0 !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+   inalcançável.
+   `!important` nas propriedades de posição/tamanho porque left/top/width/
+   height do desktop são setados INLINE via JS (arrastar/redimensionar) --
+   só uma regra de folha de estilo marcada `!important` vence inline
+   não-important. `top`+`bottom` (ou `left`+`right`) junto de `width:auto`/
+   `height:auto` faz o navegador calcular a medida que falta sozinho -- é
+   assim que sobra a margem visível ao redor sem precisar de cálculo manual.
+   Alças de redimensionar (.msn-resize) somem (sem sentido em toque). z-index
+   do Messenger (9400+) já é bem maior que o do shell mobile
+   (.vmob-shell = 10), então sobrepõe normalmente sem precisar subir nada
+   aqui. */
+
+/* Painel de contatos: cartão quase de tela cheia, mas com margem visível nos
+   4 lados + cantos bem arredondados + sombra funda -- dá a impressão de
+   estar flutuando POR CIMA da tela anterior (Menu/módulo mobile), não de
+   ser uma tela nova (2026-08-31, feedback do usuário: tela cheia parecia
+   "trocar de tela" em vez de "abrir por cima"). */
+body.mobile-shell-active .msn-painel {
+  left: 14px !important;
+  right: 14px !important;
+  top: 14px !important;
+  bottom: 14px !important;
+  width: auto !important;
+  height: auto !important;
   min-width: 0 !important;
   min-height: 0 !important;
   transform: none !important;
-  border-radius: 0 !important;
-  border-width: 0 !important;
+  border-radius: 24px !important;
+  box-shadow: 0 24px 70px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+/* Janela de conversa: por cima do painel, ainda mais recuada -- 60% da
+   altura, centralizada (20% de vão em cima e embaixo, pedido explícito do
+   usuário), reforçando que é uma 2ª camada sobre a 1ª. */
+body.mobile-shell-active .msn-janela {
+  left: 22px !important;
+  right: 22px !important;
+  top: 20% !important;
+  bottom: 20% !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  transform: none !important;
+  border-radius: 24px !important;
+  box-shadow: 0 24px 70px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
 }
 body.mobile-shell-active .msn-resize { display: none; }
 body.mobile-shell-active .msn-head,
