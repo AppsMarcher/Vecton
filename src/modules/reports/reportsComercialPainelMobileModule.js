@@ -127,10 +127,6 @@
         .vmob-matrix-sub { font-weight:500; color:var(--vmob-faint); font-size:11.5px; }
         .vmob-vsmeta { font-size:11px; font-weight:700; color:var(--vmob-soft); white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
         .vmob-vsmeta::before { content:""; width:7px; height:7px; border-radius:999px; background:var(--dot); box-shadow:0 0 0 3px color-mix(in srgb, var(--dot) 18%, transparent); flex-shrink:0; }
-        /* Rodapé decorativo dos cards de território (screenCoord): sem link
-           "Ver território" (mobile não tem mais esse 3º nível de detalhe,
-           2026-08-31) -- só uma linha na cor da coordenação, fechando o card. */
-        .vmob-matrix-foot-divider { margin-top:9px; border-top:2px solid var(--vmob-card-accent, var(--vmob-accent)); }
 
         .vmob-coord-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
         .vmob-coord-card { all:unset; box-sizing:border-box; display:flex; flex-direction:column; width:100%; min-width:0; background:var(--vmob-panel); border:1px solid var(--vmob-line); border-top:3px solid var(--vmob-card-accent, var(--vmob-accent)); border-radius:14px; padding:12px 11px; cursor:pointer; }
@@ -151,7 +147,13 @@
         .vmob-card-vs { color:var(--vmob-faint); font-weight:600; }
         .vmob-card-delta { font-weight:800; font-size:12px; }
 
-        .vmob-terr-list { display:flex; flex-direction:column; gap:8px; }
+        /* Lista de territórios: 1 card único (não 1 card por território) --
+           cada território é só conteúdo (.vmob-matrix-flat, sem fundo/borda
+           própria); a linha entre eles usa a cor da coordenação (a mesma do
+           --vmob-card-accent de cada item), servindo SÓ de separador, nunca
+           de borda lateral de "card" (pedido do usuário, 2026-08-31). */
+        .vmob-terr-list { background:var(--vmob-panel); border:1px solid var(--vmob-line); border-radius:16px; padding:14px; }
+        .vmob-matrix-flat + .vmob-matrix-flat { margin-top:14px; padding-top:14px; border-top:2px solid var(--vmob-card-accent, var(--vmob-accent)); }
         /* .vmob-chev fica em styles.css (usado também pelo Menu mobile) */
 
         .vmob-empty { padding:40px 20px; text-align:center; color:var(--vmob-faint); font-size:13px; line-height:1.6; }
@@ -315,11 +317,16 @@
         }
       }
 
-      return '<div class="vmob-card vmob-matrix-card" style="--vmob-card-accent:' + (opts.accent || "var(--vmob-accent)") + '">' +
+      // "flat" (lista de territórios em screenCoord): sem virar card próprio
+      // (sem fundo/borda/raio individuais) -- só o conteúdo, com a cor da
+      // coordenação servindo de LINHA divisória entre um território e o
+      // próximo (CSS `.vmob-matrix-flat + .vmob-matrix-flat`), nunca como
+      // borda lateral de "card" (pedido do usuário, 2026-08-31).
+      const cls = opts.flat ? "vmob-matrix-flat" : "vmob-card vmob-matrix-card";
+      return '<div class="' + cls + '" style="--vmob-card-accent:' + (opts.accent || "var(--vmob-accent)") + '">' +
         '<div class="vmob-matrix-head"><span class="vmob-matrix-title">' + opts.title + (opts.sub ? (' <span class="vmob-matrix-sub">&middot; ' + opts.sub + "</span>") : "") + "</span>" + vsMetaPill(cartVal, metaVal) + "</div>" +
         '<div class="vmob-matrix-wrap"><table class="vmob-matrix"><thead><tr><th></th><th>Fatur.</th><th>Fat.+Cart.</th><th>Meta</th></tr></thead><tbody>' + rowsHtml + "</tbody></table></div>" +
         memoFoot +
-        (opts.footerDivider ? '<div class="vmob-matrix-foot-divider"></div>' : "") +
         "</div>";
     }
 
@@ -470,12 +477,12 @@
       const terrHtml = det.territorios.map((t) => renderMiniMatrix({
         title: t.terr, sub: t.resp || "Sem responsável definido", accent,
         grao: t.grao, pec: t.pec, pecas: t.pecas,
-        footerDivider: true
+        flat: true
       })).join("") || '<p class="vmob-empty">Nenhum território com dado neste período.</p>';
-      // Sem <h2> de título aqui -- ficaria redundante com o "Sul" que o
-      // breadcrumb logo acima já mostra como item atual (2026-08-31).
+      // Sem <h2> nem <p> de sub aqui -- ficariam redundantes com o "Sul" que
+      // o breadcrumb já mostra e com a contagem no cabeçalho da seção
+      // "Territórios" logo abaixo (2026-08-31).
       return '<div class="vmob-crumbbar">' + crumb() +
-        '<p class="vmob-level-sub">' + det.territorios.length + " território" + (det.territorios.length === 1 ? "" : "s") + " &middot; " + periodLabel() + "</p>" +
         filtersBlock() + "</div>" +
         '<div class="vmob-section">' + consolidadoHtml + "</div>" +
         '<div class="vmob-section"><div class="vmob-section-head"><span class="vmob-section-title">Territórios</span><span class="vmob-section-count">' + det.territorios.length + "</span></div>" +
