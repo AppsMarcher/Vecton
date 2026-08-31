@@ -130,8 +130,15 @@
         .vmob-matrix-note { margin:8px 0 0; font-size:11px; color:var(--vmob-faint); line-height:1.5; }
 
         .vmob-matrix-card { border-left:3px solid var(--vmob-card-accent, var(--vmob-accent)); }
-        .vmob-matrix-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+        /* Card "Marcher Brasil" (renderHeroMatrix): borda INTEIRA azul padrão
+           do app (não só a lateral que os outros cards usam), pedido do
+           usuário 2026-08-31 espelhando o tratamento do Norte Verdadeiro no
+           A3 Estratégico. Vem depois de .vmob-matrix-card no CSS pra vencer
+           o border-left por ordem de origem (mesma especificidade). */
+        .vmob-matrix-card--brasil { border:1.5px solid var(--vmob-accent); }
+        .vmob-matrix-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
         .vmob-matrix-title { font-size:13px; font-weight:800; color:var(--vmob-text); }
+        .vmob-matrix-title-gestor { display:block; margin-top:2px; font-size:11px; font-weight:500; color:var(--vmob-faint); }
         .vmob-matrix-sub { font-weight:500; color:var(--vmob-faint); font-size:11.5px; }
         .vmob-vsmeta { font-size:11px; font-weight:700; color:var(--vmob-soft); white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
         .vmob-vsmeta::before { content:""; width:7px; height:7px; border-radius:999px; background:var(--dot); box-shadow:0 0 0 3px color-mix(in srgb, var(--dot) 18%, transparent); flex-shrink:0; }
@@ -285,7 +292,8 @@
         rowFlat("Fatur. Total", tot.fatv, tdVal, "vmob-row-total") +
         rowFlat("Ticket Médio", ticket, tdVal, "vmob-row-tkt");
       const pill = vsMetaPill(tot.fatv.cart, tot.fatv.meta);
-      return '<div class="vmob-card vmob-matrix-card"><div class="vmob-matrix-head"><span class="vmob-matrix-title">Marcher Brasil</span>' + pill + '</div>' +
+      return '<div class="vmob-card vmob-matrix-card vmob-matrix-card--brasil"><div class="vmob-matrix-head">' +
+        '<span><span class="vmob-matrix-title">Marcher Brasil</span><span class="vmob-matrix-title-gestor">Gestor Pedro</span></span>' + pill + '</div>' +
         '<div class="vmob-matrix-wrap"><table class="vmob-matrix"><thead><tr><th></th><th>Fatur.</th><th>Fat.+Cart.</th><th>Meta</th></tr></thead><tbody>' + rows + "</tbody></table></div></div>";
     }
 
