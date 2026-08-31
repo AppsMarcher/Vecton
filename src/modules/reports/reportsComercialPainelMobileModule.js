@@ -251,7 +251,7 @@
         rowFlat("TTL qtd", { fat: tot.grao.fat + tot.pec.fat, cart: tot.grao.cart + tot.pec.cart, meta: tot.grao.meta + tot.pec.meta }, tdQty, "vmob-row-sub") +
         rowFlat("Fatur. Grão", tot.graoVal, tdVal, "vmob-row-tkt") +
         rowFlat("Fatur. Pecuária", tot.pecVal, tdVal, "vmob-row-tkt") +
-        rowFlat("Faturado Total", tot.fatv, tdVal, "vmob-row-total") +
+        rowFlat("Fatur. Total", tot.fatv, tdVal, "vmob-row-total") +
         rowFlat("Ticket Médio", ticket, tdVal, "vmob-row-tkt");
       const pill = vsMetaPill(tot.fatv.cart, tot.fatv.meta);
       return '<div class="vmob-card vmob-matrix-card"><div class="vmob-matrix-head"><span class="vmob-matrix-title">Marcher Brasil</span>' + pill + '</div>' +
@@ -444,7 +444,7 @@
     function screenBrasil() {
       const cards = COORD_ORDER.map(coordCardHtml).join("");
       return '<div class="vmob-crumbbar">' +
-        '<h2 class="vmob-level-title" tabindex="-1">Painel de Vendas - ' + periodLabel() + "</h2>" +
+        '<h2 class="vmob-level-title vmob-level-title-center" tabindex="-1">Painel de Vendas</h2>' +
         filtersBlock() + "</div>" +
         '<div class="vmob-section">' + renderHeroMatrix() + "</div>" +
         '<div class="vmob-section">' + renderTiposBox() + "</div>" +

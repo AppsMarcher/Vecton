@@ -10671,6 +10671,7 @@ body.mobile-shell-active .vmob-shell {
    ficaria sem estilo antes do usuário abrir algum módulo. */
 .vmob-crumbbar { padding-top: 2px; }
 .vmob-level-title { margin: 2px 0 0; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; color: var(--vmob-text); }
+.vmob-level-title-center { text-align: center; }
 .vmob-level-sub { margin: 2px 0 0; font-size: 12px; color: var(--vmob-soft); }
 .vmob-section { margin-top: 16px; }
 .vmob-section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
