@@ -35,8 +35,8 @@
       item("Nacional (qtd)", "un"), item("Exportação (qtd)", "un"), item("Graneleiro (qtd)", "un"),
       calculated("Total Volume Máquinas", "un", "={Nacional (qtd)}+{Exportação (qtd)}+{Graneleiro (qtd)}"), spacer(),
       item("Nacional", "R$"), item("Exportação", "R$"), item("Graneleiro", "R$"), item("Peças", "R$"), item("Transgrain", "R$"),
-      calculated("Total Faturamento Bruto", "R$", "=(Nacional+Exportação+Graneleiro+Peças+Transgrain)"), spacer(),
-      calculated("Ticket Médio Máquinas", "R$", "=(Nacional+Exportação+Graneleiro)/{Total Volume Máquinas}"), spacer()
+      calculated("Total Faturamento Bruto", "R$", "=({Nacional}+{Exportação}+{Graneleiro}+{Peças}+{Transgrain})"), spacer(),
+      calculated("Ticket Médio Máquinas", "R$", "=({Nacional}+{Exportação}+{Graneleiro})/{Total Volume Máquinas}"), spacer()
     ],
     industrial: [
       calculated("Estoque PA", "un", "={Estoque Embolsadoras}+{Estoque Extratoras}+{Estoque Acessórios}"),

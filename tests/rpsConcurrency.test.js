@@ -36,7 +36,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
   const restored = normalizePayload(broken);
   const calculated = (areaId, label) => restored.indicadores[areaId].find((item) => item.label === label);
   assert.equal(calculated("comercial", "Total Volume Máquinas").type, "calculated");
-  assert.equal(calculated("comercial", "Total Faturamento Bruto").formula, "=(Nacional+Exportação+Graneleiro+Peças+Transgrain)");
+  assert.equal(calculated("comercial", "Total Faturamento Bruto").formula, "=({Nacional}+{Exportação}+{Graneleiro}+{Peças}+{Transgrain})");
   assert.equal(calculated("comercial", "Ticket Médio Máquinas").editableFields.semanas, false);
   assert.equal(calculated("industrial", "Estoque PA").formula, "={Estoque Embolsadoras}+{Estoque Extratoras}+{Estoque Acessórios}");
   assert.equal(calculated("industrial", "Produção Máquinas").type, "calculated");
@@ -49,10 +49,10 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
   assert.equal(calculate("={Nacional (qtd)}+{Exportação (qtd)}+{Graneleiro (qtd)}", {
     "Nacional (qtd)": 8, "Exportação (qtd)": 0, "Graneleiro (qtd)": 0
   }), 8);
-  assert.equal(calculate("=(Nacional+Exportação+Graneleiro+Peças+Transgrain)", {
+  assert.equal(calculate("=({Nacional}+{Exportação}+{Graneleiro}+{Peças}+{Transgrain})", {
     Nacional: 1045901, Exportação: 0, Graneleiro: 0, Peças: 118000, Transgrain: 53347
   }), 1217248);
-  assert.equal(calculate("=(Nacional+Exportação+Graneleiro)/{Total Volume Máquinas}", {
+  assert.equal(calculate("=({Nacional}+{Exportação}+{Graneleiro})/{Total Volume Máquinas}", {
     Nacional: 1045901, Exportação: 0, Graneleiro: 0, "Total Volume Máquinas": 8
   }), 130737.625);
   assert.equal(calculate("={Estoque Embolsadoras}+{Estoque Extratoras}+{Estoque Acessórios}", {
