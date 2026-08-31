@@ -34,7 +34,7 @@
     let ui = {
       level: "brasil", coordKey: null, terrIdx: null,
       periodMode: "mes", scenarioId: null,
-      filtersOpen: true, cenarioListOpen: false, periodListOpen: false, pickerYear: null
+      filtersOpen: false, cenarioListOpen: false, periodListOpen: false, pickerYear: null
     };
 
     // ---------------------------------------------------------------- CSS
@@ -78,14 +78,22 @@
         .vmob-cenario-item:active { background:var(--vmob-panel-elevated); }
         .vmob-cenario-item.is-selected { color:var(--vmob-accent); font-weight:700; background:var(--vmob-accent-soft); }
 
-        .vmob-period-panel { display:none; flex-direction:column; gap:8px; margin-top:6px; padding:10px; border:1px solid var(--vmob-line); border-radius:10px; background:var(--vmob-bg); }
-        .vmob-period-panel.is-open { display:flex; }
-        .vmob-period-year { display:flex; align-items:center; justify-content:center; gap:18px; font-size:13px; font-weight:700; color:var(--vmob-text); }
-        .vmob-period-year button { all:unset; box-sizing:border-box; width:26px; height:26px; display:grid; place-items:center; border-radius:8px; color:var(--vmob-soft); cursor:pointer; font-size:16px; }
-        .vmob-period-year button:active { background:var(--vmob-panel-elevated); }
-        .vmob-month-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; }
-        .vmob-month-item { all:unset; box-sizing:border-box; text-align:center; padding:8px 0; font-size:12px; font-weight:600; color:var(--vmob-soft); border-radius:8px; cursor:pointer; }
-        .vmob-month-item:active { background:var(--vmob-panel-elevated); }
+        /* Seletor de período: modal centralizado (mesmo desenho do popover de
+           período do desktop), não painel inline -- fica curto/proporcional,
+           nunca ocupando quase a tela toda. */
+        .vmob-period-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:90; }
+        .vmob-period-modal-backdrop.is-open { display:block; }
+        .vmob-period-modal { display:none; position:fixed; inset:0; z-index:91; align-items:center; justify-content:center; padding:28px; pointer-events:none; }
+        .vmob-period-modal.is-open { display:flex; }
+        .vmob-period-modal-card { pointer-events:auto; width:100%; max-width:272px; background:var(--vmob-panel-elevated); border:1px solid var(--vmob-line); border-radius:18px; padding:16px 16px 14px; box-shadow:0 24px 60px rgba(0,0,0,0.5); }
+        .vmob-period-modal-head { display:flex; align-items:center; justify-content:center; gap:24px; }
+        .vmob-period-modal-head button { all:unset; box-sizing:border-box; width:28px; height:28px; display:grid; place-items:center; border-radius:9px; color:var(--vmob-soft); cursor:pointer; font-size:18px; }
+        .vmob-period-modal-head button:active { background:var(--vmob-panel); }
+        .vmob-period-modal-year { font-size:15px; font-weight:800; color:var(--vmob-text); min-width:46px; text-align:center; }
+        .vmob-period-modal-sub { margin:8px 2px 14px; font-size:11.5px; line-height:1.5; color:var(--vmob-accent); text-align:center; }
+        .vmob-month-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+        .vmob-month-item { all:unset; box-sizing:border-box; text-align:center; padding:10px 0; font-size:12.5px; font-weight:600; color:var(--vmob-soft); border-radius:10px; cursor:pointer; background:var(--vmob-bg); border:1px solid transparent; }
+        .vmob-month-item:active { background:var(--vmob-panel); }
         .vmob-month-item.is-selected { background:var(--vmob-accent); color:#fff; }
 
         .vmob-matrix { width:100%; border-collapse:collapse; }
@@ -390,14 +398,17 @@
         "<span>" + monthAbbrev(month) + "/" + year + "</span>" +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="vmob-cenario-chev"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
         "</button></div>" +
-        '<div class="vmob-period-panel' + (ui.periodListOpen ? " is-open" : "") + '">' +
-        '<div class="vmob-period-year">' +
+        '<div class="vmob-period-modal-backdrop' + (ui.periodListOpen ? " is-open" : "") + '" data-action="close-period-list"></div>' +
+        '<div class="vmob-period-modal' + (ui.periodListOpen ? " is-open" : "") + '" role="dialog" aria-modal="true" aria-label="Selecionar período">' +
+        '<div class="vmob-period-modal-card">' +
+        '<div class="vmob-period-modal-head">' +
         '<button type="button" data-action="period-year" data-dir="-1" aria-label="Ano anterior">&lsaquo;</button>' +
-        "<span>" + gridYear + "</span>" +
+        '<span class="vmob-period-modal-year">' + gridYear + "</span>" +
         '<button type="button" data-action="period-year" data-dir="1" aria-label="Próximo ano">&rsaquo;</button>' +
         "</div>" +
+        '<p class="vmob-period-modal-sub">Selecione o ano base do relatório e o mês em foco da análise.</p>' +
         '<div class="vmob-month-grid">' + monthItems + "</div>" +
-        "</div>";
+        "</div></div>";
     }
 
     function filtersBlock() {
@@ -549,6 +560,7 @@
         if (ui.periodListOpen) ui.pickerYear = year; // reabre sempre a partir do ano atual
         render();
       }
+      else if (action === "close-period-list") { ui.periodListOpen = false; render(); }
       else if (action === "period-year") { ui.pickerYear = (ui.pickerYear || year) + Number(el.dataset.dir); render(); }
       else if (action === "select-month") {
         const newYear = ui.pickerYear || year;
@@ -582,7 +594,7 @@
         const today = new Date();
         year = today.getFullYear();
         month = today.getMonth() + 1;
-        ui = { level: "brasil", coordKey: null, terrIdx: null, periodMode: "mes", scenarioId: null, filtersOpen: true, cenarioListOpen: false, periodListOpen: false, pickerYear: null };
+        ui = { level: "brasil", coordKey: null, terrIdx: null, periodMode: "mes", scenarioId: null, filtersOpen: false, cenarioListOpen: false, periodListOpen: false, pickerYear: null };
         enteredPainel = true;
       }
       containerEl.removeEventListener("click", handleClick);

@@ -37,11 +37,14 @@
     let mediaQuery = null;
     let started = false;
 
+    // Reaproveita os mesmos <symbol> do sprite SVG global (index.html) que os
+    // cards de relatório do desktop usam via <use> -- ícone idêntico, não uma
+    // aproximação desenhada à mão.
     function moduleIconSvg(name) {
       if (name === "target") {
-        return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="0.6" fill="currentColor" stroke="currentColor" stroke-width="2"/></svg>';
+        return '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-target"></use></svg>';
       }
-      return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v10l7 4a10 10 0 1 0-7-14Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+      return '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-pie"></use></svg>';
     }
 
     function visibleModules() {
@@ -102,7 +105,7 @@
           chev +
           "</" + tag + ">";
       }).join("");
-      return '<div class="vmob-crumbbar"><h2 class="vmob-level-title" tabindex="-1">Módulos</h2></div>' +
+      return '<div class="vmob-crumbbar"><h2 class="vmob-level-title" tabindex="-1">Módulos Mobile</h2></div>' +
         '<div class="vmob-section"><div class="vmob-module-list">' + tiles + "</div></div>";
     }
 
