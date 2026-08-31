@@ -140,19 +140,42 @@
     };
   }
 
+  function cleanCalculatedLabel(label) {
+    return String(label || "").replace(/^\s*\(\s*=\s*\)\s*/, "").trim();
+  }
+
   function restoreRequiredCalculatedIndicators(areaId, indicators) {
-    if (areaId !== "supply") return indicators;
+    const required = (DEFAULT_INDICATORS[areaId] || [])
+      .filter((definition) => definition.type === "calculated")
+      .map((definition) => ({ ...definition, normalizedLabel: slugify(definition.label) }));
+    if (!required.length) return indicators;
     return indicators.map((indicator) => {
-      const label = String(indicator.label || "").replace(/^\s*\(\s*=\s*\)\s*/, "");
-      if (slugify(label) !== slugify("Estoque Marcher")) return indicator;
+      const label = cleanCalculatedLabel(indicator.label);
+      const definition = required.find((item) => item.normalizedLabel === slugify(label));
+      if (!definition) return indicator;
       return {
         ...indicator,
-        label,
+        label: definition.label,
         type: "calculated",
-        unit: indicator.unit || "R$",
-        formula: ESTOQUE_MARCHER_FORMULA,
+        unit: indicator.unit || definition.unit,
+        formula: definition.formula,
         editableFields: { ...indicator.editableFields, semanas: false, mes: false }
       };
+    });
+  }
+
+  function calculatedIndicatorsNeedRepair(payload) {
+    return Object.entries(DEFAULT_INDICATORS).some(([areaId, definitions]) => {
+      const sourceList = Array.isArray(payload?.indicadores?.[areaId]) ? payload.indicadores[areaId] : [];
+      return definitions.filter((definition) => definition.type === "calculated").some((definition) => {
+        const indicator = sourceList.find((item) => slugify(cleanCalculatedLabel(item?.label)) === slugify(definition.label));
+        if (!indicator) return false;
+        return indicator.type !== "calculated"
+          || indicator.formula !== definition.formula
+          || indicator.label !== definition.label
+          || indicator.editableFields?.semanas !== false
+          || indicator.editableFields?.mes !== false;
+      });
     });
   }
 
@@ -366,6 +389,27 @@
     };
     const value = parseExpression();
     return value !== null && cursor === tokens.length && Number.isFinite(value) ? value : null;
+  }
+
+  function evaluateFormula(formula, labels, resolveValue) {
+    let hasReferencedValue = false;
+    const resolveLabel = (label) => {
+      const value = resolveValue(label);
+      if (value !== null && value !== undefined && Number.isFinite(Number(value))) {
+        hasReferencedValue = true;
+        return String(Number(value));
+      }
+      return "0";
+    };
+    let expression = String(formula || "").replace(/^=/, "");
+    expression = expression.replace(/\{([^}]+)\}/g, (_, label) => resolveLabel(label));
+    [...labels]
+      .filter(Boolean)
+      .sort((left, right) => right.length - left.length)
+      .forEach((label) => {
+        if (expression.includes(label)) expression = expression.split(label).join(resolveLabel(label));
+      });
+    return hasReferencedValue ? calculateArithmetic(expression) : null;
   }
 
   function createRpsModule(deps) {
@@ -752,20 +796,12 @@
       const nextStack = new Set(stack).add(stackKey);
       const indicators = getIndicators(areaId).filter((item) => item.type !== "spacer");
       const findIndicator = (label) => indicators.find((item) => slugify(item.label) === slugify(label));
-      let hasReferencedValue = false;
       const resolveLabel = (label) => {
         const referenced = findIndicator(label);
-        const value = referenced ? getWeekValue(areaId, referenced, week, nextStack) : null;
-        if (value !== null) hasReferencedValue = true;
-        return value === null ? "0" : String(value);
+        return referenced ? getWeekValue(areaId, referenced, week, nextStack) : null;
       };
-      let expression = String(indicator.formula).replace(/^=/, "");
-      expression = expression.replace(/\{([^}]+)\}/g, (_, label) => resolveLabel(label));
-      indicators
-        .filter((item) => item.id !== indicator.id && item.label)
-        .sort((left, right) => right.label.length - left.label.length)
-        .forEach((item) => { expression = expression.split(item.label).join(resolveLabel(item.label)); });
-      return hasReferencedValue ? calculateArithmetic(expression) : null;
+      const labels = indicators.filter((item) => item.id !== indicator.id && item.label).map((item) => item.label);
+      return evaluateFormula(indicator.formula, labels, resolveLabel);
     }
 
     function getMonthValue(areaId, indicator) {
@@ -1329,15 +1365,22 @@
         if (generation !== state.loadGeneration) return;
         state.backendAvailable = true;
         state.remoteVersion = Number(remote?.version || 0);
-        state.basePayload = remote?.payload ? normalizePayload(remote.payload) : null;
-        state.payload = remote?.payload ? normalizePayload(remote.payload) : defaultPayload();
+        const normalizedRemote = remote?.payload ? normalizePayload(remote.payload) : defaultPayload();
+        const requiresStructuralRepair = calculatedIndicatorsNeedRepair(remote?.payload);
+        // A base enviada ao merge atômico precisa ser exatamente o snapshot
+        // recebido. Assim a normalização de fórmulas é persistida como uma
+        // alteração local, em vez de o servidor escolher novamente a
+        // estrutura antiga sem type/formula.
+        state.basePayload = remote?.payload ? clone(remote.payload) : null;
+        state.payload = normalizedRemote;
         state.lastSavedAt = remote?.updated_at ? new Date(remote.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+        let pendingMessage = "";
         const draft = readDraft();
         if (draft?.payload && !equal(normalizePayload(draft.payload), state.payload)) {
           const recover = await appConfirm("Há alterações locais da RPS que ainda não chegaram à nuvem. Deseja recuperá-las?", "warn");
           if (recover) {
             if (draft.basePayload) {
-              state.basePayload = normalizePayload(draft.basePayload);
+              state.basePayload = clone(draft.basePayload);
               state.remoteVersion = Number(draft.baseVersion || state.remoteVersion);
               state.payload = normalizePayload(draft.payload);
             } else {
@@ -1349,6 +1392,7 @@
               }
             }
             state.dirty = true;
+            pendingMessage = "Rascunho recuperado";
             scheduleSave(500);
           } else {
             clearDraft();
@@ -1356,10 +1400,16 @@
         } else if (draft) {
           clearDraft();
         }
+        if (requiresStructuralRepair && canFillValues()) {
+          state.dirty = true;
+          pendingMessage ||= "Restaurando fórmulas...";
+          persistDraft();
+          scheduleSave(500);
+        }
         // Durante o try state.loading ainda é true. Não congele o texto
         // "Carregando dados..." em state.message; no finally o selo deve
         // passar a exibir Sincronizado/Salvo às ... automaticamente.
-        setStatus(state.dirty ? "dirty" : "ready", state.dirty ? "Rascunho recuperado" : "");
+        setStatus(state.dirty ? "dirty" : "ready", state.dirty ? pendingMessage || "Alterações pendentes" : "");
       } catch (error) {
         if (generation !== state.loadGeneration) return;
         if (isMissingTable(error)) {
@@ -1437,10 +1487,17 @@
             const version = Number(remote?.version || 0);
             if (remote?.payload && version > state.remoteVersion) {
               state.remoteVersion = version;
-              state.basePayload = normalizePayload(remote.payload);
+              state.basePayload = clone(remote.payload);
               state.payload = normalizePayload(remote.payload);
               state.lastSavedAt = remote.updated_at ? new Date(remote.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
-              setStatus("ready", "Atualizado com alterações da equipe");
+              if (calculatedIndicatorsNeedRepair(remote.payload) && canFillValues()) {
+                state.dirty = true;
+                persistDraft();
+                scheduleSave(500);
+                setStatus("dirty", "Restaurando fórmulas...");
+              } else {
+                setStatus("ready", "Atualizado com alterações da equipe");
+              }
               renderShell();
             }
           }
@@ -1456,7 +1513,7 @@
       if (!state.dirty || !state.backendAvailable || !canFillValues()) return true;
       clearTimeout(saveTimer);
       const captured = normalizePayload(state.payload);
-      const capturedBase = state.basePayload ? normalizePayload(state.basePayload) : null;
+      const capturedBase = state.basePayload ? clone(state.basePayload) : null;
       const capturedPeriod = { ...activePeriod() };
       persistDraft();
       setStatus("saving", "Salvando na nuvem...");
