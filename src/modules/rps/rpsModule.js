@@ -1227,7 +1227,7 @@
             if (calculatedRow) {
               const calculatedValue = getWeekValue(area.id, indicator, week);
               return `<td class="rps-calculated-cell rps-formula-cell ${week === focusWeek ? "is-focused" : ""}" title="${escapeHtml(indicator.formula || "Linha calculada")}">
-                <strong>${escapeHtml(formatValueForUnit(calculatedValue, weekUnit, "—"))}</strong>
+                <strong data-rps-calculated-week="${escapeHtml(week)}">${escapeHtml(formatValueForUnit(calculatedValue, weekUnit, "—"))}</strong>
                 ${structural
                   ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<small>${escapeHtml(weekUnit)}</small>`}
@@ -1255,19 +1255,81 @@
             </th>
             ${weekCells}
             <td class="rps-calculated-cell rps-month-cell">
-              <strong>${escapeHtml(formatValueForUnit(month, monthUnit, "—"))}</strong>
+              <strong data-rps-calculated-month>${escapeHtml(formatValueForUnit(month, monthUnit, "—"))}</strong>
               ${structural ? `<button type="button" class="rps-month-mode-cycle" data-rps-month-mode-cycle="${escapeHtml(monthModeKey)}" data-current-mode="${escapeHtml(monthMode)}" title="${escapeHtml(monthModeInfo.label)}" aria-label="${escapeHtml(`${monthModeInfo.label} de ${indicator.label}`)}"><span>${escapeHtml(monthModeInfo.icon)}</span></button>` : ""}
             </td>
             <td class="rps-value-cell rps-target-cell">
               <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="decimal" autocomplete="off" ${fillable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
               ${state.presentation ? "" : `<button class="rps-comment-button ${state.payload.comentarios[commentKey(area.id, indicator.id, "meta")] ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, "meta"))}" title="Comentário">●</button>`}
             </td>
-            <td class="rps-variation ${trendClass}">${variation === null ? "—" : `${variation > 0 ? "+" : ""}${escapeHtml(formatValueForUnit(variation, monthUnit))}`}</td>
-            <td class="rps-variation ${trendClass}">${percent === null ? "—" : `${percent > 0 ? "+" : ""}${formatNumber(percent)}%`}</td>
+            <td class="rps-variation ${trendClass}" data-rps-variation-value>${variation === null ? "—" : `${variation > 0 ? "+" : ""}${escapeHtml(formatValueForUnit(variation, monthUnit))}`}</td>
+            <td class="rps-variation ${trendClass}" data-rps-variation-percent>${percent === null ? "—" : `${percent > 0 ? "+" : ""}${formatNumber(percent)}%`}</td>
           </tr>`;
         }).join("");
         return areaHeader + rows;
       }).join("");
+    }
+
+    function refreshVisibleCells() {
+      if (!root || !state.payload) return;
+      const active = document.activeElement;
+      const rows = new Map(Array.from(root.querySelectorAll(".rps-indicator-row")).map((row) => [
+        `${row.dataset.areaId}|${row.dataset.indicatorId}`,
+        row
+      ]));
+      const setVariation = (cell, value, trendClass) => {
+        if (!cell) return;
+        cell.textContent = value;
+        cell.classList.remove("neutral", "positive", "negative");
+        cell.classList.add(trendClass);
+      };
+
+      state.payload.areas.forEach((area) => {
+        getIndicators(area.id).forEach((indicator) => {
+          if (indicator.type === "spacer") return;
+          const row = rows.get(`${area.id}|${indicator.id}`);
+          if (!row) return;
+          const monthUnit = getUnit(area.id, indicator.id, indicator, "S1");
+
+          WEEKS.forEach((week) => {
+            const weekUnit = getUnit(area.id, indicator.id, indicator, week);
+            const calculated = Array.from(row.querySelectorAll("[data-rps-calculated-week]"))
+              .find((element) => element.dataset.rpsCalculatedWeek === week);
+            if (calculated) {
+              calculated.textContent = formatValueForUnit(getWeekValue(area.id, indicator, week), weekUnit, "—");
+              return;
+            }
+            const key = valueKey(area.id, indicator.id, week);
+            const input = Array.from(row.querySelectorAll("[data-rps-value-key]"))
+              .find((element) => element.dataset.rpsValueKey === key);
+            if (input && input !== active) input.value = formatValueForUnit(state.payload.dados[key], weekUnit);
+          });
+
+          const month = getMonthValue(area.id, indicator);
+          const monthCell = row.querySelector("[data-rps-calculated-month]");
+          if (monthCell) monthCell.textContent = formatValueForUnit(month, monthUnit, "—");
+
+          const targetKey = targetValueKey(area.id, indicator.id);
+          const targetInput = row.querySelector("[data-rps-target-key]");
+          if (targetInput && targetInput !== active) {
+            targetInput.value = formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit);
+          }
+          const target = getTargetValue(area.id, indicator.id);
+          const variation = month !== null && target !== null ? month - target : null;
+          const percent = variation !== null && target ? (variation / Math.abs(target)) * 100 : null;
+          const trendClass = variation === null ? "neutral" : variation >= 0 ? "positive" : "negative";
+          setVariation(
+            row.querySelector("[data-rps-variation-value]"),
+            variation === null ? "—" : `${variation > 0 ? "+" : ""}${formatValueForUnit(variation, monthUnit)}`,
+            trendClass
+          );
+          setVariation(
+            row.querySelector("[data-rps-variation-percent]"),
+            percent === null ? "—" : `${percent > 0 ? "+" : ""}${formatNumber(percent)}%`,
+            trendClass
+          );
+        });
+      });
     }
 
     function renderShell() {
@@ -1562,7 +1624,9 @@
           maxSaveTimer = null;
         }
         setStatus(state.dirty ? "dirty" : "ready", state.dirty ? "Novas alterações pendentes" : `Salvo na nuvem às ${state.lastSavedAt}`);
-        renderWhenIdle();
+        // A resposta assíncrona do salvamento nunca deve reconstruir a grade:
+        // isso interrompia a próxima digitação. Atualizamos apenas valores e cálculos.
+        refreshVisibleCells();
         return true;
       } catch (error) {
         state.dirty = true;
@@ -1699,6 +1763,7 @@
           if (value) state.payload.dados[key] = value;
           else delete state.payload.dados[key];
           markDirty();
+          refreshVisibleCells();
           return;
         }
         const targetInput = event.target.closest("[data-rps-target-key]");
@@ -1708,6 +1773,7 @@
           if (value) state.payload.dadosMeta[key] = value;
           else delete state.payload.dadosMeta[key];
           markDirty();
+          refreshVisibleCells();
         }
       });
 
@@ -1723,18 +1789,23 @@
         const valueInput = event.target.closest("[data-rps-value-key]");
         if (valueInput) {
           void requestSave();
-          renderWhenIdle();
+          refreshVisibleCells();
           return;
         }
         const targetInput = event.target.closest("[data-rps-target-key]");
         if (targetInput) {
           void requestSave();
-          renderWhenIdle();
+          refreshVisibleCells();
         }
       });
 
       root.addEventListener("focusout", (event) => {
-        if (event.target.closest("[data-rps-value-key], [data-rps-target-key], [data-rps-label-id]")) {
+        if (event.target.closest("[data-rps-value-key], [data-rps-target-key]")) {
+          void requestSave();
+          refreshVisibleCells();
+          return;
+        }
+        if (event.target.closest("[data-rps-label-id]")) {
           void requestSave();
           renderWhenIdle();
         }
