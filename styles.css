@@ -9471,7 +9471,8 @@ body.rps-laser-mode .rps-attachment-carousel * {
   padding: 5px 44px;
   flex: none;
 }
-.msn-painel .msn-head { cursor: move; }
+.msn-painel .msn-head,
+.msn-config-janela .msn-head { cursor: move; }
 .msn-head-menu {
   position: absolute;
   left: 10px;
@@ -9753,18 +9754,12 @@ body.rps-laser-mode .rps-attachment-carousel * {
   min-height: 0;
   max-height: calc(100vh - 24px);
 }
-.msn-config-janela .msn-jan-head {
-  position: relative;
-  min-height: 42px;
-  justify-content: center;
-}
-.msn-config-logo { display: block; width: 126px; max-width: calc(100% - 96px); height: auto; object-fit: contain; }
-.msn-config-janela .msn-jan-acoes {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%);
-}
+/* Parâmetros usa o mesmo header .msn-head do painel principal (sem o
+   hambúrguer) -- pedido explícito do usuário, 2026-09-01, depois de duas
+   rodadas de bug de especificidade com um header próprio (.msn-jan-head +
+   .msn-config-logo + .msn-config-close) que nunca ficava 100% igual.
+   Nada a redefinir aqui: .msn-head/.msn-head-logo/.msn-head-acoes já
+   cobrem o caso. */
 .msn-config-intro { display: grid; gap: 3px; }
 .msn-config-intro strong { color: var(--text); font-size: .86rem; }
 .msn-config-intro span { color: var(--text-faint); font-size: .67rem; }
@@ -10906,7 +10901,7 @@ body.mobile-shell-active .msn-jan-acoes .msn-icon-btn:not([data-action="fechar"]
    dos dois: o do painel já tinha esse fundo, o da conversa estava sem
    nada por trás. Fundo permanente (não só no :hover), tamanho compacto
    preservado. */
-body.mobile-shell-active [data-action="fechar-painel"],
+body.mobile-shell-active .msn-head-acoes .msn-icon-btn,
 body.mobile-shell-active [data-action="fechar"] {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 8px;
@@ -11544,7 +11539,7 @@ body.mobile-shell-active .msn-head {
 body.mobile-shell-active .msn-head-menu { left: 12px; }
 body.mobile-shell-active .msn-head-acoes { right: 12px; }
 body.mobile-shell-active .msn-head-logo { width: 126px; }
-body.mobile-shell-active [data-action="fechar-painel"] { background: transparent; }
+body.mobile-shell-active .msn-head-acoes .msn-icon-btn { background: transparent; }
 
 body.mobile-shell-active .msn-eu {
   grid-template-columns: minmax(136px, 0.46fr) minmax(0, 1fr);
@@ -11645,17 +11640,6 @@ body.mobile-shell-active .msn-close-conversation {
   border: 1px solid var(--msn-divider);
   background: var(--msn-surface-raised);
 }
-/* .msn-config-close (botão de fechar de Parâmetros) reaproveita a classe
-   .msn-close-conversation (glyph "X" da conversa) -- a regra acima (34px)
-   tem mais especificidade que .msn-config-janela .msn-config-close (30px,
-   já igual ao [data-action="fechar-painel"] do painel principal) e vencia
-   sozinha, deixando o botão de Parâmetros maior que o padrão. Repete o
-   mesmo prefixo pra igualar ao painel principal. */
-body.mobile-shell-active .msn-config-janela .msn-config-close {
-  width: 30px;
-  height: 30px;
-  min-width: 30px;
-}
 body.mobile-shell-active .msn-jan-corpo { padding: 14px 12px; gap: 7px; }
 body.mobile-shell-active .msn-janela .msg-bubble { max-width: 86%; padding: 9px 11px 7px; }
 body.mobile-shell-active .msg-bubble p { font-size: 0.78rem; line-height: 1.48; }
@@ -11681,21 +11665,9 @@ body.mobile-shell-active .msn-send-btn {
 body.mobile-shell-active .msn-send-btn svg { width: 18px; height: 18px; }
 body.mobile-shell-active .msn-pendentes { padding: 7px 10px max(8px, env(safe-area-inset-bottom)); }
 
-body.mobile-shell-active .msn-config-janela .msn-jan-head {
-  display: flex;
-  min-height: 54px;
-  justify-content: center;
-  padding: max(10px, env(safe-area-inset-top)) 12px 8px;
-}
-body.mobile-shell-active .msn-config-janela .msn-jan-acoes {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%);
-  display: flex;
-  padding: 0;
-  border: 0;
-}
+/* Parâmetros usa .msn-head (mesmo do painel principal, só sem o
+   hambúrguer) -- nada a redefinir aqui, body.mobile-shell-active .msn-head
+   já cobre os dois. */
 body.mobile-shell-active .msn-config-form {
   flex: 1;
   overflow-y: auto;
@@ -11726,36 +11698,18 @@ body.mobile-shell-active .msn-config-form {
   }
   .msn-config-janela::before { display: none; }
   .msn-config-janela .msn-resize { display: none; }
-  .msn-config-janela .msn-jan-head {
-    min-height: 52px;
-    justify-content: center;
-    padding: max(9px, env(safe-area-inset-top)) 12px 7px;
-    border-bottom: 0 !important;
-    cursor: default;
-  }
-  .msn-config-janela .msn-config-close {
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    margin: 0;
-    border: 1px solid var(--msn-divider);
-    border-radius: 8px;
-    background: var(--msn-surface-raised);
-  }
-  .msn-config-janela .msn-config-close .msn-ui-icon { width: 15px; height: 15px; }
-  /* Mesmo ajuste do .msn-config-close acima, agora pro lado que estava
-     faltando: dentro deste @media (fora do body.mobile-shell-active -- ex.:
-     navegador desktop estreitado, não o app mobile de verdade) o botão de
-     fechar do painel principal ([data-action="fechar-painel"]) não tinha
-     regra nenhuma aqui e caía no .msn-icon-btn genérico (34px), maior que
-     os 30px do Parâmetros. Iguala ao mesmo padrão. */
-  [data-action="fechar-painel"] {
+  /* Painel principal e Parâmetros compartilham .msn-head/.msn-head-acoes
+     (Parâmetros só não tem o hambúrguer) -- um seletor estrutural único
+     cobre o botão de fechar dos dois, em vez de duas regras por atributo
+     (data-action="fechar-painel" vs data-config-action="fechar") que já
+     divergiram duas vezes neste breakpoint. */
+  .msn-head-acoes .msn-icon-btn {
     width: 30px;
     height: 30px;
     min-width: 30px;
     border-radius: 8px;
   }
-  [data-action="fechar-painel"] .msn-ui-icon { width: 15px; height: 15px; }
+  .msn-head-acoes .msn-icon-btn .msn-ui-icon { width: 15px; height: 15px; }
   .msn-config-form {
     width: 100%;
     max-width: 100%;
@@ -11809,10 +11763,10 @@ body.mobile-shell-active .msn-config-form {
   body.mobile-shell-active .msn-eu { grid-template-columns: 1fr; }
 }
 
-/* Preserva o controle aprovado do painel e da conversa em regras próprias.
-   Parâmetros usa somente .msn-config-close dentro do breakpoint acima, sem
-   compartilhar cascata com nenhuma destas duas superfícies. */
-body.mobile-shell-active .msn-painel [data-action="fechar-painel"],
+/* Controle aprovado do painel/Parâmetros (via .msn-head-acoes, compartilhado
+   pelos dois -- ver comentário acima) e da conversa (.msn-janela própria,
+   [data-action="fechar"]) em regras próprias. */
+body.mobile-shell-active .msn-head-acoes .msn-icon-btn,
 body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fechar"] {
   display: grid;
   width: 30px;
@@ -11826,7 +11780,7 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
   background: var(--msn-surface-raised);
   color: var(--msn-muted);
 }
-body.mobile-shell-active .msn-painel [data-action="fechar-painel"] .msn-ui-icon,
+body.mobile-shell-active .msn-head-acoes .msn-icon-btn .msn-ui-icon,
 body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fechar"] .msn-ui-icon {
   width: 15px;
   height: 15px;

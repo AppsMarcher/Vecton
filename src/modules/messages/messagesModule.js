@@ -726,10 +726,10 @@
       el.className = "msn-janela msn-config-janela";
       el.__ajustesOriginais = { ..._ajustes };
       el.innerHTML = `
-        <div class="msn-jan-head">
-          <img class="msn-config-logo" src="assets/vecton-messenger.png?v=20260804c" alt="Vecton Messenger">
-          <div class="msn-jan-acoes">
-            <button type="button" class="msn-icon-btn msn-close-conversation msn-config-close" data-config-action="fechar" title="Fechar" aria-label="Fechar personalização">
+        <div class="msn-head">
+          <img class="msn-head-logo" src="assets/vecton-messenger.png?v=20260804c" alt="Vecton Messenger">
+          <div class="msn-head-acoes">
+            <button type="button" class="msn-icon-btn" data-config-action="fechar" title="Fechar" aria-label="Fechar personalização">
               <svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
             </button>
           </div>
@@ -776,7 +776,7 @@
       _zIndex += 1;
       el.style.zIndex = String(_zIndex);
 
-      const head = el.querySelector(".msn-jan-head");
+      const head = el.querySelector(".msn-head");
       head.addEventListener("mousedown", (event) => {
         if (layoutMobile) return;
         if (event.target.closest("button")) return;
