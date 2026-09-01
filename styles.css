@@ -11756,3 +11756,28 @@ body.mobile-shell-active .msn-config-form {
   body.mobile-shell-active .msn-eu { grid-template-columns: 1fr; }
 }
 
+/* Mesmo botão de fechar nas três superfícies do Messenger mobile: painel,
+   conversa e personalização. A caixa clara fica mais compacta que a versão
+   anterior, sem reduzir demais o ícone. */
+body.mobile-shell-active [data-action="fechar-painel"],
+body.mobile-shell-active [data-action="fechar"],
+body.mobile-shell-active [data-config-action="fechar"] {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  margin: 0;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--msn-divider);
+  border-radius: 8px;
+  background: var(--msn-surface-raised);
+  color: var(--msn-muted);
+}
+body.mobile-shell-active [data-action="fechar-painel"] .msn-ui-icon,
+body.mobile-shell-active [data-action="fechar"] .msn-ui-icon,
+body.mobile-shell-active [data-config-action="fechar"] .msn-ui-icon {
+  width: 15px;
+  height: 15px;
+}
+
