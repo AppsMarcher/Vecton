@@ -523,6 +523,26 @@ body.auth-only {
 }
 .auth-input-wrap input::placeholder { color: rgba(190, 202, 220, .61); }
 .auth-input-wrap input:focus { border-color: rgba(24, 125, 255, .82); box-shadow: 0 0 0 3px rgba(24, 125, 255, .11), 0 0 22px rgba(0, 100, 255, .07); background: rgba(2, 11, 29, .75); }
+/* Chrome/Safari aplicam amarelo próprio aos dados salvos pelo gerenciador de
+   senhas. Cobre esse preenchimento nativo sem perder texto, caret nem o anel
+   de foco do tema escuro. O seletor vale também para definir/confirmar senha. */
+.auth-input-wrap input:-webkit-autofill,
+.auth-input-wrap input:-webkit-autofill:hover,
+.auth-input-wrap input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f5f7fb !important;
+  caret-color: #f5f7fb;
+  -webkit-box-shadow: 0 0 0 1000px #020b1d inset !important;
+  box-shadow: 0 0 0 1000px #020b1d inset !important;
+  border-color: rgba(120, 150, 190, .34);
+  transition: background-color 9999s ease-out 0s;
+}
+.auth-input-wrap input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f5f7fb !important;
+  caret-color: #f5f7fb;
+  border-color: rgba(24, 125, 255, .82);
+  -webkit-box-shadow: 0 0 0 1000px #020b1d inset, 0 0 0 3px rgba(24, 125, 255, .11), 0 0 22px rgba(0, 100, 255, .07) !important;
+  box-shadow: 0 0 0 1000px #020b1d inset, 0 0 0 3px rgba(24, 125, 255, .11), 0 0 22px rgba(0, 100, 255, .07) !important;
+}
 .auth-password-wrap input { padding-right: 50px; }
 .auth-password-toggle { right: 13px; width: 34px; height: 34px; justify-content: center; padding: 7px; color: rgba(215, 225, 239, .82); }
 .auth-password-toggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -11694,15 +11714,15 @@ body.mobile-shell-active .msn-config-form {
     cursor: default;
   }
   .msn-config-janela .msn-config-close {
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
     margin: 0;
     border: 1px solid var(--msn-divider);
-    border-radius: 10px;
+    border-radius: 8px;
     background: var(--msn-surface-raised);
   }
-  .msn-config-janela .msn-config-close .msn-ui-icon { width: 16px; height: 16px; }
+  .msn-config-janela .msn-config-close .msn-ui-icon { width: 15px; height: 15px; }
   .msn-config-form {
     width: 100%;
     max-width: 100%;

@@ -492,7 +492,32 @@
       showAuthFeedback(message, level);
     }
 
+    function releaseAuthViewport() {
+      // No celular, o submit ocorre com o campo de senha ainda focado. Safari
+      // e Chrome mantêm por alguns frames o scroll criado pelo teclado; se o
+      // shell mobile (position:fixed) nasce nesse intervalo, seu topo fica
+      // fora da área visível. Retira o foco e zera tanto os dois scroll roots
+      // usados pelos browsers quanto o viewport depois da animação do teclado.
+      const focused = document.activeElement;
+      if (focused && authShell?.contains(focused) && typeof focused.blur === "function") {
+        focused.blur();
+      }
+
+      const resetScroll = () => {
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        window.scrollTo(0, 0);
+      };
+
+      resetScroll();
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(resetScroll);
+      }
+      window.setTimeout(resetScroll, 350);
+    }
+
     function hideAuthShell() {
+      releaseAuthViewport();
       document.body.classList.remove("auth-only");
       authShell.classList.remove("active");
       showAuthFeedback("", "warn");
