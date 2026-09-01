@@ -602,6 +602,14 @@
       ligarPainelMovel(_painel);
       iniciarObservadorVisualViewport();
       ajustarAlturaVisual();
+      // No 1º abrir depois do login (mesma troca de tela que ativa o shell
+      // mobile), o VisualViewport às vezes ainda não estabilizou -- o painel
+      // nascia com `top` capturado cedo demais e ficava colado na status bar
+      // (2026-09-01, print do usuário: X quase em cima da bateria). A janela
+      // de conversa nunca sofria isso porque só abre DEPOIS, quando o
+      // viewport já assentou. Reagenda a mesma leitura (rAF + 70/180/360/
+      // 560ms) pra corrigir sozinho se a 1ª leitura veio errada.
+      agendarAjusteVisual();
 
       _painel.addEventListener("click", (event) => {
         const acao = event.target.closest("[data-action]")?.dataset.action;
@@ -761,6 +769,7 @@
         iniciarObservadorVisualViewport();
         if (estaNoShellMobile()) {
           ajustarAlturaVisual();
+          agendarAjusteVisual(); // mesma rede de segurança do painel, ver abrirPainel()
         } else {
           el.style.left = "0px";
           el.style.top = "0px";
@@ -1166,6 +1175,7 @@
       atualizarScrim();
       iniciarObservadorVisualViewport();
       ajustarAlturaVisual();
+      agendarAjusteVisual(); // mesma rede de segurança do painel, ver abrirPainel()
       frente(ctx);
       ligarJanela(ctx);
       if (opcoes.carregar !== false) void carregarMensagens(ctx, true);
