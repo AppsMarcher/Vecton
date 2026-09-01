@@ -11645,6 +11645,17 @@ body.mobile-shell-active .msn-close-conversation {
   border: 1px solid var(--msn-divider);
   background: var(--msn-surface-raised);
 }
+/* .msn-config-close (botão de fechar de Parâmetros) reaproveita a classe
+   .msn-close-conversation (glyph "X" da conversa) -- a regra acima (34px)
+   tem mais especificidade que .msn-config-janela .msn-config-close (30px,
+   já igual ao [data-action="fechar-painel"] do painel principal) e vencia
+   sozinha, deixando o botão de Parâmetros maior que o padrão. Repete o
+   mesmo prefixo pra igualar ao painel principal. */
+body.mobile-shell-active .msn-config-janela .msn-config-close {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+}
 body.mobile-shell-active .msn-jan-corpo { padding: 14px 12px; gap: 7px; }
 body.mobile-shell-active .msn-janela .msg-bubble { max-width: 86%; padding: 9px 11px 7px; }
 body.mobile-shell-active .msg-bubble p { font-size: 0.78rem; line-height: 1.48; }
