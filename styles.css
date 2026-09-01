@@ -11532,19 +11532,15 @@ body.mobile-shell-active .msn-head {
   padding: max(10px, env(safe-area-inset-top)) 54px 9px;
   background: var(--msn-surface-soft);
 }
-/* O painel principal é anexado diretamente ao body, fora do .vmob-shell.
-   Em alguns PWAs o env(safe-area-inset-top) volta 0 mesmo com a barra de
-   status sobreposta. Reserva a faixa superior explicitamente e posiciona
-   hambúrguer/X no centro da barra útil, sem depender do scroll pós-login. */
-body.mobile-shell-active .msn-painel > .msn-head {
-  --msn-mobile-safe-top: max(40px, env(safe-area-inset-top));
-  min-height: calc(54px + var(--msn-mobile-safe-top));
-  padding: var(--msn-mobile-safe-top) 54px 0;
-}
-body.mobile-shell-active .msn-painel > .msn-head > .msn-head-menu,
-body.mobile-shell-active .msn-painel > .msn-head > .msn-head-acoes {
-  top: calc(var(--msn-mobile-safe-top) + 27px);
-}
+/* Antes do viewport-fit=cover (index.html), env(safe-area-inset-top)
+   voltava 0 aqui e o painel principal (anexado direto ao body, fora do
+   .vmob-shell) ficava com o cabeçalho colado na status bar -- havia uma
+   reserva extra hardcoded (--msn-mobile-safe-top) só pra este seletor,
+   que duplicava o inset real depois do viewport-fit=cover ser corrigido
+   e rebaixava o cabeçalho do painel principal comparado ao de Parâmetros
+   (.msn-config-janela .msn-jan-head, que nunca teve esse ajuste). Removida
+   -- .msn-head já reserva o inset certo, e .msn-head-menu/-acoes usam
+   top:50% (regra base) pra se autocentralizar em qualquer altura. */
 body.mobile-shell-active .msn-head-menu { left: 12px; }
 body.mobile-shell-active .msn-head-acoes { right: 12px; }
 body.mobile-shell-active .msn-head-logo { width: 126px; }
