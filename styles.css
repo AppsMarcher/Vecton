@@ -11743,6 +11743,19 @@ body.mobile-shell-active .msn-config-form {
     background: var(--msn-surface-raised);
   }
   .msn-config-janela .msn-config-close .msn-ui-icon { width: 15px; height: 15px; }
+  /* Mesmo ajuste do .msn-config-close acima, agora pro lado que estava
+     faltando: dentro deste @media (fora do body.mobile-shell-active -- ex.:
+     navegador desktop estreitado, não o app mobile de verdade) o botão de
+     fechar do painel principal ([data-action="fechar-painel"]) não tinha
+     regra nenhuma aqui e caía no .msn-icon-btn genérico (34px), maior que
+     os 30px do Parâmetros. Iguala ao mesmo padrão. */
+  [data-action="fechar-painel"] {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 8px;
+  }
+  [data-action="fechar-painel"] .msn-ui-icon { width: 15px; height: 15px; }
   .msn-config-form {
     width: 100%;
     max-width: 100%;
