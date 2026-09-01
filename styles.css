@@ -11532,6 +11532,19 @@ body.mobile-shell-active .msn-head {
   padding: max(10px, env(safe-area-inset-top)) 54px 9px;
   background: var(--msn-surface-soft);
 }
+/* O painel principal é anexado diretamente ao body, fora do .vmob-shell.
+   Em alguns PWAs o env(safe-area-inset-top) volta 0 mesmo com a barra de
+   status sobreposta. Reserva a faixa superior explicitamente e posiciona
+   hambúrguer/X no centro da barra útil, sem depender do scroll pós-login. */
+body.mobile-shell-active .msn-painel > .msn-head {
+  --msn-mobile-safe-top: max(40px, env(safe-area-inset-top));
+  min-height: calc(54px + var(--msn-mobile-safe-top));
+  padding: var(--msn-mobile-safe-top) 54px 0;
+}
+body.mobile-shell-active .msn-painel > .msn-head > .msn-head-menu,
+body.mobile-shell-active .msn-painel > .msn-head > .msn-head-acoes {
+  top: calc(var(--msn-mobile-safe-top) + 27px);
+}
 body.mobile-shell-active .msn-head-menu { left: 12px; }
 body.mobile-shell-active .msn-head-acoes { right: 12px; }
 body.mobile-shell-active .msn-head-logo { width: 126px; }
@@ -11776,12 +11789,11 @@ body.mobile-shell-active .msn-config-form {
   body.mobile-shell-active .msn-eu { grid-template-columns: 1fr; }
 }
 
-/* Mesmo botão de fechar nas três superfícies do Messenger mobile: painel,
-   conversa e personalização. A caixa clara fica mais compacta que a versão
-   anterior, sem reduzir demais o ícone. */
-body.mobile-shell-active [data-action="fechar-painel"],
-body.mobile-shell-active [data-action="fechar"],
-body.mobile-shell-active [data-config-action="fechar"] {
+/* Preserva o controle aprovado do painel e da conversa em regras próprias.
+   Parâmetros usa somente .msn-config-close dentro do breakpoint acima, sem
+   compartilhar cascata com nenhuma destas duas superfícies. */
+body.mobile-shell-active .msn-painel [data-action="fechar-painel"],
+body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fechar"] {
   display: grid;
   width: 30px;
   height: 30px;
@@ -11794,10 +11806,8 @@ body.mobile-shell-active [data-config-action="fechar"] {
   background: var(--msn-surface-raised);
   color: var(--msn-muted);
 }
-body.mobile-shell-active [data-action="fechar-painel"] .msn-ui-icon,
-body.mobile-shell-active [data-action="fechar"] .msn-ui-icon,
-body.mobile-shell-active [data-config-action="fechar"] .msn-ui-icon {
+body.mobile-shell-active .msn-painel [data-action="fechar-painel"] .msn-ui-icon,
+body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fechar"] .msn-ui-icon {
   width: 15px;
   height: 15px;
 }
-
