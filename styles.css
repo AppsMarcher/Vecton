@@ -9501,12 +9501,11 @@ body.rps-laser-mode .rps-attachment-carousel * {
   min-height: 0;
   overflow-y: auto;
   padding: 4px 8px 10px;
-  scrollbar-width: none;
+  scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.7) transparent;
+  scrollbar-gutter: stable;
 }
-.msn-lista:hover { scrollbar-width: thin; }
-.msn-lista::-webkit-scrollbar { width: 0; }
-.msn-lista:hover::-webkit-scrollbar { width: 8px; }
+.msn-lista::-webkit-scrollbar { width: 8px; }
 .msn-lista::-webkit-scrollbar-track { background: transparent; }
 .msn-lista::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.65); border-radius: 999px; }
 .msn-lista::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.9); }
@@ -9625,23 +9624,6 @@ body.rps-laser-mode .rps-attachment-carousel * {
 }
 .msn-grupo-selecao-acoes .msn-grupo-criar { border-color: var(--blue); background: var(--blue); color: #fff; }
 .msn-grupo-selecao-acoes button:disabled { opacity: 0.42; cursor: default; }
-.msn-rodape-btn-icone {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  font-size: 0.85rem;
-  line-height: 1;
-  color: var(--text-soft);
-}
-.msn-rodape-btn:hover .msn-rodape-btn-icone { border-color: var(--blue); color: var(--text); }
 .msn-badge {
   flex: none;
   min-width: 18px;
@@ -11031,5 +11013,722 @@ body.mobile-shell-active .msn-contato-copy {
   white-space: nowrap;
   font-size: 0.68rem;
   color: var(--text-faint);
+}
+
+/* ── Messenger: linguagem visual Vecton ────────────────────────────────────────
+   Mantém as janelas independentes do desktop e a tela cheia no celular,
+   mas troca os contornos fortes por superfícies, divisores e foco por camada. */
+.msn-painel,
+.msn-janela,
+.msn-menu {
+  --msn-accent: var(--blue);
+  --msn-surface: color-mix(in srgb, var(--panel) 92%, white 8%);
+  --msn-surface-soft: color-mix(in srgb, var(--panel) 96%, white 4%);
+  --msn-surface-raised: color-mix(in srgb, var(--panel) 86%, white 14%);
+  --msn-divider: color-mix(in srgb, var(--text) 10%, transparent);
+  --msn-border: color-mix(in srgb, var(--msn-accent) 32%, transparent);
+  --msn-muted: color-mix(in srgb, var(--text) 58%, transparent);
+  --msn-faint: color-mix(in srgb, var(--text) 42%, transparent);
+}
+
+.msn-painel,
+.msn-janela {
+  isolation: isolate;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 14% 0, color-mix(in srgb, var(--msn-accent) 11%, transparent), transparent 28%),
+    var(--panel, #0b0d12);
+  border-color: var(--msn-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.48), 0 0 0 1px color-mix(in srgb, var(--msn-accent) 8%, transparent);
+}
+
+.msn-painel::before,
+.msn-janela::before {
+  content: "";
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  left: 22px;
+  right: 22px;
+  height: 2px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, transparent, var(--msn-accent), transparent);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.msn-painel {
+  right: 18px;
+  width: clamp(312px, 22vw, 380px);
+  min-width: 300px;
+  min-height: 460px;
+  height: min(760px, calc(100vh - 32px));
+}
+
+.msn-ui-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.msn-head {
+  min-height: 64px;
+  padding: 8px 54px;
+  border-bottom: 0;
+  background: linear-gradient(180deg, var(--msn-surface), color-mix(in srgb, var(--panel) 97%, transparent));
+}
+.msn-painel .msn-head { border-bottom: 0; }
+
+.msn-head-menu { left: 14px; }
+.msn-head-acoes { right: 14px; }
+.msn-head-logo { width: 128px; }
+
+.msn-icon-btn {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--msn-muted);
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.msn-icon-btn:hover,
+.msn-icon-btn:focus-visible {
+  color: var(--text);
+  background: var(--msn-surface-raised);
+  border-color: var(--msn-divider);
+  outline: none;
+}
+
+.msn-icon-btn:active { transform: scale(0.95); }
+
+.msn-eu {
+  grid-template-columns: minmax(136px, 0.46fr) minmax(0, 1fr);
+  gap: 8px;
+  padding: 12px 14px 8px;
+  border-bottom: 0;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+}
+
+.msn-perfil-status { position: relative; min-width: 0; }
+.msn-perfil-status-dot {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 13px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pos);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pos) 13%, transparent);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.msn-perfil-status[data-presenca="ausente"] .msn-perfil-status-dot { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 13%, transparent); }
+.msn-perfil-status[data-presenca="ocupado"] .msn-perfil-status-dot { background: var(--neg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--neg) 13%, transparent); }
+.msn-perfil-status[data-presenca="invisivel"] .msn-perfil-status-dot { background: #64748b; box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.14); }
+
+.msn-painel .msn-presenca,
+.msn-painel .msn-recado,
+.msn-painel .msn-busca input {
+  height: 40px;
+  border: 1px solid var(--msn-divider);
+  border-radius: 11px;
+  outline: none;
+  background: var(--msn-surface-soft);
+  color: var(--text);
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+.msn-painel .msn-presenca,
+.msn-painel .msn-recado { font-size: calc(0.72rem - 1px); }
+
+.msn-painel .msn-presenca {
+  width: 100%;
+  min-width: 0;
+  padding: 0 24px 0 31px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.msn-painel .msn-recado { min-width: 0; padding: 0 12px; }
+.msn-painel .msn-presenca:focus,
+.msn-painel .msn-recado:focus,
+.msn-painel .msn-busca input:focus {
+  border-color: color-mix(in srgb, var(--msn-accent) 70%, transparent);
+  background: var(--msn-surface);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--msn-accent) 13%, transparent);
+}
+
+.msn-busca {
+  position: relative;
+  padding: 4px 14px 10px;
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+}
+
+.msn-busca > .msn-ui-icon {
+  position: absolute;
+  z-index: 1;
+  left: 27px;
+  top: 15px;
+  width: 17px;
+  height: 17px;
+  color: var(--msn-faint);
+  pointer-events: none;
+}
+
+.msn-painel .msn-busca input { width: 100%; padding: 0 12px 0 38px; font-size: calc(0.72rem - 1px); }
+.msn-painel input::placeholder,
+.msn-painel textarea::placeholder,
+.msn-janela input::placeholder,
+.msn-janela textarea::placeholder { color: var(--msn-faint); opacity: 1; }
+
+.msn-lista { padding: 4px 8px 76px; }
+.msn-painel.modo-grupo .msn-lista { padding-bottom: 118px; }
+.msn-secao {
+  display: flex;
+  min-height: 34px;
+  padding: 11px 8px 5px;
+  align-items: center;
+  gap: 7px;
+  color: var(--msn-faint);
+  font-size: 0.59rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+}
+.msn-secao-count {
+  min-width: 20px;
+  height: 19px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--msn-surface-raised);
+  color: var(--msn-muted);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.msn-secao-toggle { justify-content: flex-start; }
+.msn-secao-toggle .msn-secao-count { margin-left: auto; }
+.msn-secao-toggle::after { margin-left: 1px; color: var(--msn-faint); }
+
+.msn-contato {
+  min-height: 58px;
+  gap: 10px;
+  margin: 2px 0;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+.msn-contato:hover,
+.msn-contato:focus-visible {
+  background: var(--msn-surface);
+  border-color: var(--msn-divider);
+  outline: none;
+}
+.msn-contato:active { transform: scale(0.99); }
+.msn-contato.selecionado {
+  background: color-mix(in srgb, var(--msn-accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--msn-accent) 42%, transparent);
+  outline: 0;
+}
+
+.msn-painel .msn-avatar,
+.msn-janela .msn-avatar {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--msn-divider);
+  border-radius: 13px;
+  background-color: var(--msn-surface-raised);
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.msn-avatar::after { width: 10px; height: 10px; border-color: var(--panel); }
+.msn-avatar.sistema {
+  border-color: color-mix(in srgb, var(--msn-accent) 28%, transparent);
+  background: color-mix(in srgb, var(--msn-accent) 18%, var(--msn-surface));
+  color: #fff;
+}
+.msn-contato.off { opacity: 0.72; }
+.msn-contato.off .msn-avatar { opacity: 0.7; }
+
+.msn-contato-copy { display: flex; flex-direction: column; gap: 4px; }
+.msn-contato-copy .msn-wa-linha1,
+.msn-contato-copy .msn-wa-linha2 {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow: visible;
+  white-space: normal;
+}
+.msn-contato-copy .msn-wa-linha1 strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msn-contato-hora { flex: none; color: var(--msn-faint); font-size: 0.58rem; }
+.msn-contato-sub { color: var(--msn-muted); font-size: 0.64rem; }
+.msn-badge {
+  min-width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--msn-accent);
+  font-size: 0.58rem;
+  font-weight: 750;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--msn-accent) 24%, transparent);
+}
+
+.msn-rodape {
+  position: absolute;
+  z-index: 7;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--msn-divider);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--panel) 46%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+.msn-painel .msn-rodape { border-color: var(--msn-divider); }
+.msn-painel .msn-rodape-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 650;
+}
+.msn-painel .msn-rodape-btn:hover,
+.msn-painel .msn-rodape-btn:focus-visible {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--msn-accent) 13%, transparent);
+  outline: none;
+}
+.msn-vazio { color: var(--msn-faint); }
+
+/* Janela da conversa. */
+.msn-janela {
+  width: min(620px, calc(100vw - 24px));
+  height: min(470px, calc(100vh - 24px));
+  min-width: 360px;
+  min-height: 300px;
+}
+.msn-config-janela { width: min(520px, calc(100vw - 24px)); height: auto; }
+.msn-jan-head {
+  min-height: 64px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--msn-divider);
+  background: linear-gradient(180deg, var(--msn-surface), color-mix(in srgb, var(--panel) 96%, transparent));
+}
+.msn-janela .msn-jan-head { border-color: var(--msn-divider); }
+.msn-jan-identidade { gap: 10px; }
+.msn-jan-copy { display: grid; min-width: 0; gap: 3px; }
+.msn-jan-titulo { color: var(--text); font-size: 0.8rem; font-weight: 700; }
+.msn-jan-subtitulo {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--msn-muted);
+  font-size: 0.59rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msn-jan-subtitulo:not(.offline)::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--pos);
+  vertical-align: 1px;
+}
+.msn-jan-subtitulo.ausente::before { background: var(--amber); }
+.msn-jan-subtitulo.ocupado::before { background: var(--neg); }
+.msn-jan-acoes { gap: 4px; }
+.msn-jan-acoes .msn-icon-btn.is-active {
+  border-color: color-mix(in srgb, var(--msn-accent) 28%, transparent);
+  background: color-mix(in srgb, var(--msn-accent) 14%, transparent);
+  color: color-mix(in srgb, var(--msn-accent) 72%, white 28%);
+}
+.msn-close-conversation { margin-left: 2px; }
+
+.msn-jan-corpo {
+  padding: 18px;
+  gap: 7px;
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--msn-accent) 7%, transparent), transparent 25%),
+    color-mix(in srgb, var(--panel) 97%, black 3%);
+  scrollbar-gutter: stable;
+}
+.msn-jan-corpo > .msn-vazio {
+  align-self: center;
+  justify-self: center;
+  margin: auto;
+  padding: 14px 18px;
+  border: 1px solid var(--msn-divider);
+  border-radius: 999px;
+  background: var(--msn-surface-soft);
+  color: var(--msn-muted);
+  font-size: 0.68rem;
+}
+.msn-janela .msg-bubble {
+  max-width: 74%;
+  padding: 9px 12px 7px;
+  border-color: var(--msn-divider);
+  border-radius: 16px 16px 16px 5px;
+  background: var(--msn-surface-raised);
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.13);
+}
+.msn-janela .msg-bubble.mine {
+  border-color: color-mix(in srgb, var(--msn-accent) 28%, transparent);
+  border-radius: 16px 16px 5px 16px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--msn-accent) 25%, var(--panel)), color-mix(in srgb, var(--msn-accent) 15%, var(--panel)));
+}
+.msg-bubble p { font-size: 0.74rem; line-height: 1.5; }
+.msg-bubble-head strong { color: color-mix(in srgb, var(--msn-accent) 62%, white 38%); }
+.msg-bubble-foot { color: var(--msn-faint); }
+.msg-tick { stroke: var(--msn-faint); }
+
+.msn-digitando { min-height: 18px; padding: 2px 16px 0; color: var(--msn-muted); }
+.msn-jan-compositor {
+  gap: 9px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--msn-divider);
+  background: linear-gradient(180deg, var(--msn-surface-soft), var(--msn-surface));
+}
+.msn-janela .msn-jan-compositor { border-color: var(--msn-divider); }
+.msn-janela .msn-input {
+  height: 46px;
+  padding: 13px 42px 13px 13px;
+  border-color: var(--msn-divider);
+  border-radius: 13px;
+  outline: 0;
+  background: color-mix(in srgb, var(--panel) 91%, white 9%);
+  color: var(--text);
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+.msn-janela .msn-input:focus {
+  border-color: color-mix(in srgb, var(--msn-accent) 66%, transparent);
+  background: var(--msn-surface-raised);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--msn-accent) 12%, transparent);
+}
+.msn-janela .msn-jan-compositor .msn-icon-btn {
+  width: 44px;
+  min-width: 44px;
+  border-color: var(--msn-divider);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--panel) 91%, white 9%);
+}
+.msn-janela .msn-jan-compositor .primary-button {
+  min-width: 78px;
+  border-color: var(--msn-accent);
+  border-radius: 13px;
+  background: var(--msn-accent);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--msn-accent) 22%, transparent);
+}
+.msn-janela .msn-jan-compositor .primary-button:hover { filter: brightness(1.08); }
+.msn-emoji-trigger { right: 7px; border-radius: 9px; }
+.msn-emoji-trigger:hover,
+.msn-emoji-trigger[aria-expanded="true"] { background: color-mix(in srgb, var(--msn-accent) 16%, transparent); }
+.msn-emoji-menu {
+  border-color: var(--msn-border);
+  background: var(--msn-surface);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
+}
+.msn-pendentes { background: var(--msn-surface); }
+.msn-janela .msg-pendente,
+.msn-janela .msg-anexo-img,
+.msn-janela .msg-anexo-file { border-color: var(--msn-divider); background: var(--msn-surface-soft); }
+
+.msn-menu {
+  padding: 7px;
+  border-color: var(--msn-border);
+  border-radius: 14px;
+  background: var(--msn-surface);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
+}
+.msn-menu .msn-menu-titulo { border-color: var(--msn-divider); }
+.msn-menu button:hover { background: color-mix(in srgb, var(--msn-accent) 13%, transparent); }
+.msn-config-fieldset { border-color: var(--msn-divider); }
+.msn-config-sound { background: var(--msn-surface-soft); }
+
+/* Mobile: tela cheia sem perder área útil; a conversa distribui as quatro
+   ações secundárias numa faixa própria para não comprimir nome e avatar. */
+body.mobile-shell-active .msn-painel,
+body.mobile-shell-active .msn-janela {
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 100%;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+/* No painel de contatos, a própria tela do celular passa a ser a moldura.
+   Remove também o filete azul decorativo do topo; a conversa será refinada
+   separadamente. */
+body.mobile-shell-active .msn-painel::before { display: none; }
+body.mobile-shell-active .msn-janela::before { left: 32%; right: 32%; }
+
+body.mobile-shell-active .msn-head {
+  min-height: 62px;
+  padding: max(10px, env(safe-area-inset-top)) 54px 9px;
+  background: var(--msn-surface-soft);
+}
+body.mobile-shell-active .msn-head-menu { left: 12px; }
+body.mobile-shell-active .msn-head-acoes { right: 12px; }
+body.mobile-shell-active .msn-head-logo { width: 126px; }
+body.mobile-shell-active [data-action="fechar-painel"] { background: transparent; }
+
+body.mobile-shell-active .msn-eu {
+  grid-template-columns: minmax(136px, 0.46fr) minmax(0, 1fr);
+  padding: 10px 12px 8px;
+}
+body.mobile-shell-active .msn-painel .msn-presenca,
+body.mobile-shell-active .msn-painel .msn-recado,
+body.mobile-shell-active .msn-painel .msn-busca input { height: 42px; font-size: calc(0.75rem - 1px); }
+body.mobile-shell-active .msn-busca { padding: 4px 12px 9px; }
+body.mobile-shell-active .msn-busca > .msn-ui-icon { left: 25px; top: 16px; }
+body.mobile-shell-active .msn-lista { padding: 3px 0 82px; }
+body.mobile-shell-active .msn-painel.modo-grupo .msn-lista { padding-bottom: 126px; }
+body.mobile-shell-active .msn-secao { padding-inline: 16px; }
+body.mobile-shell-active .msn-contato {
+  min-height: 68px;
+  gap: 11px;
+  margin: 0;
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 0;
+}
+body.mobile-shell-active .msn-contato:hover,
+body.mobile-shell-active .msn-contato:focus-visible { background: var(--msn-surface-soft); }
+body.mobile-shell-active .msn-contato::after {
+  left: 71px;
+  right: 16px;
+  background: var(--msn-divider);
+}
+body.mobile-shell-active .msn-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  font-size: 0.86rem;
+}
+body.mobile-shell-active .msn-contato-copy { gap: 5px; }
+body.mobile-shell-active .msn-contato-copy .msn-wa-linha1 strong { font-size: 0.79rem; }
+body.mobile-shell-active .msn-contato-sub { font-size: 0.69rem; }
+body.mobile-shell-active .msn-contato-hora { font-size: 0.61rem; }
+body.mobile-shell-active .msn-rodape {
+  left: 10px;
+  right: 10px;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  padding: 4px;
+  border: 1px solid var(--msn-divider);
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--panel) 42%, transparent);
+}
+
+body.mobile-shell-active .msn-jan-head {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: max(10px, env(safe-area-inset-top)) 12px 9px;
+  border-bottom: 0 !important;
+  background: var(--msn-surface-soft);
+}
+body.mobile-shell-active .msn-jan-identidade {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 42px;
+}
+body.mobile-shell-active .msn-jan-copy { gap: 2px; }
+body.mobile-shell-active .msn-jan-titulo { font-size: 0.82rem; }
+body.mobile-shell-active .msn-jan-subtitulo { font-size: 0.61rem; }
+body.mobile-shell-active .msn-jan-acoes {
+  position: static;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+}
+body.mobile-shell-active .msn-jan-acoes .msn-icon-btn:not(.msn-close-conversation) {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+}
+body.mobile-shell-active .msn-jan-acoes .msn-ui-icon { width: 16px; height: 16px; }
+body.mobile-shell-active .msn-jan-acoes .msn-icon-btn::after { content: none; }
+body.mobile-shell-active .msn-close-conversation {
+  position: static;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  margin: 0;
+  border: 1px solid var(--msn-divider);
+  background: var(--msn-surface-raised);
+}
+body.mobile-shell-active .msn-jan-corpo { padding: 14px 12px; gap: 7px; }
+body.mobile-shell-active .msn-janela .msg-bubble { max-width: 86%; padding: 9px 11px 7px; }
+body.mobile-shell-active .msg-bubble p { font-size: 0.78rem; line-height: 1.48; }
+body.mobile-shell-active .msn-digitando { min-height: 17px; padding-inline: 12px; }
+body.mobile-shell-active .msn-jan-compositor {
+  gap: 7px;
+  padding: 8px 10px max(8px, env(safe-area-inset-bottom));
+  border-top: 0 !important;
+  background: var(--msn-surface);
+}
+body.mobile-shell-active .msn-janela .msn-input { height: 46px; padding-left: 12px; border-radius: 14px; }
+body.mobile-shell-active .msn-janela .msn-jan-compositor .msn-icon-btn {
+  width: 44px;
+  min-width: 44px;
+  height: 46px;
+  border-radius: 14px;
+}
+body.mobile-shell-active .msn-send-btn {
+  border-color: var(--msn-accent) !important;
+  border-radius: 14px !important;
+  background: var(--msn-accent) !important;
+}
+body.mobile-shell-active .msn-send-btn svg { width: 18px; height: 18px; }
+body.mobile-shell-active .msn-pendentes { padding: 7px 10px max(8px, env(safe-area-inset-bottom)); }
+
+body.mobile-shell-active .msn-config-janela .msn-jan-head {
+  display: flex;
+  min-height: 54px;
+  justify-content: flex-end;
+  padding: max(10px, env(safe-area-inset-top)) 12px 8px;
+}
+body.mobile-shell-active .msn-config-janela .msn-jan-acoes {
+  display: flex;
+  padding: 0;
+  border: 0;
+}
+body.mobile-shell-active .msn-config-form {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px max(18px, env(safe-area-inset-bottom));
+}
+
+/* A personalização também pode ser aberta logo após uma mudança de viewport,
+   antes de o shell mobile terminar sua troca de classe. O breakpoint funciona
+   como rede de segurança e impede qualquer largura/posição inline do desktop
+   de fazer a janela escapar da tela. */
+@media (max-width: 767px) {
+  .msn-config-janela {
+    left: 0 !important;
+    right: 0 !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh;
+    max-height: none !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .msn-config-janela::before { display: none; }
+  .msn-config-janela .msn-resize { display: none; }
+  .msn-config-janela .msn-jan-head {
+    min-height: 52px;
+    padding: max(9px, env(safe-area-inset-top)) 12px 7px;
+    border-bottom: 0 !important;
+    cursor: default;
+  }
+  .msn-config-form {
+    width: 100%;
+    max-width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 12px max(16px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+  }
+  .msn-config-form > *,
+  .msn-config-fieldset { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .msn-config-field input[type="text"] { min-width: 0; font-size: 16px; }
+  .msn-config-colors { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .msn-config-colors input[type="color"] { min-width: 0; }
+  .msn-config-actions {
+    position: sticky;
+    z-index: 2;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px 0 2px;
+    background: linear-gradient(180deg, transparent, var(--msn-surface) 22%);
+  }
+  .msn-config-actions button {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 8px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 360px) {
+  body.mobile-shell-active .msn-eu { grid-template-columns: 136px minmax(0, 1fr); gap: 6px; }
+  body.mobile-shell-active .msn-jan-head { gap: 6px; padding-inline: 8px; }
+  body.mobile-shell-active .msn-jan-head .msn-avatar { width: 40px; height: 40px; }
+  body.mobile-shell-active .msn-jan-acoes { gap: 1px; }
+  body.mobile-shell-active .msn-jan-acoes .msn-icon-btn:not(.msn-close-conversation),
+  body.mobile-shell-active .msn-close-conversation { width: 30px; height: 30px; min-width: 30px; border-radius: 9px; }
+  body.mobile-shell-active .msn-jan-acoes .msn-ui-icon { width: 15px; height: 15px; }
+  body.mobile-shell-active .msn-jan-compositor { gap: 6px; padding-inline: 8px; }
+  body.mobile-shell-active .msn-janela .msn-jan-compositor .msn-icon-btn { width: 42px; min-width: 42px; }
+}
+
+@media (max-width: 300px) {
+  body.mobile-shell-active .msn-eu { grid-template-columns: 1fr; }
 }
 

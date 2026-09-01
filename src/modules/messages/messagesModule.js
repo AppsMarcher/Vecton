@@ -408,21 +408,9 @@
       return `<span class="msn-avatar ${presenca}">${escapeHtml((c.nome || "?").slice(0, 1).toUpperCase())}</span>`;
     }
 
-    // Bloco "nome+hora / subtítulo+badge" da linha de contato/grupo. No
-    // desktop mantém o markup ORIGINAL (grid de 2 linhas, badge fora,
-    // centralizado na altura da linha) -- zero mudança visual lá. No shell
-    // mobile ganha a "cara de WhatsApp": hora alinhada com o nome, badge
-    // descendo pra junto do subtítulo. `nome`/`subtitulo`/`badge` já chegam
-    // como HTML pronto (escapado pelo chamador); `hora` é texto puro.
-    function copiaContatoMarkup(nome, subtitulo, hora, badge, mobile) {
-      if (!mobile) {
-        return `
-          <span class="msn-contato-copy">
-            <strong>${nome}</strong>
-            <span>${subtitulo}</span>
-          </span>
-          ${badge}`;
-      }
+    // Nome, contexto e última atividade usam a mesma hierarquia nas duas
+    // versões do Messenger. A diferença de densidade fica só no CSS responsivo.
+    function copiaContatoMarkup(nome, subtitulo, hora, badge) {
       return `
         <span class="msn-contato-copy">
           <span class="msn-wa-linha1"><strong>${nome}</strong><span class="msn-contato-hora">${escapeHtml(hora)}</span></span>
@@ -446,7 +434,7 @@
         return `
         <div class="msn-contato msn-grupo${sistema ? " msn-grupo-sistema" : ""}" role="button" tabindex="0" data-thread="${escapeHtml(g.thread_id)}" data-titulo="${escapeHtml(g.titulo)}">
           <span class="msn-avatar grupo${sistema ? " sistema" : ""}">${sistema ? "🔔" : escapeHtml((g.titulo || "G").slice(0, 1).toUpperCase())}</span>
-          ${copiaContatoMarkup(escapeHtml(g.titulo), subtitulo, formatUltimaEm(g.ultima_em), badge, mobile)}
+          ${copiaContatoMarkup(escapeHtml(g.titulo), subtitulo, formatUltimaEm(g.ultima_em), badge)}
         </div>`;
       }).join("");
 
@@ -460,7 +448,7 @@
         return `
         <div class="msn-contato${c.__sel ? " selecionado" : ""}${c.presenca === "offline" ? " off" : ""}" role="button" tabindex="0"${_modoGrupo ? ` aria-pressed="${String(Boolean(c.__sel))}"` : ""} data-user="${escapeHtml(c.user_id)}" data-titulo="${escapeHtml(c.nome)}" title="${mobile ? (_modoGrupo ? "Toque para selecionar" : "Toque para conversar; mantenha pressionado para mais opções") : (_modoGrupo ? "Clique para selecionar" : "Duplo clique para conversar")}">
           ${avatarMarkup(c)}
-          ${copiaContatoMarkup(escapeHtml(c.nome), subtitulo, formatUltimaEm(c.ultima_em), badge, mobile)}
+          ${copiaContatoMarkup(escapeHtml(c.nome), subtitulo, formatUltimaEm(c.ultima_em), badge)}
         </div>`;
       }).join("");
 
@@ -468,7 +456,7 @@
         const recolhida = _secoesRecolhidas[status];
         return `
           <button type="button" class="msn-secao msn-secao-toggle" data-action="alternar-secao" data-status="${status}" aria-expanded="${recolhida ? "false" : "true"}">
-            ${titulo} (${pessoas.length})
+            <span>${titulo}</span><span class="msn-secao-count">${pessoas.length}</span>
           </button>
           <div class="msn-secao-conteudo" data-status-conteudo="${status}"${recolhida ? " hidden" : ""}>
             ${pessoas.length ? bloco(pessoas) : vazio}
@@ -485,32 +473,41 @@
             </span>
           </div>`
         : `<button type="button" class="msn-rodape-btn" data-action="novo-grupo">
-            <span class="msn-rodape-btn-icone" aria-hidden="true">+</span>
-            <span>Conversa em grupo</span>
+            <span>Conversa em Grupo</span>
           </button>`;
 
       return `
         <div class="msn-head">
           <div class="msn-head-menu">
-            <button type="button" class="msn-icon-btn" data-action="abrir-ajustes" title="Opções do Vecton Messenger" aria-label="Abrir opções do Vecton Messenger">☰</button>
+            <button type="button" class="msn-icon-btn" data-action="abrir-ajustes" title="Opções do Vecton Messenger" aria-label="Abrir opções do Vecton Messenger">
+              <svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+            </button>
           </div>
           <img class="msn-head-logo" src="assets/vecton-messenger.png?v=20260804c" alt="Vecton Messenger">
           <div class="msn-head-acoes">
-            <button type="button" class="msn-icon-btn" data-action="fechar-painel" title="Fechar">✕</button>
+            <button type="button" class="msn-icon-btn" data-action="fechar-painel" title="Fechar" aria-label="Fechar Messenger">
+              <svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+            </button>
           </div>
         </div>
         <div class="msn-eu">
-          <select id="msn-presenca" class="msn-presenca">
-            <option value="disponivel">Disponível</option>
-            <option value="ausente">Ausente</option>
-            <option value="ocupado">Ocupado</option>
-            <option value="invisivel">Invisível</option>
-          </select>
+          <div class="msn-perfil-status" data-presenca="${escapeHtml(_meuPerfil.presenca || "disponivel")}">
+            <span class="msn-perfil-status-dot" aria-hidden="true"></span>
+            <select id="msn-presenca" class="msn-presenca" aria-label="Status de presença">
+              <option value="disponivel">Disponível</option>
+              <option value="ausente">Ausente</option>
+              <option value="ocupado">Ocupado</option>
+              <option value="invisivel">Invisível</option>
+            </select>
+          </div>
           <input type="text" id="msn-recado" class="msn-recado" placeholder="Escreva um recado..." maxlength="80">
         </div>
-        <div class="msn-busca"><input type="text" id="msn-busca" placeholder="Buscar contato..." value="${escapeHtml(_busca)}"></div>
+        <div class="msn-busca">
+          <svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+          <input type="text" id="msn-busca" placeholder="Buscar pessoas e grupos" aria-label="Buscar pessoas e grupos" value="${escapeHtml(_busca)}">
+        </div>
         <div class="msn-lista">
-          ${_grupos.length ? `<div class="msn-secao">Grupos (${_grupos.length})</div>${grupos}` : ""}
+          ${_grupos.length ? `<div class="msn-secao"><span>Grupos</span><span class="msn-secao-count">${_grupos.length}</span></div>${grupos}` : ""}
           ${secaoContatos("online", "Online", online, `<div class="msn-vazio">Ninguém online agora.</div>`)}
           ${secaoContatos("offline", "Offline", offline)}
           ${!lista.length ? `<div class="msn-vazio">Nenhum contato encontrado.</div>` : ""}
@@ -660,6 +657,7 @@
       _painel.addEventListener("change", (event) => {
         if (event.target.id === "msn-presenca") {
           _meuPerfil.presenca = event.target.value;
+          event.target.closest(".msn-perfil-status")?.setAttribute("data-presenca", event.target.value);
           void callSupabaseRpc("set_my_presence", { p_choice: event.target.value }).catch(() => {});
         }
       });
@@ -716,10 +714,11 @@
     }
 
     function abrirConfiguracoes() {
+      const layoutMobile = estaNoShellMobile() || window.matchMedia("(max-width: 767px)").matches;
       if (_configJanela) {
         _zIndex += 1;
         _configJanela.style.zIndex = String(_zIndex);
-        _configJanela.querySelector('[name="msn-config-nickname"]')?.focus();
+        if (!layoutMobile) _configJanela.querySelector('[name="msn-config-nickname"]')?.focus();
         return;
       }
 
@@ -751,19 +750,30 @@
       preencherFormularioAjustes(el.querySelector("form"), _ajustes, _meuPerfil.nickname);
       document.body.appendChild(el);
       aplicarTemaEm(el);
-      ajustarAlturaVisual();
       ligarRedimensionamento(el);
 
-      const largura = el.getBoundingClientRect().width || 560;
-      const painelRect = _painel?.getBoundingClientRect();
-      const limiteDireito = painelRect ? painelRect.left - 12 : window.innerWidth - 20;
-      el.style.left = `${Math.max(12, limiteDireito - largura)}px`;
-      el.style.top = `${Math.max(12, painelRect?.top ?? 60)}px`;
+      if (layoutMobile) {
+        iniciarObservadorVisualViewport();
+        if (estaNoShellMobile()) {
+          ajustarAlturaVisual();
+        } else {
+          el.style.left = "0px";
+          el.style.top = "0px";
+          el.style.height = `${Math.max(1, window.innerHeight)}px`;
+        }
+      } else {
+        const largura = el.getBoundingClientRect().width || 560;
+        const painelRect = _painel?.getBoundingClientRect();
+        const limiteDireito = painelRect ? painelRect.left - 12 : window.innerWidth - 20;
+        el.style.left = `${Math.max(12, limiteDireito - largura)}px`;
+        el.style.top = `${Math.max(12, painelRect?.top ?? 60)}px`;
+      }
       _zIndex += 1;
       el.style.zIndex = String(_zIndex);
 
       const head = el.querySelector(".msn-jan-head");
       head.addEventListener("mousedown", (event) => {
+        if (layoutMobile) return;
         if (event.target.closest("button")) return;
         const rect = el.getBoundingClientRect();
         const dx = event.clientX - rect.left;
@@ -825,7 +835,7 @@
         }
       });
 
-      el.querySelector('[name="msn-config-nickname"]')?.focus();
+      if (!layoutMobile) el.querySelector('[name="msn-config-nickname"]')?.focus();
     }
 
     function normalizarPosicaoPainel(el) {
@@ -1067,6 +1077,10 @@
       // redondo no mobile (mesmo padrão do "+"/emoji), liberando espaço.
       const mobile = estaNoShellMobile();
       const placeholder = mobile ? "Mensagem..." : "Escreva... (Enter envia, Shift+Enter quebra linha)";
+      const statusContato = contato?.presenca || "offline";
+      const subtitulo = contato
+        ? (contato.recado || (statusContato === "offline" ? "Offline" : "Disponível agora"))
+        : (String(titulo || "").startsWith("Grupo:") ? "Conversa em grupo" : "Canal do Messenger");
       const botaoEnviar = mobile
         ? `<button type="button" class="msn-icon-btn msn-send-btn" data-action="enviar" title="Enviar" aria-label="Enviar mensagem">
             <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-8 16-2-7-6-1z"/></svg>
@@ -1076,14 +1090,17 @@
         <div class="msn-jan-head">
           <div class="msn-jan-identidade">
             ${avatarBloco}
-            <strong class="msn-jan-titulo" title="${escapeHtml(titulo || "Conversa")}">${escapeHtml(titulo || "Conversa")}</strong>
+            <span class="msn-jan-copy">
+              <strong class="msn-jan-titulo" title="${escapeHtml(titulo || "Conversa")}">${escapeHtml(titulo || "Conversa")}</strong>
+              <span class="msn-jan-subtitulo ${escapeHtml(statusContato)}">${escapeHtml(subtitulo)}</span>
+            </span>
           </div>
           <div class="msn-jan-acoes">
-            <button type="button" class="msn-icon-btn" data-action="aba-conversa" title="Conversa">💬</button>
-            <button type="button" class="msn-icon-btn" data-action="aba-midias" title="Mídias">📎</button>
-            <button type="button" class="msn-icon-btn" data-action="zumbido" title="Chamar atenção">⚡</button>
-            <button type="button" class="msn-icon-btn" data-action="limpar-conversa" title="Limpar conversa">⎋</button>
-            <button type="button" class="msn-icon-btn" data-action="fechar" title="Fechar">✕</button>
+            <button type="button" class="msn-icon-btn is-active" data-action="aba-conversa" title="Conversa" aria-label="Exibir conversa" aria-pressed="true"><svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-chat"></use></svg></button>
+            <button type="button" class="msn-icon-btn" data-action="aba-midias" title="Mídias" aria-label="Exibir mídias" aria-pressed="false"><svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 12.5 14.8 6.2a3.2 3.2 0 0 1 4.5 4.5l-8.1 8.1a5 5 0 0 1-7.1-7.1l8-8"></path></svg></button>
+            <button type="button" class="msn-icon-btn" data-action="zumbido" title="Chamar atenção" aria-label="Chamar atenção"><svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"></path></svg></button>
+            <button type="button" class="msn-icon-btn" data-action="limpar-conversa" title="Limpar conversa" aria-label="Limpar conversa"><svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-trash"></use></svg></button>
+            <button type="button" class="msn-icon-btn msn-close-conversation" data-action="fechar" title="Fechar" aria-label="Fechar conversa"><svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
           </div>
         </div>
         <div class="msn-jan-corpo" data-pane="conversa"></div>
@@ -1137,7 +1154,7 @@
 
       const ctx = {
         el, threadId, titulo: tituloExibido, fotoUrl, fotoNome: tituloExibido,
-        ehGrupo: Boolean(grupo), mensagens: [], mensagensOcultas: new Set(),
+        ehGrupo: Boolean(grupo), mensagens: [],
         aba: "conversa", pendentes: [], ultimoId: null, focada: true
       };
       _janelas.set(threadId, ctx);
@@ -1292,11 +1309,16 @@
         if (acao === "enviar") { void enviar(ctx); return; }
         if (acao === "anexar") { el.querySelector(".msn-file").click(); return; }
         if (acao === "zumbido") { void enviarZumbido(ctx); return; }
-        if (acao === "limpar-conversa") { limparConversa(ctx); return; }
+        if (acao === "limpar-conversa") { void limparConversa(ctx); return; }
         if (acao === "aba-conversa" || acao === "aba-midias") {
           ctx.aba = acao === "aba-midias" ? "midias" : "conversa";
           el.querySelector('[data-pane="conversa"]').style.display = ctx.aba === "conversa" ? "block" : "none";
           el.querySelector('[data-pane="midias"]').style.display = ctx.aba === "midias" ? "block" : "none";
+          el.querySelectorAll('[data-action="aba-conversa"], [data-action="aba-midias"]').forEach((botao) => {
+            const ativa = botao.dataset.action === acao;
+            botao.classList.toggle("is-active", ativa);
+            botao.setAttribute("aria-pressed", String(ativa));
+          });
           if (ctx.aba === "midias") void carregarMidias(ctx);
           return;
         }
@@ -1459,7 +1481,7 @@
         const chegouNova = !primeira && ultimo && ultimo.id !== ctx.ultimoId;
         const nudgeNovo = chegouNova && ultimo.kind === "nudge" && ultimo.autor_id !== getCurrentUserId();
 
-        ctx.mensagens = rows.filter((mensagem) => !ctx.mensagensOcultas.has(String(mensagem.id)));
+        ctx.mensagens = rows;
         ctx.ultimoId = ultimo?.id || null;
         pintarConversa(ctx);
 
@@ -1592,10 +1614,24 @@
       }
     }
 
-    function limparConversa(ctx) {
-      ctx.mensagens.forEach((mensagem) => ctx.mensagensOcultas.add(String(mensagem.id)));
-      ctx.mensagens = [];
-      pintarConversa(ctx);
+    async function limparConversa(ctx) {
+      const botao = ctx.el.querySelector('[data-action="limpar-conversa"]');
+      if (botao?.disabled) return;
+      if (botao) botao.disabled = true;
+      try {
+        await callSupabaseRpc("clear_thread_messages", { p_thread: ctx.threadId });
+        ctx.mensagens = [];
+        ctx.ultimoId = null;
+        pintarConversa(ctx);
+        if (ctx.aba === "midias") await carregarMidias(ctx);
+        await reconciliarNaoLidas();
+        if (_painel) await carregarContatos();
+        showToast("Conversa limpa para você.", "success");
+      } catch (error) {
+        showToast(vpFriendlyError(error, "Falha ao limpar a conversa."), "error");
+      } finally {
+        if (botao?.isConnected) botao.disabled = false;
+      }
     }
 
     async function sairDaConversa(ctx) {
