@@ -11534,8 +11534,30 @@ body.mobile-shell-active .msn-head {
    que duplicava o inset real depois do viewport-fit=cover ser corrigido
    e rebaixava o cabeçalho do painel principal comparado ao de Parâmetros
    (.msn-config-janela .msn-jan-head, que nunca teve esse ajuste). Removida
-   -- .msn-head já reserva o inset certo, e .msn-head-menu/-acoes usam
-   top:50% (regra base) pra se autocentralizar em qualquer altura. */
+   -- .msn-head já reserva o inset certo. */
+/* .msn-head-menu/-acoes são position:absolute (regra base, desktop) pra
+   a logo poder ficar perfeitamente centralizada via justify-content:center
+   do .msn-head mesmo com hambúrguer/X de larguras diferentes nas pontas
+   -- não dá pra trocar por flex normal sem perder isso. O problema:
+   `top:50%; transform:translateY(-50%)` (regra base) centraliza em
+   relação à CAIXA INTEIRA do .msn-head, incluindo o padding -- e o
+   padding daqui é bem assimétrico (topo = inset da status bar, ~50-59px
+   no app instalado na tela de início; base = 9px fixo). Isso puxa o
+   botão pra CIMA do centro visual real (onde a logo está, que centraliza
+   certo porque é filha normal do flex, não absoluta) -- invisível no
+   Safari normal (inset=0, padding quase simétrico), só aparece com o
+   app instalado (2026-09-01, print do usuário: X quase em cima da
+   bateria). Fix: ancora o wrapper no MESMO intervalo top/bottom do
+   padding do .msn-head (em vez de top:50% da caixa inteira) e centraliza
+   o botão dentro dele com flex -- mesma faixa vertical que a logo usa. */
+body.mobile-shell-active .msn-head-menu,
+body.mobile-shell-active .msn-head-acoes {
+  top: max(10px, env(safe-area-inset-top));
+  bottom: 9px;
+  transform: none;
+  display: flex;
+  align-items: center;
+}
 body.mobile-shell-active .msn-head-menu { left: 12px; }
 body.mobile-shell-active .msn-head-acoes { right: 12px; }
 body.mobile-shell-active .msn-head-logo { width: 126px; }
