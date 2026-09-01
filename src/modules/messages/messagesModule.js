@@ -727,7 +727,12 @@
       el.__ajustesOriginais = { ..._ajustes };
       el.innerHTML = `
         <div class="msn-jan-head">
-          <div class="msn-jan-acoes"><button type="button" class="msn-icon-btn" data-config-action="fechar" title="Fechar">✕</button></div>
+          <img class="msn-config-logo" src="assets/vecton-messenger.png?v=20260804c" alt="Vecton Messenger">
+          <div class="msn-jan-acoes">
+            <button type="button" class="msn-icon-btn msn-close-conversation msn-config-close" data-config-action="fechar" title="Fechar" aria-label="Fechar personalização">
+              <svg class="msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+            </button>
+          </div>
         </div>
         <form class="msn-config-form">
           <div class="msn-config-intro"><strong>Personalize seu Messenger</strong><span>Som, identidade e aparência ficam sob seu controle.</span></div>

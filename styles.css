@@ -9734,8 +9734,16 @@ body.rps-laser-mode .rps-attachment-carousel * {
   max-height: calc(100vh - 24px);
 }
 .msn-config-janela .msn-jan-head {
+  position: relative;
   min-height: 42px;
-  justify-content: flex-end;
+  justify-content: center;
+}
+.msn-config-logo { display: block; width: 126px; max-width: calc(100% - 96px); height: auto; object-fit: contain; }
+.msn-config-janela .msn-jan-acoes {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
 }
 .msn-config-intro { display: grid; gap: 3px; }
 .msn-config-intro strong { color: var(--text); font-size: .86rem; }
@@ -11547,8 +11555,8 @@ body.mobile-shell-active .msn-contato-copy .msn-wa-linha1 strong { font-size: 0.
 body.mobile-shell-active .msn-contato-sub { font-size: 0.69rem; }
 body.mobile-shell-active .msn-contato-hora { font-size: 0.61rem; }
 body.mobile-shell-active .msn-rodape {
-  left: 10px;
-  right: 10px;
+  left: calc(10px + 2.5vw);
+  right: calc(10px + 2.5vw);
   bottom: max(8px, env(safe-area-inset-bottom));
   padding: 4px;
   border: 1px solid var(--msn-divider);
@@ -11636,10 +11644,14 @@ body.mobile-shell-active .msn-pendentes { padding: 7px 10px max(8px, env(safe-ar
 body.mobile-shell-active .msn-config-janela .msn-jan-head {
   display: flex;
   min-height: 54px;
-  justify-content: flex-end;
+  justify-content: center;
   padding: max(10px, env(safe-area-inset-top)) 12px 8px;
 }
 body.mobile-shell-active .msn-config-janela .msn-jan-acoes {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
   display: flex;
   padding: 0;
   border: 0;
@@ -11676,10 +11688,21 @@ body.mobile-shell-active .msn-config-form {
   .msn-config-janela .msn-resize { display: none; }
   .msn-config-janela .msn-jan-head {
     min-height: 52px;
+    justify-content: center;
     padding: max(9px, env(safe-area-inset-top)) 12px 7px;
     border-bottom: 0 !important;
     cursor: default;
   }
+  .msn-config-janela .msn-config-close {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    margin: 0;
+    border: 1px solid var(--msn-divider);
+    border-radius: 10px;
+    background: var(--msn-surface-raised);
+  }
+  .msn-config-janela .msn-config-close .msn-ui-icon { width: 16px; height: 16px; }
   .msn-config-form {
     width: 100%;
     max-width: 100%;
@@ -11695,6 +11718,7 @@ body.mobile-shell-active .msn-config-form {
   .msn-config-form > *,
   .msn-config-fieldset { min-width: 0; max-width: 100%; box-sizing: border-box; }
   .msn-config-field input[type="text"] { min-width: 0; font-size: 16px; }
+  .msn-config-field input[type="text"]::placeholder { font-size: calc(0.75rem - 1px); }
   .msn-config-colors { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .msn-config-colors input[type="color"] { min-width: 0; }
   .msn-config-actions {
