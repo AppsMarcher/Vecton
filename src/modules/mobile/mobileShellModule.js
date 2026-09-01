@@ -226,6 +226,11 @@
     function deactivate() {
       if (activeModuleKey === "painelVendas" && comercialPainelMobileModule) comercialPainelMobileModule.unmount();
       activeModuleKey = null;
+      // profileOpen é variável do módulo (sobrevive ao unmount) -- sem
+      // resetar aqui, sair com o popover do avatar aberto (avatar > Sair)
+      // fazia o próximo login já nascer com o popover aberto (renderHeader
+      // usa profileOpen pra montar a classe is-open).
+      profileOpen = false;
       document.body.classList.remove("mobile-shell-active");
       if (rootEl) {
         rootEl.removeEventListener("click", handleRootClick);
