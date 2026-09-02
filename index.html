@@ -262,6 +262,29 @@
             </div>
           </form>
 
+          <!-- ── GATE DE CONVITE/RECUPERAÇÃO ───────────────────────────────
+               O token_hash do link de e-mail (convite/recuperação de senha)
+               é de USO ÚNICO. Scanners de segurança corporativos mais
+               avançados (Microsoft Defender Safe Links com sandbox de
+               "detonação", Proofpoint, Mimecast...) não só buscam a URL --
+               carregam a página inteira e EXECUTAM o JavaScript pra checar
+               comportamento malicioso. Sem este gate, o token era consumido
+               pelo PRÓPRIO carregamento da página (pelo scanner, não pelo
+               usuário), e o clique real caía sempre em "link inválido ou
+               expirado", direto na tela de login normal -- sem senha
+               cadastrada nenhuma (bug relatado pelo usuário, 2026-09-02;
+               virou chamado de TI). Fix: authSession.js só chama
+               verifyOtpTokenHash() depois de um CLIQUE humano neste botão --
+               scanners carregam a página, mas não clicam nela. -->
+          <div id="confirm-invite-form" class="auth-form auth-setpw-form" style="display:none">
+            <h2 class="auth-setpw-title" id="confirm-invite-title">Você recebeu um convite</h2>
+            <p class="auth-setpw-intro" id="confirm-invite-copy">Clique abaixo para continuar.</p>
+            <p id="confirm-invite-feedback" class="auth-feedback" role="status" aria-live="polite"></p>
+            <div class="auth-actions">
+              <button class="primary-button auth-submit" type="button" id="confirm-invite-btn"><span>Continuar</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </div>
+          </div>
+
           <form id="set-password-form" class="auth-form auth-setpw-form" style="display:none">
             <h2 class="auth-setpw-title">Defina sua senha</h2>
             <p class="auth-setpw-intro">Bem-vindo(a)! Defina sua senha para ativar seu acesso.</p>
@@ -1479,7 +1502,7 @@
   <script src="src/core/constants.js?v=20260829a"></script>
   <script src="src/core/utils.js?v=20260803b"></script>
   <script src="src/core/storage.js?v=20260719r"></script>
-  <script src="src/modules/auth/authSession.js?v=20260831c"></script>
+  <script src="src/modules/auth/authSession.js?v=20260902a"></script>
   <script src="src/modules/actuals/actualsModule.js?v=20260828a"></script>
   <script src="src/modules/budget/budgetModule.js?v=20260828a"></script>
   <script src="src/modules/navigation/navigationModule.js?v=20260804a"></script>

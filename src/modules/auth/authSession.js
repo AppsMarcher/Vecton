@@ -160,21 +160,83 @@
     // invite-user/resend-invite/resend-password/forgot-password (Edge
     // Functions) constroem esse link a partir de `linkData.properties.
     // hashed_token` em vez de usar `action_link`.
+    // Texto do gate por tipo de link -- ver markup em index.html
+    // (#confirm-invite-form) e a nota grande logo acima dele sobre por que
+    // este gate existe (scanners de segurança que executam JS consumiam o
+    // token_hash de uso único sozinhos, antes do clique real do usuário).
+    const TOKEN_TYPE_COPY = {
+      invite: { title: "Você recebeu um convite", copy: "Um administrador criou seu acesso ao VectonPlan. Clique abaixo para continuar e definir sua senha." },
+      recovery: { title: "Redefinir senha", copy: "Clique abaixo para continuar e definir uma nova senha." },
+      email_change: { title: "Confirmar novo e-mail", copy: "Clique abaixo para confirmar a alteração do seu e-mail." },
+      magiclink: { title: "Entrar no VectonPlan", copy: "Clique abaixo para continuar." },
+      signup: { title: "Confirmar cadastro", copy: "Clique abaixo para confirmar seu cadastro." }
+    };
+
+    async function verifyAndShowSetPassword(type, tokenHash) {
+      const session = await verifyOtpTokenHash(type, tokenHash);
+      applySession(session);
+      showSetPasswordForm();
+      setSyncStatus("Defina sua senha", "warn");
+    }
+
+    // Mostra o gate e só chama verifyAndShowSetPassword() no CLIQUE do
+    // botão -- nunca automaticamente no load da página (ver nota em
+    // index.html #confirm-invite-form sobre o porquê).
+    function showConfirmGate(type, tokenHash) {
+      showAuthShell("", "warn");
+      const gate = document.querySelector("#confirm-invite-form");
+      if (loginForm) loginForm.style.display = "none";
+      const setForm = document.querySelector("#set-password-form");
+      if (setForm) setForm.style.display = "none";
+      if (!gate) {
+        // index.html sem o markup novo (deploy dessincronizado, cache velho
+        // de SW etc.) -- cai pro comportamento antigo (auto-verifica) em vez
+        // de travar o usuário sem tela nenhuma pra continuar.
+        verifyAndShowSetPassword(type, tokenHash).catch((error) => {
+          console.error(error);
+          showAuthShell("Link inválido ou expirado. Peça um novo convite ou uma nova redefinição de senha.", "error");
+        });
+        return;
+      }
+
+      gate.style.display = "";
+      const texts = TOKEN_TYPE_COPY[type] || TOKEN_TYPE_COPY.invite;
+      const titleEl = gate.querySelector("#confirm-invite-title");
+      const copyEl = gate.querySelector("#confirm-invite-copy");
+      const feedback = gate.querySelector("#confirm-invite-feedback");
+      const btn = gate.querySelector("#confirm-invite-btn");
+      if (titleEl) titleEl.textContent = texts.title;
+      if (copyEl) copyEl.textContent = texts.copy;
+      if (feedback) { feedback.textContent = ""; feedback.className = "auth-feedback"; }
+
+      if (btn) {
+        // onclick (não addEventListener) de propósito -- cada chamada de
+        // showConfirmGate() é pra um token_hash novo, então substituir o
+        // handler anterior em vez de empilhar é o comportamento certo.
+        btn.onclick = async () => {
+          btn.disabled = true;
+          try {
+            await verifyAndShowSetPassword(type, tokenHash);
+            gate.style.display = "none";
+          } catch (error) {
+            console.error(error);
+            if (feedback) {
+              feedback.textContent = "Link inválido ou expirado. Peça um novo convite ou uma nova redefinição de senha.";
+              feedback.classList.add("is-error");
+            }
+            btn.disabled = false;
+          }
+        };
+      }
+    }
+
     async function handleInviteRecoveryFlow() {
       const q = getQueryTokenHash();
       if (q.tokenHash && ["invite", "recovery", "signup", "email_change", "magiclink"].includes(q.type)) {
         history.replaceState(null, "", window.location.pathname);
         clearSessionState();
         onLogoutCleanup();
-        try {
-          const session = await verifyOtpTokenHash(q.type, q.tokenHash);
-          applySession(session);
-          showSetPasswordForm();
-          setSyncStatus("Defina sua senha", "warn");
-        } catch (error) {
-          console.error(error);
-          showAuthShell("Link inválido ou expirado. Peça um novo convite ou uma nova redefinição de senha.", "error");
-        }
+        showConfirmGate(q.type, q.tokenHash);
         return true;
       }
 
