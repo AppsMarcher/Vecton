@@ -488,7 +488,9 @@
         ? kpis.map((k) => kpiCardHtml(k)).join("")
         : '<p class="vmob-empty">Nenhum indicador cadastrado nesta A3.</p>';
       return '<div class="vmob-crumbbar">' + crumbHtml() +
-        '<h2 class="vmob-level-title vmob-level-title-center" tabindex="-1">A3 ' + escapeHtml(a3.name) + "</h2>" +
+        // Mesma cor de referência da área (a3.color) usada na borda do
+        // Objetivo Estratégico logo abaixo -- pedido do usuário, 2026-09-02.
+        '<h2 class="vmob-level-title vmob-level-title-center" style="color:' + escapeHtml(a3.color || "#4f7cff") + '" tabindex="-1">A3 ' + escapeHtml(a3.name) + "</h2>" +
         periodTriggerHtml() + tabsHtml() +
         (a3.objective ? ('<div class="sa3mob-objective-box" style="--sa3mob-objective-accent:' + escapeHtml(a3.color || "#4f7cff") + '"><p class="sa3mob-objective">' + escapeHtml(a3.objective) + "</p></div>") : "") +
         "</div>" +
