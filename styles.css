@@ -10638,11 +10638,25 @@ body.rps-laser-mode .rps-attachment-carousel * {
 }
 body.mobile-shell-active { overflow: hidden; }
 body.mobile-shell-active .app-layout { display: none; }
+/* `top`/`height` SEM `!important` de propósito -- mesmo motivo documentado
+   em .msn-painel/.msn-janela mais abaixo (bug do VisualViewport no iOS
+   Safari): o login termina com o campo de senha ainda focado, e se este
+   shell (position:fixed) nasce enquanto a página ainda está rolada pra
+   cima do teclado, o topo nasce fora da área visível -- só "resolve" com
+   um resize manual, que força o Safari a recalcular o layout (bug
+   relatado pelo usuário, 2026-09-02). mobileShellModule.js::
+   ajustarViewportShell() pisa por cima dos dois com valores inline vindos
+   de `window.visualViewport`. Sem JS/sem suporte, cai de volta pro 0/100%
+   daqui. `bottom:auto` evita 3 restrições verticais concorrendo. */
 body.mobile-shell-active .vmob-shell {
   display: flex;
   flex-direction: column;
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  height: 100%;
   background: var(--vmob-bg);
   z-index: 10;
 }

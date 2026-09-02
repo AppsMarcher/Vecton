@@ -37,6 +37,8 @@
     let profileOpen = false;
     let mediaQuery = null;
     let started = false;
+    let vvRaf = 0;
+    let vvTimers = [];
 
     // Reaproveita os mesmos <symbol> do sprite SVG global (index.html) que os
     // cards de relatório do desktop usam via <use> -- ícone idêntico, não uma
@@ -205,6 +207,38 @@
       }
     }
 
+    // ------------------------------------------------------ viewport (teclado)
+
+    // Mesmo bug documentado em messagesModule.js::ajustarAlturaVisual: no
+    // iOS Safari (e navegadores baseados nele) `position:fixed` fica
+    // ancorado na "layout viewport" (documento inteiro), não na "visual
+    // viewport" (o que está de fato visível). O login termina com o campo
+    // de senha ainda focado -- o Safari rola a página pra manter o campo
+    // acima do teclado, e o shell mobile, ancorado na layout viewport que
+    // não rolou, nasce com o topo fora da área visível (bug relatado pelo
+    // usuário, 2026-09-02 -- só "resolvia" dando um resize manual na tela,
+    // que força o Safari a recalcular o layout). `releaseAuthViewport` em
+    // authSession.js já zera o scroll do documento, mas isso não cobre o
+    // deslocamento do VisualViewport em si -- por isso o bug voltou. Fix:
+    // reaplica `top`/`height` a partir do VisualViewport, igual ao painel
+    // de mensagens. O teclado anima em etapas -> reagenda em vários frames
+    // curtos, sem polling fixo.
+    function ajustarViewportShell() {
+      if (!rootEl || !document.body.classList.contains("mobile-shell-active")) return;
+      const vv = window.visualViewport;
+      if (!vv) return;
+      rootEl.style.height = Math.max(1, Math.round(vv.height)) + "px";
+      rootEl.style.top = Math.max(0, Math.round(vv.offsetTop || 0)) + "px";
+    }
+
+    function agendarAjusteViewportShell() {
+      if (!document.body.classList.contains("mobile-shell-active")) return;
+      if (vvRaf) window.cancelAnimationFrame(vvRaf);
+      vvRaf = window.requestAnimationFrame(() => { vvRaf = 0; ajustarViewportShell(); });
+      vvTimers.forEach((timer) => clearTimeout(timer));
+      vvTimers = [70, 180, 360, 560, 900].map((delay) => window.setTimeout(ajustarViewportShell, delay));
+    }
+
     // ---------------------------------------------------------------- boot
 
     function isMobileEntry() {
@@ -221,6 +255,11 @@
       rootEl.addEventListener("click", handleRootClick);
       activeModuleKey = null;
       renderShell();
+      // Aplica de imediato (cobre o caso comum) e reagenda pros próximos
+      // frames -- se o login acabou de fechar o teclado, o VisualViewport
+      // ainda está no meio da animação de fechamento.
+      ajustarViewportShell();
+      agendarAjusteViewportShell();
     }
 
     function deactivate() {
@@ -231,9 +270,14 @@
       // fazia o próximo login já nascer com o popover aberto (renderHeader
       // usa profileOpen pra montar a classe is-open).
       profileOpen = false;
+      if (vvRaf) { window.cancelAnimationFrame(vvRaf); vvRaf = 0; }
+      vvTimers.forEach((timer) => clearTimeout(timer));
+      vvTimers = [];
       document.body.classList.remove("mobile-shell-active");
       if (rootEl) {
         rootEl.removeEventListener("click", handleRootClick);
+        rootEl.style.top = "";
+        rootEl.style.height = "";
         rootEl.hidden = true;
         rootEl.innerHTML = "";
       }
@@ -260,6 +304,8 @@
           const btn = rootEl?.querySelector("#vmob-avatar-btn");
           if (btn) paintAvatar(btn);
         });
+        window.visualViewport?.addEventListener("resize", agendarAjusteViewportShell);
+        window.visualViewport?.addEventListener("scroll", agendarAjusteViewportShell);
       }
       return isMobileEntry();
     }
