@@ -68,11 +68,25 @@
       const s = document.createElement("style");
       s.id = "vmob-sa3-style";
       s.textContent = `
-        /* .vmob-crumbbar/.vmob-level-title/.vmob-section*/.vmob-card/.vmob-chev/
-           .vmob-empty/.vmob-loading*/.vmob-filter-row/.vmob-cenario-trigger/
-           .vmob-period-modal* base ficam em styles.css -- compartilhados com
-           o Menu e o Painel de Vendas mobile. Só o que é específico do A3
-           Estratégico fica aqui (mesmo padrão do reportsComercialPainelMobileModule.js). */
+        /* BUG ACHADO E CORRIGIDO (2026-09-02): o comentário aqui em cima
+           costumava separar os nomes de classe com barra (ex.: nome de uma
+           classe terminada em asterisco seguido logo da barra que abre o
+           próximo item) -- em CSS essa dupla asterisco+barra fecha um
+           comentário no meio da frase (CSS não tem comentário aninhado),
+           então tudo dali até o parser se recuperar (coincidentemente perto
+           de .sa3mob-card-north, bem abaixo) virava lixo descartado em
+           silêncio. Era por isso que .sa3mob-period-row (a regra seguinte)
+           nunca pegava, não importa quantas vezes o texto da regra em si
+           fosse "corrigido" -- o comentário ACIMA dela é quem quebrava o
+           parser antes de chegar nela. Nomes de classe agora separados por
+           vírgula, nunca mais por barra, pra essa sequência nunca mais se
+           formar por acidente.
+           .vmob-crumbbar, .vmob-level-title, .vmob-section (família),
+           .vmob-card, .vmob-chev, .vmob-empty, .vmob-loading (família),
+           .vmob-filter-row, .vmob-cenario-trigger, .vmob-period-modal
+           (família) ficam em styles.css -- compartilhados com o Menu e o
+           Painel de Vendas mobile. Só o que é específico do A3 Estratégico
+           fica aqui (mesmo padrão de reportsComercialPainelMobileModule.js). */
 
         .sa3mob-period-row { display:flex; justify-content:flex-end; margin-top:12px; }
 
