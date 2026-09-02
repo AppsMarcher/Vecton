@@ -7503,14 +7503,23 @@ table th,
 #rps-view.content-view.active {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
 .rps-root,
 .rps-page {
   width: 100%;
   min-width: 0;
+}
+
+.rps-root {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .rps-page {
@@ -8031,6 +8040,7 @@ table th,
 .rps-table-scroll {
   position: relative;
   overflow: auto;
+  overscroll-behavior: contain;
   flex: 1 1 auto;
   min-height: 0;
   scrollbar-width: thin;
@@ -9083,6 +9093,10 @@ body.rps-presentation-mode .rps-page {
   display: block !important;
 }
 
+body.rps-presentation-mode #rps-view {
+  overflow: visible;
+}
+
 body.rps-presentation-mode .rps-table-card {
   margin-top: 14px !important;
 }
@@ -9226,7 +9240,12 @@ body.rps-laser-mode .rps-attachment-carousel * {
   .rps-legend { white-space: normal; }
   /* Tela pequena: card com altura travada fica apertado demais — volta a
      deixar a página inteira rolar, como era antes do fill de altura. */
-  #rps-view.content-view.active { display: block; }
+  #rps-view.content-view.active {
+    display: block;
+    flex: none;
+    overflow: visible;
+  }
+  .rps-root { display: block; }
   .rps-page { display: block; }
   .rps-table-card { display: block; }
   .rps-table-scroll { max-height: none; }
