@@ -1356,6 +1356,16 @@
           const month = getMonthValue(area.id, indicator);
           const monthCell = row.querySelector("[data-rps-calculated-month]");
           if (monthCell) monthCell.textContent = formatValueForUnit(month, monthUnit, "—");
+          const monthMode = state.payload.modoMes[`mes:${area.id}|${indicator.id}`] || "soma";
+          const monthModeInfo = monthModeConfig(monthMode);
+          const monthModeButton = row.querySelector("[data-rps-month-mode-cycle]");
+          if (monthModeButton) {
+            monthModeButton.dataset.currentMode = monthMode;
+            monthModeButton.title = monthModeInfo.label;
+            monthModeButton.setAttribute("aria-label", `${monthModeInfo.label} de ${indicator.label}`);
+            const icon = monthModeButton.querySelector("span");
+            if (icon) icon.textContent = monthModeInfo.icon;
+          }
 
           const targetKey = targetValueKey(area.id, indicator.id);
           const targetInput = row.querySelector("[data-rps-target-key]");
@@ -1665,7 +1675,11 @@
         const live = normalizePayload(state.payload);
         const savedPayload = normalizePayload(result.payload);
         state.remoteVersion = Number(result.version || state.remoteVersion + 1);
-        state.basePayload = savedPayload;
+        // A base do merge precisa ser um snapshot imutável do que o servidor
+        // confirmou. Compartilhar a mesma referência com state.payload fazia a
+        // edição seguinte alterar também a base; o merge então interpretava o
+        // valor remoto antigo como a única mudança e desfazia a edição local.
+        state.basePayload = clone(savedPayload);
         state.lastSavedAt = result.updated_at
           ? new Date(result.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
           : new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });

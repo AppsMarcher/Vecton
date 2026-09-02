@@ -60,6 +60,20 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 }
 
 {
+  const remote = defaultPayload();
+  const savedPayload = normalizePayload(remote);
+  const stateAfterSave = {
+    basePayload: clone(savedPayload),
+    payload: savedPayload
+  };
+  const key = "mes:comercial|nacional_0";
+  stateAfterSave.payload.modoMes[key] = "media";
+  assert.equal(stateAfterSave.basePayload.modoMes[key], undefined);
+  const merged = mergePayloads(stateAfterSave.basePayload, remote, stateAfterSave.payload).payload;
+  assert.equal(merged.modoMes[key], "media");
+}
+
+{
   const broken = defaultPayload();
   ["comercial", "industrial", "supply"].forEach((areaId) => {
     broken.indicadores[areaId] = broken.indicadores[areaId].map((indicator) => indicator.type === "calculated"
@@ -118,6 +132,9 @@ assert.match(source, /function renderWhenIdle\(\)/);
 assert.match(source, /function refreshVisibleCells\(\)/);
 assert.match(source, /data-rps-calculated-month/);
 assert.match(source, /data-rps-calculated-week/);
+assert.match(source, /state\.basePayload = clone\(savedPayload\);/);
+assert.doesNotMatch(source, /state\.basePayload = savedPayload;/);
+assert.match(source, /monthModeButton\.dataset\.currentMode = monthMode;/);
 assert.match(source, /function createAttachmentViewUrl\(attachment, expiresIn = 3600\)/);
 assert.match(source, /storage\/v1\/object\/authenticated\/\$\{ATTACHMENT_BUCKET\}/);
 assert.match(source, /URL\.revokeObjectURL/);
