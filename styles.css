@@ -10729,10 +10729,20 @@ body.mobile-shell-active .vmob-shell {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+  image-orientation: from-image;
   border-radius: inherit;
 }
 .vmob-avatar-photo[hidden] { display: none; }
 .vmob-avatar.has-photo .vmob-avatar-fallback { display: none; }
+.vmob-avatar.has-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+  pointer-events: none;
+}
 .vmob-avatar.is-silhouette {
   color: transparent;
   background-image: url("avatar.png");

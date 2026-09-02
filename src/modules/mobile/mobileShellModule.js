@@ -40,6 +40,9 @@
     let started = false;
     let vvRaf = 0;
     let vvTimers = [];
+    let avatarRawSource = "";
+    let avatarRenderSource = "";
+    let avatarObjectUrl = "";
 
     // Reaproveita os mesmos <symbol> do sprite SVG global (index.html) que os
     // cards de relatório do desktop usam via <use> -- ícone idêntico, não uma
@@ -78,6 +81,42 @@
         "</header>";
     }
 
+    function releaseAvatarObjectUrl() {
+      if (avatarObjectUrl && window.URL?.revokeObjectURL) {
+        window.URL.revokeObjectURL(avatarObjectUrl);
+      }
+      avatarRawSource = "";
+      avatarRenderSource = "";
+      avatarObjectUrl = "";
+    }
+
+    // Uploads antigos estão gravados como Data URL base64 no perfil. O desktop
+    // tolera bem esse valor como background, mas o Safari pode falhar ao usá-lo
+    // diretamente no src de um <img> quando a foto é grande. Converte uma vez
+    // para Blob URL, que passa a ser tratada como um recurso de imagem normal.
+    function resolveAvatarRenderSource(source) {
+      const rawSource = String(source || "");
+      if (rawSource === avatarRawSource && avatarRenderSource) return avatarRenderSource;
+
+      releaseAvatarObjectUrl();
+      avatarRawSource = rawSource;
+      avatarRenderSource = rawSource;
+      if (!/^data:[^,]+;base64,/i.test(rawSource)) return avatarRenderSource;
+
+      try {
+        const commaIndex = rawSource.indexOf(",");
+        const mimeType = rawSource.slice(5, commaIndex).split(";")[0] || "application/octet-stream";
+        const binary = window.atob(rawSource.slice(commaIndex + 1));
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+        avatarObjectUrl = window.URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+        avatarRenderSource = avatarObjectUrl;
+      } catch (error) {
+        console.warn("Não foi possível preparar a foto mobile como Blob URL.", error);
+      }
+      return avatarRenderSource;
+    }
+
     // No mobile a foto é um <img> real e persistente, como no ExiladosApp.
     // Antes, o botão copiava o background-image base64 da sidebar desktop;
     // mesmo sem recriar o nó, o WebKit podia descartar essa pintura sob
@@ -91,7 +130,8 @@
       const snapshot = getProfileAvatarSnapshot ? getProfileAvatarSnapshot() : null;
       const name = snapshot?.name || user?.name || user?.email || "Usuario";
       const initials = snapshot?.initials || name.trim().slice(0, 2).toUpperCase() || "?";
-      const src = snapshot?.src || "";
+      const rawSrc = snapshot?.src || "";
+      const src = resolveAvatarRenderSource(rawSrc);
 
       if (fallback) fallback.textContent = initials;
       el.setAttribute("aria-label", `Abrir menu do perfil de ${name}`);
@@ -320,6 +360,7 @@
       if (vvRaf) { window.cancelAnimationFrame(vvRaf); vvRaf = 0; }
       vvTimers.forEach((timer) => clearTimeout(timer));
       vvTimers = [];
+      releaseAvatarObjectUrl();
       document.body.classList.remove("mobile-shell-active");
       if (rootEl) {
         rootEl.removeEventListener("click", handleRootClick);

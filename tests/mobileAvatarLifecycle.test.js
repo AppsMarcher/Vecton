@@ -54,7 +54,14 @@ global.document = {
   dispatchEvent: (event) => documentListeners.get(event.type)?.(event)
 };
 
+let blobUrlCount = 0;
+const revokedBlobUrls = [];
 global.window = {
+  atob,
+  URL: {
+    createObjectURL: () => `blob:avatar-${++blobUrlCount}`,
+    revokeObjectURL: (url) => revokedBlobUrls.push(url)
+  },
   matchMedia: () => ({ matches: true, addEventListener: () => {} }),
   visualViewport: {
     height: 800,
@@ -112,7 +119,7 @@ const painel = {
 let avatarSnapshot = {
   name: "Rafael Guimaraes",
   initials: "RG",
-  src: "data:image/png;base64,foto-do-perfil"
+  src: "data:image/png;base64,Zm90by1kby1wZXJmaWw="
 };
 
 const shell = window.VECTON_MOBILE_SHELL.createMobileShellModule({
@@ -127,7 +134,7 @@ shell.activate(root);
 
 const originalAvatar = root.querySelector("#vmob-avatar-btn");
 const originalAvatarPhoto = originalAvatar.querySelector(".vmob-avatar-photo");
-assert.equal(originalAvatarPhoto.getAttribute("src"), avatarSnapshot.src);
+assert.equal(originalAvatarPhoto.getAttribute("src"), "blob:avatar-1");
 assert.equal(originalAvatarPhoto.hidden, false);
 assert.equal(originalAvatar.classList.contains("has-photo"), true);
 assert.equal(originalAvatar.style.backgroundImage, "", "a foto mobile não deve mais depender de background-image");
@@ -143,7 +150,7 @@ for (let index = 0; index < 40; index += 1) {
   const currentAvatar = root.querySelector("#vmob-avatar-btn");
   assert.equal(currentAvatar, originalAvatar, "a navegação não deve recriar o nó do avatar");
   assert.equal(currentAvatar.querySelector(".vmob-avatar-photo"), originalAvatarPhoto, "a imagem do avatar também deve persistir");
-  assert.equal(originalAvatarPhoto.getAttribute("src"), avatarSnapshot.src);
+  assert.equal(originalAvatarPhoto.getAttribute("src"), "blob:avatar-1");
   assert.equal(currentAvatar.classList.contains("has-photo"), true);
 }
 
@@ -151,9 +158,12 @@ assert.equal(root.htmlWrites, 1, "o shell deve montar o cabeçalho apenas uma ve
 assert.equal(painel.mounts, 40);
 assert.equal(painel.unmounts, 40);
 
-avatarSnapshot = { ...avatarSnapshot, src: "data:image/png;base64,foto-atualizada" };
+assert.equal(blobUrlCount, 1, "as transições não devem recriar a Blob URL da mesma foto");
+
+avatarSnapshot = { ...avatarSnapshot, src: "data:image/png;base64,Zm90by1hdHVhbGl6YWRh" };
 document.dispatchEvent({ type: "vecton:avatar-updated" });
-assert.equal(originalAvatarPhoto.getAttribute("src"), avatarSnapshot.src);
+assert.equal(originalAvatarPhoto.getAttribute("src"), "blob:avatar-2");
+assert.deepEqual(revokedBlobUrls, ["blob:avatar-1"]);
 
 originalAvatarPhoto.dispatch("error");
 assert.equal(originalAvatarPhoto.hidden, true);
@@ -164,3 +174,4 @@ assert.equal(originalAvatar.classList.contains("has-photo"), true);
 
 shell.deactivate();
 assert.equal(root.hidden, true);
+assert.deepEqual(revokedBlobUrls, ["blob:avatar-1", "blob:avatar-2"]);

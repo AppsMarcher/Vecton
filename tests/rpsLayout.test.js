@@ -30,4 +30,4 @@ assert.match(
   /@media \(max-width:\s*720px\)[\s\S]*#rps-view\.content-view\.active\s*\{[^}]*flex:\s*none;[^}]*overflow:\s*visible;/,
   "em telas pequenas, a rolagem natural da página deve ser preservada"
 );
-assert.match(index, /styles\.css\?v=20260902c/, "o cache do CSS deve ser renovado");
+assert.match(index, /styles\.css\?v=20260902d/, "o cache do CSS deve ser renovado");
