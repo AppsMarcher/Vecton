@@ -81,6 +81,7 @@ const { createReportSectionsModule } = window.VECTON_REPORT_SECTIONS || {};
 const { createForecastModule } = window.VECTON_FORECAST || {};
 const { createRpsModule } = window.VECTON_RPS || {};
 const { createStrategicModule } = window.VECTON_STRATEGIC || {};
+const { createStrategicMobileModule } = window.VECTON_STRATEGIC_MOBILE || {};
 
 const FUN_AVATARS = buildFunAvatars();
 
@@ -1339,6 +1340,20 @@ const comercialPainelMobileModule = createComercialPainelMobileModule({
   callSupabaseRpc,
   isSupabaseConfigured,
 });
+// Versão mobile do A3 Estratégico (v1 somente leitura, 2026-09-02) — mesmas
+// RPCs/tabela do desktop (strategicModule acima) e mesmo modelo de dados
+// compartilhado (strategicDataModule.js), tela própria. Mesma observação do
+// Painel de Vendas mobile: não sincroniza com o período do cabeçalho
+// desktop, o shell mobile nunca mostra sidebar/header desktop.
+const strategicMobileModule = createStrategicMobileModule
+  ? createStrategicMobileModule({
+      resolveOrganizationId,
+      callSupabaseRpc,
+      authenticatedFetch,
+      supabaseApiUrl: supabaseConfig.projectUrl,
+      escapeHtml,
+    })
+  : null;
 // Sair pelo shell mobile precisa do MESMO cleanup do botão de logout desktop
 // (para o polling do sininho, derruba as janelas do Correio) e AINDA
 // desativar o próprio shell mobile -- handleLogout() só troca pra tela de
@@ -1352,10 +1367,12 @@ function handleMobileLogout() {
 }
 const mobileShellModule = createMobileShellModule({
   canSeeReport,
+  canAccessStrategic,
   getCurrentUser: () => currentUser,
   getProfileAvatarSnapshot,
   handleLogout: handleMobileLogout,
   comercialPainelMobileModule,
+  strategicMobileModule,
   messagesModule: messagesTab,
 });
 const comercialMapaModule = createComercialMapaModule({

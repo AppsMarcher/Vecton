@@ -1,10 +1,10 @@
 (function attachVectonMobileShell(window) {
   // Shell mobile do Vecton: abaixo do breakpoint (matchMedia, checado 1x no
   // boot — nunca em todo resize) o app não mostra mais a sidebar/catálogo
-  // completo, e sim um Menu com os módulos mobile já plugados. Hoje só o
-  // Painel de Vendas está pronto; o A3 Estratégico aparece como "Em breve"
-  // (card presente, sem tela construída ainda) — o mockup validado em
-  // Artifact já provou esse desenho antes deste módulo existir.
+  // completo, e sim um Menu com os módulos mobile já plugados. Painel de
+  // Vendas e A3 Estratégicos (v1 somente leitura, 2026-09-02) estão prontos
+  // — o mockup validado em Artifact já provou esse desenho antes deste
+  // módulo existir.
   //
   // Política (decisão do usuário, 2026-08-31): abaixo do breakpoint é SEMPRE
   // um destes 3 estados — Menu, um módulo aberto, ou "sem acesso" — nunca a
@@ -12,14 +12,21 @@
   function createMobileShellModule(deps) {
     const {
       canSeeReport,
+      canAccessStrategic,
       getCurrentUser,
       getProfileAvatarSnapshot,
       handleLogout,
       comercialPainelMobileModule,
+      strategicMobileModule,
       messagesModule
     } = deps;
 
     const BREAKPOINT_QUERY = "(max-width: 767px)";
+    // Cada módulo se autoriza do seu próprio jeito: Painel de Vendas usa o
+    // gate genérico de relatório (canSeeReport, RBAC por extra_report_ids);
+    // A3 Estratégicos usa o gate próprio do módulo (canAccessStrategic,
+    // access_role — não é um "relatório" no sentido de extra_report_ids).
+    // moduleCanOpen() abaixo resolve qualquer um dos dois formatos.
     const MODULES = [
       {
         key: "painelVendas", nome: "Painel de Vendas",
@@ -29,9 +36,16 @@
       {
         key: "a3", nome: "A3 Estratégicos",
         desc: "Norte Verdadeiro, metas e indicadores por gestão.",
-        accent: "#8b5cf6", icon: "target", reportId: null, available: false
+        accent: "#8b5cf6", icon: "target", checkAccess: () => canAccessStrategic && canAccessStrategic(), available: true
       }
     ];
+
+    function moduleCanOpen(m) {
+      if (!m.available) return false;
+      if (m.reportId) return canSeeReport(m.reportId);
+      if (m.checkAccess) return !!m.checkAccess();
+      return true;
+    }
 
     let rootEl = null, screenEl = null;
     let activeModuleKey = null;
@@ -55,7 +69,7 @@
     }
 
     function visibleModules() {
-      return MODULES.filter((m) => m.available && (!m.reportId || canSeeReport(m.reportId)));
+      return MODULES.filter(moduleCanOpen);
     }
 
     // ---------------------------------------------------------------- header
@@ -156,12 +170,12 @@
       const mods = visibleModules();
       if (!mods.length) return renderNoAccess();
       const tiles = MODULES.map((m) => {
-        const canOpen = m.available && (!m.reportId || canSeeReport(m.reportId));
+        const canOpen = moduleCanOpen(m);
         const tag = canOpen ? "button" : "div";
         const attrs = canOpen ? (' type="button" data-mobile-action="open-module" data-mobile-key="' + m.key + '"') : "";
         const badge = m.available ? "" : '<span class="vmob-module-badge">Em breve</span>';
         const chev = canOpen ? '<svg class="vmob-chev" width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : "";
-        if (m.available && m.reportId && !canSeeReport(m.reportId)) return ""; // sem permissão -> nem lista
+        if (m.available && !canOpen) return ""; // sem permissão -> nem lista
         return "<" + tag + ' class="vmob-module-card' + (canOpen ? "" : " is-soon") + '" style="--vmob-module-accent:' + m.accent + '"' + attrs + ">" +
           '<span class="vmob-module-icon">' + moduleIconSvg(m.icon) + "</span>" +
           '<span class="vmob-module-body"><span class="vmob-module-name">' + m.nome + badge + '</span><span class="vmob-module-desc">' + m.desc + "</span></span>" +
@@ -217,6 +231,8 @@
       // Módulo mobile assume o próprio conteúdo de #vmob-screen (mount/unmount).
       if (activeModuleKey === "painelVendas" && comercialPainelMobileModule) {
         comercialPainelMobileModule.mount(screenEl);
+      } else if (activeModuleKey === "a3" && strategicMobileModule) {
+        strategicMobileModule.mount(screenEl);
       }
     }
 
@@ -265,6 +281,7 @@
 
     function goToMenu() {
       if (activeModuleKey === "painelVendas" && comercialPainelMobileModule) comercialPainelMobileModule.unmount();
+      else if (activeModuleKey === "a3" && strategicMobileModule) strategicMobileModule.unmount();
       activeModuleKey = null;
       profileOpen = false;
       syncProfilePopover();
@@ -273,8 +290,7 @@
 
     function openModule(key) {
       const mod = MODULES.find((m) => m.key === key);
-      if (!mod || !mod.available) return;
-      if (mod.reportId && !canSeeReport(mod.reportId)) return;
+      if (!mod || !moduleCanOpen(mod)) return;
       activeModuleKey = key;
       profileOpen = false;
       syncProfilePopover();
@@ -351,6 +367,7 @@
 
     function deactivate() {
       if (activeModuleKey === "painelVendas" && comercialPainelMobileModule) comercialPainelMobileModule.unmount();
+      else if (activeModuleKey === "a3" && strategicMobileModule) strategicMobileModule.unmount();
       activeModuleKey = null;
       // profileOpen é variável do módulo (sobrevive ao unmount) -- sem
       // resetar aqui, sair com o popover do avatar aberto (avatar > Sair)
