@@ -1101,7 +1101,7 @@ const rpsModule = createRpsModule
       deleteFromStorage,
       callEdgeFunction,
       initAllReportTableResizers,
-      initFloatingScrollbar,
+      clearFloatingScrollbar,
       escapeHtml
     })
   : { render: () => {}, destroy: () => {} };
@@ -5153,6 +5153,17 @@ window.addEventListener("resize", () => {
 });
 
 let _floatingHScrollCleanup = null;
+
+// Só remove uma barra flutuante deixada por OUTRA view (DRE/OPEX/Comercial),
+// sem criar uma nova -- usado por telas cuja própria .*-scroll já fica
+// sempre dentro da viewport (RPS, ver #rps-view{overflow:hidden} em
+// styles.css) e por isso NUNCA precisam da barra espelhada: chamar
+// initFloatingScrollbar(wrap) ali criaria uma segunda barra redundante,
+// sobreposta à barra real (bug relatado pelo usuário, 2026-09-02 -- "scroll
+// duplicado no rodapé da página").
+function clearFloatingScrollbar() {
+  if (_floatingHScrollCleanup) { _floatingHScrollCleanup(); _floatingHScrollCleanup = null; }
+}
 
 function initFloatingScrollbar(wrap) {
   if (_floatingHScrollCleanup) { _floatingHScrollCleanup(); _floatingHScrollCleanup = null; }

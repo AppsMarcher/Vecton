@@ -439,7 +439,7 @@
       deleteFromStorage,
       callEdgeFunction,
       initAllReportTableResizers,
-      initFloatingScrollbar,
+      clearFloatingScrollbar,
       escapeHtml
     } = deps;
 
@@ -1462,8 +1462,17 @@
       const tableScroll = root.querySelector(".rps-table-scroll");
       if (tableScroll) {
         tableScroll.scrollLeft = Math.min(state.tableScrollLeft, Math.max(0, tableScroll.scrollWidth - tableScroll.clientWidth));
-        initFloatingScrollbar?.(tableScroll);
       }
+      // RPS nunca precisa da barra flutuante (initFloatingScrollbar): desde a
+      // correção de 2026-06-11, #rps-view fica sempre contido na viewport
+      // (overflow:hidden na cadeia inteira), então a barra REAL de
+      // .rps-table-scroll nunca sai da área visível -- ao contrário de
+      // DRE/OPEX/Comercial, que rolam a página toda e por isso precisam do
+      // espelho. Chamar initFloatingScrollbar aqui só desenhava uma segunda
+      // barra sobreposta à real (bug relatado pelo usuário, 2026-09-02).
+      // Ainda assim precisa limpar uma barra deixada por OUTRA view (se o
+      // usuário veio de um relatório DRE/OPEX aberto antes).
+      clearFloatingScrollbar?.();
       if (state.presentation) ensureLaserPointer();
       else removeLaserPointer();
       updateStatusElements();
