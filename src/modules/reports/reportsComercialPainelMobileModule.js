@@ -74,6 +74,10 @@
            respiro visível e simétrico nos dois lados, glyph ou não. */
         .vmob-crumb-sep { margin:0 6px; color:var(--vmob-faint); }
 
+        /* .vmob-filter-row/.vmob-filter-label/.vmob-cenario-trigger/
+           .vmob-cenario-chev/.vmob-period-modal* ficam em styles.css --
+           compartilhados com o A3 Estratégico mobile (strategicMobileModule.js,
+           2026-09-02), que usa o MESMO seletor de período. */
         .vmob-filters { margin-top:12px; background:var(--vmob-panel); border:1px solid var(--vmob-line); border-radius:14px; overflow:hidden; }
         .vmob-filters-summary { all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; width:100%; padding:10px 12px; cursor:pointer; font-size:12.5px; color:var(--vmob-soft); }
         .vmob-filters-summary b { color:var(--vmob-text); font-weight:700; }
@@ -81,39 +85,15 @@
         .vmob-filters.is-open .vmob-filters-summary svg { transform:rotate(180deg); }
         .vmob-filters-body { display:none; padding:0 12px 12px; flex-direction:column; gap:10px; }
         .vmob-filters.is-open .vmob-filters-body { display:flex; }
-        .vmob-filter-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-        .vmob-filter-label { font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--vmob-faint); }
         .vmob-segmented { display:flex; background:var(--vmob-bg); border:1px solid var(--vmob-line); border-radius:9px; padding:2px; gap:2px; }
         .vmob-segmented button { all:unset; box-sizing:border-box; padding:6px 11px; font-size:12.5px; font-weight:600; color:var(--vmob-soft); border-radius:7px; cursor:pointer; }
         .vmob-segmented button.is-active { background:var(--vmob-accent); color:#fff; }
-        .vmob-cenario-trigger { all:unset; box-sizing:border-box; display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:9px; border:1px solid var(--vmob-line); background:var(--vmob-bg); color:var(--vmob-text); font-size:12.5px; font-weight:700; cursor:pointer; max-width:65%; }
-        .vmob-cenario-trigger span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .vmob-cenario-chev { color:var(--vmob-faint); transition:transform 160ms ease; flex-shrink:0; }
-        .vmob-cenario-trigger[aria-expanded="true"] .vmob-cenario-chev { transform:rotate(180deg); }
         .vmob-cenario-list { display:none; flex-direction:column; margin-top:6px; border:1px solid var(--vmob-line); border-radius:10px; overflow:hidden; }
         .vmob-cenario-list.is-open { display:flex; }
         .vmob-cenario-item { all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; width:100%; padding:10px 12px; font-size:13px; color:var(--vmob-soft); cursor:pointer; background:var(--vmob-bg); }
         .vmob-cenario-item + .vmob-cenario-item { border-top:1px solid var(--vmob-line); }
         .vmob-cenario-item:active { background:var(--vmob-panel-elevated); }
         .vmob-cenario-item.is-selected { color:var(--vmob-accent); font-weight:700; background:var(--vmob-accent-soft); }
-
-        /* Seletor de período: modal centralizado (mesmo desenho do popover de
-           período do desktop), não painel inline -- fica curto/proporcional,
-           nunca ocupando quase a tela toda. */
-        .vmob-period-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:90; }
-        .vmob-period-modal-backdrop.is-open { display:block; }
-        .vmob-period-modal { display:none; position:fixed; inset:0; z-index:91; align-items:center; justify-content:center; padding:28px; pointer-events:none; }
-        .vmob-period-modal.is-open { display:flex; }
-        .vmob-period-modal-card { pointer-events:auto; width:100%; max-width:272px; background:var(--vmob-panel-elevated); border:1px solid var(--vmob-line); border-radius:18px; padding:16px 16px 14px; box-shadow:0 24px 60px rgba(0,0,0,0.5); }
-        .vmob-period-modal-head { display:flex; align-items:center; justify-content:center; gap:24px; }
-        .vmob-period-modal-head button { all:unset; box-sizing:border-box; width:28px; height:28px; display:grid; place-items:center; border-radius:9px; color:var(--vmob-soft); cursor:pointer; font-size:18px; }
-        .vmob-period-modal-head button:active { background:var(--vmob-panel); }
-        .vmob-period-modal-year { font-size:15px; font-weight:800; color:var(--vmob-text); min-width:46px; text-align:center; }
-        .vmob-period-modal-sub { margin:8px 2px 14px; font-size:11.5px; line-height:1.5; color:var(--vmob-accent); text-align:center; }
-        .vmob-month-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
-        .vmob-month-item { all:unset; box-sizing:border-box; text-align:center; padding:10px 0; font-size:12.5px; font-weight:600; color:var(--vmob-soft); border-radius:10px; cursor:pointer; background:var(--vmob-bg); border:1px solid transparent; }
-        .vmob-month-item:active { background:var(--vmob-panel); }
-        .vmob-month-item.is-selected { background:var(--vmob-accent); color:#fff; }
 
         .vmob-matrix { width:100%; border-collapse:collapse; }
         .vmob-matrix th { text-align:right; font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--vmob-faint); padding:0 0 8px; }

@@ -10810,6 +10810,37 @@ body.mobile-shell-active .vmob-shell {
 .vmob-card { background: var(--vmob-panel); border: 1px solid var(--vmob-line); border-radius: 16px; padding: 14px; }
 .vmob-chev { color: var(--vmob-faint); flex-shrink: 0; }
 
+/* Linha de filtro genérica (label + controle) e botão-gatilho com chevron --
+   usados pelo Painel de Vendas mobile (Modo/Cenário/Período) e pelo A3
+   Estratégico mobile (Período) -- graduado pra cá em 2026-09-02 quando o 2º
+   módulo passou a precisar do MESMO seletor de período (pedido do usuário:
+   "o seletor de período deve ser igual ao módulo mobile do Painel de
+   Vendas"), pra não duplicar/divergir entre os dois. */
+.vmob-filter-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.vmob-filter-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--vmob-faint); }
+.vmob-cenario-trigger { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--vmob-line); background: var(--vmob-bg); color: var(--vmob-text); font-size: 12.5px; font-weight: 700; cursor: pointer; max-width: 65%; }
+.vmob-cenario-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vmob-cenario-chev { color: var(--vmob-faint); transition: transform 160ms ease; flex-shrink: 0; }
+.vmob-cenario-trigger[aria-expanded="true"] .vmob-cenario-chev { transform: rotate(180deg); }
+
+/* Seletor de período: modal centralizado (mesmo desenho do popover de
+   período do desktop), não painel inline -- fica curto/proporcional, nunca
+   ocupando quase a tela toda. */
+.vmob-period-modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 90; }
+.vmob-period-modal-backdrop.is-open { display: block; }
+.vmob-period-modal { display: none; position: fixed; inset: 0; z-index: 91; align-items: center; justify-content: center; padding: 28px; pointer-events: none; }
+.vmob-period-modal.is-open { display: flex; }
+.vmob-period-modal-card { pointer-events: auto; width: 100%; max-width: 272px; background: var(--vmob-panel-elevated); border: 1px solid var(--vmob-line); border-radius: 18px; padding: 16px 16px 14px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); }
+.vmob-period-modal-head { display: flex; align-items: center; justify-content: center; gap: 24px; }
+.vmob-period-modal-head button { all: unset; box-sizing: border-box; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 9px; color: var(--vmob-soft); cursor: pointer; font-size: 18px; }
+.vmob-period-modal-head button:active { background: var(--vmob-panel); }
+.vmob-period-modal-year { font-size: 15px; font-weight: 800; color: var(--vmob-text); min-width: 46px; text-align: center; }
+.vmob-period-modal-sub { margin: 8px 2px 14px; font-size: 11.5px; line-height: 1.5; color: var(--vmob-accent); text-align: center; }
+.vmob-month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.vmob-month-item { all: unset; box-sizing: border-box; text-align: center; padding: 10px 0; font-size: 12.5px; font-weight: 600; color: var(--vmob-soft); border-radius: 10px; cursor: pointer; background: var(--vmob-bg); border: 1px solid transparent; }
+.vmob-month-item:active { background: var(--vmob-panel); }
+.vmob-month-item.is-selected { background: var(--vmob-accent); color: #fff; }
+
 /* Menu de módulos */
 .vmob-module-list { display: flex; flex-direction: column; gap: 10px; }
 .vmob-module-card {

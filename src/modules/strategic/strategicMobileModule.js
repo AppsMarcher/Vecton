@@ -46,6 +46,15 @@
     let error = "";
     let loadedOverviewKey = null;
     let loadedDetailKey = null;
+    // Seletor de período: MESMO componente do Painel de Vendas mobile
+    // (reportsComercialPainelMobileModule.js) — trigger + modal centralizado
+    // com grade de meses, classes .vmob-period-modal*/.vmob-cenario-trigger
+    // agora compartilhadas em styles.css (pedido do usuário, 2026-09-02:
+    // "o seletor de período deve ser igual ao módulo mobile do Painel de
+    // Vendas"). pickerYear é o ano que a GRADE está mostrando (navegação
+    // livre com ‹ ›); só vira o "year" de verdade quando um mês é clicado.
+    let periodListOpen = false;
+    let pickerYear = null;
 
     // ---------------------------------------------------------------- CSS
 
@@ -55,27 +64,35 @@
       s.id = "vmob-sa3-style";
       s.textContent = `
         /* .vmob-crumbbar/.vmob-level-title/.vmob-section*/.vmob-card/.vmob-chev/
-           .vmob-empty/.vmob-loading* base ficam em styles.css -- compartilhados
-           com o Menu e o Painel de Vendas mobile. Só o que é específico do A3
+           .vmob-empty/.vmob-loading*/.vmob-filter-row/.vmob-cenario-trigger/
+           .vmob-period-modal* base ficam em styles.css -- compartilhados com
+           o Menu e o Painel de Vendas mobile. Só o que é específico do A3
            Estratégico fica aqui (mesmo padrão do reportsComercialPainelMobileModule.js). */
 
-        .sa3mob-period { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:10px; }
-        .sa3mob-period button { all:unset; box-sizing:border-box; width:30px; height:30px; display:grid; place-items:center; border-radius:9px; background:var(--vmob-panel); border:1px solid var(--vmob-line); color:var(--vmob-soft); font-size:16px; cursor:pointer; }
-        .sa3mob-period button:active { background:var(--vmob-panel-elevated); }
-        .sa3mob-period-label { font-size:13px; font-weight:700; color:var(--vmob-text); min-width:70px; text-align:center; }
+        .sa3mob-period-row { display:flex; justify-content:center; margin-top:12px; }
 
-        .sa3mob-north-grid { display:flex; flex-direction:column; gap:8px; }
-        .sa3mob-north-row { display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:9px 0; border-top:1px solid var(--vmob-line); }
+        /* Label em cima, valor embaixo (mesmo padrão empilhado de
+           .sa3mob-metric-lbl/.sa3mob-metric-val no card de KPI) -- lado a
+           lado com "justify-content:space-between" só funcionava pra valor
+           numérico curto ("R$ 120 mi"); meta com texto corrido (ex.: "Trilha
+           de Carreira") estourava a linha com white-space:nowrap. Pedido do
+           usuário, 2026-09-02: quebrar em quantas linhas forem necessárias,
+           justificado. */
+        .sa3mob-north-grid { display:flex; flex-direction:column; gap:10px; }
+        .sa3mob-north-row { padding:9px 0; border-top:1px solid var(--vmob-line); }
         .sa3mob-north-row:first-child { border-top:none; padding-top:0; }
-        .sa3mob-north-title { font-size:12.5px; font-weight:600; color:var(--vmob-soft); }
-        .sa3mob-north-value { font-size:12.5px; font-weight:800; color:var(--vmob-text); text-align:right; white-space:nowrap; }
+        .sa3mob-north-title { display:block; font-size:11px; font-weight:700; letter-spacing:0.02em; color:var(--vmob-faint); text-transform:uppercase; margin-bottom:3px; }
+        .sa3mob-north-value { display:block; font-size:13px; font-weight:600; color:var(--vmob-text); line-height:1.55; white-space:normal; text-align:justify; text-justify:inter-word; }
 
         .sa3mob-area-list { display:flex; flex-direction:column; gap:8px; }
         .sa3mob-area-row { all:unset; box-sizing:border-box; display:flex; align-items:center; gap:10px; width:100%; background:var(--vmob-panel); border:1px solid var(--vmob-line); border-left:3px solid var(--vmob-card-accent, var(--vmob-accent)); border-radius:14px; padding:11px 12px; cursor:pointer; }
         .sa3mob-area-row:active { background:var(--vmob-panel-elevated); }
         .sa3mob-area-icon { width:30px; height:30px; border-radius:9px; flex-shrink:0; display:grid; place-items:center; font-size:12.5px; font-weight:800; color:#fff; background:var(--vmob-card-accent, var(--vmob-accent)); }
         .sa3mob-area-id { flex:1 1 auto; min-width:0; }
-        .sa3mob-area-name { display:block; font-size:13px; font-weight:800; color:var(--vmob-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        /* Nome da área quebra em quantas linhas forem necessárias (não trunca
+           mais com "…") -- pedido do usuário, 2026-09-02, pra nomes longos
+           (ex.: "Trilha de Carreira", "Capa Fabril") não ficarem cortados. */
+        .sa3mob-area-name { display:block; font-size:13px; font-weight:800; color:var(--vmob-text); white-space:normal; text-align:justify; text-justify:inter-word; }
         .sa3mob-area-sub { display:block; font-size:10.5px; color:var(--vmob-faint); margin-top:1px; }
 
         .sa3mob-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:700; white-space:nowrap; flex-shrink:0; }
@@ -89,7 +106,12 @@
         .sa3mob-tab { all:unset; box-sizing:border-box; flex-shrink:0; padding:7px 13px; font-size:12px; font-weight:700; border-radius:999px; background:var(--vmob-panel); border:1px solid var(--vmob-line); color:var(--vmob-soft); cursor:pointer; }
         .sa3mob-tab.is-active { background:var(--vmob-accent); border-color:var(--vmob-accent); color:#fff; }
 
-        .sa3mob-objective { font-size:12px; color:var(--vmob-soft); line-height:1.6; margin:0; }
+        /* Objetivo Estratégico: envolto por borda da MESMA cor do card da
+           área na tela anterior (a3.color, aplicado inline via
+           --sa3mob-objective-accent) -- pedido do usuário, 2026-09-02, pra
+           dar continuidade visual Overview -> Detalhe. Texto justificado. */
+        .sa3mob-objective-box { margin-top:10px; border:1.5px solid var(--sa3mob-objective-accent, var(--vmob-accent)); border-radius:14px; padding:11px 13px; }
+        .sa3mob-objective { font-size:12px; color:var(--vmob-soft); line-height:1.7; margin:0; text-align:justify; text-justify:inter-word; }
 
         .sa3mob-kpi-list { display:flex; flex-direction:column; gap:10px; }
         .sa3mob-kpi-card { border-left:3px solid var(--vmob-line); }
@@ -100,6 +122,30 @@
         .sa3mob-metric-val { display:block; font-size:13px; font-weight:800; color:var(--vmob-text); margin-top:2px; }
         .sa3mob-kpi-acc { margin-top:10px; padding-top:9px; border-top:1px solid var(--vmob-line); font-size:11px; color:var(--vmob-faint); display:flex; justify-content:space-between; gap:8px; }
         .sa3mob-kpi-acc b { color:var(--vmob-soft); font-weight:700; }
+
+        /* Gráfico combo (Real em barras + Meta em linha/banda) -- mesmo
+           cálculo do desktop (buildKpiChartSeries, strategicDataModule.js),
+           só a marcação/tamanho é próprio do mobile (pedido do usuário,
+           2026-09-02: "cada indicador deve trazer seu gráfico"). */
+        .sa3mob-chart { margin-top:11px; padding-top:10px; border-top:1px solid var(--vmob-line); }
+        .sa3mob-chart-plot { position:relative; height:84px; }
+        .sa3mob-chart-bars { position:absolute; inset:0; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:3px; z-index:1; }
+        .sa3mob-chart-col { position:relative; height:100%; min-width:0; }
+        .sa3mob-chart-bar { position:absolute; left:50%; transform:translateX(-50%); width:min(13px,82%); border-radius:3px 3px 1px 1px; background:linear-gradient(180deg,#b6c2d2 0%,#78889d 24%,#374151 100%); }
+        .sa3mob-chart-bar.pos { background:linear-gradient(180deg,#74e89b 0%,#2dcc6b 24%,#0d6b38 100%); }
+        .sa3mob-chart-bar.neg { background:linear-gradient(180deg,#f58a8a 0%,#ef5050 24%,#8b202b 100%); }
+        .sa3mob-chart-zero { position:absolute; left:0; right:0; height:1px; background:rgba(255,255,255,.08); z-index:0; }
+        .sa3mob-chart-svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:2; }
+        .sa3mob-chart-line { fill:none; stroke:#4f7cff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+        .sa3mob-chart-point { fill:#4f7cff; stroke:#121317; stroke-width:1.3; vector-effect:non-scaling-stroke; }
+        .sa3mob-chart-line.band { stroke-width:1.4; stroke-dasharray:4 3; opacity:.62; }
+        .sa3mob-chart-point.band { opacity:.62; }
+        .sa3mob-chart-months { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:3px; padding-top:5px; text-align:center; }
+        .sa3mob-chart-month { font-size:7.4px; font-weight:600; color:var(--vmob-faint); text-transform:uppercase; }
+        .sa3mob-chart-legend { display:flex; justify-content:flex-end; gap:10px; margin-top:6px; font-size:9.5px; color:var(--vmob-faint); }
+        .sa3mob-chart-legend span { display:inline-flex; align-items:center; gap:4px; }
+        .sa3mob-chart-legend-bar { width:8px; height:8px; border-radius:2px 2px 0 0; background:linear-gradient(90deg,#22c55e 0 50%,#ef4444 50% 100%); }
+        .sa3mob-chart-legend-line { width:12px; height:0; border-top:2px solid #4f7cff; }
 
         .sa3mob-plan { margin-top:12px; padding-top:11px; border-top:1px solid var(--vmob-line); }
         .sa3mob-plan-title { font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--vmob-faint); margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
@@ -225,11 +271,61 @@
 
     function monthAbbrev(m) { return MONTH_ABBR[m - 1] || ""; }
 
-    function periodStepper() {
-      return '<div class="sa3mob-period">' +
-        '<button type="button" data-action="period-prev" aria-label="Mês anterior">&lsaquo;</button>' +
-        '<span class="sa3mob-period-label">' + monthAbbrev(month) + "/" + year + "</span>" +
-        '<button type="button" data-action="period-next" aria-label="Próximo mês">&rsaquo;</button>' +
+    // Seletor de período: MESMO trigger + modal do Painel de Vendas mobile
+    // (reportsComercialPainelMobileModule.js::periodPickerHtml), reaproveitando
+    // as classes agora compartilhadas em styles.css. A3 não tem "Modo"/
+    // "Cenário" (o cenário vigente é resolvido sozinho pela RPC) — por isso
+    // não entra no acordeão "Filtros" do Painel, é só o trigger direto.
+    function periodTriggerHtml() {
+      const gridYear = pickerYear || year;
+      const monthItems = Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+        const selected = m === month && gridYear === year;
+        return '<button type="button" class="vmob-month-item' + (selected ? " is-selected" : "") + '" data-action="select-month" data-m="' + m + '">' + monthAbbrev(m) + "</button>";
+      }).join("");
+      return '<div class="sa3mob-period-row">' +
+        '<button type="button" class="vmob-cenario-trigger" aria-haspopup="true" aria-expanded="' + periodListOpen + '" data-action="toggle-period-list">' +
+        "<span>" + monthAbbrev(month) + "/" + year + "</span>" +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" class="vmob-cenario-chev"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        "</button></div>" +
+        '<div class="vmob-period-modal-backdrop' + (periodListOpen ? " is-open" : "") + '" data-action="close-period-list"></div>' +
+        '<div class="vmob-period-modal' + (periodListOpen ? " is-open" : "") + '" role="dialog" aria-modal="true" aria-label="Selecionar período">' +
+        '<div class="vmob-period-modal-card">' +
+        '<div class="vmob-period-modal-head">' +
+        '<button type="button" data-action="period-year" data-dir="-1" aria-label="Ano anterior">&lsaquo;</button>' +
+        '<span class="vmob-period-modal-year">' + gridYear + "</span>" +
+        '<button type="button" data-action="period-year" data-dir="1" aria-label="Próximo ano">&rsaquo;</button>' +
+        "</div>" +
+        '<p class="vmob-period-modal-sub">Selecione o ano base do relatório e o mês em foco da análise.</p>' +
+        '<div class="vmob-month-grid">' + monthItems + "</div>" +
+        "</div></div>";
+    }
+
+    // Gráfico combo de 1 KPI (Real em barras + Meta em linha/banda) —
+    // consome buildKpiChartSeries (strategicDataModule.js, mesmo cálculo do
+    // desktop) e desenha com as classes .sa3mob-chart-*.
+    function kpiChartHtml(k, cutoffMonth) {
+      const { zeroY, bars, targetLine } = DATA.buildKpiChartSeries(k, cutoffMonth);
+      const barsHtml = bars.map((bar) => (
+        '<div class="sa3mob-chart-col">' +
+        (bar.hasReal ? '<div class="sa3mob-chart-bar ' + bar.tone + '" style="top:' + bar.top + '%;height:' + bar.height + '%"></div>' : "") +
+        "</div>"
+      )).join("");
+      const segmentsHtml = (segments, extraClass) => {
+        const cls = extraClass || "";
+        const paths = segments.paths.map((d) => '<path class="sa3mob-chart-line ' + cls + '" d="' + d + '"></path>').join("");
+        const dots = segments.points.map((p) => '<circle class="sa3mob-chart-point ' + cls + '" cx="' + p.x + '" cy="' + p.y + '" r="2.6"></circle>').join("");
+        return paths + dots;
+      };
+      const lineHtml = k.comparisonMode === "range"
+        ? segmentsHtml(targetLine.min, "band") + segmentsHtml(targetLine.max, "band")
+        : segmentsHtml(targetLine.main);
+      const monthsHtml = MONTH_ABBR.map((label) => '<span class="sa3mob-chart-month">' + label + "</span>").join("");
+      return '<div class="sa3mob-chart" role="img" aria-label="Gráfico de realizado mensal em colunas e meta mensal em linha">' +
+        '<div class="sa3mob-chart-plot"><div class="sa3mob-chart-zero" style="top:' + zeroY + '%"></div>' +
+        '<div class="sa3mob-chart-bars">' + barsHtml + "</div>" +
+        '<svg class="sa3mob-chart-svg" viewBox="0 0 1200 100" preserveAspectRatio="none" aria-hidden="true">' + lineHtml + "</svg></div>" +
+        '<div class="sa3mob-chart-months">' + monthsHtml + "</div>" +
+        '<div class="sa3mob-chart-legend" aria-hidden="true"><span><i class="sa3mob-chart-legend-bar"></i>Realizado</span><span><i class="sa3mob-chart-legend-line"></i>Meta mensal</span></div>' +
         "</div>";
     }
 
@@ -278,7 +374,7 @@
 
       return '<div class="vmob-crumbbar">' +
         '<h2 class="vmob-level-title vmob-level-title-center" tabindex="-1">A3 Estratégicos</h2>' +
-        periodStepper() + "</div>" +
+        periodTriggerHtml() + "</div>" +
         '<div class="vmob-section"><div class="vmob-card"><div class="vmob-section-head"><span class="vmob-section-title">Norte Verdadeiro</span></div>' +
         '<div class="sa3mob-north-grid">' + (northRows || '<p class="vmob-empty" style="padding:8px 0">Nenhuma meta cadastrada.</p>') + "</div></div></div>" +
         '<div class="vmob-section"><div class="vmob-section-head"><span class="vmob-section-title">Áreas</span><span class="vmob-section-count">' + areas.length + "</span></div>" +
@@ -331,6 +427,7 @@
         '<div><span class="sa3mob-metric-lbl">Meta do mês</span><span class="sa3mob-metric-val">' + formatByUnit(target.value, k.unit, k.decimalPlaces) + "</span></div>" +
         '<div><span class="sa3mob-metric-lbl">Variação</span><span class="sa3mob-metric-val">' + formatTargetVariation(k.currentResult, target.value, opts) + "</span></div>" +
         "</div>" +
+        kpiChartHtml(k, month) +
         '<div class="sa3mob-kpi-acc"><span>Acumulado no ano</span><span><b>' + formatByUnit(k.accumulatedResult, k.unit, k.decimalPlaces) + '</b> / meta ' + formatByUnit(k.accumulatedTarget, k.unit, k.decimalPlaces) + "</span></div>" +
         '<div class="sa3mob-plan"><div class="sa3mob-plan-title"><span>Plano de ação</span><span>' + kpiActions.length + "</span></div>" + actionsHtml + "</div>" +
         "</div>";
@@ -345,8 +442,8 @@
         : '<p class="vmob-empty">Nenhum indicador cadastrado nesta A3.</p>';
       return '<div class="vmob-crumbbar">' + crumbHtml() +
         '<h2 class="vmob-level-title" tabindex="-1">A3 ' + escapeHtml(a3.name) + "</h2>" +
-        periodStepper() + tabsHtml() +
-        (a3.objective ? ('<p class="sa3mob-objective">' + escapeHtml(a3.objective) + "</p>") : "") +
+        periodTriggerHtml() + tabsHtml() +
+        (a3.objective ? ('<div class="sa3mob-objective-box" style="--sa3mob-objective-accent:' + escapeHtml(a3.color || "#4f7cff") + '"><p class="sa3mob-objective">' + escapeHtml(a3.objective) + "</p></div>") : "") +
         "</div>" +
         '<div class="vmob-section"><div class="vmob-section-head"><span class="vmob-section-title">Indicadores</span><span class="vmob-section-count">' + kpis.length + "</span></div>" +
         '<div class="sa3mob-kpi-list">' + kpisHtml + "</div></div>";
@@ -398,17 +495,22 @@
       if (action === "open-detail") { loadDetail(el.dataset.a3Id, true); }
       else if (action === "back-overview") { screen = "overview"; a3Detail = null; a3RootId = null; a3Children = []; activeA3Id = null; afterNav(); if (loadedOverviewKey !== periodKey()) loadOverview(); }
       else if (action === "switch-tab") { if (el.dataset.a3Id !== activeA3Id) loadDetail(el.dataset.a3Id, false); }
-      else if (action === "period-prev") { shiftPeriod(-1); }
-      else if (action === "period-next") { shiftPeriod(1); }
+      else if (action === "toggle-period-list") {
+        periodListOpen = !periodListOpen;
+        if (periodListOpen) pickerYear = year; // reabre sempre a partir do ano atual
+        render();
+      }
+      else if (action === "close-period-list") { periodListOpen = false; render(); }
+      else if (action === "period-year") { pickerYear = (pickerYear || year) + Number(el.dataset.dir); render(); }
+      else if (action === "select-month") {
+        const newYear = pickerYear || year;
+        const newMonth = Number(el.dataset.m);
+        periodListOpen = false;
+        if (newYear === year && newMonth === month) { render(); return; } // nada mudou, evita refetch à toa
+        year = newYear; month = newMonth;
+        reloadCurrentScreen();
+      }
       else if (action === "retry") { error = ""; reloadCurrentScreen(); }
-    }
-
-    function shiftPeriod(delta) {
-      let m = month + delta, y = year;
-      if (m < 1) { m = 12; y -= 1; }
-      if (m > 12) { m = 1; y += 1; }
-      month = m; year = y;
-      reloadCurrentScreen();
     }
 
     // ---------------------------------------------------------------- public
@@ -422,6 +524,7 @@
         screen = "overview";
         overview = null; a3Detail = null; a3RootId = null; a3Children = []; activeA3Id = null;
         actions = []; orgUsers = null; error = "";
+        periodListOpen = false; pickerYear = null;
         entered = true;
       }
       containerEl.removeEventListener("click", handleClick);

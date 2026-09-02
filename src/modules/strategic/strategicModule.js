@@ -1396,106 +1396,38 @@
       // loadPeriodAnalysis já busca só o mês corrente).
       const cutoffPeriod = currentPeriod();
       const cutoffMonth = cutoffPeriod.month;
-      const monthly = (k.monthlyValues || []).map((m) => (m && m.month <= cutoffMonth ? m : null));
-      const targets = (k.monthlyTargets || []).map((t) => (t && t.month <= cutoffMonth ? t : null));
-      const isRange = k.comparisonMode === "range";
-      // status já vem calculado do banco (strategic_kpi_status, snapshot-aware
-      // pra período fechado) — o frontend só mapeia pra cor, nunca reimplementa
-      // a regra (achado do usuário, 2026-08-29: 'range'/'exact'/
-      // 'exact_with_tolerance' ficavam com cor errada porque o JS só sabia
-      // tratar 'higher'/'lower').
-      // 'attention' (pedido do usuário, 2026-08-29: "retira esse amarelo")
-      // virava barra âmbar — mas strategic_kpi_status só devolve
-      // 'attention' quando o resultado NÃO bateu a meta (só ficou dentro
-      // de uma margem pequena de errar, attention_band_pct, default 5%).
-      // Continua sendo meta não batida de verdade, então a cor certa é a
-      // mesma de off_target: vermelho. Paleta do gráfico agora é só
-      // verde/vermelho pro Realizado + azul pra Meta, sem 3º tom.
-      const STATUS_TONE = { on_target: "pos", attention: "neg", off_target: "neg" };
-      const values = [
-        ...monthly.map((m) => m?.value),
-        ...targets.flatMap((t) => [t?.value, t?.min, t?.max])
-      ].filter((value) => value !== null && value !== undefined && Number.isFinite(Number(value))).map(Number);
-      const rawMin = Math.min(0, ...values);
-      const rawMax = Math.max(0, ...values);
-      const rawSpan = rawMax - rawMin || Math.max(Math.abs(rawMax), Math.abs(rawMin), 1);
-      const chartMin = rawMin < 0 ? rawMin - rawSpan * 0.08 : 0;
-      const chartMax = rawMax > 0 ? rawMax + rawSpan * 0.08 : rawSpan;
-      const chartSpan = chartMax - chartMin || 1;
-      const yPct = (value) => ((chartMax - Number(value)) / chartSpan) * 100;
-      const zeroY = yPct(0);
+      // Cálculo da série (escala do eixo, corte "viajar no tempo", segmentação
+      // da linha de meta em buracos onde falta Real ou Meta) mora em
+      // buildKpiChartSeries (strategicDataModule.js, compartilhado com a
+      // versão mobile) — aqui só vira marcação com as classes sa3-* do
+      // desktop. 'attention' conta como vermelho (mesma decisão do usuário,
+      // 2026-08-29 "retira esse amarelo": é meta não batida de verdade,
+      // só dentro de uma margem pequena de errar).
+      const { isRange, zeroY, bars: chartBars, targetLine: chartTargetLine } = window.VECTON_STRATEGIC_DATA.buildKpiChartSeries(k, cutoffMonth);
 
-      const metaLabel = (t) => isRange
-        ? `${formatByUnit(t?.min, k.unit, k.decimalPlaces)}–${formatByUnit(t?.max, k.unit, k.decimalPlaces)}`
-        : formatByUnit(t?.value, k.unit, k.decimalPlaces);
+      const metaLabel = (bar) => isRange
+        ? `${formatByUnit(bar.targetMin, k.unit, k.decimalPlaces)}–${formatByUnit(bar.targetMax, k.unit, k.decimalPlaces)}`
+        : formatByUnit(bar.targetValue, k.unit, k.decimalPlaces);
 
-      const bars = Array.from({ length: 12 }, (_, i) => {
-        const m = monthly[i] || {};
-        const t = targets[i] || {};
-        const hasReal = m.value !== null && m.value !== undefined && Number.isFinite(Number(m.value));
-        const realY = hasReal ? yPct(m.value) : zeroY;
-        let realTop = Math.min(realY, zeroY);
-        let realH = Math.abs(realY - zeroY);
-        if (hasReal && realH < 1.7) {
-          realH = 1.7;
-          realTop = Number(m.value) < 0 ? Math.min(98.3, zeroY) : Math.max(0, zeroY - realH);
-        }
-        const tone = STATUS_TONE[m.status] || "";
-        const variation = isRange ? "—" : formatTargetVariation(m.value, t.value, { unit: k.unit, comparisonMode: k.comparisonMode });
-        const tooltip = `${MONTH_LABELS_SHORT[i]} — Realizado: ${formatByUnit(m.value, k.unit, k.decimalPlaces)} · Meta: ${metaLabel(t)} · Var: ${variation}`;
+      const bars = chartBars.map((bar) => {
+        const tooltip = `${bar.label} — Realizado: ${formatByUnit(bar.value, k.unit, k.decimalPlaces)} · Meta: ${metaLabel(bar)} · Var: ${bar.variation}`;
         return `
-          <div class="sa3-bar-col" data-chart-has-real="${hasReal}" data-chart-month="${MONTH_LABELS_SHORT[i].toLowerCase()}" data-chart-real="${escapeHtml(formatByUnit(m.value, k.unit, k.decimalPlaces))}" data-chart-meta="${escapeHtml(metaLabel(t))}" data-chart-variation="${escapeHtml(variation)}">
-            ${hasReal ? `<div class="sa3-bar-real ${tone}" style="top:${realTop}%;height:${realH}%" aria-label="${escapeHtml(tooltip)}"></div>` : ""}
+          <div class="sa3-bar-col" data-chart-has-real="${bar.hasReal}" data-chart-month="${bar.label.toLowerCase()}" data-chart-real="${escapeHtml(formatByUnit(bar.value, k.unit, k.decimalPlaces))}" data-chart-meta="${escapeHtml(metaLabel(bar))}" data-chart-variation="${escapeHtml(bar.variation)}">
+            ${bar.hasReal ? `<div class="sa3-bar-real ${bar.tone}" style="top:${bar.top}%;height:${bar.height}%" aria-label="${escapeHtml(tooltip)}"></div>` : ""}
           </div>
         `;
       }).join("");
 
-      const smoothPath = (points) => {
-        if (points.length < 2) return "";
-        let path = `M ${points[0].x} ${points[0].y}`;
-        for (let i = 1; i < points.length; i += 1) {
-          const previous = points[i - 1];
-          const current = points[i];
-          const controlX = (previous.x + current.x) / 2;
-          path += ` C ${controlX} ${previous.y}, ${controlX} ${current.y}, ${current.x} ${current.y}`;
-        }
-        return path;
+      // extraClass diferencia visualmente a banda (2 linhas pontilhadas,
+      // comparisonMode='range') do caso normal (1 linha cheia).
+      const segmentsHtml = (segments, extraClass = "") => {
+        const paths = segments.paths.map((d) => `<path class="sa3-target-line ${extraClass}" d="${d}"></path>`).join("");
+        const dots = segments.points.map((p) => `<circle class="sa3-target-point ${extraClass}" cx="${p.x}" cy="${p.y}" r="3"></circle>`).join("");
+        return paths + dots;
       };
-      // getValue(i) devolve o valor da meta no mês i (target_value, ou
-      // target_min/target_max quando comparisonMode='range' — sem essa
-      // separação, 'range' nunca desenhava linha nenhuma, sempre null).
-      // extraClass diferencia visualmente a banda (2 linhas pontilhadas) do
-      // caso normal (1 linha cheia).
-      const buildTargetLine = (getValue, extraClass = "") => {
-        const lineSegments = [];
-        let currentSegment = [];
-        const dots = [];
-        for (let i = 0; i < 12; i += 1) {
-          const targetValue = getValue(i);
-          const actualValue = monthly[i]?.value;
-          const hasActual = actualValue !== null && actualValue !== undefined && Number.isFinite(Number(actualValue));
-          if (!hasActual || targetValue === null || targetValue === undefined || !Number.isFinite(Number(targetValue))) {
-            if (currentSegment.length) lineSegments.push(currentSegment);
-            currentSegment = [];
-            continue;
-          }
-          const point = { x: ((i + 0.5) / 12) * 1200, y: yPct(targetValue) };
-          currentSegment.push(point);
-          dots.push(`<circle class="sa3-target-point ${extraClass}" cx="${point.x}" cy="${point.y}" r="3"></circle>`);
-        }
-        if (currentSegment.length) lineSegments.push(currentSegment);
-        const path = lineSegments.map((points) => {
-          const d = smoothPath(points);
-          return d ? `<path class="sa3-target-line ${extraClass}" d="${d}"></path>` : "";
-        }).join("");
-        return path + dots.join("");
-      };
-      // buildTargetLine já devolve linha+pontos concatenados — nada mais pra
-      // juntar depois (diferente da versão antiga, que tinha targetLine e
-      // targetDots separados).
       const targetLine = isRange
-        ? buildTargetLine((i) => targets[i]?.min, "band") + buildTargetLine((i) => targets[i]?.max, "band")
-        : buildTargetLine((i) => targets[i]?.value);
+        ? segmentsHtml(chartTargetLine.min, "band") + segmentsHtml(chartTargetLine.max, "band")
+        : segmentsHtml(chartTargetLine.main);
       const months = MONTH_LABELS_SHORT.map((label) => `<span class="sa3-bar-month">${label}</span>`).join("");
 
       // Mesmo corte "viajar no tempo" do gráfico acima: ação criada DEPOIS
