@@ -69,7 +69,7 @@
            o Menu e o Painel de Vendas mobile. Só o que é específico do A3
            Estratégico fica aqui (mesmo padrão do reportsComercialPainelMobileModule.js). */
 
-        .sa3mob-period-row { display:flex; justify-content:center; margin-top:12px; }
+        .sa3mob-period-row { display:flex; justify-content:flex-end; margin-top:12px; }
 
         /* Label em cima, valor embaixo (mesmo padrão empilhado de
            .sa3mob-metric-lbl/.sa3mob-metric-val no card de KPI) -- lado a
@@ -78,6 +78,10 @@
            de Carreira") estourava a linha com white-space:nowrap. Pedido do
            usuário, 2026-09-02: quebrar em quantas linhas forem necessárias,
            justificado. */
+        /* Card do Norte Verdadeiro em destaque, borda azul do projeto -- mesmo
+           tratamento do desktop (.sa3-card-north { border-color:var(--sa3-blue) }),
+           pedido do usuário 2026-09-02. */
+        .sa3mob-card-north { border-color:var(--vmob-accent); }
         .sa3mob-north-grid { display:flex; flex-direction:column; gap:10px; }
         .sa3mob-north-row { padding:9px 0; border-top:1px solid var(--vmob-line); }
         .sa3mob-north-row:first-child { border-top:none; padding-top:0; }
@@ -375,7 +379,7 @@
       return '<div class="vmob-crumbbar">' +
         '<h2 class="vmob-level-title vmob-level-title-center" tabindex="-1">A3 Estratégicos</h2>' +
         periodTriggerHtml() + "</div>" +
-        '<div class="vmob-section"><div class="vmob-card"><div class="vmob-section-head"><span class="vmob-section-title">Norte Verdadeiro</span></div>' +
+        '<div class="vmob-section"><div class="vmob-card sa3mob-card-north"><div class="vmob-section-head"><span class="vmob-section-title">Norte Verdadeiro</span></div>' +
         '<div class="sa3mob-north-grid">' + (northRows || '<p class="vmob-empty" style="padding:8px 0">Nenhuma meta cadastrada.</p>') + "</div></div></div>" +
         '<div class="vmob-section"><div class="vmob-section-head"><span class="vmob-section-title">Áreas</span><span class="vmob-section-count">' + areas.length + "</span></div>" +
         '<div class="sa3mob-area-list">' + (areaRows || '<p class="vmob-empty">Nenhuma área cadastrada pra este ciclo.</p>') + "</div></div>";
