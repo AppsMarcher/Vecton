@@ -13,6 +13,7 @@
     const {
       canSeeReport,
       getCurrentUser,
+      getProfileAvatarSnapshot,
       handleLogout,
       comercialPainelMobileModule,
       messagesModule
@@ -60,7 +61,9 @@
       return '<header class="vmob-header">' +
         '<button type="button" class="vmob-brand" id="vmob-brand-btn" aria-label="Início · Módulos"><img class="vmob-brand-logo" src="logo-branco.png" alt="Vecton Planning"></button>' +
         '<span class="vmob-header-right">' +
-        '<button type="button" class="vmob-avatar" id="vmob-avatar-btn" aria-haspopup="true" aria-expanded="' + profileOpen + '"></button>' +
+        '<button type="button" class="vmob-avatar" id="vmob-avatar-btn" aria-label="Abrir menu do perfil" aria-haspopup="true" aria-expanded="' + profileOpen + '">' +
+        '<img class="vmob-avatar-photo" alt="" width="59" height="59" loading="eager" decoding="async" fetchpriority="high" draggable="false" hidden>' +
+        '<span class="vmob-avatar-fallback" aria-hidden="true"></span></button>' +
         "</span>" +
         '<div class="vmob-profile-pop' + (profileOpen ? " is-open" : "") + '" id="vmob-profile-pop">' +
         // Mesmo símbolo do "vp-icon-chat" que o botão de Mensagens usa na
@@ -75,26 +78,36 @@
         "</header>";
     }
 
-    // Reaproveita o AVATAR já resolvido da sidebar desktop (#user-avatar) --
-    // texto (iniciais) E foto de perfil quando cadastrada (background-image +
-    // classe has-photo, mesma convenção de .avatar-block em styles.css).
-    // Nunca reimplementa a lógica de nome/foto -> os dois avatares não podem
-    // divergir. Chamado depois do avatar existir no DOM (paintAvatar, não
-    // dentro do template HTML), porque copia estilo computado, não texto puro.
+    // No mobile a foto é um <img> real e persistente, como no ExiladosApp.
+    // Antes, o botão copiava o background-image base64 da sidebar desktop;
+    // mesmo sem recriar o nó, o WebKit podia descartar essa pintura sob
+    // pressão de memória. Um <img> mantém a fonte como recurso do elemento e
+    // pode ser redecodificado pelo navegador quando necessário.
     function paintAvatar(el) {
       if (!el) return;
-      const desktopAvatar = document.querySelector("#user-avatar");
-      if (desktopAvatar) {
-        el.textContent = desktopAvatar.textContent;
-        const bg = desktopAvatar.style.backgroundImage;
-        el.style.backgroundImage = bg || "";
-        el.classList.toggle("has-photo", desktopAvatar.classList.contains("has-photo"));
-        el.classList.toggle("is-silhouette", desktopAvatar.classList.contains("is-silhouette"));
+      const image = el.querySelector(".vmob-avatar-photo");
+      const fallback = el.querySelector(".vmob-avatar-fallback");
+      const user = getCurrentUser ? getCurrentUser() : null;
+      const snapshot = getProfileAvatarSnapshot ? getProfileAvatarSnapshot() : null;
+      const name = snapshot?.name || user?.name || user?.email || "Usuario";
+      const initials = snapshot?.initials || name.trim().slice(0, 2).toUpperCase() || "?";
+      const src = snapshot?.src || "";
+
+      if (fallback) fallback.textContent = initials;
+      el.setAttribute("aria-label", `Abrir menu do perfil de ${name}`);
+      el.style.backgroundImage = "";
+      el.classList.toggle("has-photo", Boolean(src));
+      el.classList.toggle("is-silhouette", !src);
+
+      if (!image) return;
+      if (!src) {
+        image.hidden = true;
+        image.removeAttribute("src");
         return;
       }
-      const user = getCurrentUser ? getCurrentUser() : null;
-      const name = (user && (user.name || user.email)) || "?";
-      el.textContent = name.trim().slice(0, 2).toUpperCase();
+
+      image.hidden = false;
+      if (image.getAttribute("src") !== src) image.setAttribute("src", src);
     }
 
     // ---------------------------------------------------------------- menu
@@ -149,6 +162,10 @@
         bindHeaderEvents();
       }
       paintScreen();
+      // É uma comparação barata (o src só é reatribuído quando muda) e
+      // também permite recuperar uma carga de imagem que tenha falhado quando
+      // o usuário volta ao Menu.
+      paintAvatar(rootEl.querySelector("#vmob-avatar-btn"));
     }
 
     function paintScreen() {
@@ -171,6 +188,13 @@
       if (brandBtn) brandBtn.addEventListener("click", goToMenu);
       if (avatarBtn) {
         paintAvatar(avatarBtn);
+        const avatarImg = avatarBtn.querySelector(".vmob-avatar-photo");
+        avatarImg?.addEventListener("error", () => {
+          avatarImg.hidden = true;
+          avatarImg.removeAttribute("src");
+          avatarBtn.classList.remove("has-photo");
+          avatarBtn.classList.add("is-silhouette");
+        });
         avatarBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleProfile(); });
       }
       if (messengerBtn) {

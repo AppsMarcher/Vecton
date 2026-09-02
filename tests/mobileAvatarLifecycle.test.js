@@ -19,6 +19,7 @@ function createClassList(initial = []) {
 
 function createElement(id = "") {
   const listeners = new Map();
+  const attributes = new Map();
   return {
     id,
     dataset: {},
@@ -26,7 +27,17 @@ function createElement(id = "") {
     classList: createClassList(),
     textContent: "",
     innerHTML: "",
-    setAttribute(name, value) { this[name] = String(value); },
+    hidden: false,
+    querySelector: () => null,
+    setAttribute(name, value) {
+      attributes.set(name, String(value));
+      this[name] = String(value);
+    },
+    getAttribute(name) { return attributes.get(name) ?? null; },
+    removeAttribute(name) {
+      attributes.delete(name);
+      delete this[name];
+    },
     addEventListener(type, listener) { listeners.set(type, listener); },
     removeEventListener(type, listener) {
       if (listeners.get(type) === listener) listeners.delete(type);
@@ -36,14 +47,9 @@ function createElement(id = "") {
 }
 
 const documentListeners = new Map();
-const desktopAvatar = createElement("user-avatar");
-desktopAvatar.textContent = "RG";
-desktopAvatar.style.backgroundImage = 'url("data:image/png;base64,foto-do-perfil")';
-desktopAvatar.classList.add("has-photo");
-
 global.document = {
   body: { classList: createClassList() },
-  querySelector: (selector) => selector === "#user-avatar" ? desktopAvatar : null,
+  querySelector: () => null,
   addEventListener: (type, listener) => documentListeners.set(type, listener),
   dispatchEvent: (event) => documentListeners.get(event.type)?.(event)
 };
@@ -78,6 +84,14 @@ const root = {
     if (!value) return;
     ["vmob-brand-btn", "vmob-avatar-btn", "vmob-messenger-btn", "vmob-logout-btn", "vmob-profile-pop", "vmob-screen"]
       .forEach((id) => elements.set(id, createElement(id)));
+    const avatar = elements.get("vmob-avatar-btn");
+    const avatarPhoto = createElement("vmob-avatar-photo");
+    const avatarFallback = createElement("vmob-avatar-fallback");
+    avatar.querySelector = (selector) => {
+      if (selector === ".vmob-avatar-photo") return avatarPhoto;
+      if (selector === ".vmob-avatar-fallback") return avatarFallback;
+      return null;
+    };
   },
   get innerHTML() { return this._innerHTML; },
   querySelector(selector) { return elements.get(selector.replace(/^#/, "")) || null; },
@@ -95,9 +109,16 @@ const painel = {
   unmount: () => { painel.unmounts += 1; }
 };
 
+let avatarSnapshot = {
+  name: "Rafael Guimaraes",
+  initials: "RG",
+  src: "data:image/png;base64,foto-do-perfil"
+};
+
 const shell = window.VECTON_MOBILE_SHELL.createMobileShellModule({
   canSeeReport: () => true,
   getCurrentUser: () => ({ name: "Rafael Guimaraes" }),
+  getProfileAvatarSnapshot: () => avatarSnapshot,
   comercialPainelMobileModule: painel
 });
 
@@ -105,8 +126,11 @@ assert.equal(shell.init(root), true);
 shell.activate(root);
 
 const originalAvatar = root.querySelector("#vmob-avatar-btn");
-assert.equal(originalAvatar.style.backgroundImage, desktopAvatar.style.backgroundImage);
+const originalAvatarPhoto = originalAvatar.querySelector(".vmob-avatar-photo");
+assert.equal(originalAvatarPhoto.getAttribute("src"), avatarSnapshot.src);
+assert.equal(originalAvatarPhoto.hidden, false);
 assert.equal(originalAvatar.classList.contains("has-photo"), true);
+assert.equal(originalAvatar.style.backgroundImage, "", "a foto mobile não deve mais depender de background-image");
 
 for (let index = 0; index < 40; index += 1) {
   const moduleTile = {
@@ -118,7 +142,8 @@ for (let index = 0; index < 40; index += 1) {
 
   const currentAvatar = root.querySelector("#vmob-avatar-btn");
   assert.equal(currentAvatar, originalAvatar, "a navegação não deve recriar o nó do avatar");
-  assert.equal(currentAvatar.style.backgroundImage, desktopAvatar.style.backgroundImage);
+  assert.equal(currentAvatar.querySelector(".vmob-avatar-photo"), originalAvatarPhoto, "a imagem do avatar também deve persistir");
+  assert.equal(originalAvatarPhoto.getAttribute("src"), avatarSnapshot.src);
   assert.equal(currentAvatar.classList.contains("has-photo"), true);
 }
 
@@ -126,9 +151,16 @@ assert.equal(root.htmlWrites, 1, "o shell deve montar o cabeçalho apenas uma ve
 assert.equal(painel.mounts, 40);
 assert.equal(painel.unmounts, 40);
 
-desktopAvatar.style.backgroundImage = 'url("data:image/png;base64,foto-atualizada")';
+avatarSnapshot = { ...avatarSnapshot, src: "data:image/png;base64,foto-atualizada" };
 document.dispatchEvent({ type: "vecton:avatar-updated" });
-assert.equal(originalAvatar.style.backgroundImage, desktopAvatar.style.backgroundImage);
+assert.equal(originalAvatarPhoto.getAttribute("src"), avatarSnapshot.src);
+
+originalAvatarPhoto.dispatch("error");
+assert.equal(originalAvatarPhoto.hidden, true);
+assert.equal(originalAvatar.classList.contains("is-silhouette"), true);
+document.dispatchEvent({ type: "vecton:avatar-updated" });
+assert.equal(originalAvatarPhoto.hidden, false, "uma nova sincronização deve recuperar a imagem após erro de carga");
+assert.equal(originalAvatar.classList.contains("has-photo"), true);
 
 shell.deactivate();
 assert.equal(root.hidden, true);

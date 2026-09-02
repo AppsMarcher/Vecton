@@ -10721,8 +10721,18 @@ body.mobile-shell-active .vmob-shell {
   overflow: hidden;
   background-size: cover;
   background-position: center;
+  position: relative;
 }
 .vmob-avatar.has-photo { color: transparent; }
+.vmob-avatar-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+.vmob-avatar-photo[hidden] { display: none; }
+.vmob-avatar.has-photo .vmob-avatar-fallback { display: none; }
 .vmob-avatar.is-silhouette {
   color: transparent;
   background-image: url("avatar.png");

@@ -685,6 +685,32 @@
       return parts.slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("") || "FG";
     }
 
+    function resolveProfilePhotoSource(photoKind, photoValue) {
+      if (photoKind === "upload" && photoValue) {
+        return String(photoValue);
+      }
+
+      if (photoKind === "avatar" && photoValue) {
+        return FUN_AVATARS.find((item) => item.key === photoValue)?.dataUrl || "";
+      }
+
+      return "";
+    }
+
+    // Fonte única para qualquer representação do avatar. O desktop ainda
+    // usa background-image por compatibilidade visual; o shell mobile consome
+    // o mesmo snapshot em um <img> real, que o Safari preserva/redecodifica de
+    // forma mais confiável durante as transições do app.
+    function getProfileAvatarSnapshot() {
+      const profile = getResolvedProfile();
+      const name = profile.name || "Usuario";
+      return {
+        name,
+        initials: getUserInitials(name),
+        src: resolveProfilePhotoSource(profile.photoKind, profile.photoValue)
+      };
+    }
+
     function applyPhotoPreview(element, photoKind, photoValue, name) {
       if (!element) {
         return;
@@ -696,19 +722,11 @@
       element.classList.remove("has-photo");
       element.classList.remove("is-silhouette");
 
-      if (photoKind === "upload" && photoValue) {
-        element.style.backgroundImage = `linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04)), url("${photoValue.replaceAll('"', "%22")}")`;
+      const photoSource = resolveProfilePhotoSource(photoKind, photoValue);
+      if (photoSource) {
+        element.style.backgroundImage = `linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04)), url("${photoSource.replaceAll('"', "%22")}")`;
         element.classList.add("has-photo");
         return;
-      }
-
-      if (photoKind === "avatar" && photoValue) {
-        const avatar = FUN_AVATARS.find((item) => item.key === photoValue);
-        if (avatar) {
-          element.style.backgroundImage = `linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04)), url("${avatar.dataUrl.replaceAll('"', "%22")}")`;
-          element.classList.add("has-photo");
-          return;
-        }
       }
 
       element.classList.add("is-silhouette");
@@ -742,6 +760,7 @@
       renderUserProfile,
       getUserDisplayName,
       getResolvedProfile,
+      getProfileAvatarSnapshot,
       getEditableProfile,
       updateProfileDraftFromForm,
       applyPhotoPreview,

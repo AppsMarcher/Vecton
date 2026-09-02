@@ -272,6 +272,7 @@ const {
   renderUserProfile,
   getUserDisplayName,
   getResolvedProfile,
+  getProfileAvatarSnapshot,
   getEditableProfile,
   updateProfileDraftFromForm,
   applyPhotoPreview
@@ -1352,6 +1353,7 @@ function handleMobileLogout() {
 const mobileShellModule = createMobileShellModule({
   canSeeReport,
   getCurrentUser: () => currentUser,
+  getProfileAvatarSnapshot,
   handleLogout: handleMobileLogout,
   comercialPainelMobileModule,
   messagesModule: messagesTab,
