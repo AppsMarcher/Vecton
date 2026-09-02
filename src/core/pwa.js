@@ -105,6 +105,19 @@
       });
 
       registration.update().catch(() => {});
+
+      // O evento "load" só dispara numa carga de documento de verdade —
+      // reabrir o app instalado (ícone na tela de início) a partir do
+      // app-switcher do celular costuma só TRAZER PRA FRENTE a mesma
+      // página que já estava rodando (suspensa em memória), sem recarregar
+      // nada, então esta checagem de "load" nunca roda de novo e a pessoa
+      // fica presa numa versão velha até fechar E reabrir de um jeito que
+      // force reload de verdade (achado do usuário, 2026-09-02: repetiu o
+      // mesmo pedido 3x achando que era bug de código, era isso). Reforço:
+      // sempre que o app volta a ficar visível, checa nova versão de novo.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") registration.update().catch(() => {});
+      });
     }).catch((error) => {
       console.debug("PWA: service worker indisponível", error);
     });

@@ -184,13 +184,19 @@
         .sa3mob-chart-legend-bar { width:8px; height:8px; border-radius:2px 2px 0 0; background:linear-gradient(90deg,#22c55e 0 50%,#ef4444 50% 100%); }
         .sa3mob-chart-legend-line { width:12px; height:0; border-top:2px solid #4f7cff; }
         /* Popover flutuante (position:fixed -- fora do fluxo, não empurra
-           nada) -- anexado direto em document.body (mesmo motivo do modal/
-           carrossel do desktop: sobrevive ao innerHTML do containerEl ser
-           substituído a cada render()). pointer-events:none pra um toque
-           em outro lugar (mesmo embaixo do popover) já fechar/trocar. */
-        .sa3mob-chart-tooltip { position:fixed; z-index:9999; min-width:126px; padding:8px 10px; border-radius:9px; background:var(--vmob-panel-elevated); border:1px solid var(--vmob-line); box-shadow:0 12px 30px rgba(0,0,0,.45); pointer-events:none; }
-        .sa3mob-chart-tooltip-month { padding-bottom:5px; margin-bottom:5px; border-bottom:1px solid var(--vmob-line); color:var(--vmob-text); font-size:10.5px; font-weight:800; text-transform:uppercase; }
-        .sa3mob-chart-tooltip-row { display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--vmob-faint); font-size:10.5px; line-height:1.5; }
+           nada), mesma aparência do tooltip de hover do desktop
+           (.sa3-chart-tooltip em strategicModule.js — fundo #0c0e12
+           sólido, não uma variável, de propósito, mesmo valor lá).
+           Achado do usuário, 2026-09-02: a 1ª versão anexava em
+           document.body, FORA do elemento .vmob-shell que declara as
+           variáveis --vmob-* -- var(--vmob-panel-elevated) etc. resolviam
+           pra nada ali fora, popover saía transparente. Corrigido anexando
+           dentro de containerEl (dentro da árvore do .vmob-shell) — seguro
+           porque fecharChartTooltip() já roda ANTES de todo render() (que
+           é quem substitui containerEl.innerHTML), nunca depois. */
+        .sa3mob-chart-tooltip { position:fixed; z-index:9999; min-width:138px; padding:9px 11px; border-radius:8px; background:#0c0e12; border:1px solid var(--vmob-line); box-shadow:0 12px 30px rgba(0,0,0,.42); pointer-events:none; }
+        .sa3mob-chart-tooltip-month { padding-bottom:6px; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,.06); color:var(--vmob-text); font-size:10.5px; font-weight:800; text-transform:lowercase; }
+        .sa3mob-chart-tooltip-row { display:flex; align-items:center; justify-content:space-between; gap:14px; color:var(--vmob-soft); font-size:10.5px; line-height:1.55; }
         .sa3mob-chart-tooltip-row strong { color:var(--vmob-text); font-weight:700; text-align:right; white-space:nowrap; }
 
         .sa3mob-plan { margin-top:12px; padding-top:11px; border-top:1px solid var(--vmob-line); }
@@ -555,10 +561,13 @@
     // Popover flutuante do gráfico (mês/real/meta/var da coluna tocada) --
     // pedido do usuário, 2026-09-02: "ao marcar a coluna, um popover surgir
     // com os dados e não eles aparecerem na tela ocupando o espaço de
-    // outras informações". Anexado direto em document.body (fora da árvore
-    // de containerEl) porque render() substitui containerEl.innerHTML
-    // inteiro -- um filho dele seria destruído no próximo render mesmo sem
-    // ninguém ter fechado o popover.
+    // outras informações". Anexado dentro de containerEl (não em
+    // document.body — 1ª versão fazia isso e o popover saía transparente,
+    // fora do .vmob-shell que declara --vmob-*, ver comentário do CSS
+    // acima) — seguro porque fecharChartTooltip() roda ANTES de todo
+    // render() (dono de containerEl.innerHTML), nunca depois; o popover
+    // nunca sobrevive a um render de verdade, só precisa aguentar entre
+    // 1 toque e o próximo.
     function fecharChartTooltip() {
       if (chartTooltipEl) { chartTooltipEl.remove(); chartTooltipEl = null; }
       if (activeChartCol) { activeChartCol.classList.remove("is-active"); activeChartCol = null; }
@@ -573,7 +582,7 @@
         '<div class="sa3mob-chart-tooltip-row"><span>Real</span><strong>' + escapeHtml(col.dataset.chartReal) + "</strong></div>" +
         '<div class="sa3mob-chart-tooltip-row"><span>Meta</span><strong>' + escapeHtml(col.dataset.chartMeta) + "</strong></div>" +
         '<div class="sa3mob-chart-tooltip-row"><span>Var</span><strong>' + escapeHtml(col.dataset.chartVariation) + "</strong></div>";
-      document.body.appendChild(el);
+      containerEl.appendChild(el);
 
       // Acima da coluna, centralizado nela, sem estourar a viewport --
       // sem espaço em cima (coluna perto do topo da tela), mostra embaixo.
