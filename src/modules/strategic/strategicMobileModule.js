@@ -55,6 +55,11 @@
     // livre com ‹ ›); só vira o "year" de verdade quando um mês é clicado.
     let periodListOpen = false;
     let pickerYear = null;
+    // Popover do gráfico (toque numa coluna) -- ver abrirChartTooltip/
+    // fecharChartTooltip. chartTooltipEl vive em document.body, não em
+    // containerEl (sobrevive ao innerHTML de containerEl sendo substituído).
+    let chartTooltipEl = null;
+    let activeChartCol = null;
 
     // ---------------------------------------------------------------- CSS
 
@@ -82,6 +87,12 @@
            tratamento do desktop (.sa3-card-north { border-color:var(--sa3-blue) }),
            pedido do usuário 2026-09-02. */
         .sa3mob-card-north { border-color:var(--vmob-accent); }
+        /* Título "NORTE VERDADEIRO" centralizado, 1px maior e mais em
+           negrito que o padrão de .vmob-section-title -- pedido do usuário,
+           2026-09-02. Escopado só ao card do Norte (não mexe no cabeçalho
+           "ÁREAS" logo abaixo, que reusa a mesma classe compartilhada). */
+        .sa3mob-card-north .vmob-section-head { justify-content:center; }
+        .sa3mob-card-north .vmob-section-title { font-size:12px; font-weight:800; }
         .sa3mob-north-grid { display:flex; flex-direction:column; gap:10px; }
         .sa3mob-north-row { padding:9px 0; border-top:1px solid var(--vmob-line); }
         .sa3mob-north-row:first-child { border-top:none; padding-top:0; }
@@ -147,8 +158,8 @@
         .sa3mob-chart-col[data-chart-has-real="true"] { cursor:pointer; }
         .sa3mob-chart-bar { position:absolute; left:50%; transform:translateX(-50%); width:min(13px,82%); border-radius:3px 3px 1px 1px; background:linear-gradient(180deg,#b6c2d2 0%,#78889d 24%,#374151 100%); transition:filter 120ms ease; }
         /* Coluna tocada (pedido do usuário, 2026-09-02: "ao colocar o dedo
-           sobre a coluna, mostrar a legenda") -- realce visual + a legenda
-           abaixo troca pro valor do mês (chartLegendTapHtml). */
+           sobre a coluna, mostrar a legenda") -- realce visual + popover
+           flutuante com o valor do mês (ver .sa3mob-chart-tooltip abaixo). */
         .sa3mob-chart-col.is-active .sa3mob-chart-bar { filter:brightness(1.35); }
         .sa3mob-chart-col.is-active::after { content:""; position:absolute; inset:0; background:rgba(255,255,255,.05); border-radius:3px; }
         .sa3mob-chart-bar.pos { background:linear-gradient(180deg,#74e89b 0%,#2dcc6b 24%,#0d6b38 100%); }
@@ -161,16 +172,26 @@
         .sa3mob-chart-point.band { opacity:.62; }
         .sa3mob-chart-months { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:3px; padding-top:5px; text-align:center; }
         .sa3mob-chart-month { font-size:7.4px; font-weight:600; color:var(--vmob-faint); text-transform:uppercase; }
-        .sa3mob-chart-legend { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:baseline; column-gap:10px; row-gap:3px; margin-top:6px; font-size:9.5px; color:var(--vmob-faint); min-height:12px; }
+        /* Legenda SEMPRE estática (swatches Realizado/Meta) -- achado do
+           usuário, 2026-09-02: trocar o conteúdo da legenda ao tocar uma
+           coluna fazia ela crescer/quebrar linha e empurrar "Acumulado no
+           ano" pra baixo (layout pulando). O valor do mês tocado vai pra um
+           popover flutuante (.sa3mob-chart-tooltip), que não ocupa espaço
+           de documento nenhum -- mesma ideia do tooltip de hover do
+           desktop, adaptado pra touch (sem mouseenter/mousemove). */
+        .sa3mob-chart-legend { display:flex; justify-content:flex-end; gap:10px; margin-top:6px; font-size:9.5px; color:var(--vmob-faint); }
         .sa3mob-chart-legend span { display:inline-flex; align-items:center; gap:4px; }
         .sa3mob-chart-legend-bar { width:8px; height:8px; border-radius:2px 2px 0 0; background:linear-gradient(90deg,#22c55e 0 50%,#ef4444 50% 100%); }
         .sa3mob-chart-legend-line { width:12px; height:0; border-top:2px solid #4f7cff; }
-        /* Estado "tocando uma coluna": mês em destaque + real/meta/var --
-           mesmos 3 valores do tooltip de hover do desktop, só que fixo na
-           legenda em vez de popover flutuante (que tamparia o gráfico
-           embaixo do dedo no touch). */
-        .sa3mob-chart-legend-month { font-size:10px; font-weight:800; color:var(--vmob-text); text-transform:uppercase; }
-        .sa3mob-chart-legend-stat b { color:var(--vmob-text); font-weight:700; margin-left:2px; }
+        /* Popover flutuante (position:fixed -- fora do fluxo, não empurra
+           nada) -- anexado direto em document.body (mesmo motivo do modal/
+           carrossel do desktop: sobrevive ao innerHTML do containerEl ser
+           substituído a cada render()). pointer-events:none pra um toque
+           em outro lugar (mesmo embaixo do popover) já fechar/trocar. */
+        .sa3mob-chart-tooltip { position:fixed; z-index:9999; min-width:126px; padding:8px 10px; border-radius:9px; background:var(--vmob-panel-elevated); border:1px solid var(--vmob-line); box-shadow:0 12px 30px rgba(0,0,0,.45); pointer-events:none; }
+        .sa3mob-chart-tooltip-month { padding-bottom:5px; margin-bottom:5px; border-bottom:1px solid var(--vmob-line); color:var(--vmob-text); font-size:10.5px; font-weight:800; text-transform:uppercase; }
+        .sa3mob-chart-tooltip-row { display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--vmob-faint); font-size:10.5px; line-height:1.5; }
+        .sa3mob-chart-tooltip-row strong { color:var(--vmob-text); font-weight:700; text-align:right; white-space:nowrap; }
 
         .sa3mob-plan { margin-top:12px; padding-top:11px; border-top:1px solid var(--vmob-line); }
         .sa3mob-plan-title { font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--vmob-faint); margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
@@ -327,23 +348,13 @@
 
     // Gráfico combo de 1 KPI (Real em barras + Meta em linha/banda) —
     // consome buildKpiChartSeries (strategicDataModule.js, mesmo cálculo do
-    // desktop) e desenha com as classes .sa3mob-chart-*.
-    // Legenda padrão (swatches Realizado/Meta) — também usada pra "desfazer"
-    // o toque num mês (chartLegendTapHtml abaixo).
+    // desktop) e desenha com as classes .sa3mob-chart-*. Legenda é SEMPRE
+    // a padrão (swatches Realizado/Meta) — o valor do mês tocado vai pro
+    // popover flutuante (abrirChartTooltip/fecharChartTooltip mais abaixo),
+    // não pra legenda (achado do usuário, 2026-09-02: trocar o conteúdo da
+    // legenda empurrava "Acumulado no ano" pra baixo).
     function chartLegendDefaultHtml() {
       return '<span><i class="sa3mob-chart-legend-bar"></i>Realizado</span><span><i class="sa3mob-chart-legend-line"></i>Meta mensal</span>';
-    }
-
-    // Ao tocar numa coluna, a legenda troca pra mostrar mês/real/meta/var
-    // daquele mês (pedido do usuário, 2026-09-02: "ao colocar o dedo sobre
-    // a coluna, mostrar a legenda") — mesmos 3 valores do tooltip de hover
-    // do desktop (bindKpiChartTooltips), só que fixo na legenda (sem
-    // popover flutuante, que tampa o gráfico embaixo do dedo no touch).
-    function chartLegendTapHtml(col) {
-      return '<span class="sa3mob-chart-legend-month">' + escapeHtml(col.dataset.chartMonth) + "</span>" +
-        '<span class="sa3mob-chart-legend-stat">Real <b>' + escapeHtml(col.dataset.chartReal) + "</b></span>" +
-        '<span class="sa3mob-chart-legend-stat">Meta <b>' + escapeHtml(col.dataset.chartMeta) + "</b></span>" +
-        '<span class="sa3mob-chart-legend-stat">Var <b>' + escapeHtml(col.dataset.chartVariation) + "</b></span>";
     }
 
     function kpiChartHtml(k, cutoffMonth) {
@@ -372,7 +383,7 @@
         '<div class="sa3mob-chart-bars">' + barsHtml + "</div>" +
         '<svg class="sa3mob-chart-svg" viewBox="0 0 1200 100" preserveAspectRatio="none" aria-hidden="true">' + lineHtml + "</svg></div>" +
         '<div class="sa3mob-chart-months">' + monthsHtml + "</div>" +
-        '<div class="sa3mob-chart-legend" data-chart-legend aria-live="polite">' + chartLegendDefaultHtml() + "</div>" +
+        '<div class="sa3mob-chart-legend" aria-hidden="true">' + chartLegendDefaultHtml() + "</div>" +
         "</div>";
     }
 
@@ -518,6 +529,10 @@
     function render() {
       if (!containerEl) return;
       ensureStyle();
+      // O innerHTML de containerEl é substituído logo abaixo -- qualquer
+      // âncora que o popover do gráfico guarda (activeChartCol) ficaria
+      // órfã/desconectada do documento. Fecha antes, nunca depois.
+      fecharChartTooltip();
       let html;
       if (loading && !((screen === "overview" && overview) || (screen === "detail" && a3Detail))) html = screenLoading();
       else if (error) html = screenError();
@@ -537,28 +552,59 @@
       else loadOverview();
     }
 
+    // Popover flutuante do gráfico (mês/real/meta/var da coluna tocada) --
+    // pedido do usuário, 2026-09-02: "ao marcar a coluna, um popover surgir
+    // com os dados e não eles aparecerem na tela ocupando o espaço de
+    // outras informações". Anexado direto em document.body (fora da árvore
+    // de containerEl) porque render() substitui containerEl.innerHTML
+    // inteiro -- um filho dele seria destruído no próximo render mesmo sem
+    // ninguém ter fechado o popover.
+    function fecharChartTooltip() {
+      if (chartTooltipEl) { chartTooltipEl.remove(); chartTooltipEl = null; }
+      if (activeChartCol) { activeChartCol.classList.remove("is-active"); activeChartCol = null; }
+    }
+
+    function abrirChartTooltip(col) {
+      fecharChartTooltip();
+      const el = document.createElement("div");
+      el.className = "sa3mob-chart-tooltip";
+      el.innerHTML =
+        '<div class="sa3mob-chart-tooltip-month">' + escapeHtml(col.dataset.chartMonth) + "</div>" +
+        '<div class="sa3mob-chart-tooltip-row"><span>Real</span><strong>' + escapeHtml(col.dataset.chartReal) + "</strong></div>" +
+        '<div class="sa3mob-chart-tooltip-row"><span>Meta</span><strong>' + escapeHtml(col.dataset.chartMeta) + "</strong></div>" +
+        '<div class="sa3mob-chart-tooltip-row"><span>Var</span><strong>' + escapeHtml(col.dataset.chartVariation) + "</strong></div>";
+      document.body.appendChild(el);
+
+      // Acima da coluna, centralizado nela, sem estourar a viewport --
+      // sem espaço em cima (coluna perto do topo da tela), mostra embaixo.
+      const gap = 10;
+      const rect = col.getBoundingClientRect();
+      let left = rect.left + rect.width / 2 - el.offsetWidth / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - el.offsetWidth - 8));
+      let top = rect.top - el.offsetHeight - gap;
+      if (top < 8) top = rect.bottom + gap;
+      el.style.left = left + "px";
+      el.style.top = top + "px";
+
+      chartTooltipEl = el;
+      activeChartCol = col;
+      col.classList.add("is-active");
+    }
+
     // Toque numa coluna do gráfico (tap = click num browser mobile, sem
-    // precisar de pointer/touch events dedicados) -- mostra mês/real/meta/
-    // var na legenda do próprio gráfico; tocar de novo na mesma coluna (ou
-    // numa sem dado) devolve a legenda padrão (swatches Realizado/Meta).
+    // precisar de pointer/touch events dedicados) -- abre o popover; tocar
+    // de novo na MESMA coluna (ou numa sem dado) fecha.
     function handleChartColTap(col) {
       if (!containerEl || !containerEl.contains(col)) return;
-      const chart = col.closest(".sa3mob-chart");
-      const legend = chart?.querySelector("[data-chart-legend]");
-      if (!legend) return;
-      const wasActive = col.classList.contains("is-active");
-      chart.querySelectorAll(".sa3mob-chart-col.is-active").forEach((c) => c.classList.remove("is-active"));
-      if (wasActive || col.dataset.chartHasReal !== "true") {
-        legend.innerHTML = chartLegendDefaultHtml();
-        return;
-      }
-      col.classList.add("is-active");
-      legend.innerHTML = chartLegendTapHtml(col);
+      if (activeChartCol === col) { fecharChartTooltip(); return; }
+      if (col.dataset.chartHasReal !== "true") { fecharChartTooltip(); return; }
+      abrirChartTooltip(col);
     }
 
     function handleClick(event) {
       const chartCol = event.target.closest(".sa3mob-chart-col");
       if (chartCol) { handleChartColTap(chartCol); return; }
+      if (chartTooltipEl) fecharChartTooltip(); // toque em qualquer outro lugar da tela fecha
       const el = event.target.closest("[data-action]");
       if (!el || !containerEl || !containerEl.contains(el)) return;
       const action = el.dataset.action;
@@ -610,6 +656,7 @@
     }
 
     function unmount() {
+      fecharChartTooltip();
       if (containerEl) containerEl.removeEventListener("click", handleClick);
       containerEl = null;
       entered = false;
