@@ -115,7 +115,11 @@
            --sa3mob-objective-accent) -- pedido do usuário, 2026-09-02, pra
            dar continuidade visual Overview -> Detalhe. Texto justificado. */
         .sa3mob-objective-box { margin-top:10px; border:1.5px solid var(--sa3mob-objective-accent, var(--vmob-accent)); border-radius:14px; padding:11px 13px; }
-        .sa3mob-objective { font-size:12px; color:var(--vmob-soft); line-height:1.7; margin:0; text-align:justify; text-justify:inter-word; }
+        /* line-height/white-space replicam o texto explicativo do desktop
+           (.sa3-objective-text em strategicModule.js: line-height:1.5,
+           white-space:pre-wrap) -- pedido do usuário 2026-09-02, mantendo
+           o justificado (só do mobile, o desktop não justifica). */
+        .sa3mob-objective { font-size:12px; color:var(--vmob-soft); line-height:1.5; white-space:pre-wrap; margin:0; text-align:justify; text-justify:inter-word; }
 
         .sa3mob-kpi-list { display:flex; flex-direction:column; gap:10px; }
         .sa3mob-kpi-card { border-left:3px solid var(--vmob-line); }
@@ -123,7 +127,9 @@
         .sa3mob-kpi-name { font-size:13px; font-weight:800; color:var(--vmob-text); }
         .sa3mob-kpi-metrics { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
         .sa3mob-metric-lbl { display:block; font-size:9.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--vmob-faint); }
-        .sa3mob-metric-val { display:block; font-size:13px; font-weight:800; color:var(--vmob-text); margin-top:2px; }
+        /* Mesmo tamanho do texto explicativo (.sa3mob-objective, 12px) --
+           pedido do usuário 2026-09-02, era 13px (maior que o objetivo). */
+        .sa3mob-metric-val { display:block; font-size:12px; font-weight:800; color:var(--vmob-text); margin-top:2px; }
         .sa3mob-kpi-acc { margin-top:10px; padding-top:9px; border-top:1px solid var(--vmob-line); font-size:11px; color:var(--vmob-faint); display:flex; justify-content:space-between; gap:8px; }
         .sa3mob-kpi-acc b { color:var(--vmob-soft); font-weight:700; }
 
@@ -134,8 +140,17 @@
         .sa3mob-chart { margin-top:11px; padding-top:10px; border-top:1px solid var(--vmob-line); }
         .sa3mob-chart-plot { position:relative; height:84px; }
         .sa3mob-chart-bars { position:absolute; inset:0; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:3px; z-index:1; }
+        /* Coluna inteira (não só a barrinha) é a área de toque -- alvo de
+           toque maior que os ~13px da barra, mais fácil de acertar com o
+           dedo. */
         .sa3mob-chart-col { position:relative; height:100%; min-width:0; }
-        .sa3mob-chart-bar { position:absolute; left:50%; transform:translateX(-50%); width:min(13px,82%); border-radius:3px 3px 1px 1px; background:linear-gradient(180deg,#b6c2d2 0%,#78889d 24%,#374151 100%); }
+        .sa3mob-chart-col[data-chart-has-real="true"] { cursor:pointer; }
+        .sa3mob-chart-bar { position:absolute; left:50%; transform:translateX(-50%); width:min(13px,82%); border-radius:3px 3px 1px 1px; background:linear-gradient(180deg,#b6c2d2 0%,#78889d 24%,#374151 100%); transition:filter 120ms ease; }
+        /* Coluna tocada (pedido do usuário, 2026-09-02: "ao colocar o dedo
+           sobre a coluna, mostrar a legenda") -- realce visual + a legenda
+           abaixo troca pro valor do mês (chartLegendTapHtml). */
+        .sa3mob-chart-col.is-active .sa3mob-chart-bar { filter:brightness(1.35); }
+        .sa3mob-chart-col.is-active::after { content:""; position:absolute; inset:0; background:rgba(255,255,255,.05); border-radius:3px; }
         .sa3mob-chart-bar.pos { background:linear-gradient(180deg,#74e89b 0%,#2dcc6b 24%,#0d6b38 100%); }
         .sa3mob-chart-bar.neg { background:linear-gradient(180deg,#f58a8a 0%,#ef5050 24%,#8b202b 100%); }
         .sa3mob-chart-zero { position:absolute; left:0; right:0; height:1px; background:rgba(255,255,255,.08); z-index:0; }
@@ -146,10 +161,16 @@
         .sa3mob-chart-point.band { opacity:.62; }
         .sa3mob-chart-months { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:3px; padding-top:5px; text-align:center; }
         .sa3mob-chart-month { font-size:7.4px; font-weight:600; color:var(--vmob-faint); text-transform:uppercase; }
-        .sa3mob-chart-legend { display:flex; justify-content:flex-end; gap:10px; margin-top:6px; font-size:9.5px; color:var(--vmob-faint); }
+        .sa3mob-chart-legend { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:baseline; column-gap:10px; row-gap:3px; margin-top:6px; font-size:9.5px; color:var(--vmob-faint); min-height:12px; }
         .sa3mob-chart-legend span { display:inline-flex; align-items:center; gap:4px; }
         .sa3mob-chart-legend-bar { width:8px; height:8px; border-radius:2px 2px 0 0; background:linear-gradient(90deg,#22c55e 0 50%,#ef4444 50% 100%); }
         .sa3mob-chart-legend-line { width:12px; height:0; border-top:2px solid #4f7cff; }
+        /* Estado "tocando uma coluna": mês em destaque + real/meta/var --
+           mesmos 3 valores do tooltip de hover do desktop, só que fixo na
+           legenda em vez de popover flutuante (que tamparia o gráfico
+           embaixo do dedo no touch). */
+        .sa3mob-chart-legend-month { font-size:10px; font-weight:800; color:var(--vmob-text); text-transform:uppercase; }
+        .sa3mob-chart-legend-stat b { color:var(--vmob-text); font-weight:700; margin-left:2px; }
 
         .sa3mob-plan { margin-top:12px; padding-top:11px; border-top:1px solid var(--vmob-line); }
         .sa3mob-plan-title { font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--vmob-faint); margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; }
@@ -307,10 +328,32 @@
     // Gráfico combo de 1 KPI (Real em barras + Meta em linha/banda) —
     // consome buildKpiChartSeries (strategicDataModule.js, mesmo cálculo do
     // desktop) e desenha com as classes .sa3mob-chart-*.
+    // Legenda padrão (swatches Realizado/Meta) — também usada pra "desfazer"
+    // o toque num mês (chartLegendTapHtml abaixo).
+    function chartLegendDefaultHtml() {
+      return '<span><i class="sa3mob-chart-legend-bar"></i>Realizado</span><span><i class="sa3mob-chart-legend-line"></i>Meta mensal</span>';
+    }
+
+    // Ao tocar numa coluna, a legenda troca pra mostrar mês/real/meta/var
+    // daquele mês (pedido do usuário, 2026-09-02: "ao colocar o dedo sobre
+    // a coluna, mostrar a legenda") — mesmos 3 valores do tooltip de hover
+    // do desktop (bindKpiChartTooltips), só que fixo na legenda (sem
+    // popover flutuante, que tampa o gráfico embaixo do dedo no touch).
+    function chartLegendTapHtml(col) {
+      return '<span class="sa3mob-chart-legend-month">' + escapeHtml(col.dataset.chartMonth) + "</span>" +
+        '<span class="sa3mob-chart-legend-stat">Real <b>' + escapeHtml(col.dataset.chartReal) + "</b></span>" +
+        '<span class="sa3mob-chart-legend-stat">Meta <b>' + escapeHtml(col.dataset.chartMeta) + "</b></span>" +
+        '<span class="sa3mob-chart-legend-stat">Var <b>' + escapeHtml(col.dataset.chartVariation) + "</b></span>";
+    }
+
     function kpiChartHtml(k, cutoffMonth) {
       const { zeroY, bars, targetLine } = DATA.buildKpiChartSeries(k, cutoffMonth);
+      const isRange = k.comparisonMode === "range";
+      const metaLabel = (bar) => isRange
+        ? formatByUnit(bar.targetMin, k.unit, k.decimalPlaces) + "–" + formatByUnit(bar.targetMax, k.unit, k.decimalPlaces)
+        : formatByUnit(bar.targetValue, k.unit, k.decimalPlaces);
       const barsHtml = bars.map((bar) => (
-        '<div class="sa3mob-chart-col">' +
+        '<div class="sa3mob-chart-col" data-chart-has-real="' + bar.hasReal + '" data-chart-month="' + bar.label + '" data-chart-real="' + escapeHtml(formatByUnit(bar.value, k.unit, k.decimalPlaces)) + '" data-chart-meta="' + escapeHtml(metaLabel(bar)) + '" data-chart-variation="' + escapeHtml(bar.variation) + '">' +
         (bar.hasReal ? '<div class="sa3mob-chart-bar ' + bar.tone + '" style="top:' + bar.top + '%;height:' + bar.height + '%"></div>' : "") +
         "</div>"
       )).join("");
@@ -320,16 +363,16 @@
         const dots = segments.points.map((p) => '<circle class="sa3mob-chart-point ' + cls + '" cx="' + p.x + '" cy="' + p.y + '" r="2.6"></circle>').join("");
         return paths + dots;
       };
-      const lineHtml = k.comparisonMode === "range"
+      const lineHtml = isRange
         ? segmentsHtml(targetLine.min, "band") + segmentsHtml(targetLine.max, "band")
         : segmentsHtml(targetLine.main);
       const monthsHtml = MONTH_ABBR.map((label) => '<span class="sa3mob-chart-month">' + label + "</span>").join("");
-      return '<div class="sa3mob-chart" role="img" aria-label="Gráfico de realizado mensal em colunas e meta mensal em linha">' +
+      return '<div class="sa3mob-chart" role="img" aria-label="Gráfico de realizado mensal em colunas e meta mensal em linha. Toque numa coluna pra ver o valor do mês.">' +
         '<div class="sa3mob-chart-plot"><div class="sa3mob-chart-zero" style="top:' + zeroY + '%"></div>' +
         '<div class="sa3mob-chart-bars">' + barsHtml + "</div>" +
         '<svg class="sa3mob-chart-svg" viewBox="0 0 1200 100" preserveAspectRatio="none" aria-hidden="true">' + lineHtml + "</svg></div>" +
         '<div class="sa3mob-chart-months">' + monthsHtml + "</div>" +
-        '<div class="sa3mob-chart-legend" aria-hidden="true"><span><i class="sa3mob-chart-legend-bar"></i>Realizado</span><span><i class="sa3mob-chart-legend-line"></i>Meta mensal</span></div>' +
+        '<div class="sa3mob-chart-legend" data-chart-legend aria-live="polite">' + chartLegendDefaultHtml() + "</div>" +
         "</div>";
     }
 
@@ -445,7 +488,7 @@
         ? kpis.map((k) => kpiCardHtml(k)).join("")
         : '<p class="vmob-empty">Nenhum indicador cadastrado nesta A3.</p>';
       return '<div class="vmob-crumbbar">' + crumbHtml() +
-        '<h2 class="vmob-level-title" tabindex="-1">A3 ' + escapeHtml(a3.name) + "</h2>" +
+        '<h2 class="vmob-level-title vmob-level-title-center" tabindex="-1">A3 ' + escapeHtml(a3.name) + "</h2>" +
         periodTriggerHtml() + tabsHtml() +
         (a3.objective ? ('<div class="sa3mob-objective-box" style="--sa3mob-objective-accent:' + escapeHtml(a3.color || "#4f7cff") + '"><p class="sa3mob-objective">' + escapeHtml(a3.objective) + "</p></div>") : "") +
         "</div>" +
@@ -492,7 +535,28 @@
       else loadOverview();
     }
 
+    // Toque numa coluna do gráfico (tap = click num browser mobile, sem
+    // precisar de pointer/touch events dedicados) -- mostra mês/real/meta/
+    // var na legenda do próprio gráfico; tocar de novo na mesma coluna (ou
+    // numa sem dado) devolve a legenda padrão (swatches Realizado/Meta).
+    function handleChartColTap(col) {
+      if (!containerEl || !containerEl.contains(col)) return;
+      const chart = col.closest(".sa3mob-chart");
+      const legend = chart?.querySelector("[data-chart-legend]");
+      if (!legend) return;
+      const wasActive = col.classList.contains("is-active");
+      chart.querySelectorAll(".sa3mob-chart-col.is-active").forEach((c) => c.classList.remove("is-active"));
+      if (wasActive || col.dataset.chartHasReal !== "true") {
+        legend.innerHTML = chartLegendDefaultHtml();
+        return;
+      }
+      col.classList.add("is-active");
+      legend.innerHTML = chartLegendTapHtml(col);
+    }
+
     function handleClick(event) {
+      const chartCol = event.target.closest(".sa3mob-chart-col");
+      if (chartCol) { handleChartColTap(chartCol); return; }
       const el = event.target.closest("[data-action]");
       if (!el || !containerEl || !containerEl.contains(el)) return;
       const action = el.dataset.action;
