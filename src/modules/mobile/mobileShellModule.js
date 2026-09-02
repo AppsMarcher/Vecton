@@ -56,7 +56,7 @@
 
     // ---------------------------------------------------------------- header
 
-    function renderHeader(showModuleChrome) {
+    function renderHeader() {
       return '<header class="vmob-header">' +
         '<button type="button" class="vmob-brand" id="vmob-brand-btn" aria-label="Início · Módulos"><img class="vmob-brand-logo" src="logo-branco.png" alt="Vecton Planning"></button>' +
         '<span class="vmob-header-right">' +
@@ -132,10 +132,22 @@
 
     function renderShell() {
       if (!rootEl) return;
-      const showChrome = !activeModuleKey; // período/refresh do próprio módulo ficam por conta dele
-      rootEl.innerHTML = renderHeader(showChrome) + '<div class="vmob-scroll" id="vmob-scroll"><div id="vmob-screen"></div></div>';
-      screenEl = rootEl.querySelector("#vmob-screen");
-      bindHeaderEvents();
+      // O cabeçalho (com o avatar) só é montado 1x por ativação -- recriá-lo
+      // a cada troca de tela reatribuía a foto de perfil (base64, às vezes
+      // pesada) num <button> NOVO toda vez via paintAvatar/bindHeaderEvents.
+      // Em sessões mobile com várias idas e vindas ao Menu isso degradava no
+      // Safari/iOS até a foto simplesmente parar de pintar (bug reincidente,
+      // relatado pelo usuário 2026-09-02 -- "some, F5 traz de volta" já
+      // tinha sido corrigido pro caso do carregamento no login, mas não pro
+      // churn de recriar o nó do avatar a cada navegação). Só o conteúdo de
+      // #vmob-screen troca entre Menu/módulo; o header e o avatar sobrevivem
+      // à navegação inteira, exatamente como o avatar da sidebar desktop
+      // (#user-avatar) também nunca é recriado.
+      if (!screenEl) {
+        rootEl.innerHTML = renderHeader() + '<div class="vmob-scroll" id="vmob-scroll"><div id="vmob-screen"></div></div>';
+        screenEl = rootEl.querySelector("#vmob-screen");
+        bindHeaderEvents();
+      }
       paintScreen();
     }
 
@@ -172,6 +184,15 @@
 
     function toggleProfile() {
       profileOpen = !profileOpen;
+      syncProfilePopover();
+    }
+
+    // Reflete `profileOpen` no popover já existente no DOM. Antes disso era
+    // "de graça" (o header inteiro nascia de novo a cada renderShell()); com
+    // o header persistente (ver renderShell) isso deixou de acontecer
+    // sozinho -- sem isto o popover ficaria aberto ao trocar de tela.
+    function syncProfilePopover() {
+      if (!rootEl) return;
       const pop = rootEl.querySelector("#vmob-profile-pop");
       const btn = rootEl.querySelector("#vmob-avatar-btn");
       if (pop) pop.classList.toggle("is-open", profileOpen);
@@ -182,6 +203,7 @@
       if (activeModuleKey === "painelVendas" && comercialPainelMobileModule) comercialPainelMobileModule.unmount();
       activeModuleKey = null;
       profileOpen = false;
+      syncProfilePopover();
       renderShell();
     }
 
@@ -191,6 +213,7 @@
       if (mod.reportId && !canSeeReport(mod.reportId)) return;
       activeModuleKey = key;
       profileOpen = false;
+      syncProfilePopover();
       renderShell();
     }
 
