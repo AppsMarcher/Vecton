@@ -477,14 +477,25 @@
     // padrão (mesma regra do banco, strategic_can_edit_a3). Gestor SEM
     // nenhuma Gestão marcada edita TUDO, igual Admin — mesma paridade que
     // já existe em OPEX/Headcount (getAllowedManagements, app.js) — decisão
-    // do usuário (2026-08-29), migration 147. A3 Estratégicos
-    // (gestao_estrategica): NADA vem por padrão — é o perfil "escolha
-    // quais A3", tudo é opt-in via extra_strategic_a3_ids.
-    function isDefaultStrategicA3(user, area) {
-      if (user.access_role !== "manager") return false;
-      const mgmt = (user.management || "").trim();
-      if (!mgmt) return true;
-      return !!area.management && area.management === mgmt;
+    // do usuário (2026-08-29), migration 147.
+    // A3 Estratégicos (gestao_estrategica): mesma regra geral do resto do
+    // Vecton — extra_strategic_a3_ids VAZIA = sem restrição, enxerga/edita
+    // TODOS os A3, igual Admin; assim que 1 A3 é marcado, passa a valer só
+    // os marcados (mesmo padrão de getAllowedCcNumbers/
+    // resolveManagementFilter em app.js). Revertido de "opt-in puro" a
+    // pedido do usuário (2026-09-02), migration 184 — ver comentário lá
+    // pra explicação de por que a decisão original (142) tratava esse
+    // perfil diferente do resto dos extra_* do app.
+    function isDefaultStrategicA3(user, area, roles) {
+      if (roles.includes("manager")) {
+        const mgmt = (user.management || "").trim();
+        if (!mgmt) return true;
+        return !!area.management && area.management === mgmt;
+      }
+      if (roles.includes("gestao_estrategica")) {
+        return (user.extra_strategic_a3_ids || []).length === 0;
+      }
+      return false;
     }
 
     function buildAccessRow(id, label, checked, isDefault) {
@@ -671,7 +682,7 @@
         const roots = (areas || []).filter((a) => !a.parent_id);
         roots.forEach((root) => {
           const children = (areas || []).filter((c) => c.parent_id && String(c.parent_id) === String(root.id));
-          const rootIsDefault = isDefaultStrategicA3(user, root);
+          const rootIsDefault = isDefaultStrategicA3(user, root, roles);
           const rootIsExtra = isExtraStrategicA3(user, root.id);
           const rootLabelBase = root.management ? `${root.name} (${root.management})` : root.name;
           const rootLabel = children.length ? `${rootLabelBase} — toda a área` : rootLabelBase;
