@@ -75,7 +75,16 @@ global.window = {
 };
 
 const modulePath = path.join(__dirname, "..", "src", "modules", "mobile", "mobileShellModule.js");
-eval(fs.readFileSync(modulePath, "utf8"));
+const moduleSource = fs.readFileSync(modulePath, "utf8");
+const styles = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
+eval(moduleSource);
+
+assert.match(moduleSource, /class="vmob-avatar-photo"[^>]*width="48" height="48"/);
+assert.match(
+  styles,
+  /\.vmob-avatar\s*\{[^}]*width:\s*48px;[^}]*height:\s*48px;[^}]*border-radius:\s*16px;[^}]*border:\s*0;/s,
+  "o avatar mobile deve usar a mesma geometria do avatar desktop"
+);
 
 const elements = new Map();
 const rootListeners = new Map();

@@ -55,6 +55,12 @@
       msn: "assets/msn-message.mp3?v=20260804b",
       icq: "assets/icq.mp3?v=20260804a"
     });
+    const PRESENCAS = Object.freeze([
+      { valor: "disponivel", rotulo: "Disponível" },
+      { valor: "ausente", rotulo: "Ausente" },
+      { valor: "ocupado", rotulo: "Ocupado" },
+      { valor: "invisivel", rotulo: "Invisível" }
+    ]);
 
     let _painel = null;
     let _configJanela = null;
@@ -418,6 +424,31 @@
         </span>`;
     }
 
+    function dadosPresenca(valor) {
+      return PRESENCAS.find((item) => item.valor === valor) || PRESENCAS[0];
+    }
+
+    function seletorPresencaMarkup(valorAtual) {
+      const atual = dadosPresenca(valorAtual);
+      const opcoes = PRESENCAS.map((item) => `
+        <button type="button" class="msn-presenca-opcao" role="option" data-action="selecionar-presenca" data-presenca-value="${item.valor}" aria-selected="${String(item.valor === atual.valor)}">
+          <span class="msn-presenca-dot" data-presenca="${item.valor}" aria-hidden="true"></span>
+          <span>${item.rotulo}</span>
+        </button>
+      `).join("");
+      return `
+        <div class="msn-perfil-status" data-presenca="${atual.valor}">
+          <button type="button" id="msn-presenca" class="msn-presenca" data-action="alternar-presenca" aria-label="Status de presença: ${atual.rotulo}" aria-haspopup="listbox" aria-expanded="false" aria-controls="msn-presenca-menu">
+            <span class="msn-presenca-dot" data-presenca="${atual.valor}" aria-hidden="true"></span>
+            <span class="msn-presenca-rotulo">${atual.rotulo}</span>
+            <svg class="msn-presenca-chevron msn-ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"></path></svg>
+          </button>
+          <div id="msn-presenca-menu" class="msn-presenca-menu" role="listbox" aria-label="Escolher status de presença" hidden>
+            ${opcoes}
+          </div>
+        </div>`;
+    }
+
     function painelMarkup() {
       if (_disabled) {
         return `<div class="msn-vazio">Correio interno ainda não configurado no banco.</div>`;
@@ -491,15 +522,7 @@
           </div>
         </div>
         <div class="msn-eu">
-          <div class="msn-perfil-status" data-presenca="${escapeHtml(_meuPerfil.presenca || "disponivel")}">
-            <span class="msn-perfil-status-dot" aria-hidden="true"></span>
-            <select id="msn-presenca" class="msn-presenca" aria-label="Status de presença">
-              <option value="disponivel">Disponível</option>
-              <option value="ausente">Ausente</option>
-              <option value="ocupado">Ocupado</option>
-              <option value="invisivel">Invisível</option>
-            </select>
-          </div>
+          ${seletorPresencaMarkup(_meuPerfil.presenca)}
           <input type="text" id="msn-recado" class="msn-recado" placeholder="Escreva um recado..." maxlength="80">
         </div>
         <div class="msn-busca">
@@ -535,8 +558,6 @@
         if (lista) lista.scrollTop = scrollTop;
       }
 
-      const sel = _painel.querySelector("#msn-presenca");
-      if (sel && document.activeElement !== sel && _meuPerfil.presenca) sel.value = _meuPerfil.presenca;
       const rec = _painel.querySelector("#msn-recado");
       if (rec && document.activeElement !== rec) rec.value = _meuPerfil.recado || "";
       // Uma atualização real também não pode roubar o foco nem a seleção.
@@ -584,6 +605,29 @@
       }
     }
 
+    function fecharSeletorPresenca(devolverFoco = false) {
+      const menu = _painel?.querySelector("#msn-presenca-menu");
+      const acionador = _painel?.querySelector("#msn-presenca");
+      if (!menu || menu.hidden) return;
+      menu.hidden = true;
+      acionador?.setAttribute("aria-expanded", "false");
+      if (devolverFoco) acionador?.focus();
+    }
+
+    function aoPressionarForaDoSeletorPresenca(event) {
+      const seletor = _painel?.querySelector(".msn-perfil-status");
+      if (seletor && !seletor.contains(event.target)) fecharSeletorPresenca();
+    }
+
+    function aoTeclarSeletorPresenca(event) {
+      if (event.key !== "Escape") return;
+      const menu = _painel?.querySelector("#msn-presenca-menu");
+      if (!menu?.hidden) {
+        event.preventDefault();
+        fecharSeletorPresenca(true);
+      }
+    }
+
     function abrirPainel() {
       pararAlertaCartinha();
       if (_painel) { fecharPainel(); return; }
@@ -610,11 +654,37 @@
       // viewport já assentou. Reagenda a mesma leitura (rAF + 70/180/360/
       // 560ms) pra corrigir sozinho se a 1ª leitura veio errada.
       agendarAjusteVisual();
+      document.addEventListener("pointerdown", aoPressionarForaDoSeletorPresenca, true);
+      document.addEventListener("keydown", aoTeclarSeletorPresenca);
 
       _painel.addEventListener("click", (event) => {
         const acao = event.target.closest("[data-action]")?.dataset.action;
         if (acao === "fechar-painel") { fecharPainel(); return; }
         if (acao === "abrir-ajustes") { abrirConfiguracoes(); return; }
+        if (acao === "alternar-presenca") {
+          const menu = _painel?.querySelector("#msn-presenca-menu");
+          const acionador = _painel?.querySelector("#msn-presenca");
+          if (!menu || !acionador) return;
+          const abrir = menu.hidden;
+          menu.hidden = !abrir;
+          acionador.setAttribute("aria-expanded", String(abrir));
+          if (abrir) menu.querySelector('[aria-selected="true"]')?.focus();
+          return;
+        }
+        if (acao === "selecionar-presenca") {
+          const valor = event.target.closest("[data-presenca-value]")?.dataset.presencaValue;
+          const presenca = PRESENCAS.find((item) => item.valor === valor);
+          if (!presenca) return;
+          if (_meuPerfil.presenca === presenca.valor) {
+            fecharSeletorPresenca(true);
+            return;
+          }
+          _meuPerfil.presenca = presenca.valor;
+          pintarPainel();
+          _painel?.querySelector("#msn-presenca")?.focus();
+          void callSupabaseRpc("set_my_presence", { p_choice: presenca.valor }).catch(() => {});
+          return;
+        }
         if (acao === "novo-grupo") { iniciarSelecaoGrupo(); return; }
         if (acao === "cancelar-grupo") { cancelarSelecaoGrupo(); return; }
         if (acao === "criar-grupo") { void criarGrupo(); return; }
@@ -662,13 +732,6 @@
       _painel.addEventListener("input", (event) => {
         if (event.target.id === "msn-busca") { _busca = event.target.value; pintarPainel(); }
       });
-      _painel.addEventListener("change", (event) => {
-        if (event.target.id === "msn-presenca") {
-          _meuPerfil.presenca = event.target.value;
-          event.target.closest(".msn-perfil-status")?.setAttribute("data-presenca", event.target.value);
-          void callSupabaseRpc("set_my_presence", { p_choice: event.target.value }).catch(() => {});
-        }
-      });
       _painel.addEventListener("focusout", (event) => {
         if (event.target.id !== "msn-recado") return;
         _meuPerfil.recado = event.target.value;
@@ -682,6 +745,8 @@
     }
 
     function fecharPainel() {
+      document.removeEventListener("pointerdown", aoPressionarForaDoSeletorPresenca, true);
+      document.removeEventListener("keydown", aoTeclarSeletorPresenca);
       _painel?.remove();
       _painel = null;
       _modoGrupo = false;

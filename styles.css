@@ -10707,13 +10707,13 @@ body.mobile-shell-active .vmob-shell {
 .vmob-avatar {
   all: unset;
   box-sizing: border-box;
-  width: 59px;
-  height: 59px;
-  border-radius: 19px;
-  background: var(--vmob-accent-soft);
-  color: var(--vmob-accent);
-  border: 1px solid rgba(79, 124, 255, 0.35);
-  font-size: 22px;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: #334155;
+  color: var(--text);
+  border: 0;
+  font-size: 16px;
   font-weight: 700;
   display: grid;
   place-items: center;
@@ -11196,23 +11196,18 @@ body.mobile-shell-active .msn-contato-copy {
   background: color-mix(in srgb, var(--panel) 82%, transparent);
 }
 
-.msn-perfil-status { position: relative; min-width: 0; }
-.msn-perfil-status-dot {
-  position: absolute;
-  z-index: 1;
-  top: 50%;
-  left: 13px;
+.msn-perfil-status { position: relative; z-index: 8; min-width: 0; }
+.msn-presenca-dot {
+  flex: 0 0 auto;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--pos);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--pos) 13%, transparent);
-  transform: translateY(-50%);
-  pointer-events: none;
 }
-.msn-perfil-status[data-presenca="ausente"] .msn-perfil-status-dot { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 13%, transparent); }
-.msn-perfil-status[data-presenca="ocupado"] .msn-perfil-status-dot { background: var(--neg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--neg) 13%, transparent); }
-.msn-perfil-status[data-presenca="invisivel"] .msn-perfil-status-dot { background: #64748b; box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.14); }
+.msn-presenca-dot[data-presenca="ausente"] { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 13%, transparent); }
+.msn-presenca-dot[data-presenca="ocupado"] { background: var(--neg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--neg) 13%, transparent); }
+.msn-presenca-dot[data-presenca="invisivel"] { background: #64748b; box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.14); }
 
 .msn-painel .msn-presenca,
 .msn-painel .msn-recado,
@@ -11229,12 +11224,80 @@ body.mobile-shell-active .msn-contato-copy {
 .msn-painel .msn-recado { font-size: calc(0.72rem - 1px); }
 
 .msn-painel .msn-presenca {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   min-width: 0;
-  padding: 0 24px 0 31px;
+  padding: 0 11px 0 13px;
+  font-family: inherit;
+  font-weight: 600;
+  text-align: left;
   white-space: nowrap;
   cursor: pointer;
 }
+
+.msn-presenca-rotulo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msn-presenca-chevron {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: var(--msn-muted);
+  transition: transform 140ms ease, color 140ms ease;
+}
+
+.msn-presenca[aria-expanded="true"] .msn-presenca-chevron {
+  color: var(--text);
+  transform: rotate(180deg);
+}
+
+.msn-presenca-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  min-width: 144px;
+  padding: 5px;
+  border: 1px solid var(--msn-divider);
+  border-radius: 12px;
+  background: var(--msn-surface-raised);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.46);
+}
+
+.msn-presenca-menu[hidden] { display: none; }
+
+.msn-presenca-opcao {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: calc(0.72rem - 1px);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.msn-presenca-opcao:hover,
+.msn-presenca-opcao:focus-visible { background: var(--msn-surface-soft); outline: none; }
+.msn-presenca-opcao[aria-selected="true"] { background: color-mix(in srgb, var(--msn-accent) 14%, transparent); }
 
 .msn-painel .msn-recado { min-width: 0; padding: 0 12px; }
 .msn-painel .msn-presenca:focus,
