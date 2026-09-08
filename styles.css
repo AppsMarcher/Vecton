@@ -9102,8 +9102,15 @@ body.rps-presentation-mode .rps-table-card {
   margin-top: 14px !important;
 }
 
+/* max-height: a var é calculada em JS (updatePresentationScrollBounds, medindo
+   a posição real do card) porque a altura do cabeçalho acima da tabela varia
+   (pill de status, botões de zoom, título) — um valor fixo tipo "125px" erra
+   sempre que essa altura real diverge, e a barra de rolagem horizontal cai
+   fora da viewport (cortada pelo overflow:hidden da cadeia), invisível sem
+   nenhum aviso. O calc(100vh - 125px) fica só como fallback pro primeiro
+   paint, antes do JS medir. */
 body.rps-presentation-mode .rps-table-scroll {
-  max-height: calc(100vh - 125px);
+  max-height: var(--rps-presentation-scroll-max, calc(100vh - 125px));
   overflow-x: auto;
 }
 

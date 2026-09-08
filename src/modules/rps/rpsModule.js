@@ -956,7 +956,33 @@
         closeAttachmentCarousel();
         hideLaserPointer();
         renderShell();
+        return;
       }
+      // Entrando em fullscreen (ou saindo por outra via): a viewport muda de
+      // tamanho DEPOIS do renderShell() já ter rodado (enterFullscreen() é
+      // disparado sem await), então precisa recalcular aqui também.
+      updatePresentationScrollBounds();
+    }
+
+    // Mede o espaço realmente disponível para .rps-table-scroll na
+    // apresentação (topo do PRÓPRIO scroll — não do .rps-table-card, que tem
+    // padding-top/border-top de .content-card somados antes dele — até a base
+    // da viewport) e grava em uma custom property. Substitui o antigo
+    // "calc(100vh - 125px)" fixo: aquele número era um chute pro cabeçalho
+    // (título + pill de status + botões) e ficava errado sempre que essa
+    // altura real era diferente — a barra de rolagem horizontal do fim da
+    // tabela ficava a poucos pixels ABAIXO da viewport, recortada pelo
+    // overflow:hidden da cadeia (bug relatado 2026-09-08: some sem sinal
+    // nenhum, a barra existe no DOM mas nunca é visível). Recalcula em
+    // resize e em toda transição de fullscreen.
+    function updatePresentationScrollBounds() {
+      if (!state.presentation) return;
+      const scrollEl = root?.querySelector(".rps-table-scroll");
+      if (!scrollEl) return;
+      const MAIN_PANEL_BOTTOM_PADDING = 16;
+      const top = scrollEl.getBoundingClientRect().top;
+      const available = Math.max(160, window.innerHeight - top - MAIN_PANEL_BOTTOM_PADDING);
+      document.body.style.setProperty("--rps-presentation-scroll-max", `${Math.round(available)}px`);
     }
 
     function attachmentMediaKind(attachment) {
@@ -1473,8 +1499,12 @@
       // Ainda assim precisa limpar uma barra deixada por OUTRA view (se o
       // usuário veio de um relatório DRE/OPEX aberto antes).
       clearFloatingScrollbar?.();
-      if (state.presentation) ensureLaserPointer();
-      else removeLaserPointer();
+      if (state.presentation) {
+        ensureLaserPointer();
+        requestAnimationFrame(updatePresentationScrollBounds);
+      } else {
+        removeLaserPointer();
+      }
       updateStatusElements();
     }
 
@@ -2043,6 +2073,7 @@
         }
       });
       document.addEventListener("fullscreenchange", handleFullscreenChange);
+      window.addEventListener("resize", updatePresentationScrollBounds);
     }
 
     async function switchPeriod(nextPeriod) {
