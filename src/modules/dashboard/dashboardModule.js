@@ -426,9 +426,16 @@
         const varClass = !hasBudget ? "" : isGood ? "dash-bullet-var--pos" : "dash-bullet-var--neg";
         const rowMod = [isSubtotal ? "dash-bullet-row--sub" : "", isResult ? "dash-bullet-row--result" : ""].filter(Boolean).join(" ");
 
+        const dvColor = !hasBudget ? "" : isGood ? "#22c55e" : "#ef4444";
+
         return `<div class="dash-bullet-row ${rowMod}">
           <div class="dash-bullet-label">${escapeHtml(label)}</div>
-          <div class="dash-bullet-track">
+          <div class="dash-bullet-track"
+            data-bv="${escapeHtml(fmtVal(real))}"
+            data-pv="${hasBudget ? escapeHtml(fmtVal(budget)) : ""}"
+            data-dv="${hasBudget ? escapeHtml(fmtVal(variance)) : ""}"
+            data-dv-color="${dvColor}"
+            data-cmp="${escapeHtml(compareLabel)}">
             ${hasBudget ? `<div class="dash-bullet-budget" style="width:${budgetW}%"></div>` : ""}
             <div class="dash-bullet-real" style="width:${realW}%;background:${barColor}"></div>
             ${hasBudget ? `<div class="dash-bullet-marker" style="left:${budgetW}%"></div>` : ""}
@@ -447,6 +454,33 @@
         </div>` : ""}
         <div class="dash-bullet-list">${rows}</div>
       `;
+
+      if (hasBudget) {
+        const tipId = "dre-bullet-htip";
+        let tip = document.getElementById(tipId);
+        if (!tip) {
+          tip = document.createElement("div");
+          tip.id = tipId;
+          tip.style.cssText = "position:fixed;z-index:9999;display:none;pointer-events:none;" +
+            "background:#13161c;border:0.5px solid #2a2d34;border-radius:5px;padding:5px 9px;line-height:1.5;white-space:nowrap";
+          document.body.appendChild(tip);
+        }
+        const hideTip = () => { tip.style.display = "none"; };
+        container.querySelectorAll(".dash-bullet-track").forEach((track) => {
+          track.addEventListener("mousemove", (e) => {
+            const { bv, pv, dv, dvColor: dc, cmp } = track.dataset;
+            const html = `
+              <span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">Real</span><span style="font-size:0.72rem;font-weight:700;color:#fff">${bv}</span></span>
+              <span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">${cmp} (Meta)</span><span style="font-size:0.72rem;font-weight:600;color:#a1a7b3">${pv}</span></span>
+              <span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">Var. R$</span><span style="font-size:0.72rem;font-weight:600;color:${dc}">${dv}</span></span>`;
+            tip.innerHTML = html;
+            tip.style.display = "block";
+            tip.style.left = (e.clientX - tip.offsetWidth / 2) + "px";
+            tip.style.top = (e.clientY - tip.offsetHeight - 10) + "px";
+          });
+          track.addEventListener("mouseleave", hideTip);
+        });
+      }
     }
 
     function renderDreGauges(realReport, budgetReport, monthIdx, hasReal, hasBudget, accum = false, compareLabel = "Budget") {

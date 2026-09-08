@@ -2076,6 +2076,7 @@ body.auth-only .vp-update-banner { display: none; }
   background: var(--bg-inset, #1a1a2e);
   border-radius: 4px;
   overflow: visible;
+  cursor: crosshair;
 }
 .dash-bullet-budget {
   position: absolute; left: 0; top: 0;
