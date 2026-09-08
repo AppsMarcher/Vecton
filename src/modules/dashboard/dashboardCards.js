@@ -823,7 +823,10 @@
       };
 
       const inner = document.createElement("div");
-      inner.style.cssText = "background:var(--panel);border:0.5px solid var(--line);border-radius:14px;padding:20px 24px;min-width:560px;max-width:640px;max-height:80vh;overflow-y:auto;box-shadow:0 24px 56px rgba(0,0,0,0.55)";
+      // O nível 2 (tabela CC/Nome CC/Mat/Colaborador/Cargo, 5 colunas) truncava
+      // bastante em max-width:640px fixo. width-alvo maior + max-width em vw,
+      // mesmo padrão aplicado aos outros popovers de drilldown do sistema.
+      inner.style.cssText = "background:var(--panel);border:0.5px solid var(--line);border-radius:14px;padding:20px 24px;width:820px;max-width:92vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 56px rgba(0,0,0,0.55)";
       overlay.appendChild(inner);
       document.body.appendChild(overlay);
       overlay.addEventListener("click", (event) => {

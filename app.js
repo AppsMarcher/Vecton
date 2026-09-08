@@ -2649,7 +2649,7 @@ function openHcCellPopover(ccNumber, ccName, month, year, colabs) {
   backdrop.className = "hc-cell-popover-backdrop";
   backdrop.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:24px";
   backdrop.innerHTML = `
-    <div class="hc-cell-popover" style="width:820px;max-width:94vw;max-height:80vh;overflow:auto;background:var(--bg-soft);border:1px solid var(--line);border-radius:14px">
+    <div class="hc-cell-popover" style="width:820px;max-width:94vw;max-height:90vh;overflow:auto;background:var(--bg-soft);border:1px solid var(--line);border-radius:14px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg-soft)">
         <div>
           <p style="margin:0;font-size:0.85rem;font-weight:500;color:var(--text)">${head}</p>

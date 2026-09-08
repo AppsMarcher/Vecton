@@ -531,7 +531,7 @@
       overlay.style.cssText = `position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.65);
         display:flex;align-items:center;justify-content:center;padding:16px`;
       overlay.innerHTML = `<div style="background:var(--panel);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.6);
-        width:90vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden">
+        width:94vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);flex-shrink:0">
           <div>
             <p style="font-size:0.65rem;color:var(--text-faint);letter-spacing:0.07em;text-transform:uppercase;margin:0 0 3px">${escapeHtml(col.name || "")}</p>
