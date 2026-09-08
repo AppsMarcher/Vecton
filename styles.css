@@ -4968,9 +4968,15 @@ textarea[disabled] {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 200;
-  min-width: 560px;
-  max-width: min(700px, calc(100vw - 24px));
-  max-height: 82vh;
+  /* Antes min-width:560px / max-width:700px fixos: como a tabela (3 colunas,
+     Descrição sem nowrap) não "empurra" a largura sozinha, na prática o
+     popover sempre nascia nos 560px — sobrando bastante tela vazia em
+     monitores grandes. Agora tem uma largura-alvo real (width), que só o
+     max-width (responsivo, em vw) reduz em telas estreitas. Altura também
+     subiu de 82vh para 90vh. */
+  width: 820px;
+  max-width: 92vw;
+  max-height: 90vh;
   overflow-y: auto;
   background: #14161d;
   border: 1px solid rgba(79, 124, 255, 0.2);
@@ -5064,7 +5070,10 @@ textarea[disabled] {
 }
 
 .gap-table-wrap {
-  max-height: 320px;
+  /* Era um teto fixo de 320px — não acompanhava o popover crescer (90vh).
+     Agora escala com a viewport, então mais linhas aparecem sem precisar do
+     scroll interno em telas maiores. */
+  max-height: 60vh;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;

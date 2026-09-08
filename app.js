@@ -4884,7 +4884,11 @@ function buildSocDrillPopover(lineName, monthLabel, code, entries, total, monthI
   const pop = document.createElement("div");
   pop.dataset.code = code;
   pop.dataset.monthIdx = String(monthIdx);
-  pop.style.cssText = "position:fixed;z-index:9800;background:var(--panel);border:0.5px solid var(--line);border-radius:12px;padding:16px 20px;min-width:560px;max-width:700px;box-shadow:0 20px 50px rgba(0,0,0,0.55)";
+  // width em vez de max-width fixo (era 700px): dá uma largura-alvo real
+  // (era o popover mais estreito dos três — OPEX/Soc costuma ter mais
+  // colunas e Histórico mais longo que o Gerencial), com max-width em vw
+  // pra continuar responsivo em telas estreitas.
+  pop.style.cssText = "position:fixed;z-index:9800;background:var(--panel);border:0.5px solid var(--line);border-radius:12px;padding:16px 20px;width:960px;max-width:92vw;box-shadow:0 20px 50px rgba(0,0,0,0.55)";
   pop.innerHTML = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
       <div>
@@ -5027,13 +5031,16 @@ function buildAuditPopover(lineName, monthLabel, rows, total, lineId, monthIdx) 
 }
 
 function positionAuditPopover(popover) {
-  // Centraliza o popover na tela.
+  // Centraliza o popover na tela. Compartilhado pelos 3 popovers de
+  // detalhamento (OPEX, DRE Societário, DRE Gerencial) — maxHeight subiu de
+  // 82vh pra 90vh (pedido do usuário pra aproveitar mais tela em monitores
+  // grandes).
   popover.style.position = "fixed";
   popover.style.top = "50%";
   popover.style.left = "50%";
   popover.style.right = "auto";
   popover.style.transform = "translate(-50%, -50%)";
-  popover.style.maxHeight = "82vh";
+  popover.style.maxHeight = "90vh";
   popover.style.overflowY = "auto";
 }
 
