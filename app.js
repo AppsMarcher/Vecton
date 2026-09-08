@@ -2709,23 +2709,16 @@ async function fetchHeadcountBudgetForYear(year) {
   return rows;
 }
 
+// Ver comentário em fetchActualsLedgerWithCcForYear/fetchActualsLedgerForCcIds
+// (mais abaixo no arquivo): os 12 meses são buscados em paralelo, não em
+// sequência.
 async function fetchBudgetLedgerWithCcForYear(year) {
   const organizationId = await resolveOrganizationId();
-  const pageSize = 1000;
-  const rows = [];
-  for (let month = 1; month <= 12; month += 1) {
-    let lastId = "00000000-0000-0000-0000-000000000000";
-    while (true) {
-      const page = await fetchSupabaseRowsSafe(
-        "budget_ledger_entries",
-        `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&id=gt.${lastId}&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history&order=id.asc&limit=${pageSize}`
-      );
-      rows.push(...page);
-      if (page.length < pageSize) break;
-      lastId = page[page.length - 1].id;
-    }
-  }
-  return rows;
+  const perMonth = await Promise.all(allMonthsOfYear().map((month) => fetchAllSupabaseRows(
+    "budget_ledger_entries",
+    `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history`
+  )));
+  return perMonth.flat();
 }
 
 async function ensureHcBudgetReportDataForYear(year) {
@@ -5614,21 +5607,11 @@ async function fetchBudgetLedgerForCcIds(year, ccIds) {
   const organizationId = await resolveOrganizationId();
   const encodedIds = [...ccIds].join(",");
   if (!encodedIds) return [];
-  const pageSize = 1000;
-  const rows = [];
-  for (let month = 1; month <= 12; month += 1) {
-    let lastId = "00000000-0000-0000-0000-000000000000";
-    while (true) {
-      const page = await fetchSupabaseRowsSafe(
-        "budget_ledger_entries",
-        `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&cost_center_id=in.(${encodedIds})&id=gt.${lastId}&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history&order=id.asc&limit=${pageSize}`
-      );
-      rows.push(...page);
-      if (page.length < pageSize) break;
-      lastId = page[page.length - 1].id;
-    }
-  }
-  return rows;
+  const perMonth = await Promise.all(allMonthsOfYear().map((month) => fetchAllSupabaseRows(
+    "budget_ledger_entries",
+    `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&cost_center_id=in.(${encodedIds})&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history`
+  )));
+  return perMonth.flat();
 }
 
 async function fetchBudgetLedgerForManagementYear(year, management) {
@@ -5662,45 +5645,36 @@ async function fetchActualsLedgerEntriesForYear(year) {
   return rows;
 }
 
+// Os 12 meses são independentes (cada um com seu próprio filtro
+// reference_month=eq.N) e viram 12 requisições em paralelo via Promise.all,
+// em vez do for-await sequencial antigo. Isso não muda o resultado (ordem das
+// linhas não importa — drilldown e agregação filtram por account+month
+// depois), só o tempo de resposta: 12 round-trips sequenciais viravam ~1
+// round-trip. É a causa principal do "demora quando filtro uma gestão" no
+// OPEX Real/Orçado (a carga "Marcher" nem passa por aqui — usa a tabela
+// pré-agregada actuals_monthly_account_totals, ver fetchActualsReportRowsForYear).
+function allMonthsOfYear() {
+  return Array.from({ length: 12 }, (_, i) => i + 1);
+}
+
 async function fetchActualsLedgerWithCcForYear(year) {
   const organizationId = await resolveOrganizationId();
-  const pageSize = 1000;
-  const rows = [];
-
-  for (let month = 1; month <= 12; month += 1) {
-    let lastId = "00000000-0000-0000-0000-000000000000";
-    while (true) {
-      const page = await fetchSupabaseRowsSafe(
-        "actuals_ledger_entries",
-        `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&id=gt.${lastId}&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history&order=id.asc&limit=${pageSize}`
-      );
-      rows.push(...page);
-      if (page.length < pageSize) break;
-      lastId = page[page.length - 1].id;
-    }
-  }
-  return rows;
+  const perMonth = await Promise.all(allMonthsOfYear().map((month) => fetchAllSupabaseRows(
+    "actuals_ledger_entries",
+    `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history`
+  )));
+  return perMonth.flat();
 }
 
 async function fetchActualsLedgerForCcIds(year, ccIds) {
   const organizationId = await resolveOrganizationId();
   const encodedIds = [...ccIds].join(",");
   if (!encodedIds) return [];
-  const pageSize = 1000;
-  const rows = [];
-  for (let month = 1; month <= 12; month += 1) {
-    let lastId = "00000000-0000-0000-0000-000000000000";
-    while (true) {
-      const page = await fetchSupabaseRowsSafe(
-        "actuals_ledger_entries",
-        `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&cost_center_id=in.(${encodedIds})&id=gt.${lastId}&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history&order=id.asc&limit=${pageSize}`
-      );
-      rows.push(...page);
-      if (page.length < pageSize) break;
-      lastId = page[page.length - 1].id;
-    }
-  }
-  return rows;
+  const perMonth = await Promise.all(allMonthsOfYear().map((month) => fetchAllSupabaseRows(
+    "actuals_ledger_entries",
+    `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&cost_center_id=in.(${encodedIds})&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history`
+  )));
+  return perMonth.flat();
 }
 
 async function fetchActualsLedgerForManagementYear(year, management) {
