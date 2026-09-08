@@ -5201,10 +5201,26 @@ function initFloatingScrollbar(wrap) {
   let syncing = false;
   let visible = false;
 
+  // A barra flutuante só existe pra cobrir o caso em que a barra REAL (que
+  // fica colada na borda inferior do próprio wrap) saiu da viewport porque a
+  // página rolou verticalmente. Antes disso não era checado: `visible` só
+  // dizia "o wrap tem alguma interseção com a viewport", então em relatórios
+  // que cabem inteiros na tela (barra real já visível, tabela toda à vista)
+  // a flutuante aparecia do mesmo jeito — duas barras de rolagem horizontal
+  // ao mesmo tempo, uma logo abaixo da tabela e outra grudada no rodapé da
+  // janela (bug relatado com print das duas barras juntas no DRE Gerencial
+  // Budget/Real). Agora só mostra quando a borda inferior do wrap (onde a
+  // barra real mora) está fora do intervalo visível.
+  function realScrollbarOnScreen() {
+    const rect = wrap.getBoundingClientRect();
+    return rect.bottom >= 0 && rect.bottom <= window.innerHeight;
+  }
+
   function updateGeometry() {
     const hasOverflow = wrap.scrollWidth > wrap.clientWidth;
-    track.style.display = (visible && hasOverflow) ? "block" : "none";
-    if (!visible || !hasOverflow) return;
+    const shouldShow = visible && hasOverflow && !realScrollbarOnScreen();
+    track.style.display = shouldShow ? "block" : "none";
+    if (!shouldShow) return;
     const rect = wrap.getBoundingClientRect();
     track.style.left  = rect.left + "px";
     track.style.width = rect.width + "px";
@@ -5226,11 +5242,21 @@ function initFloatingScrollbar(wrap) {
   const io = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; updateGeometry(); });
   io.observe(wrap);
 
+  // "scroll" não borbulha (bubbles:false), então window/document não recebem
+  // o evento do container interno que realmente rola (.main-panel) na fase
+  // de bubble — mas a fase de CAPTURA passa por todos os ancestrais mesmo
+  // assim, então ouvir em document com capture:true pega a rolagem de
+  // qualquer container da página sem precisar descobrir qual é.
+  document.addEventListener("scroll", updateGeometry, true);
+  window.addEventListener("resize", updateGeometry);
+
   updateGeometry();
 
   _floatingHScrollCleanup = () => {
     wrap.removeEventListener("scroll", onWrapScroll);
     track.removeEventListener("scroll", onTrackScroll);
+    document.removeEventListener("scroll", updateGeometry, true);
+    window.removeEventListener("resize", updateGeometry);
     ro.disconnect();
     io.disconnect();
     track.remove();
