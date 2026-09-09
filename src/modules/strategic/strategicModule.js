@@ -429,6 +429,13 @@
         .sa3-kpi-block-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
         .sa3-kpi-title { font-size:.9rem; font-weight:700; }
         .sa3-kpi-sub { font-size:.72rem; color:var(--sa3-faint); margin-top:2px; }
+        /* Checkbox "Acumulado" por indicador (pedido do usuário, 2026-09-09):
+           troca o gráfico do próprio KPI (Realizado + Meta) pra série
+           acumulada no ano, sem precisar de um KPI-irmão "X Acumulado"
+           cadastrado à parte (ver strategic_get_kpi_accumulated_series). */
+        .sa3-kpi-accum-toggle { display:inline-flex; align-items:center; gap:6px; font-size:.72rem; color:var(--sa3-faint); cursor:pointer; user-select:none; flex-shrink:0; }
+        .sa3-kpi-accum-toggle input { width:14px; height:14px; accent-color:#4f7cff; cursor:pointer; }
+        .sa3-kpi-accum-toggle.is-loading { opacity:.6; pointer-events:none; }
         .sa3-combo-chart { margin-top:8px; }
         .sa3-chart-plot { position:relative; height:116px; }
         .sa3-bars { position:absolute; inset:0; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:6px; padding:0 2px; z-index:1; }
@@ -1183,7 +1190,7 @@
         }
       });
 
-      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); bindKpiCatalogActions(k.id); bindKpiAttachTrigger(k); });
+      kpis.forEach((k) => { bindActionForm(k.id); bindKpiAnalysisForm(k.id); bindKpiCatalogActions(k.id); bindKpiAttachTrigger(k); bindKpiAccumulatedToggle(k.id); });
       bindKpiChartTooltips();
       bindAnalysisRemoveButtons();
       bindActionItemButtons();
@@ -1396,6 +1403,18 @@
       // loadPeriodAnalysis já busca só o mês corrente).
       const cutoffPeriod = currentPeriod();
       const cutoffMonth = cutoffPeriod.month;
+      // Checkbox "Acumulado" por indicador (pedido do usuário, 2026-09-09):
+      // troca Realizado+Meta pra série acumulada no ano (strategic_get_kpi_
+      // accumulated_series, buscada sob demanda em bindKpiAccumulatedToggle
+      // e cacheada por kpiId+ano em state.kpiAccumulatedData). Sem cache
+      // ainda (fetch em andamento ou falhou) cai de volta pro mensal — nunca
+      // mostra o card vazio por causa disso.
+      const isAccumulated = !!state.kpiAccumulatedView?.[k.id];
+      const accumCacheKey = `${k.id}:${cutoffPeriod.year}`;
+      const accumSeries = isAccumulated ? state.kpiAccumulatedData?.[accumCacheKey] : null;
+      const seriesInput = accumSeries
+        ? { ...k, monthlyValues: accumSeries.monthlyValues, monthlyTargets: accumSeries.monthlyTargets }
+        : k;
       // Cálculo da série (escala do eixo, corte "viajar no tempo", segmentação
       // da linha de meta em buracos só onde falta a própria Meta — não exige
       // mais Real no mês, 2026-09-09) mora em buildKpiChartSeries
@@ -1404,7 +1423,7 @@
       // vermelho (mesma decisão do usuário, 2026-08-29 "retira esse amarelo":
       // é meta não batida de verdade, só dentro de uma margem pequena de
       // errar).
-      const { isRange, zeroY, bars: chartBars, targetLine: chartTargetLine } = window.VECTON_STRATEGIC_DATA.buildKpiChartSeries(k, cutoffMonth);
+      const { isRange, zeroY, bars: chartBars, targetLine: chartTargetLine } = window.VECTON_STRATEGIC_DATA.buildKpiChartSeries(seriesInput, cutoffMonth);
 
       const metaLabel = (bar) => isRange
         ? `${formatByUnit(bar.targetMin, k.unit, k.decimalPlaces)}–${formatByUnit(bar.targetMax, k.unit, k.decimalPlaces)}`
@@ -1466,7 +1485,7 @@
             <div style="flex:1 1 auto; min-width:0;">
               <div data-kpi-title-display="${escapeHtml(k.id)}">
                 <div class="sa3-kpi-title">${escapeHtml(k.name)}${isAuto ? '<span class="sa3-badge-auto">Auto</span>' : ""}</div>
-                <div class="sa3-kpi-sub">${escapeHtml(k.description || "Realizado vs. meta mensal")}</div>
+                <div class="sa3-kpi-sub">${escapeHtml(k.description || (isAccumulated ? "Realizado vs. meta acumulada" : "Realizado vs. meta mensal"))}</div>
               </div>
               ${canEditCatalog ? `
                 <div class="sa3-kpi-title-edit hidden" data-kpi-title-edit="${escapeHtml(k.id)}">
@@ -1479,6 +1498,10 @@
                 </div>
               ` : ""}
             </div>
+            <label class="sa3-kpi-accum-toggle" title="Mostrar Realizado e Meta acumulados no ano">
+              <input type="checkbox" data-action="toggle-kpi-accumulated" data-kpi-id="${escapeHtml(k.id)}" ${isAccumulated ? "checked" : ""}>
+              Acumulado
+            </label>
             ${(canEditCatalog || showAttachmentIcon) ? `
               <div class="sa3-kpi-head-actions">
                 ${showAttachmentIcon ? `
@@ -1571,6 +1594,50 @@
         } catch (err) {
           appAlert?.(friendlyError(err), "error");
           deleteBtn.disabled = false;
+        }
+      });
+    }
+
+    // Checkbox "Acumulado" do gráfico (pedido do usuário, 2026-09-09) —
+    // troca o Realizado+Meta do PRÓPRIO indicador pra série acumulada no
+    // ano, sem precisar de um KPI-irmão "X Acumulado" cadastrado à parte
+    // (esse já era o único jeito antes, ex.: EBITDA/MC1 — migration 136).
+    // Desmarcar é síncrono (só esconde, dado já teria vindo antes); marcar
+    // busca sob demanda (strategic_get_kpi_accumulated_series) na primeira
+    // vez e cacheia em state.kpiAccumulatedData por kpiId+ano — trocar de
+    // mês dentro do mesmo ano reaproveita, trocar de ano busca de novo.
+    function bindKpiAccumulatedToggle(kpiId) {
+      const checkbox = root.querySelector(`[data-action="toggle-kpi-accumulated"][data-kpi-id="${cssEscape(kpiId)}"]`);
+      if (!checkbox) return;
+      checkbox.addEventListener("change", async () => {
+        state.kpiAccumulatedView = state.kpiAccumulatedView || {};
+        if (!checkbox.checked) {
+          state.kpiAccumulatedView[kpiId] = false;
+          renderShell();
+          return;
+        }
+        const label = checkbox.closest(".sa3-kpi-accum-toggle");
+        const cacheKey = `${kpiId}:${currentPeriod().year}`;
+        if (state.kpiAccumulatedData?.[cacheKey]) {
+          state.kpiAccumulatedView[kpiId] = true;
+          renderShell();
+          return;
+        }
+        checkbox.disabled = true;
+        label?.classList.add("is-loading");
+        try {
+          const series = await callSupabaseRpc("strategic_get_kpi_accumulated_series", {
+            p_kpi_id: kpiId, p_year: currentPeriod().year
+          });
+          state.kpiAccumulatedData = state.kpiAccumulatedData || {};
+          state.kpiAccumulatedData[cacheKey] = series;
+          state.kpiAccumulatedView[kpiId] = true;
+          renderShell();
+        } catch (err) {
+          appAlert?.(friendlyError(err), "error");
+          checkbox.checked = false;
+          checkbox.disabled = false;
+          label?.classList.remove("is-loading");
         }
       });
     }
