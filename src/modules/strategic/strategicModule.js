@@ -1397,12 +1397,13 @@
       const cutoffPeriod = currentPeriod();
       const cutoffMonth = cutoffPeriod.month;
       // Cálculo da série (escala do eixo, corte "viajar no tempo", segmentação
-      // da linha de meta em buracos onde falta Real ou Meta) mora em
-      // buildKpiChartSeries (strategicDataModule.js, compartilhado com a
-      // versão mobile) — aqui só vira marcação com as classes sa3-* do
-      // desktop. 'attention' conta como vermelho (mesma decisão do usuário,
-      // 2026-08-29 "retira esse amarelo": é meta não batida de verdade,
-      // só dentro de uma margem pequena de errar).
+      // da linha de meta em buracos só onde falta a própria Meta — não exige
+      // mais Real no mês, 2026-09-09) mora em buildKpiChartSeries
+      // (strategicDataModule.js, compartilhado com a versão mobile) — aqui só
+      // vira marcação com as classes sa3-* do desktop. 'attention' conta como
+      // vermelho (mesma decisão do usuário, 2026-08-29 "retira esse amarelo":
+      // é meta não batida de verdade, só dentro de uma margem pequena de
+      // errar).
       const { isRange, zeroY, bars: chartBars, targetLine: chartTargetLine } = window.VECTON_STRATEGIC_DATA.buildKpiChartSeries(k, cutoffMonth);
 
       const metaLabel = (bar) => isRange

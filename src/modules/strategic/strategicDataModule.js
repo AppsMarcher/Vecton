@@ -83,8 +83,11 @@
   // marcação — cada tela desenha com as próprias classes/tamanhos (desktop:
   // sa3-bar-*/sa3-target-*; mobile: sa3mob-bar-*/sa3mob-target-*), mas a
   // escala (chartMin/Max), o corte "viajar no tempo" (cutoffMonth) e a
-  // segmentação da linha de meta (buraco quando falta Real ou Meta no mês)
-  // são UMA regra só, nunca duas implementações que podem divergir.
+  // segmentação da linha de meta (buraco só quando falta a própria Meta no
+  // mês — regra mudada 2026-09-09 a pedido do usuário: a meta do ano
+  // inteiro já cadastrada deve aparecer completa, mesmo em mês sem
+  // Realizado lançado ainda) são UMA regra só, nunca duas implementações
+  // que podem divergir.
   //
   // Retorna { isRange, zeroY, bars: [{i,label,hasReal,value,top,height,tone,
   // targetValue,targetMin,targetMax,variation} x12], targetLine } onde
@@ -145,18 +148,20 @@
       }
       return path;
     };
-    // Segmenta a linha em pedaços contínuos: mês sem Real OU sem Meta vira
-    // um "buraco" (não interpola por cima do vazio) — mesma regra do
-    // desktop original.
+    // Segmenta a linha em pedaços contínuos: só falta de Meta vira um
+    // "buraco" (não interpola por cima do vazio). Antes também exigia Real
+    // no mês — mudado 2026-09-09 a pedido do usuário: com a meta do ano
+    // inteiro já cadastrada, ela deve aparecer completa (Jan-Dez) mesmo nos
+    // meses em que o Realizado ainda não foi lançado; a barra de Realizado
+    // continua reagindo só a hasReal (ver bars acima), isso aqui é só a
+    // linha/banda de Meta.
     const buildSegments = (getValue) => {
       const lineSegments = [];
       let currentSegment = [];
       const points = [];
       for (let i = 0; i < 12; i += 1) {
         const targetValue = getValue(i);
-        const actualValue = monthly[i]?.value;
-        const hasActual = actualValue !== null && actualValue !== undefined && Number.isFinite(Number(actualValue));
-        if (!hasActual || targetValue === null || targetValue === undefined || !Number.isFinite(Number(targetValue))) {
+        if (targetValue === null || targetValue === undefined || !Number.isFinite(Number(targetValue))) {
           if (currentSegment.length) lineSegments.push(currentSegment);
           currentSegment = [];
           continue;
