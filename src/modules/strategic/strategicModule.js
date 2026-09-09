@@ -1905,7 +1905,14 @@
     }
 
     function bindKpiChartTooltips() {
-      const columns = root.querySelectorAll('.sa3-bar-col[data-chart-has-real="true"]');
+      // Antes só ligava tooltip nas colunas COM Realizado — mês sem
+      // Realizado (Meta já cadastrada, ainda sem lançamento) ficava sem
+      // qualquer jeito de ler a meta daquele mês passando o mouse, mesmo a
+      // linha de meta aparecendo ali (fix anterior, 2026-09-09). data-chart-
+      // real/meta/variation já vêm com "—" pro que falta (formatByUnit/
+      // formatTargetVariation tratam null), só faltava não excluir a coluna
+      // do binding. Pedido do usuário, 2026-09-09.
+      const columns = root.querySelectorAll(".sa3-bar-col");
       if (!columns.length) return;
 
       const tooltip = document.createElement("div");

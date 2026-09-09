@@ -168,8 +168,7 @@
         /* Coluna inteira (não só a barrinha) é a área de toque -- alvo de
            toque maior que os ~13px da barra, mais fácil de acertar com o
            dedo. */
-        .sa3mob-chart-col { position:relative; height:100%; min-width:0; }
-        .sa3mob-chart-col[data-chart-has-real="true"] { cursor:pointer; }
+        .sa3mob-chart-col { position:relative; height:100%; min-width:0; cursor:pointer; }
         .sa3mob-chart-bar { position:absolute; left:50%; transform:translateX(-50%); width:min(13px,82%); border-radius:3px 3px 1px 1px; background:linear-gradient(180deg,#b6c2d2 0%,#78889d 24%,#374151 100%); transition:filter 120ms ease; }
         /* Coluna tocada (pedido do usuário, 2026-09-02: "ao colocar o dedo
            sobre a coluna, mostrar a legenda") -- realce visual + popover
@@ -620,7 +619,11 @@
     function handleChartColTap(col) {
       if (!containerEl || !containerEl.contains(col)) return;
       if (activeChartCol === col) { fecharChartTooltip(); return; }
-      if (col.dataset.chartHasReal !== "true") { fecharChartTooltip(); return; }
+      // Antes exigia Realizado pra abrir o popover — mês sem Realizado
+      // (Meta já cadastrada, ainda sem lançamento) ficava sem jeito de ler
+      // a meta no mobile, mesmo a linha de meta aparecendo ali (fix
+      // desktop equivalente, 2026-09-09). data-chart-real/variation já vêm
+      // com "—" pro que falta. Pedido do usuário, 2026-09-09.
       abrirChartTooltip(col);
     }
 
