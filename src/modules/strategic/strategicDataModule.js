@@ -82,12 +82,12 @@
   // fica tão boa quanto no desktop"). Devolve só NÚMEROS/pontos, nunca
   // marcação — cada tela desenha com as próprias classes/tamanhos (desktop:
   // sa3-bar-*/sa3-target-*; mobile: sa3mob-bar-*/sa3mob-target-*), mas a
-  // escala (chartMin/Max), o corte "viajar no tempo" (cutoffMonth) e a
-  // segmentação da linha de meta (buraco só quando falta a própria Meta no
-  // mês — regra mudada 2026-09-09 a pedido do usuário: a meta do ano
-  // inteiro já cadastrada deve aparecer completa, mesmo em mês sem
-  // Realizado lançado ainda) são UMA regra só, nunca duas implementações
-  // que podem divergir.
+  // escala (chartMin/Max), o corte "viajar no tempo" (cutoffMonth — só no
+  // Realizado, ver targets abaixo) e a segmentação da linha de meta (buraco
+  // só quando falta a própria Meta no mês — regra mudada 2026-09-09 a
+  // pedido do usuário: a meta do ano inteiro já cadastrada deve aparecer
+  // completa, mesmo em mês sem Realizado lançado ainda) são UMA regra só,
+  // nunca duas implementações que podem divergir.
   //
   // Retorna { isRange, zeroY, bars: [{i,label,hasReal,value,top,height,tone,
   // targetValue,targetMin,targetMax,variation} x12], targetLine } onde
@@ -97,7 +97,12 @@
   // [{x,y}...] }, x em 0..1200 (viewBox largura), y em 0..100 (%, topo=0).
   function buildKpiChartSeries(k, cutoffMonth) {
     const monthly = (k.monthlyValues || []).map((m) => (m && m.month <= cutoffMonth ? m : null));
-    const targets = (k.monthlyTargets || []).map((t) => (t && t.month <= cutoffMonth ? t : null));
+    // Meta NÃO leva o corte "viajar no tempo" (pedido do usuário, 2026-09-09):
+    // ela é um plano já fechado pro ano inteiro, não um dado que "vazou do
+    // futuro" como o Realizado seria — filtrando Jan/2026 a linha de meta
+    // deve mostrar Jan-Dez igual, só o Realizado (monthly acima) continua
+    // cortado no mês selecionado.
+    const targets = k.monthlyTargets || [];
     const isRange = k.comparisonMode === "range";
     // status já vem calculado do banco (strategic_kpi_status) — só mapeia
     // pra tom pos/neg (attention também é meta não batida -> neg, mesma
