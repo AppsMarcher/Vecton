@@ -1486,7 +1486,15 @@ const cockpitModule = window.VECTON_COCKPIT.createCockpitModule({
   getPeriod: () => state.currentPeriod,
   canAccess: canAccessDashboard,
   service: cockpitService,
-  getManagementAccess: getCockpitManagementAccess
+  getManagementAccess: getCockpitManagementAccess,
+  // Toggle de período do cabeçalho nunca pode ficar descasado do mês que o
+  // Cockpit está mostrando — mesmo padrão do Painel de Vendas (ver
+  // syncHeaderPeriod acima, em createComercialPainelModule).
+  syncHeaderPeriod: (year, month) => {
+    state.currentPeriod = { year, month };
+    renderPeriodSummary();
+    renderPeriodPicker();
+  }
 });
 const renderModule = createRenderModule({
   getActiveView: () => activeView,
@@ -2261,7 +2269,7 @@ function getAllowedCcNumbers() {
 // Retorna { selectedMgmt, locked, allowedMgmts, partialMgmts } para uso nos filtros de gestão.
 // allowedMgmts: array de gestões visíveis no dropdown; null = sem restrição (admin) ou locked total.
 // partialMgmts: Map<mgmt, ccId[]> com gestões de acesso parcial via extra_cc_ids.
-function getCockpitManagementAccess(previous = "Controladoria") {
+function getCockpitManagementAccess(previous = "Marcher") {
   const registered = [...new Set([...(state.managements || []).map(row => row.name), ...state.costCenters.map(cc => cc.management)].map(name => String(name || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
   const base = ["Marcher", ...registered.filter(name => name !== "Marcher")];
   const access = resolveManagementFilter(previous, base, "Marcher");

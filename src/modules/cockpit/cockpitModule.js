@@ -1,10 +1,11 @@
 (function attachCockpitModule(window) {
   "use strict";
-  function createCockpitModule({ getActiveView, getPeriod, canAccess, service, getManagementAccess }) {
+  function createCockpitModule({ getActiveView, getPeriod, canAccess, service, getManagementAccess, syncHeaderPeriod }) {
     const F = window.VECTON_COCKPIT_FORMAT;
     const W = window.VECTON_COCKPIT_WIDGETS;
-    let management = "Controladoria", periodType = "YTD", lastKey = "", requestId = 0;
+    let management = "Marcher", periodType = "month", lastKey = "", requestId = 0;
     let controls, root, body, status, mobileHost, home, controlsHome, periodHome, hideTrendTip, lastData, drillPopover;
+    let entered = false; // reseta toda vez que o usuário SAI da tela (ver render())
     function initialize() {
       root = document.querySelector("#cockpit-view");
       root.innerHTML = `<div class="panel-header cockpit-heading"><div><h1></h1><p>Visão integrada de desempenho, custos e pessoas</p></div><div class="cockpit-heading-actions"><button type="button" class="period-month-button" data-cockpit-refresh>Atualizar dados</button></div></div><p class="cockpit-source"></p><div class="cockpit-status" role="status" aria-live="polite"></div><div class="cockpit-body">${W.shell()}</div>`;
@@ -154,7 +155,24 @@
       if (!root) initialize();
       if (mobileHost) root.classList.add("active");
       controls.hidden = !active;
-      if (!active) { requestId++; lastKey = ""; hideTrendTip?.(); closeGroupDrilldown(); return; }
+      if (!active) { entered = false; requestId++; lastKey = ""; hideTrendTip?.(); closeGroupDrilldown(); return; }
+      if (!entered) {
+        // Toda vez que ENTRA na tela (não a cada re-render), reseta pro padrão
+        // — Gestão Marcher, filtro Mês, mês calendário atual -1 — e empurra
+        // esse mês pro seletor de período do cabeçalho (mesmo padrão do
+        // Painel de Vendas, ver renderSelectedPainel em
+        // reportsComercialPainelModule.js): o toggle do topo nunca pode ficar
+        // descasado do que a tela está mostrando. Depois disso, segue o
+        // cabeçalho normalmente até o usuário sair e entrar de novo.
+        entered = true;
+        management = "Marcher";
+        periodType = "month";
+        controls.querySelectorAll("[data-period]").forEach(node => node.setAttribute("aria-pressed", String(node.dataset.period === periodType)));
+        const lastMonth = new Date();
+        lastMonth.setDate(1); // evita estourar o mês ao cair num dia 29-31 que não existe no mês anterior
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        syncHeaderPeriod?.(lastMonth.getFullYear(), lastMonth.getMonth() + 1);
+      }
       const access = getManagementAccess(management);
       management = access.selected;
       const select = controls.querySelector("select");
