@@ -29,6 +29,11 @@
     // moduleCanOpen() abaixo resolve qualquer um dos dois formatos.
     const MODULES = [
       {
+        key: "cockpit", nome: "Cockpit Gestão",
+        desc: "Visão integrada de desempenho, custos e pessoas.",
+        accent: "var(--cyan)", icon: "target", checkAccess: () => deps.canAccessDashboard?.(), available: true
+      },
+      {
         key: "painelVendas", nome: "Painel de Vendas",
         desc: "Faturamento, carteira e meta por coordenação e território.",
         accent: "#4F7CFF", icon: "pie", reportId: "comercialPainel", available: true
@@ -233,6 +238,8 @@
         comercialPainelMobileModule.mount(screenEl);
       } else if (activeModuleKey === "a3" && strategicMobileModule) {
         strategicMobileModule.mount(screenEl);
+      } else if (activeModuleKey === "cockpit") {
+        deps.cockpitModule.mount(screenEl);
       }
     }
 
@@ -280,6 +287,7 @@
     }
 
     function goToMenu() {
+      if (activeModuleKey === "cockpit") deps.cockpitModule.unmount();
       if (activeModuleKey === "painelVendas" && comercialPainelMobileModule) comercialPainelMobileModule.unmount();
       else if (activeModuleKey === "a3" && strategicMobileModule) strategicMobileModule.unmount();
       activeModuleKey = null;
@@ -366,6 +374,7 @@
     }
 
     function deactivate() {
+      if (activeModuleKey === "cockpit") deps.cockpitModule.unmount();
       if (activeModuleKey === "painelVendas" && comercialPainelMobileModule) comercialPainelMobileModule.unmount();
       else if (activeModuleKey === "a3" && strategicMobileModule) strategicMobileModule.unmount();
       activeModuleKey = null;

@@ -60,6 +60,9 @@
       // display: grid/flex no CSS, que sobrescreve o [hidden] do user-agent.
       const dashBtn = document.querySelector(".menu-button[data-view='dashboard']");
       if (dashBtn) dashBtn.style.display = canAccessDashboard() ? "" : "none";
+      const cockpitBtn = document.querySelector(".menu-button[data-view='cockpit']");
+      if (cockpitBtn) cockpitBtn.style.display = canAccessDashboard() ? "" : "none";
+      void deps.renderCockpit?.();
 
       const rpsBtn = document.querySelector(".menu-button[data-view='rps']");
       if (rpsBtn) rpsBtn.style.display = canAccessRps() ? "" : "none";

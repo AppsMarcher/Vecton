@@ -1234,7 +1234,7 @@
         entryDate: ["data"],
         accountNumber: ["conta"],
         branchCode: ["empresa", "filial", "filialdeorigem", "empresafilial"],
-        costCenterNumber: ["centrodecustos", "centrodecusto", "ccusto", "cc", "custocentro"],
+        costCenterNumber: ["centrodecustos", "centrodecusto", "ccusto", "cc", "ccs", "custocentro"],
         history: ["historico"],
         lotCode: ["lote", "lotesubdoclinha"],
         amount: ["valor"]

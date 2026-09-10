@@ -109,6 +109,7 @@ let organizationIdCache = null;
 let reportCardLabelsCache = {};
 let currentSession = null;
 let currentUser = null;
+let cockpitService = null;
 let profileDraft = null;
 let periodPickerYear = state.currentPeriod?.year || 2026;
 // ─── Headcount Realizado (relatório) — estado de módulo ──────────────────
@@ -184,6 +185,7 @@ const paramsToggle = document.querySelector("#params-toggle");
 const paramsSubmenu = document.querySelector("#params-submenu");
 const paramsCaret = document.querySelector("#params-caret");
 const views = {
+  cockpit: document.querySelector("#cockpit-view"),
   dashboard: document.querySelector("#dashboard-view"),
   planning:  document.querySelector("#planning-view"),
   rps: document.querySelector("#rps-view"),
@@ -253,7 +255,7 @@ const authModule = createAuthModule({
   hydrateFromSupabase,
   buildAuthHeaders,
   supabaseConfig,
-  onLogoutCleanup: () => { organizationIdCache = null; reportCardLabelsCache = {}; },
+  onLogoutCleanup: () => { organizationIdCache = null; reportCardLabelsCache = {}; cockpitService?.invalidate(); },
   getCurrentSession: () => currentSession,
   setCurrentSession: (value) => { currentSession = value; },
   getCurrentUser: () => currentUser,
@@ -573,6 +575,7 @@ const {
   getCurrentPeriodBatches: getCurrentPeriodBudgetBatches
 } = budgetModule;
 const navigationModule = createNavigationModule({
+  renderCockpit: () => cockpitModule.render(),
   VIEW_HEADER_METADATA,
   MONTH_LABELS,
   menuButtons,
@@ -1369,6 +1372,8 @@ function handleMobileLogout() {
   return handleLogout();
 }
 const mobileShellModule = createMobileShellModule({
+  canAccessDashboard,
+  cockpitModule: { mount: host => cockpitModule.mount(host), unmount: () => cockpitModule.unmount() },
   canSeeReport,
   canAccessStrategic,
   getCurrentUser: () => currentUser,
@@ -1464,6 +1469,26 @@ const { renderDashboard } = createDashboardModule({
   renderDashComboChart,
   renderDashAlerts,
   renderDashOpexCards
+});
+cockpitService = window.VECTON_COCKPIT_SERVICE.createCockpitService({
+  isConfigured: isSupabaseConfigured,
+  readRows: fetchSupabaseRows,
+  isMissingRelationError,
+  resolveOrganizationId,
+  getState: () => state,
+  getSessionKey: () => currentUser?.id || "",
+  getManagementAccess: getCockpitManagementAccess,
+  getOpexStructure: () => OPEX_STRUCTURE,
+  getPersonnelAccounts: () => HC_PESSOAL_ACCOUNTS,
+  getRevenueAccounts: () => [...new Set(["receitaBruta", "impostos", "devolucoes", "descontos"].flatMap(key => DRE_GER_ACCOUNT_MAP[key]))],
+  buildDreReport: buildDreGerRealReport
+});
+const cockpitModule = window.VECTON_COCKPIT.createCockpitModule({
+  getActiveView: () => activeView,
+  getPeriod: () => state.currentPeriod,
+  canAccess: canAccessDashboard,
+  service: cockpitService,
+  getManagementAccess: getCockpitManagementAccess
 });
 const renderModule = createRenderModule({
   getActiveView: () => activeView,
@@ -2238,6 +2263,17 @@ function getAllowedCcNumbers() {
 // Retorna { selectedMgmt, locked, allowedMgmts, partialMgmts } para uso nos filtros de gestão.
 // allowedMgmts: array de gestões visíveis no dropdown; null = sem restrição (admin) ou locked total.
 // partialMgmts: Map<mgmt, ccId[]> com gestões de acesso parcial via extra_cc_ids.
+function getCockpitManagementAccess(previous = "Controladoria") {
+  const registered = [...new Set([...(state.managements || []).map(row => row.name), ...state.costCenters.map(cc => cc.management)].map(name => String(name || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const base = ["Marcher", ...registered.filter(name => name !== "Marcher")];
+  const access = resolveManagementFilter(previous, base, "Marcher");
+  const options = [...new Set(access.locked ? [access.selectedMgmt] : access.allowedMgmts || base)];
+  const partial = access.partialMgmts?.get(access.selectedMgmt);
+  const selectedCenters = state.costCenters.filter(cc => (cc.management || "").trim() === access.selectedMgmt && (!partial || partial.map(String).includes(String(cc.id))));
+  return { options, selected: access.selectedMgmt, locked: access.locked, partial: !!partial,
+    centers: access.selectedMgmt === "Marcher" ? null : selectedCenters };
+}
+
 function resolveManagementFilter(prevMgmt, mgmtOptions, allOption) {
   const userMgmt = getUserManagement();
   if (isManager() || isAnalyst()) {
@@ -4086,7 +4122,7 @@ function renderOpexBudgetReport(detailPanel) {
     srcSel.addEventListener("change", () => {
       _opexBudgetSource = srcSel.value;
       if (_opexBudgetSource !== "budget") {
-        renderOpexScenario(contentDiv, year, _opexBudgetSource.slice("scenario:".length));
+        renderOpexScenario(contentDiv, year, _opexBudgetSource.slice("scenario:".length), selectedMgmt, partialMgmts);
       } else {
         renderReportsView();
       }
@@ -4102,7 +4138,7 @@ function renderOpexBudgetReport(detailPanel) {
 
   // Cenário selecionado
   if (_opexBudgetSource !== "budget") {
-    renderOpexScenario(contentDiv, year, _opexBudgetSource.slice("scenario:".length));
+    renderOpexScenario(contentDiv, year, _opexBudgetSource.slice("scenario:".length), selectedMgmt, partialMgmts);
     return;
   }
 
@@ -4158,7 +4194,9 @@ function renderOpexBudgetReport(detailPanel) {
   initAllReportTableResizers();
 }
 
-function renderOpexScenario(contentDiv, year, scenarioId) {
+function renderOpexScenario(contentDiv, year, scenarioId, selectedMgmt = "Marcher", partialMgmts = null) {
+  const requestId = (contentDiv.opexScenarioRequestId || 0) + 1;
+  contentDiv.opexScenarioRequestId = requestId;
   contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${vpSkeletonTable()}</div></div>`;
   // Chamado direto pelo listener do select "Fonte" (troca pra Cenário), sem
   // passar por renderReportsView()/renderSelectedOpexReport — então o hook
@@ -4167,17 +4205,29 @@ function renderOpexScenario(contentDiv, year, scenarioId) {
   const scenarioWrap = contentDiv.querySelector(".reports-table-wrap");
   if (scenarioWrap) { initFloatingScrollbar(scenarioWrap); initVerticalScrollBounds(scenarioWrap); }
   fetchScenarioLedgerForYear(scenarioId, year).then(rows => {
+    if (!contentDiv.isConnected || contentDiv.opexScenarioRequestId !== requestId) return;
     const inner = contentDiv.querySelector("#opex-budget-table-inner");
     if (!inner) return;
     // OPEX Planejado por cenário segue a mesma regra do real: Gestor/Analista
     // só veem os CCs da própria gestão (mesmo getAllowedCcNumbers do OPEX Real).
+    // Faltava aplicar a própria Gestão escolhida no filtro do header — antes ela
+    // ficava sem nenhum efeito quando a Fonte era um cenário (ex.: "Fcst 5+7"),
+    // e a tabela sempre mostrava a base inteira da empresa, mesmo com "Gestão:
+    // Controladoria" selecionado. `fetchScenarioLedgerForYear` não filtra por CC
+    // na query (não tem essa dimensão pronta pro cenário), então o filtro é
+    // aplicado aqui, do mesmo jeito que o ramo "Budget" faz na fonte.
     const allowedCcs = getAllowedCcNumbers();
-    const scopedRows = allowedCcs
-      ? rows.filter((r) => allowedCcs.has(String(r.cost_center_number ?? r.costCenterNumber ?? "").trim()))
-      : rows;
+    const isPartial = partialMgmts?.has(selectedMgmt);
+    const mgmtFilter = isPartial ? buildOpexCcIdsFilter(partialMgmts.get(selectedMgmt)) : buildOpexCostCenterFilter(selectedMgmt);
+    const scopedRows = rows.filter((r) => {
+      const number = String(r.cost_center_number ?? r.costCenterNumber ?? "").trim();
+      if (allowedCcs && !allowedCcs.has(number)) return false;
+      return matchesOpexCostCenterFilter(mgmtFilter, r.cost_center_id ?? r.costCenterId, number);
+    });
     inner.innerHTML = buildOpexRealTableMarkup(scopedRows, null, opexHideZeros);
     initAllReportTableResizers();
   }).catch(() => {
+    if (!contentDiv.isConnected || contentDiv.opexScenarioRequestId !== requestId) return;
     const inner = contentDiv.querySelector("#opex-budget-table-inner");
     if (inner) inner.innerHTML = `<div class="actuals-empty">Erro ao carregar dados do cenário.</div>`;
   });
@@ -7895,6 +7945,8 @@ function getDashCompare(year) {
 // comparativo do dashboard, o default do "Comparar com" dos DREs Real e o
 // default da "Fonte" dos 3 relatórios Budget/Planejado (DRE/OPEX/Headcount).
 function handleDefaultScenarioChanged() {
+  cockpitService?.invalidate();
+  cockpitModule?.refresh();
   _dashCompareByYear.clear();
   reportsDreModule?.resetCompareSource?.();
   reportsDreModule?.resetBudgetSource?.();
@@ -7963,6 +8015,7 @@ async function fetchScenarioReportRowsForYear(scenarioId, year) {
 // Invalida os caches de um cenário após qualquer escrita no seu ledger/headcount
 // (carga por lote, cópia de meses, exclusão). year opcional = todos os anos.
 function invalidateScenarioCachesFor(scenarioId, year = null) {
+  cockpitService?.invalidate();
   const suffix = year ? `-${year}` : "";
   const prefixes = [`fc-ledger-${scenarioId}`, `fc-rows-${scenarioId}`, `fc-hc-${scenarioId}`];
   [...reportsLedgerCache.keys()]
