@@ -906,6 +906,24 @@ body.auth-only .vp-update-banner { display: none; }
   font-weight: 500;
 }
 
+.menu-item-tag {
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  background: rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
+}
+
+.menu-button.active .menu-item-tag {
+  color: var(--blue);
+  background: rgba(79, 124, 255, 0.14);
+}
+
 .menu-button-leading {
   display: flex;
   align-items: center;
