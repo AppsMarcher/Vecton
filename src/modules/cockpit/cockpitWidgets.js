@@ -119,7 +119,7 @@
     const headers = [
       th("Grupo", "name", groupsSort.key === "name", groupsSort.dir),
       th(`${valueLabel(data)} ${periodLabel(data)}`, "actual", groupsSort.key === "actual", groupsSort.dir),
-      th(`${comparisonLabel(data)} ${periodLabel(data)}`, "budget", groupsSort.key === "budget", groupsSort.dir),
+      th(`Meta ${periodLabel(data)}`, "budget", groupsSort.key === "budget", groupsSort.dir),
       th("Var.", "variance", groupsSort.key === "variance", groupsSort.dir),
       th("Var. %", "variancePercent", groupsSort.key === "variancePercent", groupsSort.dir)
     ];
