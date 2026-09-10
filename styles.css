@@ -1,87 +1,183 @@
-/* Cockpit Gestão: extends the existing shell, cards, tables and theme tokens. */
-.cockpit-header-filters { display: flex; align-items: center; gap: 12px; }
+/* Cockpit Gestão: extends the existing shell, cards, tables and theme tokens.
+   Cards seguem a mesma linguagem visual do Dashboard Marcher (kpi-card/dash-card):
+   compactos, cores suavizadas por indicador e curvas em vez de segmentos retos. */
+/* Gestão + Mês/YTD/Ano + Atualizar dados: mesmo grupo (.cockpit-heading-actions),
+   colados entre si e encostados na direita do cabeçalho — e todos com 34px de
+   altura (mesma altura do .period-month-button base), pra alinhar de verdade
+   em vez de só "ficar perto". */
+.cockpit-heading-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cockpit-header-filters { display: flex; align-items: center; gap: 10px; }
 .cockpit-mobile-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px; }
 #vmob-screen #cockpit-view { padding: 16px; }
 .cockpit-header-filters[hidden], .cockpit-body[hidden] { display: none; }
-.cockpit-management { display: grid; gap: 3px; color: var(--text-soft); font-size: 11px; }
-.cockpit-management .vp-source-sel { min-width: 190px; padding: 8px 28px 8px 10px; border-color: var(--cyan); }
-.cockpit-management { position: relative; }
+.cockpit-management { display: flex; align-items: center; gap: 7px; height: 34px; color: var(--text-soft); font-size: 11px; position: relative; }
+.cockpit-management > span { white-space: nowrap; }
+.cockpit-management .vp-source-sel { height: 34px; box-sizing: border-box; min-width: 168px; padding: 0 28px 0 10px; }
 .cockpit-management select { appearance: none; }
-.cockpit-management::after { content: ""; position: absolute; right: 12px; bottom: 13px; width: 6px; height: 6px; border-right: 1.5px solid var(--text-soft); border-bottom: 1.5px solid var(--text-soft); transform: rotate(45deg); pointer-events: none; }
-.cockpit-management:has(select:open)::after { transform: rotate(225deg); bottom: 10px; }
+.cockpit-management::after { content: ""; position: absolute; right: 12px; top: 50%; width: 6px; height: 6px; border-right: 1.5px solid var(--text-soft); border-bottom: 1.5px solid var(--text-soft); transform: translateY(-65%) rotate(45deg); pointer-events: none; }
+.cockpit-management:has(select:open)::after { transform: translateY(-35%) rotate(225deg); }
 .cockpit-management option:checked { background: var(--blue-strong); color: var(--text); }
-.cockpit-period-types { display: flex; border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
-.cockpit-period-types .period-month-button { padding: 7px 9px; font-size: 12px; }
+.cockpit-period-types { display: flex; align-items: stretch; height: 34px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+.cockpit-period-types .period-month-button { height: auto; padding: 0 9px; font-size: 12px; }
 .cockpit-period-types [aria-pressed="true"] { background: var(--blue-soft); color: var(--text); border-color: var(--blue); }
 #cockpit-view :focus-visible, .cockpit-header-filters :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 #cockpit-view .cockpit-heading { margin-bottom: 0; align-items: center; gap: 16px; flex-wrap: wrap; }
 .cockpit-heading h1 { margin: 0 0 6px; font-size: clamp(1.25rem, 2vw, 1.8rem); letter-spacing: -0.03em; }
 .cockpit-heading p { margin: 0; }
-.cockpit-demo { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--text-soft); font-size: 11px; }
-.cockpit-context { color: var(--text-soft); font-size: 12px; margin: 0; }
+/* Linha única de contexto (fonte do comparativo). O resumo redundante de
+   gestão/período/mês some — já está visível no seletor de Gestão, nos botões
+   Mês/YTD/Ano e no picker de período do header. Avisos de cobertura (ex.: sem
+   Forecast favorito) não viram texto fixo: ficam no title (hover) do ponto ●. */
+.cockpit-source { color: var(--text-soft); font-size: 12px; margin: 0; line-height: 1.6; display: flex; align-items: center; gap: 6px; }
+.cockpit-source:empty { display: none; }
+.cockpit-source--warn::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex-shrink: 0; box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
+.cockpit-panel .cockpit-table-scroll { max-height: 360px; overflow: auto; }
+.cockpit-management select:disabled { opacity: 0.8; cursor: default; }
 .cockpit-status:empty { display: none; }
 .cockpit-status { padding: 16px; color: var(--text-soft); }
-.cockpit-body { display: grid; gap: 16px; }
+.cockpit-body { display: grid; gap: 16px; position: relative; }
+/* Mesmo spinner do overlay de carregamento inicial do app (#app-loading-overlay/
+   .app-loading-spinner, ver mais abaixo), só que só sobre o corpo do Cockpit —
+   substitui os retângulos cinza parados por uma animação de verdade. */
+.cockpit-loading-indicator {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--text-soft);
+  font-size: 0.85rem;
+  background: rgba(9, 9, 10, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: var(--radius);
+}
+.cockpit-loading-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: var(--blue);
+  animation: app-loading-spin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .cockpit-loading-spinner { animation: none; } }
+
+/* ── KPIs executivos: mesmo tamanho/proporção dos cards do Dashboard Marcher
+   (.kpi-card base: padding 14px, gap 6px) — ícone pequeno à esquerda do
+   rótulo, valor e detalhe alinhados à esquerda, sparkline correndo a largura
+   inteira do card no rodapé. ── */
 #cockpit-view .cockpit-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-#cockpit-view .cockpit-kpi { min-height: 164px; align-content: start; position: relative; padding: 18px; gap: 12px; }
-.cockpit-kpi .kpi-label { display: flex; align-items: center; gap: 8px; }
-.cockpit-kpi .nav-icon, .cockpit-panel .nav-icon { color: var(--cyan); }
-#cockpit-view .kpi-value { font-size: clamp(1.3rem, 1.8vw, 1.8rem); white-space: nowrap; }
+#cockpit-view .cockpit-kpi {
+  min-height: 0;
+  position: relative;
+}
+.cockpit-kpi .kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+/* Selo colorido pequeno atrás do ícone, à esquerda do rótulo — mesma
+   linguagem do .auth-feature-icon da tela de login (contorno + glow sutil),
+   em quadrado arredondado, só que compacto. Cada card tem sua própria cor
+   suavizada, como as sparklines do Dashboard (sparkline-blue/cyan/violet/amber). */
+.cockpit-kpi .kpi-label svg.nav-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 7px;
+}
+.cockpit-kpi--0 .kpi-label svg.nav-icon { color: var(--blue); background: rgba(79, 124, 255, 0.12); border: 1px solid rgba(79, 124, 255, 0.35); }
+.cockpit-kpi--1 .kpi-label svg.nav-icon { color: var(--cyan); background: rgba(20, 184, 166, 0.12); border: 1px solid rgba(20, 184, 166, 0.35); }
+.cockpit-kpi--2 .kpi-label svg.nav-icon { color: var(--violet); background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.35); }
+.cockpit-kpi--3 .kpi-label svg.nav-icon { color: var(--amber); background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); }
+.cockpit-panel .nav-icon { color: var(--cyan); }
+#cockpit-view .kpi-value { font-size: 1.36rem; white-space: nowrap; }
 .cockpit-kpi-detail { color: var(--text-soft); font-size: 12px; }
-.cockpit-spark { width: 78px; height: 26px; justify-self: end; }
-.cockpit-spark polyline { stroke: var(--cyan); stroke-width: 1.8; fill: none; }
+.cockpit-spark { display: block; width: 100%; height: 24px; margin-top: 2px; }
+.cockpit-spark-line { stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cockpit-kpi--0 .cockpit-spark { color: var(--blue); }
+.cockpit-kpi--1 .cockpit-spark { color: var(--cyan); }
+.cockpit-kpi--2 .cockpit-spark { color: var(--violet); }
+.cockpit-kpi--3 .cockpit-spark { color: var(--amber); }
+
 .cockpit-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; }
-#cockpit-view .cockpit-panel { min-width: 0; padding: 18px; }
+#cockpit-view .cockpit-panel { min-width: 0; padding: 16px; }
 #cockpit-view .panel-header h3 { display: flex; align-items: center; gap: 9px; font-size: 0.85rem; }
-.cockpit-panel .panel-header { margin-bottom: 16px; }
+.cockpit-panel .panel-header { margin-bottom: 14px; }
 .cockpit-panel [data-cockpit-widget] { min-height: 210px; min-width: 0; }
 .cockpit-loading .cockpit-kpi > *, .cockpit-loading [data-cockpit-widget] > * { visibility: hidden; }
 .cockpit-loading [data-cockpit-widget] { position: relative; }
-.cockpit-loading .cockpit-kpi::after, .cockpit-loading [data-cockpit-widget]::after { content: ""; position: absolute; inset: 18px; border-radius: 6px; background: var(--panel-hover); animation: vp-shimmer 1.4s ease-in-out infinite; }
-.cockpit-trend-panel [data-cockpit-widget], .cockpit-composition-panel [data-cockpit-widget] { min-height: 295px; }
+.cockpit-loading .cockpit-kpi::after, .cockpit-loading [data-cockpit-widget]::after { content: ""; position: absolute; inset: 14px; border-radius: 6px; background: var(--panel-hover); animation: vp-shimmer 1.4s ease-in-out infinite; }
+.cockpit-trend-panel [data-cockpit-widget] { min-height: 295px; }
 .cockpit-chart-scroll { overflow-x: auto; }
 .cockpit-trend { width: 100%; min-width: 480px; display: block; }
-.cockpit-trend text, .cockpit-donut text { fill: var(--text-soft); font: 12px Inter, sans-serif; }
+.cockpit-trend text { fill: var(--text-soft); font: 9px Inter, sans-serif; }
 .cockpit-gridline { stroke: var(--line); stroke-width: 1; }
-.cockpit-real { fill: var(--cyan); }
-.cockpit-budget { fill: none; stroke: var(--text-soft); stroke-width: 2; pointer-events: none; }
-.cockpit-forecast { fill: none; stroke: var(--blue); stroke-width: 2; stroke-dasharray: 6 4; pointer-events: none; }
+.cockpit-real { fill: var(--cyan); opacity: 0.82; }
+.cockpit-fcst-bar { fill: rgba(79, 124, 255, 0.16); stroke: var(--blue); stroke-width: 1.3; stroke-dasharray: 3 3; }
+.cockpit-budget { fill: none; stroke: var(--text-soft); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
 .cockpit-future { fill: var(--blue-soft); }
 .cockpit-cutoff { stroke: var(--text-faint); stroke-dasharray: 4 4; }
 .cockpit-chart-hit { fill: transparent; }
 .cockpit-trend g:focus .cockpit-chart-hit, .cockpit-trend g:hover .cockpit-chart-hit { fill: var(--blue-soft); }
 .cockpit-chart-legend { display: flex; justify-content: center; gap: 20px; font-size: 12px; color: var(--text-soft); }
-.cockpit-chart-legend span::before { content: ""; display: inline-block; width: 12px; margin-right: 6px; border-top: 3px solid var(--cyan); vertical-align: middle; }
+.cockpit-chart-legend span::before { content: ""; display: inline-block; width: 12px; margin-right: 6px; border-top: 3px solid var(--cyan); border-radius: 2px; vertical-align: middle; }
 .cockpit-chart-legend .cockpit-budget-key::before { border-color: var(--text-soft); }
-.cockpit-chart-legend .cockpit-forecast-key::before { border-color: var(--blue); border-top-style: dashed; }
-.cockpit-tooltip { color: var(--text-soft); font-size: 11px; min-height: 42px; margin: 12px 0 0; line-height: 1.6; }
-.cockpit-composition { display: flex; align-items: center; gap: 12px; min-height: 260px; }
-.cockpit-donut { width: 48%; max-width: 250px; flex-shrink: 0; }
-.cockpit-donut-slices { transform: rotate(-90deg); transform-origin: 100px 100px; }
-.cockpit-donut circle { fill: none; stroke-width: 28; stroke: currentColor; }
-.cockpit-donut .cockpit-donut-total { fill: var(--text); font-size: 15px; font-weight: 700; }
-.cockpit-color-0 { color: var(--cyan); }
-.cockpit-color-1 { color: var(--blue); }
-.cockpit-color-2 { color: var(--violet); }
-.cockpit-color-3 { color: var(--amber); }
-.cockpit-color-4 { color: var(--text-soft); }
-.cockpit-composition-legend { flex: 1; padding: 0; list-style: none; display: grid; gap: 18px; font-size: 12px; }
-.cockpit-composition-legend li { display: flex; gap: 8px; align-items: center; }
-.cockpit-composition-legend strong { margin-left: auto; }
-.cockpit-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+/* Tooltip padrão do Cockpit: mesmo cartão pro gráfico OPEX Mensal, Raio-X por
+   Área e Top Desvios — no lugar do title nativo do navegador. */
+.cockpit-tip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: #13161c;
+  border: 0.5px solid #2a2d34;
+  border-radius: 7px;
+  padding: 7px 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+/* [hidden] e a classe têm a mesma especificidade (0,1,0) — sem isso, o
+   display:flex acima sempre vencia o display:none do atributo hidden do
+   navegador, e o cartão nunca sumia de verdade (ficava visível pra sempre,
+   até trocando de view, já que ele vive em document.body). */
+.cockpit-tip[hidden] { display: none; }
+.cockpit-tip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 0.7rem;
+}
+.cockpit-tip-row span { color: #a1a7b3; }
+.cockpit-tip-row strong { color: var(--text); font-weight: 700; white-space: nowrap; }
+.cockpit-tip-row strong.kpi-trend { font-size: 0.7rem; }
 .cockpit-table-scroll { overflow-x: auto; }
 #cockpit-view .cockpit-table { min-width: 510px; table-layout: auto; }
-#cockpit-view .cockpit-table th, #cockpit-view .cockpit-table td { padding: 10px 8px; font-size: 12px; }
+#cockpit-view .cockpit-table th, #cockpit-view .cockpit-table td { padding: 9px 8px; font-size: 12px; }
 #cockpit-view .cockpit-table tbody th { position: static; text-transform: none; letter-spacing: normal; font-weight: 400; background: transparent; }
 #cockpit-view .cockpit-table .ger-row-subtotal th { background: var(--blue-soft); font-weight: 700; border-top: 1px solid var(--blue); }
+/* Cabeçalho ordenável (OPEX por Grupo de Despesa) — mesmo padrão ↑/↓ clicável
+   dos popovers de auditoria do resto do app. */
+#cockpit-view .cockpit-table th.cockpit-sortable { cursor: pointer; user-select: none; }
+#cockpit-view .cockpit-table th.cockpit-sortable:hover { color: var(--text); }
+#cockpit-view .cockpit-table th.cockpit-sort-active { color: var(--blue); }
 .cockpit-ranking { list-style: none; padding: 0; margin: 0; display: grid; gap: 18px; }
 .cockpit-ranking li { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(70px, 1fr) 105px; align-items: center; gap: 12px; font-size: 12px; }
 .cockpit-ranking svg { width: 100%; height: 12px; }
+.cockpit-ranking svg rect { rx: 5; }
 .cockpit-ranking strong { text-align: right; }
 .cockpit-ranking .positive { fill: var(--green); }
 .cockpit-ranking .negative { fill: var(--red); }
-.cockpit-efficiency { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.cockpit-efficiency .kpi-card { gap: 9px; background: var(--panel-alt); }
 .cockpit-skeleton { display: block; height: 20px; }
 .cockpit-widget-skeleton { height: 210px; }
 .cockpit-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -89,14 +185,11 @@
 @media (max-width: 1120px) {
   #cockpit-view .cockpit-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cockpit-grid { grid-template-columns: minmax(0, 1fr); }
-  .main-header:has(.cockpit-header-filters:not([hidden])) { flex-wrap: wrap; }
-  .main-header:has(.cockpit-header-filters:not([hidden])) .header-actions { flex-wrap: wrap; }
 }
 @media (max-width: 720px) {
   .cockpit-header-filters { flex-wrap: wrap; gap: 8px; }
-  #cockpit-view .cockpit-kpi, #cockpit-view .cockpit-panel { padding: 12px; }
-  .cockpit-composition { flex-wrap: wrap; justify-content: center; }
-  .cockpit-composition-legend { min-width: 145px; }
+  #cockpit-view .cockpit-kpi { padding: 12px; }
+  #cockpit-view .cockpit-panel { padding: 12px; }
   .cockpit-ranking li { grid-template-columns: minmax(100px, 1fr) 60px 90px; gap: 6px; }
   #cockpit-view .kpi-value { font-size: 1.15rem; }
 }
@@ -5104,7 +5197,10 @@ textarea[disabled] {
   border-radius: 14px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(79, 124, 255, 0.08);
   font-size: 0.78rem;
-  animation: gap-appear 130ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* forwards: sem isso, o navegador pode devolver o elemento pro estado
+     "from" (opacity:0) assim que os 130ms terminam — popover fica invisível
+     mesmo já tendo aparecido. Só trava o quadro final, não muda a animação. */
+  animation: gap-appear 130ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes gap-appear {
@@ -5236,6 +5332,21 @@ textarea[disabled] {
 
 .gap-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* Total por coluna dentro do próprio tfoot (Cockpit) — mesma largura/alinhamento
+   das linhas de conta, em vez de um rodapé solto fora da tabela. Sticky no
+   fim, igual o thead no topo, pra continuar visível com a lista rolando. */
+.gap-table tfoot tr { position: sticky; bottom: 0; z-index: 1; }
+.gap-table tfoot .gap-total-row td {
+  padding: 9px 10px;
+  border-bottom: none;
+  border-top: 1px solid var(--blue);
+  /* Opaco (em vez do --blue-soft translúcido direto) pra tapar de verdade as
+     linhas rolando por baixo, já que o rodapé fica sticky. */
+  background: linear-gradient(var(--blue-soft), var(--blue-soft)), #14161d;
+  color: var(--text);
+  font-weight: 700;
 }
 
 .gap-table tbody tr:hover td {
