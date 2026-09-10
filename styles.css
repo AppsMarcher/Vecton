@@ -164,6 +164,13 @@
 .cockpit-table-scroll { overflow-x: auto; }
 #cockpit-view .cockpit-table { min-width: 510px; table-layout: auto; }
 #cockpit-view .cockpit-table th, #cockpit-view .cockpit-table td { padding: 9px 8px; font-size: 12px; }
+/* .data-table th vem com fundo quase transparente (rgba branco 2%) — funciona
+   quando a tabela rola a página inteira, mas aqui o cabeçalho fica sticky
+   DENTRO de um contêiner com scroll próprio (.cockpit-table-scroll), então as
+   linhas passavam por trás dele durante a rolagem, "mesclando" com o texto do
+   cabeçalho. Precisa de um fundo opaco, igual ao card que envolve a tabela
+   (.cockpit-panel/.dashboard-panel usa var(--panel)). */
+#cockpit-view .cockpit-table thead th { background: var(--panel); }
 #cockpit-view .cockpit-table tbody th { position: static; text-transform: none; letter-spacing: normal; font-weight: 400; background: transparent; }
 #cockpit-view .cockpit-table .ger-row-subtotal th { background: var(--blue-soft); font-weight: 700; border-top: 1px solid var(--blue); }
 /* Cabeçalho ordenável (OPEX por Grupo de Despesa) — mesmo padrão ↑/↓ clicável

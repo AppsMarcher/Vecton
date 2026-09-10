@@ -128,12 +128,28 @@
     const rowAttrs = sorted.map(group => group.accounts.length ? ` class="ger-drillable" data-group="${e(group.name)}"` : "");
     return table("OPEX por Grupo de Despesa", headers, sorted.map(row), row({ name: "Total", ...data.opex }), rowAttrs);
   }
+  // Mesmo padrão de ordenação clicável do "OPEX por Grupo de Despesa"
+  // (groupsSort/setGroupsSort/sortGroups acima), estado próprio pra não
+  // interferir na outra tabela.
+  let areasSort = { key: null, dir: 1 };
+  function setAreasSort(key) { areasSort = { key, dir: areasSort.key === key ? -areasSort.dir : 1 }; }
+  function sortAreas(list) {
+    if (!areasSort.key) return list;
+    const { key, dir } = areasSort;
+    return list.slice().sort((a, b) => typeof a[key] === "string" ? dir * a[key].localeCompare(b[key], "pt-BR") : dir * ((a[key] ?? -Infinity) - (b[key] ?? -Infinity)));
+  }
   function headcountAreas(data) {
+    const sorted = sortAreas(data.headcountByArea);
     // Número do CC só no tooltip padrão do Cockpit, não mais escrito na linha
     // — o nome sozinho já identifica a área na maioria dos casos.
     const row = area => [area.code ? `<span tabindex="0" ${tip([{ label: "CC", value: area.code }])}>${e(area.name)}</span>` : e(area.name), F.formatInteger(area.actual), money(area.personnelOpex), money(area.otherOpex)];
-    const headers = [data.areaLabel || "CC", "HC", "Gasto com Pessoal", "Demais Opex"].map(label => th(label));
-    return table("Raio-X por Área", headers, data.headcountByArea.map(row), row({ name: "Total", actual: data.headcount.actual, personnelOpex: data.personnelOpex, otherOpex: data.otherOpex }));
+    const headers = [
+      th(data.areaLabel || "CC", "name", areasSort.key === "name", areasSort.dir),
+      th("HC", "actual", areasSort.key === "actual", areasSort.dir),
+      th("Gasto com Pessoal", "personnelOpex", areasSort.key === "personnelOpex", areasSort.dir),
+      th("Demais Opex", "otherOpex", areasSort.key === "otherOpex", areasSort.dir)
+    ];
+    return table("Raio-X por Área", headers, sorted.map(row), row({ name: "Total", actual: data.headcount.actual, personnelOpex: data.personnelOpex, otherOpex: data.otherOpex }));
   }
   function deviations(data) {
     if (!data.topOpexDeviations.length) return '<p class="dash-empty">Nenhum desvio disponível para os filtros selecionados.</p>';
@@ -170,5 +186,5 @@
     root.querySelector("[data-cockpit-kpis]").innerHTML = Array.from({ length: 4 }, () => '<article class="kpi-card cockpit-kpi"><span class="vp-skel-bar cockpit-skeleton"></span><span class="vp-skel-bar cockpit-skeleton"></span><span class="vp-skel-bar cockpit-skeleton"></span></article>').join("");
     root.querySelectorAll("[data-cockpit-widget]").forEach(node => { node.innerHTML = '<div class="vp-skel-bar cockpit-widget-skeleton"></div>'; });
   }
-  window.VECTON_COCKPIT_WIDGETS = { shell, render, loading, setGroupsSort };
+  window.VECTON_COCKPIT_WIDGETS = { shell, render, loading, setGroupsSort, setAreasSort };
 })(window);
