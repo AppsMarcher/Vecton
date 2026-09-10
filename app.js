@@ -184,6 +184,7 @@ const paramsToggle = document.querySelector("#params-toggle");
 const paramsSubmenu = document.querySelector("#params-submenu");
 const paramsCaret = document.querySelector("#params-caret");
 const views = {
+  cockpit: document.querySelector("#cockpit-view"),
   dashboard: document.querySelector("#dashboard-view"),
   planning:  document.querySelector("#planning-view"),
   rps: document.querySelector("#rps-view"),
@@ -573,6 +574,7 @@ const {
   getCurrentPeriodBatches: getCurrentPeriodBudgetBatches
 } = budgetModule;
 const navigationModule = createNavigationModule({
+  renderCockpit: () => cockpitModule.render(),
   VIEW_HEADER_METADATA,
   MONTH_LABELS,
   menuButtons,
@@ -1369,6 +1371,8 @@ function handleMobileLogout() {
   return handleLogout();
 }
 const mobileShellModule = createMobileShellModule({
+  canAccessDashboard,
+  cockpitModule: { mount: host => cockpitModule.mount(host), unmount: () => cockpitModule.unmount() },
   canSeeReport,
   canAccessStrategic,
   getCurrentUser: () => currentUser,
@@ -1464,6 +1468,11 @@ const { renderDashboard } = createDashboardModule({
   renderDashComboChart,
   renderDashAlerts,
   renderDashOpexCards
+});
+const cockpitModule = window.VECTON_COCKPIT.createCockpitModule({
+  getActiveView: () => activeView,
+  getPeriod: () => state.currentPeriod,
+  canAccess: canAccessDashboard
 });
 const renderModule = createRenderModule({
   getActiveView: () => activeView,
