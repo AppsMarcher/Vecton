@@ -17,6 +17,7 @@
       initOpexDrilldown,
       initAllReportTableResizers,
       initFloatingScrollbar,
+      initVerticalScrollBounds,
       fetchActualsLedgerWithCcForYear,
       fetchActualsLedgerForManagementYear,
       fetchActualsLedgerForCcIds,
@@ -46,7 +47,7 @@
         return false;
       }
       const wrap = detailPanel.querySelector(".reports-table-wrap");
-      if (wrap) initFloatingScrollbar(wrap);
+      if (wrap) { initFloatingScrollbar(wrap); initVerticalScrollBounds(wrap); }
       return true;
     }
 

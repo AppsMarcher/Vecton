@@ -1294,6 +1294,7 @@ const reportsOpexModule = createReportsOpexModule({
   initOpexDrilldown,
   initAllReportTableResizers,
   initFloatingScrollbar,
+  initVerticalScrollBounds,
   fetchActualsLedgerWithCcForYear,
   fetchActualsLedgerForManagementYear,
   fetchActualsLedgerForCcIds,
@@ -4153,6 +4154,12 @@ function renderOpexBudgetReport(detailPanel) {
 
 function renderOpexScenario(contentDiv, year, scenarioId) {
   contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${vpSkeletonTable()}</div></div>`;
+  // Chamado direto pelo listener do select "Fonte" (troca pra Cenário), sem
+  // passar por renderReportsView()/renderSelectedOpexReport — então o hook
+  // genérico de lá (initFloatingScrollbar/initVerticalScrollBounds sobre
+  // .reports-table-wrap) nunca rodaria pra esse wrap. Refaz aqui.
+  const scenarioWrap = contentDiv.querySelector(".reports-table-wrap");
+  if (scenarioWrap) { initFloatingScrollbar(scenarioWrap); initVerticalScrollBounds(scenarioWrap); }
   fetchScenarioLedgerForYear(scenarioId, year).then(rows => {
     const inner = contentDiv.querySelector("#opex-budget-table-inner");
     if (!inner) return;
