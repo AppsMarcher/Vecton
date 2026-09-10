@@ -1213,6 +1213,7 @@ const editorEventsModule = createEditorEventsModule({
   syncBranch,
   syncDeleteBranch,
   syncDreNodeAndAccount,
+  promptReportAssignment,
   syncDeleteDreNode,
   syncCcNodeAndCostCenter,
   syncDeleteCcNode,
@@ -1829,7 +1830,7 @@ async function hydrateFromSupabase() {
     setSyncStatus("Conectando ao BD...", "warn");
     const organizationId = await resolveOrganizationId();
     await ensureSeedBranchesInSupabase(organizationId);
-    const [profileRows, branches, accounts, costCenters, dreNodes, ccNodes, actualsBatches, budgetBatches, hcBatches, managementRows] = await Promise.all([
+    const [profileRows, branches, accounts, costCenters, dreNodes, ccNodes, actualsBatches, budgetBatches, hcBatches, managementRows, reportAccountAssignments] = await Promise.all([
       fetchSupabaseRowsSafe("user_profiles", `organization_id=eq.${organizationId}&user_id=eq.${currentUser.id}&select=full_name,email,phone,department,profile_label,access_role,additional_access_roles,management,matrix_accounts,extra_branch_ids,extra_cc_ids,extra_account_codes,extra_report_ids,extra_managements,photo_kind,photo_value&limit=1`),
       fetchSupabaseRowsSafe("branches", `organization_id=eq.${organizationId}&select=id,branch_code,branch_name,note,origin&order=branch_code.asc`),
       fetchAllSupabaseRows("accounts", `organization_id=eq.${organizationId}&select=id,registration_control,account_number,account_name`),
@@ -1839,9 +1840,14 @@ async function hydrateFromSupabase() {
       fetchSupabaseRowsSafe("actuals_import_batches", `organization_id=eq.${organizationId}&select=id,reference_year,reference_month,load_mode,source_type,source_file_name,status,total_rows,error_rows,valid_rows,uploaded_at,applied_at&order=uploaded_at.desc`),
       fetchSupabaseRowsSafe("budget_import_batches", `organization_id=eq.${organizationId}&select=id,reference_year,reference_month,load_mode,source_type,source_file_name,status,total_rows,error_rows,valid_rows,uploaded_at,applied_at&order=uploaded_at.desc`),
       fetchSupabaseRowsSafe("headcount_import_batches", `organization_id=eq.${organizationId}&select=id,reference_year,reference_month,load_mode,load_type,source_type,source_file_name,status,total_rows,error_rows,valid_rows,uploaded_at,applied_at&order=uploaded_at.desc`),
-      fetchSupabaseRowsSafe("managements", `organization_id=eq.${organizationId}&order=sort_order.asc,name.asc`)
+      fetchSupabaseRowsSafe("managements", `organization_id=eq.${organizationId}&order=sort_order.asc,name.asc`),
+      // Contas incluídas via Plano de Contas e atribuídas a um relatório "padrão"
+      // (OPEX_STRUCTURE/HC_PESSOAL_ACCOUNTS, ambos fixos no código) pelo diálogo
+      // pós-salvamento — ver promptReportAssignment()/applyReportAccountAssignments().
+      fetchSupabaseRowsSafe("report_account_assignments", `organization_id=eq.${organizationId}&select=account_number,report,section_label,group_label`)
     ]);
     state.managements = managementRows || [];
+    applyReportAccountAssignments(reportAccountAssignments);
 
     if (profileRows.length) {
       const profile = profileRows[0];
@@ -6378,6 +6384,116 @@ async function syncUserProfile() {
   } catch (error) {
     console.error(error);
     setSyncStatus(`Erro perfil: ${formatSyncError(error)}`, "error");
+  }
+}
+
+// Aplica as atribuições salvas em report_account_assignments (Parâmetros >
+// Plano de Contas > "adicionar a algum relatório?") por cima das estruturas
+// fixas do código — OPEX_STRUCTURE e HC_PESSOAL_ACCOUNTS. O DRE Societário não
+// precisa disso: já segue a árvore de dre_plan_nodes automaticamente. Roda uma
+// vez no load inicial (ver Promise.all acima); contas repetidas (já presentes
+// no grupo por já estarem hardcoded, ou de um load anterior) não duplicam.
+function applyReportAccountAssignments(rows) {
+  (rows || []).forEach((row) => {
+    const code = normalizeCode(row.account_number);
+    if (!code) return;
+    if (row.report === "headcount") {
+      HC_PESSOAL_ACCOUNTS.add(code);
+    } else if (row.report === "opex") {
+      const section = OPEX_STRUCTURE.find((s) => s.label === row.section_label);
+      const group = section?.groups.find((g) => g.label === row.group_label);
+      if (group && !group.accounts.includes(code)) group.accounts.push(code);
+    }
+  });
+}
+
+// Grava no BD a atribuição de UMA conta a UM relatório padrão — chamado pelo
+// fluxo de promptReportAssignment() abaixo, uma vez por relatório escolhido
+// (uma conta pode entrar no OPEX e no Headcount ao mesmo tempo, duas linhas).
+async function saveReportAccountAssignment(accountNumber, report, extra = {}) {
+  const organizationId = await resolveOrganizationId();
+  await upsertSupabaseRows("report_account_assignments", [{
+    organization_id: organizationId,
+    account_number: accountNumber,
+    report,
+    section_label: extra.sectionLabel || null,
+    group_label: extra.groupLabel || null,
+    created_by: currentUser?.id || null
+  }], ["organization_id", "account_number", "report"]);
+}
+
+// Diálogo pós-salvamento de uma conta NOVA em Parâmetros > Plano de Contas
+// (ver dreNodeForm submit em editorEventsModule.js): pergunta se ela deve
+// entrar também em algum relatório "padrão" de estrutura fixa (OPEX Real/Meta
+// e/ou o card de Headcount do dashboard) e, se sim, em qual grupo — só
+// reaproveita os diálogos appConfirm/appPrompt já usados no resto do app,
+// sem componente novo de UI.
+async function promptReportAssignment(accountCode, accountName) {
+  const wantsIt = await appConfirm(
+    `A conta "${accountName}" (${accountCode}) foi criada. Deseja adicioná-la também a algum relatório padrão (OPEX Real/Meta e/ou o card de Headcount do dashboard)?`,
+    "info"
+  );
+  if (!wantsIt) return;
+
+  const targetAnswer = await appPrompt({
+    icon: "📊",
+    eyebrow: "PLANO DE CONTAS",
+    title: "Adicionar a relatório",
+    message: `Em qual relatório a conta "${accountName}" deve entrar?`,
+    confirmLabel: "Continuar",
+    fields: [{
+      name: "target",
+      label: "Relatório",
+      type: "select",
+      options: [
+        { value: "opex", label: "OPEX Real/Meta" },
+        { value: "headcount", label: "Card Headcount (dashboard)" },
+        { value: "both", label: "OPEX Real/Meta + Card Headcount" }
+      ]
+    }]
+  });
+  if (!targetAnswer) return;
+
+  const wantsOpex = targetAnswer.target === "opex" || targetAnswer.target === "both";
+  const wantsHeadcount = targetAnswer.target === "headcount" || targetAnswer.target === "both";
+
+  let groupChoice = null;
+  if (wantsOpex) {
+    const groupOptions = OPEX_STRUCTURE.flatMap((section) =>
+      section.groups.map((group) => ({
+        value: `${section.label}::${group.label}`,
+        label: `${section.label} ▸ ${group.label}`
+      }))
+    );
+    const groupAnswer = await appPrompt({
+      icon: "📊",
+      eyebrow: "OPEX REAL/META",
+      title: "Escolher o grupo",
+      message: `Em qual grupo do OPEX a conta "${accountName}" deve entrar?`,
+      confirmLabel: "Salvar",
+      fields: [{ name: "group", label: "Grupo", type: "select", options: groupOptions }]
+    });
+    if (!groupAnswer) return;
+    const sepIndex = groupAnswer.group.indexOf("::");
+    groupChoice = { sectionLabel: groupAnswer.group.slice(0, sepIndex), groupLabel: groupAnswer.group.slice(sepIndex + 2) };
+  }
+
+  try {
+    if (wantsOpex && groupChoice) {
+      await saveReportAccountAssignment(accountCode, "opex", groupChoice);
+      const section = OPEX_STRUCTURE.find((s) => s.label === groupChoice.sectionLabel);
+      const group = section?.groups.find((g) => g.label === groupChoice.groupLabel);
+      if (group && !group.accounts.includes(accountCode)) group.accounts.push(accountCode);
+    }
+    if (wantsHeadcount) {
+      await saveReportAccountAssignment(accountCode, "headcount");
+      HC_PESSOAL_ACCOUNTS.add(accountCode);
+    }
+    showToast(`Conta ${accountCode} adicionada aos relatórios selecionados.`, "success");
+    renderReportsView();
+  } catch (error) {
+    console.error(error);
+    showToast(vpFriendlyError(error, "Não foi possível salvar a atribuição de relatório."), "error");
   }
 }
 

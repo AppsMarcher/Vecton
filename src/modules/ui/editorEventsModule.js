@@ -19,6 +19,7 @@
       syncBranch,
       syncDeleteBranch,
       syncDreNodeAndAccount,
+      promptReportAssignment,
       syncDeleteDreNode,
       syncCcNodeAndCostCenter,
       syncDeleteCcNode,
@@ -70,7 +71,12 @@
           class: "Analitica",
           parentCode,
           origin: "manual",
-          note: ""
+          note: "",
+          // Só o PRIMEIRO submit do form (o "salvar" de verdade, com nome/código
+          // reais) deve oferecer o diálogo de "adicionar a algum relatório?" —
+          // ver dreNodeForm submit abaixo. Fica false assim que esse submit roda,
+          // então reabrir e editar essa conta depois não repete o diálogo.
+          isNew: true
         };
 
         state.dreNodes.push(draftNode);
@@ -131,9 +137,11 @@
           return;
         }
 
+        const wasNew = Boolean(selectedNode.isNew);
+
         state.dreNodes = state.dreNodes.map((node) => {
           if (node.code === selectedNode.code) {
-            return { ...node, code: newCode, name: newName, class: newClass, parentCode: node.parentCode, note: newNote };
+            return { ...node, code: newCode, name: newName, class: newClass, parentCode: node.parentCode, note: newNote, isNew: false };
           }
           if (node.parentCode === selectedNode.code) {
             return { ...node, parentCode: newCode };
@@ -149,6 +157,13 @@
         setSelectedDreCode(newCode);
         persistAndRender();
         await syncDreNodeAndAccount(newCode);
+
+        // Só para conta nova de verdade (não grupo/Sintética) — o DRE Societário
+        // já pega ela automaticamente pela árvore; isso aqui é só pra oferecer
+        // os relatórios de estrutura fixa (OPEX, Headcount).
+        if (wasNew && newClass === "Analitica") {
+          await promptReportAssignment(newCode, newName);
+        }
       });
 
       document.querySelector("#dre-delete-node").addEventListener("click", async () => {
