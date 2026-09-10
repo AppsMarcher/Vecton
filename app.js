@@ -1267,6 +1267,7 @@ const reportsDreModule = createReportsDreModule({
   buildDreDfsRealTableMarkup,
   initAllReportTableResizers,
   initFloatingScrollbar,
+  initVerticalScrollBounds,
   initDreGerDrilldown,
   initDreSocDrilldown,
   isAccessRestricted,
@@ -5261,6 +5262,46 @@ function initFloatingScrollbar(wrap) {
   };
 }
 // ─────────────────────────────────────────────────────────────────────────────
+
+let _verticalScrollBoundsCleanup = null;
+
+// Congela a altura do wrap no espaço realmente disponível até o fim da
+// viewport, transformando-o num painel com scroll vertical PRÓPRIO — só assim
+// o <thead> (que já é position:sticky, ver .reports-dre-table th no CSS)
+// realmente gruda no topo durante o scroll: sticky só funciona relativo ao
+// scrollport que de fato rola, e sem altura limitada o wrap nunca rola por
+// conta própria (cresce pra caber as 500+ linhas, quem rola é o .main-panel
+// por fora) — então o cabeçalho nunca "grudava" (bug relatado pelo usuário
+// no DRE Societário Real/Meta). Como bônus, a barra de rolagem horizontal
+// nativa do wrap passa a morar sempre dentro da área visível, sem precisar
+// rolar o relatório inteiro só pra alcançá-la (a flutuante de
+// initFloatingScrollbar vira redundante aqui e some sozinha, ver
+// realScrollbarOnScreen() acima). Mesma técnica de medição de
+// updatePresentationScrollBounds em rpsModule.js.
+function initVerticalScrollBounds(wrap) {
+  if (_verticalScrollBoundsCleanup) { _verticalScrollBoundsCleanup(); _verticalScrollBoundsCleanup = null; }
+
+  const BOTTOM_PADDING = 16;
+  function update() {
+    if (!wrap.isConnected) return;
+    const top = wrap.getBoundingClientRect().top;
+    const available = Math.max(200, window.innerHeight - top - BOTTOM_PADDING);
+    wrap.style.maxHeight = `${Math.round(available)}px`;
+  }
+  update();
+
+  window.addEventListener("resize", update);
+  // Reage a mudanças de altura de qualquer coisa acima do wrap (troca de
+  // relatório, barra "Fonte"/"Comparar com" etc.) sem precisar descobrir
+  // qual ancestral encolheu/cresceu.
+  const ro = new ResizeObserver(update);
+  if (wrap.parentElement) ro.observe(wrap.parentElement);
+
+  _verticalScrollBoundsCleanup = () => {
+    window.removeEventListener("resize", update);
+    ro.disconnect();
+  };
+}
 
 function zeroMonthArray() {
   return Array.from({ length: 12 }, () => 0);

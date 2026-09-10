@@ -18,6 +18,7 @@
       buildDreDfsRealTableMarkup,
       initAllReportTableResizers,
       initFloatingScrollbar,
+      initVerticalScrollBounds,
       initDreGerDrilldown,
       initDreSocDrilldown,
       isAccessRestricted,
@@ -284,6 +285,7 @@
       const month = getCurrentPeriodMonth();
       const tableWrap = initCompareShell(detailPanel, "reports-dre-table-wrap");
       initFloatingScrollbar(tableWrap);
+      initVerticalScrollBounds(tableWrap);
 
       populateCompareSel(detailPanel, year).then(() => {
         const sel = detailPanel.querySelector("#vp-dre-cmp-sel");
@@ -372,6 +374,7 @@
       const year = getCurrentYear();
       const tableWrap = initBudgetShell(detailPanel, "reports-soc-budget-wrap");
       initFloatingScrollbar(tableWrap);
+      initVerticalScrollBounds(tableWrap);
 
       populateSourceSel(detailPanel, year).then(() => {
         const sel = detailPanel.querySelector("#vp-dre-src-sel");
