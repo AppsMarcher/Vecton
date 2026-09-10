@@ -81,6 +81,8 @@
         // carregados, sem precisar de uma nova consulta.
         const sortTh = event.target.closest(".cockpit-groups-panel th[data-sort]");
         if (sortTh) { W.setGroupsSort(sortTh.dataset.sort); if (lastData) W.render(body, lastData); return; }
+        const areaSortTh = event.target.closest(".cockpit-areas-panel th[data-sort]");
+        if (areaSortTh) { W.setAreasSort(areaSortTh.dataset.sort); if (lastData) W.render(body, lastData); return; }
         const groupRow = event.target.closest(".cockpit-groups-panel tr[data-group]");
         if (groupRow && lastData) openGroupDrilldown(groupRow.dataset.group, lastData);
       });
