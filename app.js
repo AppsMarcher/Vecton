@@ -1372,8 +1372,6 @@ function handleMobileLogout() {
   return handleLogout();
 }
 const mobileShellModule = createMobileShellModule({
-  canAccessDashboard,
-  cockpitModule: { mount: host => cockpitModule.mount(host), unmount: () => cockpitModule.unmount() },
   canSeeReport,
   canAccessStrategic,
   getCurrentUser: () => currentUser,
