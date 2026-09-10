@@ -66,7 +66,7 @@ const ROOT_CC_NODE = {
 };
 
 const VIEW_HEADER_METADATA = {
-  cockpit: { kicker: "Módulo Vecton", title: "Cockpit Gestão" },
+  cockpit: { kicker: "Cockpit Gestão", title: "Desempenho, custos e pessoas" },
   rps:       { kicker: "GESTÃO",         title: "Reunião de Performance Semanal" },
   strategic: { kicker: "GESTÃO ESTRATÉGICA", title: "A3 Estratégicos" },
   dashboard: { kicker: "DASHBOARD",     title: "Cockpit Executivo" },
