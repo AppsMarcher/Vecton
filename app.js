@@ -3217,8 +3217,6 @@ function buildDreSocRealReport(year, ledgerRows = []) {
         .map((item) => item.months));
     } else if (node.class === "Sintetica") {
       months = sumMonthArrays(childRows.map((item) => item.months));
-    } else if (node.code === "425001004") {
-      months = zeroMonthArray();
     } else {
       months = zeroMonthArray();
       normalizedLedgerRows.forEach((row) => {
@@ -7924,8 +7922,6 @@ window.vpGenerateDreSocTemplate = async function () {
     let leafCodes;
     if (node.code === "51401001") {
       leafCodes = allAnalitic.filter(n => n.code !== "51401001").map(n => n.code);
-    } else if (node.code === "425001004") {
-      leafCodes = [];
     } else {
       leafCodes = leaves(node.code);
     }
