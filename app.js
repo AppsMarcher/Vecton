@@ -1494,7 +1494,14 @@ const cockpitModule = window.VECTON_COCKPIT.createCockpitModule({
     state.currentPeriod = { year, month };
     renderPeriodSummary();
     renderPeriodPicker();
-  }
+  },
+  // Botão "Ver OPEX completo" do card Atingimento do OPEX — mesmas funções
+  // usadas pelo "Ver DRE completa" do Dashboard e pelo drilldown de OPEX
+  // (navigateToOpexReport em dashboardCards.js).
+  setSelectedReportId: (value) => { selectedReportId = value; },
+  setActiveView: (value) => { activeView = value; },
+  renderNavigation,
+  renderReportsView
 });
 const renderModule = createRenderModule({
   getActiveView: () => activeView,

@@ -1,6 +1,6 @@
 (function attachCockpitModule(window) {
   "use strict";
-  function createCockpitModule({ getActiveView, getPeriod, canAccess, service, getManagementAccess, syncHeaderPeriod }) {
+  function createCockpitModule({ getActiveView, getPeriod, canAccess, service, getManagementAccess, syncHeaderPeriod, setSelectedReportId, setActiveView, renderNavigation, renderReportsView }) {
     const F = window.VECTON_COCKPIT_FORMAT;
     const W = window.VECTON_COCKPIT_WIDGETS;
     let management = "Marcher", periodType = "month", lastKey = "", requestId = 0;
@@ -76,6 +76,22 @@
       });
       root.addEventListener("click", event => {
         if (event.target.closest("[data-cockpit-retry], [data-cockpit-refresh]")) { service.invalidate?.(); refresh(); return; }
+        // "Ver OPEX completo" no card Atingimento do OPEX — mesmo destino do
+        // drilldown de OPEX do Dashboard (navigateToOpexReport em
+        // dashboardCards.js): relatório "OPEX Realizado" já filtrado pela
+        // Gestão selecionada aqui no Cockpit (não precisa checar acesso de
+        // novo — só está no dropdown de Gestão do Cockpit quem já pode vê-la).
+        if (event.target.closest("[data-cockpit-opex-link]")) {
+          setSelectedReportId?.("opexReal");
+          setActiveView?.("reports");
+          renderNavigation?.();
+          void Promise.resolve().then(() => {
+            const detailPanel = document.querySelector("#reports-view .reports-table-card");
+            if (detailPanel) detailPanel.dataset.opexMgmt = management || "Marcher";
+            renderReportsView?.();
+          });
+          return;
+        }
         // Cabeçalho ordenável (mesmo padrão ↑/↓ dos popovers de auditoria do
         // app) e drilldown por grupo — reordena/abre com os dados já
         // carregados, sem precisar de uma nova consulta.
@@ -205,13 +221,26 @@
       body.setAttribute("aria-busy", "true");
       W.loading(body);
       try {
-        const data = await service.load(filters);
+        // O card "Atingimento do OPEX" (Pessoal x Demais) não segue o toggle
+        // Mês/YTD/Ano do topo — a barra "M" é sempre o mês do período
+        // selecionado e a "A" é sempre o acumulado (YTD), então busca as duas
+        // à parte. Isso não gera requisição extra de verdade: o cache do
+        // service é por [gestão, ano, cenário, ...] (não por periodType), só
+        // recalcula o aggregate() puro em cima dos mesmos registros já
+        // buscados — e quando o toggle do topo já está em Mês/YTD, o pedido
+        // repetido dedupa sozinho (mesma chave) no service.load.
+        const [data, attainmentMonth, attainmentYtd] = await Promise.all([
+          service.load(filters),
+          service.load({ ...filters, periodType: "month" }),
+          service.load({ ...filters, periodType: "YTD" })
+        ]);
         if (token !== requestId) return;
         if (!data) {
           status.textContent = "Nenhum dado disponível para os filtros selecionados.";
           status.classList.remove("cockpit-sr-only");
           body.hidden = true;
         } else {
+          data.opexAttainment = { month: attainmentMonth, ytd: attainmentYtd };
           lastData = data;
           W.render(body, data);
           const sourceEl = root.querySelector(".cockpit-source");

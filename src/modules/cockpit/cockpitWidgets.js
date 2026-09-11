@@ -151,19 +151,68 @@
     ];
     return table("Raio-X por Área", headers, sorted.map(row), row({ name: "Total", actual: data.headcount.actual, personnelOpex: data.personnelOpex, otherOpex: data.otherOpex }));
   }
-  function deviations(data) {
-    if (!data.topOpexDeviations.length) return '<p class="dash-empty">Nenhum desvio disponível para os filtros selecionados.</p>';
-    const max = Math.max(...data.topOpexDeviations.map(row => Math.abs(row.variance)), 1);
-    return `<ol class="cockpit-ranking">${data.topOpexDeviations.map(row => `<li><span tabindex="0" ${tip([{ label: "Conta", value: row.code }])}>${e(row.name)}</span><svg viewBox="0 0 200 12" preserveAspectRatio="none" aria-hidden="true"><rect class="${F.tone(row.variance)}" width="${Math.abs(row.variance) / max * 200}" height="12" rx="3"/></svg><strong class="kpi-trend ${F.tone(row.variance)}">${F.formatDelta(row.variance)}</strong></li>`).join("")}</ol>`;
+  // { actual, budget } de uma das duas fatias do OPEX (Pessoal ou Demais),
+  // lidas do aggregate() de um periodType específico (month/YTD) — source
+  // pode vir null (sem cobertura naquele período) sem quebrar o card.
+  function attainmentPair(source, actualKey, budgetKey) {
+    return { actual: source ? source[actualKey] : null, budget: source ? source[budgetKey] : null };
+  }
+  // Uma barra "atingimento": preenchimento amarelo proporcional ao Real/Orçado,
+  // travado em 100% de largura e virando vermelho quando estoura o orçado (o
+  // rótulo continua mostrando o % real, ex. 112%). O valor fica ancorado pela
+  // BORDA DIREITA do preenchimento (max(...) evita que o texto "escape" pra
+  // fora da trilha quando o % é bem pequeno) — mesma leitura do card de
+  // referência (M/A + trilha + %).
+  function attainmentBar(data, letter, caption, pair) {
+    const pct = safeRatio(pair.actual, pair.budget);
+    const over = pct != null && pct > 1;
+    const width = (pct == null ? 0 : Math.max(0, Math.min(pct, 1)) * 100).toFixed(1);
+    const label = pct == null ? "—" : F.formatPercent(pct);
+    const comparison = data.comparisonLabel || "Budget";
+    const rows = [
+      { label: "Realizado", value: money(pair.actual) },
+      { label: comparison, value: money(pair.budget) },
+      { label: `% do ${comparison}`, value: label, tone: over ? "negative" : undefined }
+    ];
+    return `<div class="cockpit-attainment-row" tabindex="0" ${tip(rows)}>
+      <span class="cockpit-attainment-bar">
+        <span class="cockpit-attainment-badge">${letter}</span>
+        <span class="cockpit-attainment-track" role="img" aria-label="${e(`${caption}: ${label} do ${comparison}`)}">
+          <span class="cockpit-attainment-fill${over ? " cockpit-attainment-fill--over" : ""}" style="width:${width}%"></span>
+          <span class="cockpit-attainment-value" style="left:calc(max(${width}%,68px) - 10px)">${label}</span>
+        </span>
+      </span>
+      <span class="cockpit-attainment-caption">${caption}</span>
+    </div>`;
+  }
+  function attainmentGroup(data, title, monthPair, ytdPair) {
+    return `<div class="cockpit-attainment-group"><h4 class="cockpit-attainment-title">${e(title)}</h4>${attainmentBar(data, "M", "MÊS", monthPair)}${attainmentBar(data, "A", "ACUM", ytdPair)}</div>`;
+  }
+  // Card "Atingimento do OPEX": Pessoal e Demais OPEX lado a lado, cada um com
+  // 2 barras (M = mês do filtro de cima, A = sempre acumulado no ano) — não
+  // usa data.personnelOpex/otherOpex direto (esses seguem o toggle Mês/YTD/Ano
+  // do topo); usa data.opexAttainment.{month,ytd}, dois aggregates à parte
+  // buscados em cockpitModule.js só pra este card.
+  function opexAttainment(data) {
+    const { month, ytd } = data.opexAttainment || {};
+    const personnel = attainmentGroup(data, "Gastos com Pessoal",
+      attainmentPair(month, "personnelOpex", "personnelOpexBudget"), attainmentPair(ytd, "personnelOpex", "personnelOpexBudget"));
+    const other = attainmentGroup(data, "Demais OPEX",
+      attainmentPair(month, "otherOpex", "otherOpexBudget"), attainmentPair(ytd, "otherOpex", "otherOpexBudget"));
+    return `<div class="cockpit-attainment">${personnel}${other}</div>`;
   }
   const sections = [
     ["trend", "OPEX Mensal — Real x Budget", "activity", opexTrend],
     ["areas", "Raio-X por Área", "users", headcountAreas],
     ["groups", "OPEX por Grupo de Despesa", "accounts", expenseGroups],
-    ["deviations", "Top Desvios do OPEX", "activity", deviations]
+    ["attainment", "Atingimento do OPEX", "target", opexAttainment]
   ];
+  // Atalho pro relatório "OPEX Realizado" (mesmo padrão do botão "Ver DRE
+  // completa" do Dashboard) — só no card "Atingimento do OPEX", já que os
+  // outros painéis do Cockpit não têm um relatório equivalente pra linkar.
+  const opexLink = '<button type="button" class="ghost-button cockpit-opex-link" data-cockpit-opex-link>Ver OPEX completo</button>';
   function shell() {
-    return `<div class="kpi-grid cockpit-kpis" data-cockpit-kpis></div><div class="cockpit-grid">${sections.map(([id, title, symbol]) => `<section class="content-card dashboard-panel cockpit-panel cockpit-${id}-panel"><div class="panel-header"><h3>${icon(symbol)} ${title}</h3></div><div data-cockpit-widget="${id}"></div></section>`).join("")}</div>`;
+    return `<div class="kpi-grid cockpit-kpis" data-cockpit-kpis></div><div class="cockpit-grid">${sections.map(([id, title, symbol]) => `<section class="content-card dashboard-panel cockpit-panel cockpit-${id}-panel"><div class="panel-header"><h3>${icon(symbol)} ${title}</h3>${id === "attainment" ? opexLink : ""}</div><div data-cockpit-widget="${id}"></div></section>`).join("")}</div>`;
   }
   function render(root, data) {
     root.classList.remove("cockpit-loading");

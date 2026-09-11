@@ -36,6 +36,16 @@
 .cockpit-status:empty { display: none; }
 .cockpit-status { padding: 16px; color: var(--text-soft); }
 .cockpit-body { display: grid; gap: 16px; position: relative; }
+/* .content-view (regra genérica, linha ~6231) zera min-height e deixa o
+   flex-shrink padrão (1) — útil pra views que rolam sozinhas por dentro, mas
+   o Cockpit rola pelo .main-panel: quando o conteúdo não cabia na janela, o
+   flexbox ESPREMIA #cockpit-view abaixo da altura real do conteúdo, que
+   vazava pra fora da caixa via overflow:visible ignorando qualquer
+   padding-bottom (dele ou do .main-panel) — por isso o respiro do rodapé
+   sumia só às vezes, dependendo da altura da tela. flex-shrink:0 mantém a
+   seção na altura natural do conteúdo, então o padding do .main-panel volta
+   a valer igual pros dois casos (entre cards e no rodapé). */
+#cockpit-view.content-view.active { flex-shrink: 0; }
 /* Mesmo spinner do overlay de carregamento inicial do app (#app-loading-overlay/
    .app-loading-spinner, ver mais abaixo), só que só sobre o corpo do Cockpit —
    substitui os retângulos cinza parados por uma animação de verdade. */
@@ -185,6 +195,38 @@
 .cockpit-ranking strong { text-align: right; }
 .cockpit-ranking .positive { fill: var(--green); }
 .cockpit-ranking .negative { fill: var(--red); }
+/* Card "Atingimento do OPEX": Pessoal e Demais OPEX lado a lado, cada um com
+   2 barras M(ês)/A(cumulado) — badge redondo + trilha preta + preenchimento
+   amarelo proporcional ao Real/Orçado (100% = orçado), rótulo % ancorado na
+   borda direita do preenchimento. Vira vermelho quando estoura o orçado. */
+.cockpit-attainment { display: grid; grid-template-columns: minmax(0, 1fr); gap: 48px; }
+.cockpit-attainment-group { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.cockpit-attainment-title { margin: 0; font-size: 0.72rem; font-weight: 600; color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.03em; }
+.cockpit-attainment-row { display: flex; align-items: center; gap: 10px; }
+/* .cockpit-attainment-bar é o contêiner de posicionamento (position:relative)
+   do badge M/A — ele fica FORA da trilha (não dentro, que tem overflow:hidden
+   pra arredondar o preenchimento) e é ancorado com a borda esquerda um pouco
+   pra fora da trilha, criando a sobreposição pedida (bolinha "montada" em
+   cima do início da barra, maior que a própria trilha). */
+.cockpit-attainment-bar { display: block; position: relative; flex: 1; min-width: 0; }
+.cockpit-attainment-badge { position: absolute; left: -4px; top: 50%; transform: translateY(-50%); z-index: 2; display: flex; align-items: center; justify-content: center; width: 37px; height: 37px; border-radius: 50%; background: var(--violet); color: var(--text); font-size: 12px; font-weight: 800; box-shadow: 0 0 0 3px var(--panel); }
+/* .cockpit-attainment-bar não é flex/grid, então o <span> da trilha não
+   "blockifica" sozinho (fica inline, encolhido pro conteúdo) — display:block
+   é obrigatório aqui pra ele esticar 100% da largura do contêiner. */
+.cockpit-attainment-track { display: block; position: relative; height: 30px; border-radius: 6px; background: #000; border: 1px solid var(--line); overflow: hidden; }
+/* Arredonda só a ponta esquerda (encosta na borda igualmente arredondada da
+   trilha) — a direita fica reta/quadrada de propósito, como as barras do
+   gráfico "OPEX Mensal" (rx pequeno). Preenchimento com border-radius nos 4
+   cantos criava um "mordidinho" preto na ponta de corte (visível sempre que
+   o % não fecha 100%), já que ali não é um canto de verdade, é onde a barra
+   termina no meio da trilha. */
+.cockpit-attainment-fill { position: absolute; inset: 0 auto 0 0; height: 100%; border-radius: 6px 0 0 6px; background: var(--violet); }
+.cockpit-attainment-fill--over { background: var(--red); }
+.cockpit-attainment-value { position: absolute; top: 50%; transform: translate(-100%, -50%); font-size: 11px; font-weight: 700; color: var(--text); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); white-space: nowrap; }
+.cockpit-attainment-caption { flex-shrink: 0; font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.03em; }
+@media (max-width: 480px) {
+  .cockpit-attainment { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}
 .cockpit-skeleton { display: block; height: 20px; }
 .cockpit-widget-skeleton { height: 210px; }
 .cockpit-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -2349,6 +2391,9 @@ body.auth-only .vp-update-banner { display: none; }
 /* ── Ver DRE — link discreto ──────────────────────────────────────────────── */
 #dash-ver-dre { font-size: 0.68rem; font-weight: 500; opacity: 0.45; padding: 2px 8px; }
 #dash-ver-dre:hover { opacity: 1; }
+/* ── Ver OPEX completo (card Atingimento do OPEX) — mesmo link discreto ──── */
+.cockpit-opex-link { font-size: 0.68rem; font-weight: 500; opacity: 0.45; padding: 2px 8px; flex-shrink: 0; }
+.cockpit-opex-link:hover { opacity: 1; }
 
 /* ── DRE Gauge Rings ───────────────────────────────────────────────────────── */
 .dash-dre-gauges { padding-top: 8px; margin-top: 4px; }

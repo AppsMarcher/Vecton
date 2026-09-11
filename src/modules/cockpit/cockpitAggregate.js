@@ -100,6 +100,10 @@
     const ra = source.revenueActual || Array(12).fill(null), rb = source.revenueComparison || Array(12).fill(null);
     const revenue = periodSum(periodType === "year" ? blend(ra, rb) : ra, selected), revenueBudget = periodSum(rb, selected);
     const personnel = accountPair([...personnelSet]);
+    // Demais OPEX = total menos Pessoal, no Real e no comparativo — usado pelo
+    // card "Atingimento do OPEX" (Pessoal x Demais, Mês x Acumulado).
+    const otherOpexActual = opex.actual != null && personnel.actual != null ? opex.actual - personnel.actual : null;
+    const otherOpexBudget = opex.budget != null && personnel.budget != null ? opex.budget - personnel.budget : null;
     const rate = ratio(opex.actual, opex.budget), personnelRate = ratio(personnel.actual, opex.actual);
     const warnings = [...(source.warnings || [])];
     if (opex.actual == null) warnings.push("Real/Forecast incompleto no período selecionado; o total não foi estimado.");
@@ -111,7 +115,8 @@
       opexPerHeadcount: variance(ratio(ratio(opex.actual, selected.length), hcMean), ratio(ratio(opex.budget, selected.length), hcBudgetMean)),
       monthlyOpex: actual.map((value, i) => ({ month: i + 1, actual: i < month ? value : null, budget: comparison[i], forecast: source.hasForecast || i < month ? forecast[i] : null })),
       expenseGroups, headcountByArea, topOpexDeviations,
-      personnelOpex: personnel.actual, otherOpex: opex.actual != null && personnel.actual != null ? opex.actual - personnel.actual : null,
+      personnelOpex: personnel.actual, personnelOpexBudget: personnel.budget,
+      otherOpex: otherOpexActual, otherOpexBudget,
       expenseComposition: expenseGroups.map(row => ({ name: row.name, value: row.actual, share: ratio(row.actual, opex.actual) })),
       efficiencyIndicators: [
         { label: "OPEX / Receita líquida Marcher", value: ratio(opex.actual, revenue), format: "percent", delta: difference(ratio(opex.actual, revenue), ratio(opex.budget, revenueBudget)), unit: "p.p." },
