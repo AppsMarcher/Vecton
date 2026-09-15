@@ -1741,18 +1741,20 @@
       document.removeEventListener("keydown", aoTeclarNaFoto);
     }
 
-    // Posiciona o cartão centralizado sobre o elemento que disparou o zoom
-    // (a miniatura clicada ou o avatar do cabeçalho) — efeito de "crescer no
-    // lugar" em vez de aparecer fixo num canto qualquer da tela.
+    // Centraliza o cartão sobre a janela de conversa que disparou o zoom
+    // (sobreposto ao box, não fixo no canto onde a miniatura foi clicada).
+    // Sem janela por perto (ex.: avatar fora de uma conversa), cai para o
+    // centro da viewport.
     function posicionarCartaoDeFoto(card, origem) {
-      const rectOrigem = origem?.getBoundingClientRect?.();
+      const rectBase = origem?.closest?.(".msn-janela")?.getBoundingClientRect?.()
+        || origem?.getBoundingClientRect?.();
       const rectCard = card.getBoundingClientRect();
       const margem = 12;
-      let left = 16;
-      let top = 16;
-      if (rectOrigem && rectOrigem.width) {
-        left = rectOrigem.left + rectOrigem.width / 2 - rectCard.width / 2;
-        top = rectOrigem.top + rectOrigem.height / 2 - rectCard.height / 2;
+      let left = (window.innerWidth - rectCard.width) / 2;
+      let top = (window.innerHeight - rectCard.height) / 2;
+      if (rectBase && rectBase.width) {
+        left = rectBase.left + rectBase.width / 2 - rectCard.width / 2;
+        top = rectBase.top + rectBase.height / 2 - rectCard.height / 2;
       }
       left = Math.min(Math.max(margem, left), window.innerWidth - rectCard.width - margem);
       top = Math.min(Math.max(margem, top), window.innerHeight - rectCard.height - margem);
