@@ -100,6 +100,17 @@
           });
           return;
         }
+        // "Ver Headcount completo" no card Raio-X por Área — relatório
+        // "Headcount Realizado" (agrupado por Gestão/CC, todo mundo que o
+        // perfil de acesso já permite ver via getAllowedCcNumbers em app.js,
+        // não precisa repassar a Gestão selecionada aqui como o OPEX faz).
+        if (event.target.closest("[data-cockpit-hc-link]")) {
+          setSelectedReportId?.("headcountReal");
+          setActiveView?.("reports");
+          renderNavigation?.();
+          void Promise.resolve().then(() => { renderReportsView?.(); });
+          return;
+        }
         // Cabeçalho ordenável (mesmo padrão ↑/↓ dos popovers de auditoria do
         // app) e drilldown por grupo — reordena/abre com os dados já
         // carregados, sem precisar de uma nova consulta.

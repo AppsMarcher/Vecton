@@ -220,8 +220,13 @@
   // completa" do Dashboard) — só no card "Atingimento do OPEX", já que os
   // outros painéis do Cockpit não têm um relatório equivalente pra linkar.
   const opexLink = '<button type="button" class="ghost-button cockpit-opex-link" data-cockpit-opex-link>Ver OPEX completo</button>';
+  // Mesmo atalho pro "Headcount Realizado", no card "Raio-X por Área" — o
+  // relatório já respeita sozinho os CCs/gestões permitidos do perfil de
+  // acesso (getAllowedCcNumbers em app.js), sem precisar repassar filtro.
+  const hcLink = '<button type="button" class="ghost-button cockpit-opex-link" data-cockpit-hc-link>Ver Headcount completo</button>';
   function shell() {
-    return `<div class="kpi-grid cockpit-kpis" data-cockpit-kpis></div><div class="cockpit-grid">${sections.map(([id, title, symbol]) => `<section class="content-card dashboard-panel cockpit-panel cockpit-${id}-panel"><div class="panel-header"><h3>${icon(symbol)} ${title}</h3>${id === "attainment" ? opexLink : ""}</div><div data-cockpit-widget="${id}"></div></section>`).join("")}</div>`;
+    const links = { attainment: opexLink, areas: hcLink };
+    return `<div class="kpi-grid cockpit-kpis" data-cockpit-kpis></div><div class="cockpit-grid">${sections.map(([id, title, symbol]) => `<section class="content-card dashboard-panel cockpit-panel cockpit-${id}-panel"><div class="panel-header"><h3>${icon(symbol)} ${title}</h3>${links[id] || ""}</div><div data-cockpit-widget="${id}"></div></section>`).join("")}</div>`;
   }
   function render(root, data) {
     root.classList.remove("cockpit-loading");
