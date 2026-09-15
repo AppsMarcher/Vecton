@@ -97,7 +97,10 @@
     // futuros, quando há Forecast favorito) — redundante com as colunas de
     // Real e com a coluna tracejada do comparativo. O card "Forecast Anual
     // OPEX" no topo continua mostrando o total do ano.
-    return `<div class="cockpit-chart-scroll"><svg class="cockpit-trend" viewBox="0 0 665 270" aria-label="OPEX mensal em milhares de reais"><text x="8" y="16">R$ mil</text>${data.month < 12 ? `<rect class="cockpit-future" x="${x(data.month) - 25}" y="30" width="${646 - x(data.month) + 25}" height="196"/><line class="cockpit-cutoff" x1="${x(data.month) - 25}" x2="${x(data.month) - 25}" y1="26" y2="226"/><text x="${x(data.month) - 28}" y="18" text-anchor="end">Real | Forecast →</text>` : ""}${grid}${bars}<path class="cockpit-budget" d="${points("budget")}"/></svg></div><div class="cockpit-chart-legend"><span class="cockpit-real-key">Real</span><span class="cockpit-budget-key">${comparisonLabel(data)}</span></div>`;
+    // Gradiente vertical (base mais escura, topo mais claro) nas colunas de
+    // Real, em vez do teal chapado que tinha antes.
+    const realGrad = `<linearGradient id="cockpit-real-grad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#0f8f7f"/><stop offset="100%" stop-color="#5eead4"/></linearGradient>`;
+    return `<div class="cockpit-chart-scroll"><svg class="cockpit-trend" viewBox="0 0 665 270" aria-label="OPEX mensal em milhares de reais"><defs>${realGrad}</defs><text x="8" y="16">R$ mil</text>${data.month < 12 ? `<rect class="cockpit-future" x="${x(data.month) - 25}" y="30" width="${646 - x(data.month) + 25}" height="196"/><line class="cockpit-cutoff" x1="${x(data.month) - 25}" x2="${x(data.month) - 25}" y1="26" y2="226"/><text x="${x(data.month) - 28}" y="18" text-anchor="end">Real | Forecast →</text>` : ""}${grid}${bars}<path class="cockpit-budget" d="${points("budget")}"/></svg></div><div class="cockpit-chart-legend"><span class="cockpit-real-key">Real</span><span class="cockpit-budget-key">${comparisonLabel(data)}</span></div>`;
   }
   // headers já vem como <th> prontos (plain ou ordenável); rowAttrs (opcional)
   // aplica atributos por linha, ex.: pra abrir um drilldown ao clicar; totalAttrs
