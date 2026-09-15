@@ -10481,8 +10481,8 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .msn-foto-card.show { opacity: 1; transform: scale(1); }
 .msn-foto-frame {
   position: relative;
-  max-width: min(27vw, 270px);
-  max-height: 26vh;
+  max-width: min(60vw, 720px);
+  max-height: 70vh;
   padding: 8px;
   background: #fff;
   border-radius: 14px;
@@ -10491,7 +10491,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .msn-foto-frame img {
   display: block;
   max-width: 100%;
-  max-height: 26vh;
+  max-height: 70vh;
   border-radius: 8px;
   object-fit: contain;
 }
