@@ -2095,8 +2095,9 @@ body.auth-only .vp-update-banner { display: none; }
 .dash-opex-donut-body {
   display: flex;
   flex: 1;
-  gap: 6px;
+  gap: 24px;
   align-items: center;
+  justify-content: center;
   min-height: 0;
 }
 
@@ -2113,8 +2114,13 @@ body.auth-only .vp-update-banner { display: none; }
   overflow: visible;
 }
 
+/* Antes flex:1 esticava a legenda até a borda do card, deixando nome numa
+   coluna 1fr bem larga e %/valor "presos" lá longe na ponta direita — agora
+   o bloco tem uma largura-alvo (nem precisa do espaço todo do card) e o
+   .dash-opex-donut-body acima centraliza donut+legenda juntos. */
 .dash-opex-donut-legend {
-  flex: 1;
+  flex: 0 1 auto;
+  width: 260px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -2124,7 +2130,7 @@ body.auth-only .vp-update-banner { display: none; }
 
 .dash-opex-legend-row {
   display: grid;
-  grid-template-columns: 8px 1fr auto auto;
+  grid-template-columns: 8px minmax(0, 118px) auto auto;
   align-items: center;
   gap: 7px;
   cursor: pointer;
