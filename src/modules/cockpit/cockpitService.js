@@ -47,6 +47,18 @@
       try { return await mapLimit(scopes, scope => pages(table, `${base}${scope}&select=id,reference_month,cost_center_number`)); }
       catch (error) { if (deps.isMissingRelationError?.(error, table)) return []; throw error; }
     }
+    // Detalhe nominal do HC Real de uma única competência (não o range anual
+    // usado pelo agregado acima) — só é buscado sob demanda, ao abrir o
+    // popover de detalhamento do Cockpit (Raio-X por Área / card Headcount).
+    // Diferente de headcount() acima, transfere PII (matrícula/colab/cargo)
+    // de propósito: é o mesmo dado que o card de Headcount do Dashboard já
+    // expõe (ver dashboardCards.js), aqui reaproveitado pro Cockpit.
+    async function headcountDetail(table, base, centers) {
+      if (centers && !centers.length) return [];
+      const scopes = centers ? chunk([...new Set(centers.map(cc => String(cc.number)))]).map(numbers => `&cost_center_number=in.${encodeURIComponent(list(numbers))}`) : [""];
+      try { return await mapLimit(scopes, scope => pages(table, `${base}${scope}&select=id,cost_center_number,matricula,colab,cargo`)); }
+      catch (error) { if (deps.isMissingRelationError?.(error, table)) return []; throw error; }
+    }
     async function revenue(table, base, codes, year) {
       let rows;
       try { rows = await pages(table, `${base}&account_number=in.${encodeURIComponent(list(codes))}&select=account_number,reference_month,total_amount`, true); }
@@ -89,7 +101,39 @@
       });
       return window.VECTON_COCKPIT_DATA.aggregate(filters, source);
     }
-    return { load, invalidate };
+    // Detalhamento nominal do HC Real (popover "quem compõe esse número" do
+    // Cockpit): agrupa por CC (ou por gestão, quando management === "Marcher",
+    // mesma regra de headcountByArea em cockpitAggregate.js) e traz os
+    // colaboradores de cada grupo. Só busca a competência selecionada — não o
+    // ano inteiro que load() usa para a tendência.
+    async function loadHeadcountDetail(filters) {
+      if (!deps.isConfigured()) throw new Error("Supabase não configurado");
+      const access = deps.getManagementAccess(filters.management);
+      if (!access.options.includes(filters.management)) throw new Error("Gestão não autorizada");
+      const org = await deps.resolveOrganizationId(), state = deps.getState(), centers = access.centers;
+      const base = `organization_id=eq.${encodeURIComponent(org)}&reference_year=eq.${filters.year}&reference_month=eq.${filters.month}&load_type=eq.realizado`;
+      const key = `${org}:${generation}:hcdetail:${filters.year}:${filters.month}:${centers ? centers.map(cc => norm(cc.number)).sort().join(",") : "all"}`;
+      const allRows = await cached(key, () => headcountDetail("headcount_entries", base, centers));
+      // Mesma guarda client-side usada em scoped() (load acima): uma resposta
+      // mais ampla que o filtro pedido nunca deve vazar gente de fora do
+      // acesso concedido — ainda mais sensível aqui, que carrega PII.
+      const allowed = centers ? new Set(centers.map(cc => norm(cc.number))) : null;
+      const rows = allRows.filter(row => !allowed || allowed.has(norm(row.cost_center_number)));
+      const ccByNumber = new Map(state.costCenters.map(cc => [norm(cc.number), cc]));
+      const isMarcher = filters.management === "Marcher";
+      const groups = new Map();
+      for (const row of rows) {
+        const cc = ccByNumber.get(norm(row.cost_center_number));
+        const groupKey = isMarcher ? (cc?.management?.trim() || "Sem gestão cadastrada") : (cc?.number || row.cost_center_number || "Sem centro de custo");
+        if (!groups.has(groupKey)) {
+          groups.set(groupKey, { name: isMarcher ? groupKey : (cc?.name || row.cost_center_number || "Sem centro de custo"), code: isMarcher ? null : (cc?.number ?? null), entries: [] });
+        }
+        groups.get(groupKey).entries.push({ cc: cc?.number || row.cost_center_number || "", ccName: cc?.name || "", matricula: row.matricula || "", colab: row.colab || "", cargo: row.cargo || "" });
+      }
+      const byArea = [...groups.values()].map(group => ({ ...group, count: group.entries.length })).sort((a, b) => b.count - a.count);
+      return { total: rows.length, byArea };
+    }
+    return { load, invalidate, loadHeadcountDetail };
   }
   window.VECTON_COCKPIT_SERVICE = { createCockpitService };
 })(window);

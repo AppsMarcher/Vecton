@@ -7,6 +7,7 @@ O módulo `cockpit` usa as consultas autenticadas do Vecton. Não carrega mais d
 - Contas e grupos: catálogo `OPEX_STRUCTURE` dos relatórios OPEX, incluindo atribuições adicionais cadastradas no app. Valores preservam o sinal do ledger; créditos não são convertidos em despesas positivas.
 - Gestão: vínculo do centro de custo. Marcher consolida todas as gestões quando o usuário tem esse acesso. Seleção e consultas respeitam as gestões permitidas e concessões parciais por CC.
 - Headcount por Área: detalha os CCs da gestão selecionada e totaliza a gestão. Marcher agrupa esses CCs por gestão. Conta toda a base de pessoas, sem exclusões novas de cargo/status.
+- Popover de Headcount: clicar numa área do Raio-X (ou na linha Total/no card "Headcount" do topo) abre a lista nominal de quem compõe aquele número — matrícula, colaborador e cargo, mesmo padrão do card de Headcount do Dashboard. Clique numa área específica já abre a lista direto; clique no totalizador mostra antes o resumo por área, como passo intermediário. Busca sob demanda, só a competência selecionada (não os 12 meses usados pela tendência).
 - Comparativo financeiro e HC: cenário com estrela no Planejamento. Sem cenário `is_default`, o favorito é Budget, como no módulo atual. As colunas exibem o nome real da fonte.
 - Forecast anual: Real até a competência selecionada + valores do cenário favorito nos meses seguintes. Sem Forecast favorito, não usa Budget como previsão silenciosamente. Em dezembro, o Forecast coincide com o ano realizado.
 - Mês: valores da competência. YTD: janeiro até a competência. Ano: Forecast anual versus favorito anual; Real até a competência permanece identificado separadamente.
@@ -28,7 +29,7 @@ O módulo `cockpit` usa as consultas autenticadas do Vecton. Não carrega mais d
 | Receita líquida | Totais por conta/mês de Real e comparativo, com fallback ao ledger usado pelos DREs |
 | Cadastros e escopo | Estado hidratado de `cost_centers`, `managements`, plano DRE e perfil de acesso |
 
-`cockpitService.js` faz consultas por organização/ano/contas/CCs e usa paginação por chave nos ledgers. Apenas contagens de pessoas são necessárias: nomes, matrículas e cargos não são transferidos. A receita usa os totais da empresa por conta/mês, sem dimensão de pessoas ou CC.
+`cockpitService.js` faz consultas por organização/ano/contas/CCs e usa paginação por chave nos ledgers. A consulta anual usada pela tendência (`load`) só conta pessoas: nomes, matrículas e cargos não são transferidos nela. O popover de Headcount usa uma segunda consulta, à parte e sob demanda (`loadHeadcountDetail`), que transfere matrícula/colaborador/cargo só da competência selecionada — o mesmo dado que o card de Headcount do Dashboard já expõe. A receita usa os totais da empresa por conta/mês, sem dimensão de pessoas ou CC.
 
 As fontes anuais são compartilhadas pelos widgets e filtros com cache de 30 segundos, segmentado por organização, usuário, gestão/CCs e favorito. Há invalidação ao trocar a estrela, alterar cenário e encerrar sessão. O botão Atualizar dados ignora o cache. Não há polling.
 
@@ -41,7 +42,7 @@ O cabeçalho mostra só uma linha de contexto (fonte do comparativo); o resumo d
 ## Validação e limites
 
 - `node tests/cockpit.test.js`: reconciliação de grupos/CCs, média mensal e HC médio variável, receita, Ano, ausência de competência, resposta fora de ordem, teclado, vazio, retry e mobile, usando registros sintéticos com o formato das fontes reais.
-- `node tests/cockpitService.test.js`: consultas por organização/CC, acesso parcial, ausência de PII, mudança de favorito, Budget como favorito, cache por período/sessão, fonte opcional ausente, receita e propagação de erros.
+- `node tests/cockpitService.test.js`: consultas por organização/CC, acesso parcial, ausência de PII na consulta anual, popover de Headcount (PII só na competência selecionada, guarda de escopo client-side, acesso negado), mudança de favorito, Budget como favorito, cache por período/sessão, fonte opcional ausente, receita e propagação de erros.
 - Verificações de sintaxe, regressões do shell e `git diff --check`.
 
 A integração usa tabelas e campos já referenciados pelo aplicativo; não cria migrations nem altera registros. A validação automatizada usa fontes controladas. A conferência numérica com o banco de produção exige uma sessão autenticada do Vecton e ainda não foi realizada nesta tarefa. As capturas dos testes mostram dados sintéticos, não valores financeiros de produção.

@@ -41,11 +41,14 @@
     const series = data.monthlyOpex.filter(row => row.actual != null).map(row => row.actual);
     const cards = [
       { label: `OPEX Gestão ${data.management}${data.periodType === "year" ? " · Forecast" : ""}`, value: money(opex.actual), detail: `vs ${comparisonLabel(data)} ${trend(opex.variancePercent)}`, icon: "accounts", series },
-      { label: "Headcount", value: F.formatInteger(headcount.actual), detail: `${comparisonLabel(data)} ${F.formatInteger(headcount.budget)} | Δ ${F.formatDelta(headcount.variance, F.formatInteger)}`, icon: "users" },
+      { label: "Headcount", value: F.formatInteger(headcount.actual), detail: `${comparisonLabel(data)} ${F.formatInteger(headcount.budget)} | Δ ${F.formatDelta(headcount.variance, F.formatInteger)}`, icon: "users", clickable: !!headcount.actual },
       { label: "OPEX por HC · média mensal", value: money(perHc.actual), detail: `vs ${comparisonLabel(data)} ${trend(perHc.variancePercent)}`, icon: "activity", series: series.map(value => safeRatio(value, headcount.average)) },
       { label: "Forecast Anual OPEX", value: money(opex.forecast), detail: `${F.formatPercent(safeRatio(opex.forecast, opex.annualBudget))} do ${comparisonLabel(data)}`, icon: "target", series: data.monthlyOpex.map(row => row.forecast) }
     ];
-    return cards.map((card, i) => `<article class="kpi-card cockpit-kpi cockpit-kpi--${i}"><span class="kpi-label">${icon(card.icon)}${e(card.label)}</span><strong class="kpi-value">${card.value}</strong><div class="cockpit-kpi-detail">${card.detail}</div>${card.series ? sparkline(card.series) : ""}</article>`).join("");
+    // O card de Headcount abre o popover de detalhamento por área/CC (mesmo
+    // dado do Raio-X, ver headcountAreas abaixo) — data-hc-total marca ambos
+    // os gatilhos do "totalizador", tratados em cockpitModule.js.
+    return cards.map((card, i) => `<article class="kpi-card cockpit-kpi cockpit-kpi--${i}${card.clickable ? " ger-drillable" : ""}"${card.clickable ? ' data-hc-total tabindex="0" role="button"' : ""}><span class="kpi-label">${icon(card.icon)}${e(card.label)}</span><strong class="kpi-value">${card.value}</strong><div class="cockpit-kpi-detail">${card.detail}</div>${card.series ? sparkline(card.series) : ""}</article>`).join("");
   }
   function opexTrend(data) {
     const rows = data.monthlyOpex, values = rows.flatMap(row => [row.actual, row.budget, row.forecast]).filter(Number.isFinite);
@@ -97,10 +100,12 @@
     return `<div class="cockpit-chart-scroll"><svg class="cockpit-trend" viewBox="0 0 665 270" aria-label="OPEX mensal em milhares de reais"><text x="8" y="16">R$ mil</text>${data.month < 12 ? `<rect class="cockpit-future" x="${x(data.month) - 25}" y="30" width="${646 - x(data.month) + 25}" height="196"/><line class="cockpit-cutoff" x1="${x(data.month) - 25}" x2="${x(data.month) - 25}" y1="26" y2="226"/><text x="${x(data.month) - 28}" y="18" text-anchor="end">Real | Forecast →</text>` : ""}${grid}${bars}<path class="cockpit-budget" d="${points("budget")}"/></svg></div><div class="cockpit-chart-legend"><span class="cockpit-real-key">Real</span><span class="cockpit-budget-key">${comparisonLabel(data)}</span></div>`;
   }
   // headers já vem como <th> prontos (plain ou ordenável); rowAttrs (opcional)
-  // aplica atributos por linha, ex.: pra abrir um drilldown ao clicar.
-  function table(caption, headers, rows, total, rowAttrs = []) {
+  // aplica atributos por linha, ex.: pra abrir um drilldown ao clicar; totalAttrs
+  // faz o mesmo só pra linha de Total (sem entrar em conflito com a classe
+  // "ger-row-subtotal" que essa linha já carrega).
+  function table(caption, headers, rows, total, rowAttrs = [], totalAttrs = "") {
     const renderRow = (cells, totalRow = false, attrs = "") => `<tr${totalRow ? ' class="ger-row-subtotal"' : ""}${attrs}>${cells.map((cell, i) => i === 0 ? `<th scope="row">${cell}</th>` : `<td>${cell}</td>`).join("")}</tr>`;
-    return `<div class="reports-table-wrap cockpit-table-scroll" tabindex="0" role="region" aria-label="${e(caption)}"><table class="data-table reports-ger-table cockpit-table"><caption class="cockpit-sr-only">${e(caption)}</caption><thead><tr>${headers.join("")}</tr></thead><tbody>${rows.map((cells, i) => renderRow(cells, false, rowAttrs[i] || "")).join("")}${renderRow(total, true)}</tbody></table></div>`;
+    return `<div class="reports-table-wrap cockpit-table-scroll" tabindex="0" role="region" aria-label="${e(caption)}"><table class="data-table reports-ger-table cockpit-table"><caption class="cockpit-sr-only">${e(caption)}</caption><thead><tr>${headers.join("")}</tr></thead><tbody>${rows.map((cells, i) => renderRow(cells, false, rowAttrs[i] || "")).join("")}${renderRow(total, true, totalAttrs)}</tbody></table></div>`;
   }
   const th = (label, sortKey, active, dir) => `<th scope="col"${sortKey ? ` data-sort="${sortKey}" class="cockpit-sortable${active ? " cockpit-sort-active" : ""}"` : ""}>${e(label)}${active ? (dir === 1 ? " ↑" : " ↓") : ""}</th>`;
   // Ordenação clicável do cabeçalho (mesmo padrão ↑/↓ dos popovers de
@@ -149,7 +154,11 @@
       th("Gasto com Pessoal", "personnelOpex", areasSort.key === "personnelOpex", areasSort.dir),
       th("Demais Opex", "otherOpex", areasSort.key === "otherOpex", areasSort.dir)
     ];
-    return table("Raio-X por Área", headers, sorted.map(row), row({ name: "Total", actual: data.headcount.actual, personnelOpex: data.personnelOpex, otherOpex: data.otherOpex }));
+    // Clique numa área abre a lista de pessoas dessa área direto (data-hc-area);
+    // clique no Total abre antes o resumo por área (data-hc-total, mesmo
+    // padrão do card de Headcount) — tratado em cockpitModule.js.
+    const rowAttrs = sorted.map(area => area.actual ? ` class="ger-drillable" data-hc-area="${e(area.code || area.name)}"` : "");
+    return table("Raio-X por Área", headers, sorted.map(row), row({ name: "Total", actual: data.headcount.actual, personnelOpex: data.personnelOpex, otherOpex: data.otherOpex }), rowAttrs, data.headcount.actual ? " data-hc-total" : "");
   }
   // { actual, budget } de uma das duas fatias do OPEX (Pessoal ou Demais),
   // lidas do aggregate() de um periodType específico (month/YTD) — source

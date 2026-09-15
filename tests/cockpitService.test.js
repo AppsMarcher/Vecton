@@ -8,6 +8,14 @@ for (const file of ['cockpitAggregate', 'cockpitService']) vm.runInNewContext(fs
 const filters = { management: 'Controladoria', year: 2026, month: 9, periodType: 'YTD' }, source = buildSource();
 let favorite = { id: 'favorite-1', name: 'Revisão setembro' }, organization = 'org-a', user = 'user-a', failTable = '', missingHc = false, noTotals = false;
 const calls = [];
+// Uma pessoa no CC concedido (100) e outra fora dele (200) — a segunda testa
+// a mesma guarda client-side de scoped() (load), aqui mais sensível por
+// carregar PII: a resposta não pode vazar gente fora do acesso concedido
+// mesmo que a fonte devolva mais do que foi pedido.
+const detailRows = [
+  { id: 'p1', cost_center_number: '100', matricula: '111', colab: 'Ana Souza', cargo: 'Analista' },
+  { id: 'p2', cost_center_number: '200', matricula: '222', colab: 'Bruno Lima', cargo: 'Assistente' }
+];
 const deps = {
   isConfigured: () => true, resolveOrganizationId: async () => organization, getSessionKey: () => user,
   getState: () => ({ costCenters: source.costCenters, dreNodes: source.accountNames }),
@@ -38,6 +46,10 @@ const deps = {
       return table === 'actuals_ledger_entries' ? source.actualRows : source.comparisonRows;
     }
     assert.ok(decoded.includes('cost_center_number=in.("100")'));
+    if (table === 'headcount_entries' && decoded.includes('reference_month=eq.')) {
+      assert.ok(decoded.includes('matricula') && decoded.includes('colab') && decoded.includes('cargo'), 'detail popover needs PII fields');
+      return detailRows;
+    }
     assert.ok(!decoded.includes('matricula') && !decoded.includes('colab'), 'counting requires no PII');
     return table === 'headcount_entries' && decoded.includes('load_type=eq.realizado') ? source.headcountRows : source.comparisonHeadcountRows;
   }
@@ -64,5 +76,13 @@ const deps = {
   failTable = ''; favorite = { id: 'favorite-3', name: 'Revisão' }; missingHc = true; service.invalidate();
   const missing = await service.load(filters); assert.equal(missing.headcount.budget, null); assert.equal(missing.opex.actual, 45000);
   noTotals = true; service.invalidate(); assert.equal((await service.load(filters)).efficiencyIndicators[0].value, 45000 / 900000);
-  console.log('Cockpit service: favorite, scope, PII, cache, sessions, missing HC, revenue fallback and errors passed.');
+  const hcDetail = await service.loadHeadcountDetail({ management: 'Controladoria', year: 2026, month: 9 });
+  assert.equal(hcDetail.total, 1, 'rows outside the granted CC must be filtered out client-side');
+  assert.equal(hcDetail.byArea.length, 1);
+  assert.equal(hcDetail.byArea[0].code, '100');
+  assert.equal(hcDetail.byArea[0].entries[0].colab, 'Ana Souza');
+  assert.equal(hcDetail.byArea[0].entries[0].matricula, '111');
+  assert.equal(hcDetail.byArea[0].entries[0].cargo, 'Analista');
+  await assert.rejects(service.loadHeadcountDetail({ management: 'Industrial', year: 2026, month: 9 }), /não autorizada/);
+  console.log('Cockpit service: favorite, scope, PII, headcount detail popover, cache, sessions, missing HC, revenue fallback and errors passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

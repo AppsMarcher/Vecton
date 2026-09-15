@@ -5425,6 +5425,65 @@ textarea[disabled] {
   color: var(--text);
 }
 
+/* Popover de Headcount do Cockpit Gestão (nível 1: resumo por área, nível 2:
+   lista nominal) — ver openHeadcountPopover em cockpitModule.js. Reaproveita
+   a casca .ger-audit-popover/.gap-* dos outros drilldowns do Cockpit. */
+.hc-pop-loading {
+  padding: 24px;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  text-align: center;
+}
+.hc-pop-total {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.hc-pop-total strong { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+.hc-pop-total span { font-size: 0.75rem; color: var(--text-faint); }
+.hc-pop-arealist { max-height: 60vh; overflow-y: auto; padding: 4px 14px 10px; }
+.hc-pop-arearow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+.hc-pop-arearow:last-child { border-bottom: none; }
+.hc-pop-arearow-name {
+  flex: 0 0 150px;
+  font-size: 0.76rem;
+  color: var(--text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hc-pop-arearow-bar {
+  flex: 1;
+  min-width: 60px;
+  height: 7px;
+  background: var(--panel-alt);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.hc-pop-arearow-bar span { display: block; height: 100%; background: var(--blue); border-radius: 4px; }
+.hc-pop-arearow-count { flex: 0 0 28px; font-size: 0.76rem; font-weight: 600; color: var(--text); text-align: right; }
+.hc-pop-arearow-pct { flex: 0 0 44px; font-size: 0.72rem; color: var(--text-faint); text-align: right; }
+.hc-pop-arearow-arrow { flex: 0 0 14px; font-size: 13px; color: var(--text-faint); text-align: right; }
+.hc-pop .hc-pop-back { margin-right: 4px; }
+/* Torna clicável o totalizador de HC (card do topo e linha Total do Raio-X),
+   mesma linguagem visual do .ger-drillable já usado nas outras linhas. */
+[data-hc-total] { cursor: pointer; }
+.cockpit-areas-panel tr.ger-row-subtotal[data-hc-total]:hover th,
+.cockpit-areas-panel tr.ger-row-subtotal[data-hc-total]:hover td {
+  background: rgba(79, 124, 255, 0.13);
+  color: var(--blue);
+}
+.kpi-card[data-hc-total]:hover { outline: 1px solid rgba(79, 124, 255, 0.35); }
+
 .gap-footer {
   display: flex;
   align-items: center;

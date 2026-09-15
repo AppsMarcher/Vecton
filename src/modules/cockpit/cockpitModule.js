@@ -4,7 +4,15 @@
     const F = window.VECTON_COCKPIT_FORMAT;
     const W = window.VECTON_COCKPIT_WIDGETS;
     let management = "Marcher", periodType = "month", lastKey = "", requestId = 0;
-    let controls, root, body, status, mobileHost, home, controlsHome, periodHome, hideTrendTip, lastData, drillPopover;
+    let controls, root, body, status, mobileHost, home, controlsHome, periodHome, hideTrendTip, lastData, drillPopover, hcPopover;
+    let hcSortKey = "colab", hcSortDir = 1;
+    const HC_SORT_FIELDS = {
+      cc: entry => (entry.cc || "").padStart(10, "0"),
+      ccName: entry => (entry.ccName || "").toLowerCase(),
+      mat: entry => Number(entry.matricula) || 0,
+      colab: entry => (entry.colab || "").toLowerCase(),
+      cargo: entry => (entry.cargo || "").toLowerCase()
+    };
     let entered = false; // reseta toda vez que o usuário SAI da tela (ver render())
     function initialize() {
       root = document.querySelector("#cockpit-view");
@@ -100,7 +108,14 @@
         const areaSortTh = event.target.closest(".cockpit-areas-panel th[data-sort]");
         if (areaSortTh) { W.setAreasSort(areaSortTh.dataset.sort); if (lastData) W.render(body, lastData); return; }
         const groupRow = event.target.closest(".cockpit-groups-panel tr[data-group]");
-        if (groupRow && lastData) openGroupDrilldown(groupRow.dataset.group, lastData);
+        if (groupRow && lastData) { openGroupDrilldown(groupRow.dataset.group, lastData); return; }
+        // Headcount: clique numa área específica (linha do Raio-X) vai direto
+        // pra lista de pessoas; clique no totalizador (Total da tabela ou o
+        // card "Headcount" do topo) mostra antes o resumo por área.
+        const hcAreaRow = event.target.closest(".cockpit-areas-panel tr[data-hc-area]");
+        if (hcAreaRow && lastData) { void openHeadcountPopover(lastData, hcAreaRow.dataset.hcArea); return; }
+        const hcTotal = event.target.closest("[data-hc-total]");
+        if (hcTotal && lastData) { void openHeadcountPopover(lastData, null); return; }
       });
     }
     // Popover de detalhamento de um grupo de despesa: lista as contas do
@@ -167,13 +182,107 @@
     function onDocClickCloseDrilldown(event) {
       if (drillPopover && !drillPopover.contains(event.target) && !event.target.closest(".ger-drillable")) closeGroupDrilldown();
     }
+    // Popover de detalhamento de Headcount ("quem compõe esse número"): dois
+    // passos — resumo por área/CC (nível 1, como o card de Headcount do
+    // Dashboard) e a lista nominal de uma área (nível 2, matrícula/colaborador/
+    // cargo). Clicar numa área específica do Raio-X pula direto pro nível 2.
+    async function openHeadcountPopover(data, initialAreaKey) {
+      closeGroupDrilldown();
+      closeHeadcountPopover();
+      const popover = document.createElement("div");
+      popover.className = "ger-audit-popover hc-pop";
+      popover.innerHTML = '<div class="gap-header"><span class="gap-title">Headcount Realizado</span></div><div class="hc-pop-loading">Carregando…</div>';
+      document.body.appendChild(popover);
+      hcPopover = popover;
+      setTimeout(() => document.addEventListener("click", onDocClickCloseHcPopover, true), 0);
+      let detail;
+      try {
+        detail = await service.loadHeadcountDetail({ management: data.management, year: data.year, month: data.month });
+      } catch (error) {
+        if (hcPopover !== popover) return;
+        popover.innerHTML = `<div class="gap-header"><span class="gap-title">Headcount Realizado</span><button class="gap-close" type="button" aria-label="Fechar">✕</button></div><div class="hc-pop-loading">Não foi possível carregar os colaboradores.</div>`;
+        popover.querySelector(".gap-close").addEventListener("click", closeHeadcountPopover);
+        return;
+      }
+      if (hcPopover !== popover) return; // fechado ou trocado enquanto carregava
+      const startKey = initialAreaKey || (detail.byArea.length === 1 ? (detail.byArea[0].code || detail.byArea[0].name) : null);
+      renderHeadcountPopover(popover, detail, startKey);
+    }
+    function renderHeadcountPopover(popover, detail, areaKey) {
+      const group = areaKey ? detail.byArea.find(area => (area.code || area.name) === areaKey) : null;
+      if (!group) {
+        popover.innerHTML = `
+          <div class="gap-header">
+            <span class="gap-title">Headcount Realizado</span>
+            <button class="gap-close" type="button" aria-label="Fechar">✕</button>
+          </div>
+          <div class="hc-pop-total"><strong>${detail.total}</strong><span>colaboradores</span></div>
+          <div class="hc-pop-arealist">${detail.byArea.map(area => {
+            const pct = detail.total > 0 ? (area.count / detail.total * 100) : 0;
+            return `<div class="hc-pop-arearow ger-drillable" data-hc-area="${F.escape(area.code || area.name)}">
+              <span class="hc-pop-arearow-name" title="${F.escape(area.name)}">${F.escape(area.name)}</span>
+              <span class="hc-pop-arearow-bar"><span style="width:${pct.toFixed(1)}%"></span></span>
+              <span class="hc-pop-arearow-count">${area.count}</span>
+              <span class="hc-pop-arearow-pct">${pct.toFixed(1)}%</span>
+              <span class="hc-pop-arearow-arrow">›</span>
+            </div>`;
+          }).join("")}</div>`;
+        popover.querySelector(".gap-close").addEventListener("click", closeHeadcountPopover);
+        popover.querySelectorAll("[data-hc-area]").forEach(rowEl => rowEl.addEventListener("click", () => renderHeadcountPopover(popover, detail, rowEl.dataset.hcArea)));
+        return;
+      }
+      const sorter = HC_SORT_FIELDS[hcSortKey] || HC_SORT_FIELDS.colab;
+      const entries = group.entries.slice().sort((a, b) => {
+        const av = sorter(a), bv = sorter(b);
+        return typeof av === "number" ? (av - bv) * hcSortDir : av.localeCompare(bv, "pt-BR") * hcSortDir;
+      });
+      const thc = (key, label) => {
+        const active = hcSortKey === key;
+        return `<th data-hc-sort="${key}" style="cursor:pointer;user-select:none${active ? ";color:var(--blue)" : ""}">${F.escape(label)}${active ? (hcSortDir === 1 ? " ↑" : " ↓") : ""}</th>`;
+      };
+      const backBtn = detail.byArea.length > 1 ? `<button class="ghost-button hc-pop-back" type="button">← Voltar</button>` : "";
+      popover.innerHTML = `
+        <div class="gap-header">
+          ${backBtn}
+          <span class="gap-title">${F.escape(group.name)}</span>
+          <button class="gap-close" type="button" aria-label="Fechar">✕</button>
+        </div>
+        <div class="hc-pop-total"><strong>${entries.length}</strong><span>colaboradores</span></div>
+        <div class="gap-table-wrap"><table class="gap-table">
+          <thead><tr>${thc("cc", "CC")}${thc("ccName", "Nome CC")}${thc("mat", "Mat.")}${thc("colab", "Colaborador")}${thc("cargo", "Cargo")}</tr></thead>
+          <tbody>${entries.map(entry => `<tr>
+            <td class="gap-code">${F.escape(entry.cc)}</td>
+            <td class="gap-name">${F.escape(entry.ccName)}</td>
+            <td>${F.escape(entry.matricula)}</td>
+            <td class="gap-name">${F.escape(entry.colab)}</td>
+            <td class="gap-name">${F.escape(entry.cargo)}</td>
+          </tr>`).join("")}</tbody>
+        </table></div>`;
+      popover.querySelector(".gap-close").addEventListener("click", closeHeadcountPopover);
+      popover.querySelector(".hc-pop-back")?.addEventListener("click", () => renderHeadcountPopover(popover, detail, null));
+      popover.querySelectorAll("th[data-hc-sort]").forEach(thEl => thEl.addEventListener("click", () => {
+        const key = thEl.dataset.hcSort;
+        hcSortDir = key === hcSortKey ? -hcSortDir : 1;
+        hcSortKey = key;
+        renderHeadcountPopover(popover, detail, areaKey);
+      }));
+    }
+    function closeHeadcountPopover() {
+      if (!hcPopover) return;
+      hcPopover.remove();
+      hcPopover = null;
+      document.removeEventListener("click", onDocClickCloseHcPopover, true);
+    }
+    function onDocClickCloseHcPopover(event) {
+      if (hcPopover && !hcPopover.contains(event.target) && !event.target.closest("[data-hc-area], [data-hc-total]")) closeHeadcountPopover();
+    }
     async function render() {
       const active = (getActiveView() === "cockpit" || !!mobileHost) && canAccess();
       if (!root && !active) return;
       if (!root) initialize();
       if (mobileHost) root.classList.add("active");
       controls.hidden = !active;
-      if (!active) { entered = false; requestId++; lastKey = ""; hideTrendTip?.(); closeGroupDrilldown(); return; }
+      if (!active) { entered = false; requestId++; lastKey = ""; hideTrendTip?.(); closeGroupDrilldown(); closeHeadcountPopover(); return; }
       if (!entered) {
         // Toda vez que ENTRA na tela (não a cada re-render), reseta pro padrão
         // — Gestão Marcher, filtro Mês, mês calendário atual -1 — e empurra
@@ -212,6 +321,7 @@
       if (key === lastKey) return;
       lastKey = key;
       closeGroupDrilldown();
+      closeHeadcountPopover();
       const token = ++requestId;
       root.querySelector(".cockpit-source").textContent = "";
       root.querySelector(".cockpit-source").removeAttribute("title");
@@ -281,6 +391,7 @@
       if (!mobileHost) return;
       hideTrendTip?.();
       closeGroupDrilldown();
+      closeHeadcountPopover();
       document.querySelector("#period-popover").hidden = true;
       document.querySelector("#period-trigger").setAttribute("aria-expanded", "false");
       periodHome.parent.insertBefore(periodHome.picker, periodHome.next);
