@@ -10,6 +10,26 @@
   const valueLabel = data => data.valueLabel || "Real";
   const safeRatio = (a, b) => a == null || b == null || !b ? null : a / b;
   const trend = value => `<span class="kpi-trend ${F.tone(value)}">${value < 0 ? "↓ " : value > 0 ? "↑ " : ""}${F.formatDelta(value, F.formatPercent)}</span>`;
+  // Mesma mistura de cor usada nas barras em degradê do Dashboard
+  // (renderDashComboChart em dashboardVisuals.js — cards Matéria-prima/EBITDA)
+  // — duplicada aqui pra não acoplar os dois módulos, é só matemática de cor.
+  const clamp01 = value => Math.max(0, Math.min(1, value));
+  const hexToRgb = color => {
+    const hex = String(color || "").trim().replace("#", "");
+    if (hex.length !== 6) return { r: 79, g: 124, b: 255 };
+    return { r: parseInt(hex.slice(0, 2), 16), g: parseInt(hex.slice(2, 4), 16), b: parseInt(hex.slice(4, 6), 16) };
+  };
+  const mixColor = (color, target, amount) => {
+    const base = hexToRgb(color), to = hexToRgb(target), t = clamp01(amount);
+    return `rgb(${Math.round(base.r + (to.r - base.r) * t)}, ${Math.round(base.g + (to.g - base.g) * t)}, ${Math.round(base.b + (to.b - base.b) * t)})`;
+  };
+  const rgbaColor = (color, alpha) => { const rgb = hexToRgb(color); return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clamp01(alpha)})`; };
+  // Mesmo teal (#14b8a6) das colunas "Real" do card Matéria-prima do
+  // Dashboard — usado nas colunas de Real do gráfico "OPEX Mensal".
+  const CYAN_BAR = "#14b8a6";
+  const REAL_TOP_GLOW = mixColor(CYAN_BAR, "#ffffff", 0.22);
+  const REAL_MID_TONE = mixColor(CYAN_BAR, "#ffffff", 0.08);
+  const REAL_DEEP_TONE = mixColor(CYAN_BAR, "#050816", 0.42);
   // Conteúdo do tooltip padrão (cockpitModule.js lê e desenha o cartão):
   // marca o elemento com data-tip e serializa as linhas {label, value, tone?}.
   const tip = rows => `data-tip data-tip-rows='${e(JSON.stringify(rows))}'`;
@@ -90,17 +110,37 @@
         { label: data.comparisonLabel || "Budget", value: money(row.budget) },
         { label: "%", value: F.formatDelta(pct, F.formatPercent), tone: F.tone(delta) }
       ];
-      return `<g tabindex="0" role="img" aria-label="${e(description)}" ${tip(rows)}><rect class="cockpit-chart-hit" x="${x(i) - 23}" y="30" width="46" height="204"/>${row.actual != null ? `<rect class="cockpit-real" x="${x(i) - 12}" y="${Math.min(y(row.actual), y(0))}" width="24" height="${Math.abs(y(0) - y(row.actual))}" rx="5"/>` : fcstBar}<text x="${x(i)}" y="250" text-anchor="middle">${months[i]}</text></g>`;
+      // Mesmo desenho em 3 camadas das barras do Dashboard (gradiente com
+      // glow por baixo, tarja de brilho no topo, contorno) — não mais um
+      // rect só com fill chapado.
+      let realBar = fcstBar;
+      if (row.actual != null) {
+        const barX = x(i) - 12, barY = Math.min(y(row.actual), y(0)), barH = Math.abs(y(0) - y(row.actual));
+        const glossH = Math.max(8, barH * 0.28);
+        realBar = `<g class="cockpit-real-bar">
+          <rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="24" height="${barH.toFixed(1)}" fill="url(#cockpit-real-grad)" rx="5" filter="url(#cockpit-real-glow)"/>
+          <rect x="${(barX + 1.1).toFixed(1)}" y="${(barY + 1.2).toFixed(1)}" width="21.8" height="${Math.max(glossH - 1.2, 1).toFixed(1)}" fill="rgba(255,255,255,0.14)" rx="4"/>
+          <rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="24" height="${barH.toFixed(1)}" fill="none" stroke="${rgbaColor(REAL_TOP_GLOW, 0.32)}" stroke-width="0.8" rx="5"/>
+        </g>`;
+      }
+      return `<g tabindex="0" role="img" aria-label="${e(description)}" ${tip(rows)}><rect class="cockpit-chart-hit" x="${x(i) - 23}" y="30" width="46" height="204"/>${realBar}<text x="${x(i)}" y="250" text-anchor="middle">${months[i]}</text></g>`;
     }).join("");
     // A linha "Forecast" foi removida do gráfico e da legenda: ela sempre
     // coincide com Real (meses já fechados) ou com o comparativo (meses
     // futuros, quando há Forecast favorito) — redundante com as colunas de
     // Real e com a coluna tracejada do comparativo. O card "Forecast Anual
     // OPEX" no topo continua mostrando o total do ano.
-    // Gradiente vertical (base mais escura, topo mais claro) nas colunas de
-    // Real, em vez do teal chapado que tinha antes.
-    const realGrad = `<linearGradient id="cockpit-real-grad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#0f8f7f"/><stop offset="100%" stop-color="#5eead4"/></linearGradient>`;
-    return `<div class="cockpit-chart-scroll"><svg class="cockpit-trend" viewBox="0 0 665 270" aria-label="OPEX mensal em milhares de reais"><defs>${realGrad}</defs><text x="8" y="16">R$ mil</text>${data.month < 12 ? `<rect class="cockpit-future" x="${x(data.month) - 25}" y="30" width="${646 - x(data.month) + 25}" height="196"/><line class="cockpit-cutoff" x1="${x(data.month) - 25}" x2="${x(data.month) - 25}" y1="26" y2="226"/><text x="${x(data.month) - 28}" y="18" text-anchor="end">Real | Forecast →</text>` : ""}${grid}${bars}<path class="cockpit-budget" d="${points("budget")}"/></svg></div><div class="cockpit-chart-legend"><span class="cockpit-real-key">Real</span><span class="cockpit-budget-key">${comparisonLabel(data)}</span></div>`;
+    // Gradiente + glow das colunas de Real: mesma base de cor (#14b8a6) e
+    // mesma técnica das barras do Dashboard (Matéria-prima/EBITDA).
+    const realDefs = `<linearGradient id="cockpit-real-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${REAL_TOP_GLOW}"/>
+        <stop offset="22%" stop-color="${REAL_MID_TONE}"/>
+        <stop offset="100%" stop-color="${REAL_DEEP_TONE}"/>
+      </linearGradient>
+      <filter id="cockpit-real-glow" x="-30%" y="-20%" width="160%" height="170%">
+        <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="${rgbaColor(CYAN_BAR, 0.24)}"/>
+      </filter>`;
+    return `<div class="cockpit-chart-scroll"><svg class="cockpit-trend" viewBox="0 0 665 270" aria-label="OPEX mensal em milhares de reais"><defs>${realDefs}</defs><text x="8" y="16">R$ mil</text>${data.month < 12 ? `<rect class="cockpit-future" x="${x(data.month) - 25}" y="30" width="${646 - x(data.month) + 25}" height="196"/><line class="cockpit-cutoff" x1="${x(data.month) - 25}" x2="${x(data.month) - 25}" y1="26" y2="226"/><text x="${x(data.month) - 28}" y="18" text-anchor="end">Real | Forecast →</text>` : ""}${grid}${bars}<path class="cockpit-budget" d="${points("budget")}"/></svg></div><div class="cockpit-chart-legend"><span class="cockpit-real-key">Real</span><span class="cockpit-budget-key">${comparisonLabel(data)}</span></div>`;
   }
   // headers já vem como <th> prontos (plain ou ordenável); rowAttrs (opcional)
   // aplica atributos por linha, ex.: pra abrir um drilldown ao clicar; totalAttrs
