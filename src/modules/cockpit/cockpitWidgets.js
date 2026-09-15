@@ -25,11 +25,15 @@
   };
   const rgbaColor = (color, alpha) => { const rgb = hexToRgb(color); return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clamp01(alpha)})`; };
   // Mesmo teal (#14b8a6) das colunas "Real" do card Matéria-prima do
-  // Dashboard — usado nas colunas de Real do gráfico "OPEX Mensal".
+  // Dashboard — usado nas colunas de Real do gráfico "OPEX Mensal". As
+  // barras do Cockpit são bem maiores que as do card (viewBox mais largo),
+  // então o mesmo brilho do Dashboard lavava o degradê num bloco quase
+  // uniforme — contraste mais forte aqui (topo menos claro, base mais
+  // escura) pra manter a transição visível nesse tamanho.
   const CYAN_BAR = "#14b8a6";
-  const REAL_TOP_GLOW = mixColor(CYAN_BAR, "#ffffff", 0.22);
-  const REAL_MID_TONE = mixColor(CYAN_BAR, "#ffffff", 0.08);
-  const REAL_DEEP_TONE = mixColor(CYAN_BAR, "#050816", 0.42);
+  const REAL_TOP_GLOW = mixColor(CYAN_BAR, "#ffffff", 0.14);
+  const REAL_MID_TONE = CYAN_BAR;
+  const REAL_DEEP_TONE = mixColor(CYAN_BAR, "#050816", 0.58);
   // Conteúdo do tooltip padrão (cockpitModule.js lê e desenha o cartão):
   // marca o elemento com data-tip e serializa as linhas {label, value, tone?}.
   const tip = rows => `data-tip data-tip-rows='${e(JSON.stringify(rows))}'`;
@@ -116,11 +120,11 @@
       let realBar = fcstBar;
       if (row.actual != null) {
         const barX = x(i) - 12, barY = Math.min(y(row.actual), y(0)), barH = Math.abs(y(0) - y(row.actual));
-        const glossH = Math.max(8, barH * 0.28);
+        const glossH = Math.max(6, Math.min(18, barH * 0.16));
         realBar = `<g class="cockpit-real-bar">
           <rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="24" height="${barH.toFixed(1)}" fill="url(#cockpit-real-grad)" rx="5" filter="url(#cockpit-real-glow)"/>
-          <rect x="${(barX + 1.1).toFixed(1)}" y="${(barY + 1.2).toFixed(1)}" width="21.8" height="${Math.max(glossH - 1.2, 1).toFixed(1)}" fill="rgba(255,255,255,0.14)" rx="4"/>
-          <rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="24" height="${barH.toFixed(1)}" fill="none" stroke="${rgbaColor(REAL_TOP_GLOW, 0.32)}" stroke-width="0.8" rx="5"/>
+          <rect x="${(barX + 1.1).toFixed(1)}" y="${(barY + 1.2).toFixed(1)}" width="21.8" height="${Math.max(glossH - 1.2, 1).toFixed(1)}" fill="rgba(255,255,255,0.10)" rx="4"/>
+          <rect x="${barX.toFixed(1)}" y="${barY.toFixed(1)}" width="24" height="${barH.toFixed(1)}" fill="none" stroke="${rgbaColor(REAL_DEEP_TONE, 0.55)}" stroke-width="0.8" rx="5"/>
         </g>`;
       }
       return `<g tabindex="0" role="img" aria-label="${e(description)}" ${tip(rows)}><rect class="cockpit-chart-hit" x="${x(i) - 23}" y="30" width="46" height="204"/>${realBar}<text x="${x(i)}" y="250" text-anchor="middle">${months[i]}</text></g>`;
@@ -137,8 +141,8 @@
         <stop offset="22%" stop-color="${REAL_MID_TONE}"/>
         <stop offset="100%" stop-color="${REAL_DEEP_TONE}"/>
       </linearGradient>
-      <filter id="cockpit-real-glow" x="-30%" y="-20%" width="160%" height="170%">
-        <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="${rgbaColor(CYAN_BAR, 0.24)}"/>
+      <filter id="cockpit-real-glow" x="-20%" y="-10%" width="140%" height="130%">
+        <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="${rgbaColor(CYAN_BAR, 0.16)}"/>
       </filter>`;
     return `<div class="cockpit-chart-scroll"><svg class="cockpit-trend" viewBox="0 0 665 270" aria-label="OPEX mensal em milhares de reais"><defs>${realDefs}</defs><text x="8" y="16">R$ mil</text>${data.month < 12 ? `<rect class="cockpit-future" x="${x(data.month) - 25}" y="30" width="${646 - x(data.month) + 25}" height="196"/><line class="cockpit-cutoff" x1="${x(data.month) - 25}" x2="${x(data.month) - 25}" y1="26" y2="226"/><text x="${x(data.month) - 28}" y="18" text-anchor="end">Real | Forecast →</text>` : ""}${grid}${bars}<path class="cockpit-budget" d="${points("budget")}"/></svg></div><div class="cockpit-chart-legend"><span class="cockpit-real-key">Real</span><span class="cockpit-budget-key">${comparisonLabel(data)}</span></div>`;
   }
