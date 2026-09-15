@@ -2661,7 +2661,7 @@ function buildHcRealTableMarkup(report, mode, expandedSet) {
           }
           return `<td class="reports-value-cell">${escapeHtml(txt)}</td>`;
         }).join("");
-        body += `<tr class="is-analytic hc-cc-row"><td class="reports-label-cell" style="--depth:1"><span>${escapeHtml(cc.name)}</span> <span class="reports-code-cell">· ${escapeHtml(cc.number)}</span></td>${cells2}</tr>`;
+        body += `<tr class="is-analytic hc-cc-row"><td class="reports-label-cell" style="--depth:1"><span class="reports-code-cell">${escapeHtml(cc.number)}</span> <span>· ${escapeHtml(cc.name)}</span></td>${cells2}</tr>`;
       }
     }
   }
