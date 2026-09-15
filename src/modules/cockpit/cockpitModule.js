@@ -247,9 +247,9 @@
         const av = sorter(a), bv = sorter(b);
         return typeof av === "number" ? (av - bv) * hcSortDir : av.localeCompare(bv, "pt-BR") * hcSortDir;
       });
-      const thc = (key, label) => {
+      const thc = (key, label, cls) => {
         const active = hcSortKey === key;
-        return `<th data-hc-sort="${key}" style="cursor:pointer;user-select:none${active ? ";color:var(--blue)" : ""}">${F.escape(label)}${active ? (hcSortDir === 1 ? " ↑" : " ↓") : ""}</th>`;
+        return `<th class="${cls}" data-hc-sort="${key}" style="cursor:pointer;user-select:none${active ? ";color:var(--blue)" : ""}">${F.escape(label)}${active ? (hcSortDir === 1 ? " ↑" : " ↓") : ""}</th>`;
       };
       const backBtn = detail.byArea.length > 1 ? `<button class="ghost-button hc-pop-back" type="button">← Voltar</button>` : "";
       popover.innerHTML = `
@@ -259,14 +259,14 @@
           <button class="gap-close" type="button" aria-label="Fechar">✕</button>
         </div>
         <div class="hc-pop-total"><strong>${entries.length}</strong><span>colaboradores</span></div>
-        <div class="gap-table-wrap"><table class="gap-table">
-          <thead><tr>${thc("cc", "CC")}${thc("ccName", "Nome CC")}${thc("mat", "Mat.")}${thc("colab", "Colaborador")}${thc("cargo", "Cargo")}</tr></thead>
+        <div class="gap-table-wrap"><table class="gap-table hc-pop-table">
+          <thead><tr>${thc("cc", "CC", "hc-col-cc")}${thc("ccName", "Nome CC", "hc-col-ccname")}${thc("mat", "Mat.", "hc-col-mat")}${thc("colab", "Colaborador", "hc-col-colab")}${thc("cargo", "Cargo", "hc-col-cargo")}</tr></thead>
           <tbody>${entries.map(entry => `<tr>
-            <td class="gap-code">${F.escape(entry.cc)}</td>
-            <td class="gap-name">${F.escape(entry.ccName)}</td>
-            <td>${F.escape(entry.matricula)}</td>
-            <td class="gap-name">${F.escape(entry.colab)}</td>
-            <td class="gap-name">${F.escape(entry.cargo)}</td>
+            <td class="gap-code hc-col-cc">${F.escape(entry.cc)}</td>
+            <td class="gap-name hc-col-ccname">${F.escape(entry.ccName)}</td>
+            <td class="hc-col-mat">${F.escape(entry.matricula)}</td>
+            <td class="gap-name hc-col-colab">${F.escape(entry.colab)}</td>
+            <td class="gap-name hc-col-cargo">${F.escape(entry.cargo)}</td>
           </tr>`).join("")}</tbody>
         </table></div>`;
       popover.querySelector(".gap-close").addEventListener("click", closeHeadcountPopover);

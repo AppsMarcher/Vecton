@@ -5432,7 +5432,21 @@ textarea[disabled] {
 
 /* Popover de Headcount do Cockpit Gestão (nível 1: resumo por área, nível 2:
    lista nominal) — ver openHeadcountPopover em cockpitModule.js. Reaproveita
-   a casca .ger-audit-popover/.gap-* dos outros drilldowns do Cockpit. */
+   a casca .ger-audit-popover/.gap-* dos outros drilldowns do Cockpit, só
+   mais largo (a tabela tem 5 colunas, incluindo nomes de pessoa e cargo,
+   que truncavam demais nos 820px genéricos) e com fonte menor pra caber
+   mais texto em cada coluna sem estourar a largura do popover.
+   .hc-col-* dá uma largura própria pra cada coluna em vez de dividir tudo
+   igualmente — CC/Mat. e Nome CC estreitos, Colaborador mais largo e Cargo
+   fica com o resto (table-layout:fixed sobra o restante pra coluna sem
+   width definido). */
+.ger-audit-popover.hc-pop { width: 1040px; }
+.hc-pop-table th, .hc-pop-table td { font-size: 0.64rem; }
+.hc-pop-table th { font-size: 0.6rem; }
+.hc-pop-table .hc-col-cc { width: 72px; }
+.hc-pop-table .hc-col-ccname { width: 150px; }
+.hc-pop-table .hc-col-mat { width: 60px; }
+.hc-pop-table .hc-col-colab { width: 260px; }
 .hc-pop-loading {
   padding: 24px;
   color: var(--text-faint);

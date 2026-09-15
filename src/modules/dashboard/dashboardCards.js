@@ -743,14 +743,17 @@
         <div>
           ${byMgmt.map(({ mgmt, count }) => {
             const pct = total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
-            const barW = total > 0 ? Math.round((count / total) * 180) : 0;
+            // % relativo à própria barra (não mais um px fixo pensado pra um
+            // container de 180px) — continua proporcional agora que a barra
+            // é flex:1 e estica com o popover mais largo.
+            const barPct = total > 0 ? (count / total) * 100 : 0;
             return `<div class="hc-pop-row" data-mgmt="${escapeHtml(mgmt)}" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--line);cursor:pointer">
-              <span style="flex:0 0 150px;font-size:0.74rem;color:var(--text-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(mgmt)}">${escapeHtml(mgmt)}</span>
-              <div style="flex:0 0 180px;height:7px;background:var(--panel-alt);border-radius:4px;overflow:hidden">
-                <div style="width:${barW}px;height:100%;background:#4f7cff;border-radius:4px"></div>
+              <span style="flex:0 0 180px;font-size:0.7rem;color:var(--text-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeHtml(mgmt)}">${escapeHtml(mgmt)}</span>
+              <div style="flex:1;min-width:60px;height:7px;background:var(--panel-alt);border-radius:4px;overflow:hidden">
+                <div style="width:${barPct.toFixed(1)}%;height:100%;background:#4f7cff;border-radius:4px"></div>
               </div>
-              <span style="flex:0 0 28px;font-size:0.74rem;font-weight:600;color:var(--text);text-align:right">${count}</span>
-              <span style="flex:0 0 38px;font-size:0.72rem;color:var(--text-faint);text-align:right">${pct}%</span>
+              <span style="flex:0 0 28px;font-size:0.7rem;font-weight:600;color:var(--text);text-align:right">${count}</span>
+              <span style="flex:0 0 38px;font-size:0.68rem;color:var(--text-faint);text-align:right">${pct}%</span>
               <span style="font-size:11px;color:var(--text-faint);flex-shrink:0">></span>
             </div>`;
           }).join("")}
@@ -782,16 +785,16 @@
           const arrow = active ? (finalSortDir === 1 ? " ^" : " v") : "";
           const padL = key === "cc" ? "0" : "8px";
           const padR = key === "cargo" ? "0" : "8px";
-          return `<th data-sort="${key}" style="padding:4px ${padR} 6px ${padL};font-size:0.62rem;color:${active ? "var(--blue)" : "var(--text-faint)"};text-align:left;font-weight:${active ? "600" : "500"};cursor:pointer;user-select:none;white-space:nowrap">${escapeHtml(label)}${arrow}</th>`;
+          return `<th data-sort="${key}" style="padding:4px ${padR} 6px ${padL};font-size:0.58rem;color:${active ? "var(--blue)" : "var(--text-faint)"};text-align:left;font-weight:${active ? "600" : "500"};cursor:pointer;user-select:none;white-space:nowrap">${escapeHtml(label)}${arrow}</th>`;
         };
 
         const rows = rawEntries.map((row) => `
           <tr style="border-bottom:0.5px solid var(--line)">
-            <td style="padding:5px 8px 5px 0;font-size:0.68rem;color:var(--text-faint);white-space:nowrap">${escapeHtml(row.cost_center_number || "")}</td>
-            <td style="padding:5px 8px;font-size:0.68rem;color:var(--text-soft);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(row.ccName || "")}">${escapeHtml(row.ccName || "")}</td>
-            <td style="padding:5px 8px;font-size:0.68rem;color:var(--text-faint);white-space:nowrap">${escapeHtml(row.matricula || "")}</td>
-            <td style="padding:5px 8px;font-size:0.68rem;color:var(--text);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(row.colab || "")}">${escapeHtml(row.colab || "")}</td>
-            <td style="padding:5px 0 5px 8px;font-size:0.68rem;color:var(--text-soft);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(row.cargo || "")}">${escapeHtml(row.cargo || "")}</td>
+            <td style="padding:5px 8px 5px 0;font-size:0.64rem;color:var(--text-faint);white-space:nowrap;width:72px">${escapeHtml(row.cost_center_number || "")}</td>
+            <td style="padding:5px 8px;font-size:0.64rem;color:var(--text-soft);max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(row.ccName || "")}">${escapeHtml(row.ccName || "")}</td>
+            <td style="padding:5px 8px;font-size:0.64rem;color:var(--text-faint);white-space:nowrap;width:60px">${escapeHtml(row.matricula || "")}</td>
+            <td style="padding:5px 8px;font-size:0.64rem;color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(row.colab || "")}">${escapeHtml(row.colab || "")}</td>
+            <td style="padding:5px 0 5px 8px;font-size:0.64rem;color:var(--text-soft);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(row.cargo || "")}">${escapeHtml(row.cargo || "")}</td>
           </tr>`).join("");
 
         const backBtn = byMgmt.length > 1
@@ -823,10 +826,10 @@
       };
 
       const inner = document.createElement("div");
-      // O nível 2 (tabela CC/Nome CC/Mat/Colaborador/Cargo, 5 colunas) truncava
-      // bastante em max-width:640px fixo. width-alvo maior + max-width em vw,
-      // mesmo padrão aplicado aos outros popovers de drilldown do sistema.
-      inner.style.cssText = "background:var(--panel);border:0.5px solid var(--line);border-radius:14px;padding:20px 24px;width:820px;max-width:92vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 56px rgba(0,0,0,0.55)";
+      // O nível 2 (tabela CC/Nome CC/Mat/Colaborador/Cargo, 5 colunas) ainda
+      // truncava nome/cargo nos 820px — mais largo agora (1040px) com fonte
+      // um pouco menor, pra caber mais texto de cada coluna sem estourar.
+      inner.style.cssText = "background:var(--panel);border:0.5px solid var(--line);border-radius:14px;padding:20px 24px;width:1040px;max-width:94vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 56px rgba(0,0,0,0.55)";
       overlay.appendChild(inner);
       document.body.appendChild(overlay);
       overlay.addEventListener("click", (event) => {
