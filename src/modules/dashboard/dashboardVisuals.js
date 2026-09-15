@@ -94,9 +94,13 @@
       const svgSafeId = containerId.replace(/[^a-z0-9_-]/gi, "-");
       const barGradientId = `dash-bar-grad-${svgSafeId}`;
       const barGlowId = `dash-bar-glow-${svgSafeId}`;
-      const topGlow = mixColor(barColor, "#ffffff", 0.22);
-      const midTone = mixColor(barColor, "#ffffff", 0.08);
-      const deepTone = mixColor(barColor, "#050816", 0.42);
+      // Contraste mais forte (topo menos claro, base mais escura) — o brilho
+      // original lavava o degradê num bloco quase uniforme nas barras
+      // maiores do Cockpit, que reaproveita esta mesma técnica; ajustado
+      // aqui também pra manter os dois consistentes.
+      const topGlow = mixColor(barColor, "#ffffff", 0.14);
+      const midTone = barColor;
+      const deepTone = mixColor(barColor, "#050816", 0.58);
 
       let bars = "", labels = "", linePts = [], dots = "", tooltips = "";
 
@@ -133,15 +137,15 @@
           const { y, h } = barRect(bv);
 
           const opacity = isFocus ? 1 : 0.76;
-          const glossH = Math.max(8, h * 0.28);
+          const glossH = Math.max(6, Math.min(14, h * 0.16));
           bars += `
             <g class="dash-bar-shell" style="opacity:${opacity}">
               <rect x="${xBar.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
                 fill="url(#${barGradientId})" rx="4" filter="url(#${barGlowId})"/>
               <rect x="${(xBar + 1.1).toFixed(1)}" y="${(y + 1.2).toFixed(1)}" width="${Math.max(barW - 2.2, 1).toFixed(1)}" height="${Math.max(glossH - 1.2, 1).toFixed(1)}"
-                fill="rgba(255,255,255,0.14)" rx="3"/>
+                fill="rgba(255,255,255,0.10)" rx="3"/>
               <rect x="${xBar.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
-                fill="none" stroke="${rgbaColor(topGlow, 0.32)}" stroke-width="0.8" rx="4"/>
+                fill="none" stroke="${rgbaColor(deepTone, 0.55)}" stroke-width="0.8" rx="4"/>
             </g>`;
 
           const ly = lineY(lv);
@@ -170,8 +174,8 @@
             <stop offset="22%" stop-color="${midTone}"/>
             <stop offset="100%" stop-color="${deepTone}"/>
           </linearGradient>
-          <filter id="${barGlowId}" x="-30%" y="-20%" width="160%" height="170%">
-            <feDropShadow dx="0" dy="8" stdDeviation="5" flood-color="${rgbaColor(barColor, 0.24)}"/>
+          <filter id="${barGlowId}" x="-20%" y="-10%" width="140%" height="130%">
+            <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="${rgbaColor(barColor, 0.16)}"/>
           </filter>
         </defs>`;
 
