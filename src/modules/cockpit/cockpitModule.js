@@ -263,10 +263,10 @@
           <thead><tr>${thc("cc", "CC", "hc-col-cc")}${thc("ccName", "Nome CC", "hc-col-ccname")}${thc("mat", "Mat.", "hc-col-mat")}${thc("colab", "Colaborador", "hc-col-colab")}${thc("cargo", "Cargo", "hc-col-cargo")}</tr></thead>
           <tbody>${entries.map(entry => `<tr>
             <td class="gap-code hc-col-cc">${F.escape(entry.cc)}</td>
-            <td class="gap-name hc-col-ccname">${F.escape(entry.ccName)}</td>
+            <td class="gap-name hc-col-ccname" title="${F.escape(entry.ccName)}">${F.escape(entry.ccName)}</td>
             <td class="hc-col-mat">${F.escape(entry.matricula)}</td>
-            <td class="gap-name hc-col-colab">${F.escape(entry.colab)}</td>
-            <td class="gap-name hc-col-cargo">${F.escape(entry.cargo)}</td>
+            <td class="gap-name hc-col-colab" title="${F.escape(entry.colab)}">${F.escape(entry.colab)}</td>
+            <td class="gap-name hc-col-cargo" title="${F.escape(entry.cargo)}">${F.escape(entry.cargo)}</td>
           </tr>`).join("")}</tbody>
         </table></div>`;
       popover.querySelector(".gap-close").addEventListener("click", closeHeadcountPopover);

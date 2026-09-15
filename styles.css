@@ -5431,16 +5431,17 @@ textarea[disabled] {
    que truncavam demais nos 820px genéricos) e com fonte menor pra caber
    mais texto em cada coluna sem estourar a largura do popover.
    .hc-col-* dá uma largura própria pra cada coluna em vez de dividir tudo
-   igualmente — CC/Mat. e Nome CC estreitos, Colaborador mais largo e Cargo
-   fica com o resto (table-layout:fixed sobra o restante pra coluna sem
-   width definido). */
+   igualmente — CC/Mat. estreitos, Nome CC média (tem CC com nome bem
+   comprido, ex. nome de feira internacional — por isso title="" no <td>
+   também, pra sempre dar pra ver o texto inteiro no hover) e Colaborador +
+   Cargo sem width definido, dividindo o resto igualmente entre os dois
+   (table-layout:fixed). */
 .ger-audit-popover.hc-pop { width: 1040px; }
 .hc-pop-table th, .hc-pop-table td { font-size: 0.64rem; }
 .hc-pop-table th { font-size: 0.6rem; }
 .hc-pop-table .hc-col-cc { width: 72px; }
-.hc-pop-table .hc-col-ccname { width: 150px; }
-.hc-pop-table .hc-col-mat { width: 60px; }
-.hc-pop-table .hc-col-colab { width: 260px; }
+.hc-pop-table .hc-col-ccname { width: 200px; }
+.hc-pop-table .hc-col-mat { width: 56px; }
 .hc-pop-loading {
   padding: 24px;
   color: var(--text-faint);
