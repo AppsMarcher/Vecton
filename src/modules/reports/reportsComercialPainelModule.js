@@ -170,9 +170,13 @@
         .cvp-email-x { background:none; border:none; color:#6b7280; font-size:16px; cursor:pointer; line-height:1; padding:0 2px; }
         .cvp-email-x:hover { color:#fff; }
         .cvp-email-body { flex:1; min-height:0; overflow-y:auto; padding:14px 20px; display:flex; flex-direction:column; }
-        .cvp-email-row { display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,.16); padding:9px 0; flex:none; }
+        .cvp-email-row { position:relative; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(255,255,255,.16); padding:9px 0; flex:none; }
         .cvp-email-row label { flex:none; width:64px; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; color:var(--cvp-faint); }
         .cvp-email-row input { flex:1; min-width:0; background:transparent; border:none; color:#fff; font-size:13px; font-family:inherit; padding:4px 0; outline:none; }
+        .cvp-email-suggest-box { display:none; position:absolute; top:calc(100% + 2px); left:76px; right:0; z-index:20; background:#1a1c22; border:1px solid #2a2d34; border-radius:8px; box-shadow:0 12px 32px rgba(0,0,0,.45); max-height:168px; overflow-y:auto; }
+        .cvp-email-suggest-box.open { display:block; }
+        .cvp-email-suggest-item { padding:7px 10px; font-size:12.5px; color:var(--cvp-soft); cursor:pointer; }
+        .cvp-email-suggest-item:hover, .cvp-email-suggest-item.active { background:rgba(255,255,255,.07); color:#fff; }
         .cvp-email-row-text { align-items:stretch; border-bottom:none; flex:1; min-height:0; margin-top:4px; }
         .cvp-email-text { flex:1; min-height:0; resize:none; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:10px; color:#fff; font-size:13px; font-family:inherit; line-height:1.5; padding:10px 12px; outline:none; }
         .cvp-email-text:focus { border-color:#4f7cff; }
@@ -1518,9 +1522,6 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       const signature = state.profile?.name || "";
       const defaultBody = `Olá,\n\nSegue em anexo o Painel de Vendas de ${mLabel}/${year} (mês e acumulado YTD).\n\nAtenciosamente,\n${signature}`;
       const suggestOn = getSuggestEnabled();
-      const suggestOpts = suggestOn
-        ? getSavedRecipients().map((e) => `<option value="${escapeHtml(e)}">`).join("")
-        : "";
 
       const backdrop = document.createElement("div");
       backdrop.className = "cvp-email-backdrop";
@@ -1533,11 +1534,13 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
           <div class="cvp-email-body">
             <div class="cvp-email-row">
               <label for="cvp-email-to">Para</label>
-              <input id="cvp-email-to" type="text" list="cvp-email-suggest" placeholder="email@empresa.com, outro@empresa.com" autocomplete="off">
+              <input id="cvp-email-to" type="text" placeholder="email@empresa.com, outro@empresa.com" autocomplete="off">
+              <div class="cvp-email-suggest-box" data-for="cvp-email-to"></div>
             </div>
             <div class="cvp-email-row">
               <label for="cvp-email-cc">Cc</label>
-              <input id="cvp-email-cc" type="text" list="cvp-email-suggest" placeholder="opcional" autocomplete="off">
+              <input id="cvp-email-cc" type="text" placeholder="opcional" autocomplete="off">
+              <div class="cvp-email-suggest-box" data-for="cvp-email-cc"></div>
             </div>
             <div class="cvp-email-row">
               <label for="cvp-email-subject">Assunto</label>
@@ -1552,7 +1555,6 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
             <div class="cvp-email-row cvp-email-row-text">
               <textarea id="cvp-email-text" class="cvp-email-text" aria-label="Texto do e-mail">${escapeHtml(defaultBody)}</textarea>
             </div>
-            <datalist id="cvp-email-suggest">${suggestOpts}</datalist>
           </div>
           <div class="cvp-email-msg" id="cvp-email-msg"></div>
           <div class="cvp-email-footer">
@@ -1582,6 +1584,73 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       toInput.focus();
 
       rememberChk.addEventListener("change", () => setSuggestEnabled(rememberChk.checked));
+
+      // Autocomplete dos destinatarios lembrados. Um <input list=datalist>
+      // nativo nao serve aqui: ao escolher uma sugestao, o navegador
+      // substitui o VALOR INTEIRO do campo pela opcao escolhida -- apagando
+      // os e-mails ja digitados antes da virgula. Por isso cada input ganha
+      // um dropdown proprio que completa só o token atual (texto depois da
+      // ultima virgula), preservando o resto da lista.
+      function attachEmailSuggest(inputEl) {
+        const box = backdrop.querySelector(`.cvp-email-suggest-box[data-for="${inputEl.id}"]`);
+        if (!box) return;
+        let activeIndex = -1;
+
+        function currentToken() {
+          const parts = inputEl.value.split(",");
+          return { parts, token: parts[parts.length - 1].trim() };
+        }
+        function hide() {
+          box.classList.remove("open");
+          box.innerHTML = "";
+          activeIndex = -1;
+        }
+        function items() { return Array.from(box.querySelectorAll(".cvp-email-suggest-item")); }
+        function setActive(index) {
+          const list = items();
+          if (!list.length) return;
+          activeIndex = (index + list.length) % list.length;
+          list.forEach((el, i) => el.classList.toggle("active", i === activeIndex));
+        }
+        function applySuggestion(email) {
+          const { parts } = currentToken();
+          const before = parts.slice(0, -1).map((p) => p.trim()).filter(Boolean);
+          inputEl.value = before.concat([email]).join(", ") + ", ";
+          hide();
+          inputEl.focus();
+        }
+        function render() {
+          if (!getSuggestEnabled()) { hide(); return; }
+          const { parts, token } = currentToken();
+          if (!token) { hide(); return; }
+          const already = new Set(parts.slice(0, -1).map((p) => p.trim().toLowerCase()).filter(Boolean));
+          const needle = token.toLowerCase();
+          const matches = getSavedRecipients()
+            .filter((e) => e.toLowerCase().includes(needle) && e.toLowerCase() !== needle && !already.has(e.toLowerCase()))
+            .slice(0, 8);
+          if (!matches.length) { hide(); return; }
+          box.innerHTML = matches.map((e) => `<div class="cvp-email-suggest-item" data-email="${escapeHtml(e)}">${escapeHtml(e)}</div>`).join("");
+          box.classList.add("open");
+          activeIndex = -1;
+        }
+
+        inputEl.addEventListener("input", render);
+        inputEl.addEventListener("focus", render);
+        inputEl.addEventListener("blur", () => setTimeout(hide, 150));
+        inputEl.addEventListener("keydown", (e) => {
+          if (!box.classList.contains("open")) return;
+          if (e.key === "ArrowDown") { e.preventDefault(); setActive(activeIndex + 1); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); setActive(activeIndex - 1); }
+          else if (e.key === "Enter" && activeIndex >= 0) { e.preventDefault(); applySuggestion(items()[activeIndex].dataset.email); }
+          else if (e.key === "Escape") { hide(); }
+        });
+        box.addEventListener("mousedown", (e) => {
+          const item = e.target.closest(".cvp-email-suggest-item");
+          if (item) { e.preventDefault(); applySuggestion(item.dataset.email); }
+        });
+      }
+      attachEmailSuggest(toInput);
+      attachEmailSuggest(ccInput);
 
       function setMsg(text, kind) {
         msgEl.textContent = text || "";
