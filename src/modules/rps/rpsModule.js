@@ -462,6 +462,7 @@
       presentation: false,
       presentationZoom: 0,
       tableScrollLeft: 0,
+      tableScrollTop: 0,
       backupManager: {
         open: false,
         loading: false,
@@ -1426,7 +1427,10 @@
         if (activeEditor && root.contains(activeEditor) && syncEditableField(activeEditor)) markDirty();
       }
       const currentTableScroll = root.querySelector(".rps-table-scroll");
-      if (currentTableScroll) state.tableScrollLeft = currentTableScroll.scrollLeft;
+      if (currentTableScroll) {
+        state.tableScrollLeft = currentTableScroll.scrollLeft;
+        state.tableScrollTop = currentTableScroll.scrollTop;
+      }
       const { year, month } = activePeriod();
       const fillable = canFillValues() && !state.presentation;
       const structural = canEditStructure() && !state.presentation;
@@ -1488,6 +1492,7 @@
       const tableScroll = root.querySelector(".rps-table-scroll");
       if (tableScroll) {
         tableScroll.scrollLeft = Math.min(state.tableScrollLeft, Math.max(0, tableScroll.scrollWidth - tableScroll.clientWidth));
+        tableScroll.scrollTop = Math.min(state.tableScrollTop, Math.max(0, tableScroll.scrollHeight - tableScroll.clientHeight));
       }
       // RPS nunca precisa da barra flutuante (initFloatingScrollbar): desde a
       // correção de 2026-06-11, #rps-view fica sempre contido na viewport
