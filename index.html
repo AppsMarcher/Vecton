@@ -14,7 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260910s">
+  <link rel="stylesheet" href="styles.css?v=20260921c">
+  <link rel="stylesheet" href="src/modules/cashflow/fcDashboard.css?v=20260921v">
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -370,7 +371,8 @@
               <button class="submenu-button" type="button" data-view="notifications"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-bell"></use></svg><span>Notificações</span></button>
               <!-- Demais parâmetros -->
               <button class="submenu-button" type="button" data-view="branchPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-branch"></use></svg><span>Empresas</span></button>
-              <button class="submenu-button" type="button" data-view="drePlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-accounts"></use></svg><span>Plano de Contas</span></button>
+              <button class="submenu-button" type="button" data-view="drePlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-accounts"></use></svg><span>Plano de Contas DRE</span></button>
+              <button class="submenu-button" type="button" data-view="fcPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-accounts"></use></svg><span>Plano de Contas FC</span></button>
               <button class="submenu-button" type="button" data-view="managements"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-managements"></use></svg><span>Gestões</span></button>
               <button class="submenu-button" type="button" data-view="ccPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg><span>Centro de Custos</span></button>
               <button class="submenu-button" type="button" data-view="actualsLoad"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-upload"></use></svg><span>Carga de Realizado</span></button>
@@ -636,6 +638,16 @@
                 </div>
               </div>
 
+              <div class="reports-section" data-section="cashflow">
+                <button type="button" class="reports-section-header" data-section-toggle><span class="reports-section-title">Fluxo de Caixa</span></button>
+                <div class="reports-card-grid reports-section-body">
+                  <button class="reports-report-card" type="button" data-report-id="cashFlow">
+                    <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-dollar"></use></svg></span><span class="rrc-fav" role="button" data-fav-id="cashFlow" aria-label="Favoritar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span></div>
+                    <strong class="rrc-label">Fluxo de Caixa</strong><span class="rrc-subtitle">Visão gerencial e FC detalhado</span>
+                  </button>
+                </div>
+              </div>
+
               <div class="reports-section" data-section="dre">
                 <button type="button" class="reports-section-header" data-section-toggle>
                   <svg class="reports-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -837,6 +849,9 @@
           </div>
         </div>
       </section>
+
+      <section id="fcLoad-view" class="content-view"></section>
+      <section id="fcPlan-view" class="content-view"></section>
 
       <section id="drePlan-view" class="content-view">
         <div class="dre-workspace">
@@ -1509,14 +1524,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script src="src/core/pwa.js?v=20260902a"></script>
-  <script src="src/core/constants.js?v=20260910c"></script>
+  <script src="src/core/constants.js?v=20260921g"></script>
   <script src="src/core/utils.js?v=20260803b"></script>
   <script src="src/core/storage.js?v=20260719r"></script>
   <script src="src/modules/auth/authSession.js?v=20260902b"></script>
-  <script src="src/modules/actuals/actualsModule.js?v=20260910a"></script>
+  <script src="src/modules/actuals/actualsModule.js?v=20260921g"></script>
   <script src="src/modules/budget/budgetModule.js?v=20260910a"></script>
-  <script src="src/modules/navigation/navigationModule.js?v=20260910a"></script>
-  <script src="src/modules/ui/headerModule.js?v=20260719r"></script>
+  <script src="src/modules/navigation/navigationModule.js?v=20260921g"></script>
+  <script src="src/modules/ui/headerModule.js?v=20260921b"></script>
   <script src="src/modules/ui/branchTreeModule.js?v=20260719r"></script>
   <script src="src/modules/ui/dreTreeModule.js?v=20260719r"></script>
   <script src="src/modules/ui/ccTreeModule.js?v=20260731a"></script>
@@ -1535,11 +1550,11 @@
   <script src="src/modules/ui/dialogs.js?v=20260828b"></script>
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsBuilderModule.js?v=20260828b"></script>
-  <script src="src/modules/reports/reportsSectionsModule.js?v=20260828b"></script>
+  <script src="src/modules/reports/reportsSectionsModule.js?v=20260921c"></script>
   <script src="src/modules/users/usersModule.js?v=20260829f"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
   <script src="src/modules/messages/messagesModule.js?v=20260902a"></script>
-  <script src="src/modules/notifications/notificationsModule.js?v=20260829a"></script>
+  <script src="src/modules/notifications/notificationsModule.js?v=20260921z"></script>
   <script src="src/modules/comercial/comercialCadastroModule.js?v=20260806c"></script>
   <script src="src/modules/comercial/comercialVendasCargaModule.js?v=20260828a"></script>
   <script src="src/modules/comercial/comercialPlanejadoCargaModule.js?v=20260828a"></script>
@@ -1562,6 +1577,13 @@
   <script src="src/modules/dashboard/dashboardModule.js?v=20260720e"></script>
   <script src="src/modules/dashboard/dashboardVisuals.js?v=20260720e"></script>
   <script src="src/modules/dashboard/marketTicker.js?v=20260826c"></script>
-  <script src="app.js?v=20260910f"></script>
+  <script src="src/modules/params/fcPlanModule.js?v=20260921a"></script>
+  <script src="src/modules/cashflow/fcStructure.js?v=20260921b"></script>
+  <script src="src/modules/cashflow/fcModel.js?v=20260921h"></script>
+  <script src="src/modules/cashflow/fcService.js?v=20260921w"></script>
+  <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
+  <script src="src/modules/cashflow/fcExport.js?v=20260921t"></script>
+  <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
+  <script src="app.js?v=20260921w"></script>
 </body>
 </html>

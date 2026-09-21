@@ -110,6 +110,8 @@ let reportCardLabelsCache = {};
 let currentSession = null;
 let currentUser = null;
 let cockpitService = null;
+let fcDashboardModule = null;
+let fcLoadModule = null;
 let profileDraft = null;
 let periodPickerYear = state.currentPeriod?.year || 2026;
 // ─── Headcount Realizado (relatório) — estado de módulo ──────────────────
@@ -193,6 +195,8 @@ const views = {
   reports: document.querySelector("#reports-view"),
   branchPlan: document.querySelector("#branchPlan-view"),
   drePlan: document.querySelector("#drePlan-view"),
+  fcPlan: document.querySelector("#fcPlan-view"),
+  fcLoad: document.querySelector("#fcLoad-view"),
   ccPlan: document.querySelector("#ccPlan-view"),
   actualsLoad: document.querySelector("#actualsLoad-view"),
   budgetLoad: document.querySelector("#budgetLoad-view"),
@@ -255,7 +259,7 @@ const authModule = createAuthModule({
   hydrateFromSupabase,
   buildAuthHeaders,
   supabaseConfig,
-  onLogoutCleanup: () => { organizationIdCache = null; reportCardLabelsCache = {}; cockpitService?.invalidate(); },
+  onLogoutCleanup: () => { organizationIdCache = null; reportCardLabelsCache = {}; cockpitService?.invalidate(); fcDashboardModule?.reset(); fcLoadModule?.reset(); },
   getCurrentSession: () => currentSession,
   setCurrentSession: (value) => { currentSession = value; },
   getCurrentUser: () => currentUser,
@@ -348,6 +352,7 @@ const ccTreeModule = createCcTreeModule({
   getManagements: () => state.managements || []
 });
 const actualsModule = createActualsModule({
+  openFcLoad: () => { activeView = "fcLoad"; renderNavigation(); },
   ACTUALS_IMPORT_UPSERT_CHUNK_SIZE,
   MAX_BROWSER_TEXT_IMPORT_BYTES,
   MAX_BROWSER_XLSX_BYTES,
@@ -574,7 +579,57 @@ const {
   syncBatchSelection: syncBudgetBatchSelection,
   getCurrentPeriodBatches: getCurrentPeriodBudgetBatches
 } = budgetModule;
+const fcService = window.VECTON_FC_SERVICE.createService({
+  getUserId: () => currentUser?.id || null,
+  resolveOrganizationId,
+  fetchRows: fetchSupabaseRows,
+  rpc: callSupabaseRpc
+});
+fcLoadModule = window.VECTON_FC_LOAD.createLoadModule({
+  root: views.fcLoad,
+  escapeHtml,
+  getUserId: () => currentUser?.id || null,
+  getPeriod: () => state.currentPeriod,
+  getActiveView: () => activeView,
+  canManage: isAdmin,
+  service: fcService,
+  confirm: message => appConfirm(message, "warn"),
+  openPeriod: () => periodTrigger.click(),
+  goBack: () => { setSelectedActualsLoadType(null); activeView = "actualsLoad"; renderNavigation(); ensureActualsViewShell(); renderActualsCatalog(); },
+  onApplied: () => fcDashboardModule?.invalidate()
+});
+fcDashboardModule = window.VECTON_FC_DASHBOARD.createDashboard({
+  alert: message => appAlert(message, "warn"),
+  sendEmail: payload => callEdgeFunction("send-report-email", payload),
+  confirm: message => appConfirm(message, "warn"),
+  service: fcService,
+  escapeHtml,
+  getUserId: () => currentUser?.id || null,
+  getPeriod: () => state.currentPeriod,
+  isActive: () => activeView === "reports" && selectedReportId === "cashFlow",
+  isAdmin,
+  canAccess: () => canSeeReport("cashFlow")
+});
+const fcPlanModule = window.VECTON_FC_PLAN.createFcPlanModule({
+  root: views.fcPlan,
+  escapeHtml,
+  isAdmin,
+  getCurrentUserId: () => currentUser?.id || null,
+  getActiveView: () => activeView,
+  resolveOrganizationId,
+  fetch: org => fetchSupabaseRows("fc_plan_nodes", `organization_id=eq.${org}&select=*&order=sort_order.asc&limit=10000`),
+  insert: row => insertSupabaseRows("fc_plan_nodes", [row]),
+  update: (org, id, fields) => updateSupabaseRows("fc_plan_nodes", `organization_id=eq.${org}&id=eq.${id}`, fields),
+  remove: async (org, id) => {
+    const response = await deleteSupabaseRows("fc_plan_nodes", `organization_id=eq.${org}&id=eq.${id}`);
+    const rows = await response.json();
+    if (rows.length !== 1) throw new Error("A conta não foi removida. Atualize o plano e confira suas permissões.");
+  },
+  confirm: message => window.VECTON_DIALOGS.appConfirm(message, "warn")
+});
 const navigationModule = createNavigationModule({
+  renderFcPlan: () => fcPlanModule.render(),
+  renderFcLoad: () => fcLoadModule.render(),
   renderCockpit: () => cockpitModule.render(),
   VIEW_HEADER_METADATA,
   MONTH_LABELS,
@@ -2221,7 +2276,7 @@ function getPartialManagements() {
 // Relatórios "consolidados" da empresa (DREs). Analista NÃO vê; Gestor vê.
 // Demais (OPEX, Headcount) são por área/CC e ficam limitados pela gestão no drill-down.
 function isConsolidatedReport(reportId) {
-  return String(reportId).startsWith("dre");
+  return String(reportId).startsWith("dre") || reportId === "cashFlow";
 }
 
 const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo"];
@@ -2945,6 +3000,7 @@ function renderHcReport(kind) {
 
 const REPORT_TITLES = {
   __new_report__: "Novo relatório",
+  cashFlow: "Fluxo de Caixa",
   dreSocReal:    "DRE Societário Realizado",
   dreGerReal:    "DRE Gerencial Realizado",
   dreDfsReal:    "DRE DFs Realizado",
@@ -3148,6 +3204,7 @@ function colorizeNegativeCells(container) {
 }
 
 function renderReportsView() {
+  if (activeView !== "reports" || selectedReportId !== "cashFlow") fcDashboardModule?.leave();
   const cardGrid   = reportsCardGrid;
   const catalogCard = reportsCatalogCard;
   const detailPanel = reportsDetailPanel;
@@ -3183,6 +3240,7 @@ function renderReportsView() {
   }
 
   const rendered =
+    fcDashboardModule.renderSelected(detailPanel, selectedReportId) ||
     reportsBuilderModule.handleBuilderView(detailPanel, selectedReportId) ||
     comercialReportsModule.renderSelectedReport(detailPanel, selectedReportId) ||
     comercialPainelModule.renderSelectedPainel(detailPanel, selectedReportId) ||

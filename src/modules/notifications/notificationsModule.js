@@ -43,6 +43,7 @@
 
     const KIND_ICONS = {
       actuals_batch_applied: "vp-icon-upload",
+      fc_batch_applied: "vp-icon-upload",
       budget_batch_applied: "vp-icon-upload",
       headcount_batch_applied: "vp-icon-users",
       comercial_realizado_batch_applied: "vp-icon-briefcase",

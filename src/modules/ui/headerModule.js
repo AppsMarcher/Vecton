@@ -184,6 +184,7 @@
       }
 
       const STATIC = [
+        { label: "Fluxo de Caixa", sub: "Relatório gerencial", target: { view: "reports", reportId: "cashFlow" } },
         { label: "Dashboard", sub: "Cockpit Executivo", target: { view: "dashboard" } },
         { label: "Relatorios", sub: "Central de relatorios", target: { view: "reports", reportId: null } },
         { label: "DRE Societario Real", sub: "Relatorio", target: { view: "reports", reportId: "dreSocReal" } },
@@ -196,7 +197,8 @@
         { label: "Headcount Realizado", sub: "Relatorio", target: { view: "reports", reportId: "headcountReal" } },
         { label: "Headcount Planejado", sub: "Relatorio", target: { view: "reports", reportId: "headcountBudget" } },
         { label: "Empresas", sub: "Parametros", target: { view: "branchPlan" } },
-        { label: "Plano de Contas", sub: "Parametros", target: { view: "drePlan" } },
+        { label: "Plano de Contas DRE", sub: "Parametros", target: { view: "drePlan" } },
+        { label: "Plano de Contas FC", sub: "Parametros", target: { view: "fcPlan" } },
         { label: "Centro de Custos", sub: "Parametros", target: { view: "ccPlan" } },
         { label: "Carga de Realizado", sub: "Parametros", target: { view: "actualsLoad", actualsLoadType: null } },
         { label: "Headcount Realizado", sub: "Carga de Realizado item 5", target: { view: "headcountLoad", headcountLoadType: "realizado", returnView: "actualsLoad" } },

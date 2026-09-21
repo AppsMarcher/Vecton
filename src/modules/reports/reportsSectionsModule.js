@@ -16,12 +16,14 @@
     // ou modo local sem Supabase) — mantém o catálogo organizado mesmo assim.
     const FALLBACK_SECTIONS = [
       { id: "fallback-comercial", name: "Comercial" },
+      { id: "fallback-cashflow", name: "Fluxo de Caixa" },
       { id: "fallback-dre", name: "DRE" },
       { id: "fallback-opex", name: "OPEX" },
       { id: "fallback-headcount", name: "Headcount" },
       { id: "fallback-personalizados", name: "Personalizados" },
     ];
     const FALLBACK_ITEMS = [
+      { section_id: "fallback-cashflow", report_id: "cashFlow", sort_order: 0 },
       { section_id: "fallback-comercial", report_id: "comercialPainel", sort_order: 0 },
       { section_id: "fallback-comercial", report_id: "comercialMapa", sort_order: 1 },
       { section_id: "fallback-dre", report_id: "dreSocReal", sort_order: 0 },
@@ -124,6 +126,18 @@
       });
 
       const assignedIds = new Set(items.map((i) => i.report_id));
+      if (cardById.has("cashFlow") && !assignedIds.has("cashFlow")) {
+        const fcSection = buildSectionEl({ id: "fallback-cashflow", name: "Fluxo de Caixa" });
+        fcSection.querySelector(".reports-section-body").appendChild(cardById.get("cashFlow"));
+        // Organizações com seções já salvas ainda não têm o novo grupo no banco.
+        // Insere-o abaixo de Comercial também nesse caso, não no fim do catálogo.
+        const commercialSection = [...wrap.querySelectorAll(".reports-section")].find(section =>
+          section.querySelector(".reports-section-title")?.textContent.trim().toLocaleLowerCase("pt-BR") === "comercial"
+        );
+        if (commercialSection) commercialSection.after(fcSection);
+        else wrap.prepend(fcSection);
+        assignedIds.add("cashFlow");
+      }
       const orphans = cards.filter((c) => !assignedIds.has(c.dataset.reportId));
       if (orphans.length) {
         const sectionEl = buildSectionEl({ id: UNSECTIONED_ID, name: "Sem seção" });

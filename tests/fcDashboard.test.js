@@ -1,0 +1,53 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const { matrix } = require('./fixtures/fcDashboardSource');
+const context = { window: {}, Date };
+for (const f of ['fcStructure', 'fcModel']) vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../src/modules/cashflow', f + '.js'), 'utf8'), context);
+const M = context.window.VECTON_FC_MODEL;
+const now = new Date(2026, 8, 21), rows = matrix();
+const report = M.parseMatrix(rows, 2026, now);
+assert.equal(report.opening, 8000000);
+assert.equal(report.values.net.length, 12);
+assert.equal(report.kinds[8], 'Fcst'); assert.equal(report.kinds[11], 'Bud');
+assert.equal(M.select(report, 'year', 8).end, 12);
+assert.equal(M.select(report, 'month', 10).closing, report.values.balance[9]);
+assert.equal(M.select(report, 'YTD', 10).end, 10);
+for (const mode of ['year','month','YTD']) {
+  const selected = M.select(report, mode, 10);
+  assert.ok(Math.abs(selected.opening + selected.sum('net') - selected.closing) < .001);
+  assert.ok(Math.abs(selected.sum('entradas') + selected.sum('saidas') - selected.sum('operacional')) < .001);
+}
+assert.notEqual(report.values.operacional[0], 999, 'subtotais são calculados, não importados');
+assert.equal(M.parseMatrix(rows, 2025, now), null);
+let altered = matrix(); altered[2][10] = 'ACT';
+assert.throws(() => M.parseMatrix(altered, 2026, now), /futuro/);
+altered = matrix(); altered[2][10] = '?'; assert.throws(() => M.parseMatrix(altered, 2026, now), /Classificação/);
+altered = matrix(); altered[1][12] = null; assert.throws(() => M.parseMatrix(altered, 2026, now), /12 meses/);
+altered = matrix(); altered[18] = []; assert.equal(M.parseMatrix(altered, 2026, now).values['linha-19'][0], 0);
+altered = matrix(); altered[18][1] = '#REF!'; assert.throws(() => M.parseMatrix(altered, 2026, now), /Valor inválido/);
+altered = matrix(); altered[18][0] = 'Conta desconhecida'; assert.throws(() => M.parseMatrix(altered, 2026, now), /não reconhecida/);
+const negative = M.calculate({ opening: -1000000, movements: {} });
+assert.equal(M.select(negative, 'year', 12).closing, -1000000);
+console.log('FC dashboard model: full year, projected periods, calculated totals, missing values and file validation passed.');
+
+// Cabeçalho FC-carga26: nomes de meses, ano separado e coluna de total anual.
+const named = matrix();
+named[1] = ['FLUXO DE CAIXA 2026','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',2026];
+assert.deepEqual(M.parseMatrix(named,2026,now).values.balance,report.values.balance);
+assert.equal(M.parseMatrix(named,2025,now),null);
+const duplicate = named.map(r=>r.slice()); duplicate[1][12]='Janeiro';
+assert.throws(()=>M.parseMatrix(duplicate,2026,now),/12 meses/);
+const futureNamed = named.map(r=>r.slice()); futureNamed[2][10]='Real';
+assert.throws(()=>M.parseMatrix(futureNamed,2026,now),/futuro/);
+const ambiguous = named.map(r=>r.slice()); ambiguous[1][13]=2025;
+assert.equal(M.findHeader(ambiguous,2026),null);
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/modules/cashflow/fcService.js'),'utf8'),context);
+const plan=context.window.VECTON_FC_STRUCTURE.map(n=>({...n,id:n.seed_key,parent_id:n.parent_key}));
+const sheet={};const book={SheetNames:['FC'],Sheets:{FC:sheet}};
+const fakeXlsx={utils:{sheet_to_json:()=>named,decode_cell:()=>({c:10})}};
+assert.equal(context.window.VECTON_FC_SERVICE.parseWorkbook(book,2026,plan,'2026-09-21',fakeXlsx).kinds.length,12);
+sheet.K20={f:'SUM(K21:K22)'};
+assert.throws(()=>context.window.VECTON_FC_SERVICE.parseWorkbook(book,2026,plan,'2026-09-21',fakeXlsx),/Recalcule/);
+console.log('FC named-month headers: annual total excluded, correct year, duplicates, future Real and formula cache checks passed.');
