@@ -434,6 +434,7 @@
       appAlert,
       appConfirm,
       appPrompt,
+      appViewInfo,
       uploadToStorage,
       createStorageSignedUrl,
       deleteFromStorage,
@@ -1317,7 +1318,7 @@
                   ? renderUnitCycle(key, weekUnit, `Unidade de ${indicator.label} ${week}`)
                   : `<span class="rps-unit-readonly">${escapeHtml(weekUnit)}</span>`}
               </div>
-              ${state.presentation ? "" : `<button class="rps-comment-button ${comment ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, week))}" title="Comentário">●</button>`}
+              ${!state.presentation || comment ? `<button class="rps-comment-button ${comment ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, week))}" data-rps-comment-label="${escapeHtml(indicator.label)}" title="Comentário">●</button>` : ""}
               ${attachmentButton}
             </td>`;
           }).join("");
@@ -1335,7 +1336,12 @@
             </td>
             <td class="rps-value-cell rps-target-cell">
               <input class="rps-cell-input" data-rps-target-key="${escapeHtml(targetKey)}" value="${escapeHtml(formatValueForUnit(state.payload.dadosMeta[targetKey], monthUnit))}" inputmode="${monthUnit === "hrs" ? "text" : "decimal"}" autocomplete="off" ${fillable ? "" : "disabled"} aria-label="Meta de ${escapeHtml(indicator.label)}">
-              ${state.presentation ? "" : `<button class="rps-comment-button ${state.payload.comentarios[commentKey(area.id, indicator.id, "meta")] ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, "meta"))}" title="Comentário">●</button>`}
+              ${(() => {
+                const metaComment = state.payload.comentarios[commentKey(area.id, indicator.id, "meta")];
+                return !state.presentation || metaComment
+                  ? `<button class="rps-comment-button ${metaComment ? "has-comment" : ""}" type="button" data-rps-comment="${escapeHtml(commentKey(area.id, indicator.id, "meta"))}" data-rps-comment-label="${escapeHtml(indicator.label)}" title="Comentário">●</button>`
+                  : "";
+              })()}
             </td>
             <td class="rps-variation ${trendClass}" data-rps-variation-value>${variation === null ? "—" : `${variation > 0 ? "+" : ""}${escapeHtml(formatValueForUnit(variation, monthUnit))}`}</td>
             <td class="rps-variation ${trendClass}" data-rps-variation-percent>${percent === null ? "—" : `${percent > 0 ? "+" : ""}${formatNumber(percent)}%`}</td>
@@ -2029,6 +2035,14 @@
         if (commentButton) {
           const key = commentButton.dataset.rpsComment;
           const previous = state.payload.comentarios[key] || "";
+          if (state.presentation) {
+            await appViewInfo({
+              icon: "●",
+              eyebrow: commentButton.dataset.rpsCommentLabel || "RPS · COMENTÁRIO",
+              message: previous
+            });
+            return;
+          }
           const values = await appPrompt({
             icon: "●",
             eyebrow: "RPS · COMENTÁRIO",

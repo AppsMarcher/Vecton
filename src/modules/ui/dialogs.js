@@ -245,6 +245,61 @@
     });
   }
 
+  // Variante somente-leitura: mostra um texto (ex.: comentário registrado)
+  // sem ações de Cancelar/Salvar, para contextos onde não há edição
+  // disponível (apresentação da RPS) — fecha só pelo X, clique fora ou Esc.
+  function appViewInfo(options) {
+    const config = options && typeof options === "object" ? options : {};
+    return new Promise((resolve) => {
+      const previousFocus = document.activeElement;
+      let settled = false;
+      const overlay = createDialogOverlay();
+      const box = createDialogBox(
+        config.icon || "●",
+        config.eyebrow || "VECTON",
+        config.title || "",
+        config.message || ""
+      );
+      if (!config.title) {
+        box.querySelector("h4")?.remove();
+        const description = box.querySelector("p:last-of-type");
+        if (description) description.style.marginTop = "10px";
+      }
+      const icon = box.querySelector('span[aria-hidden="true"]');
+      if (icon) icon.style.cssText += ";color:#fbbf24;text-shadow:0 0 7px rgba(245,158,11,.45)";
+      const eyebrow = box.querySelector("p");
+      if (eyebrow) eyebrow.style.cssText += ";color:var(--text);font-weight:700";
+      box.style.position = "relative";
+      box.style.paddingRight = "44px";
+
+      const closeButton = document.createElement("button");
+      closeButton.type = "button";
+      closeButton.textContent = "×";
+      closeButton.setAttribute("aria-label", "Fechar");
+      closeButton.style.cssText = "position:absolute;top:10px;right:10px;width:26px;height:26px;border:0;border-radius:7px;background:transparent;color:var(--text-soft);font-size:1.2rem;line-height:1;cursor:pointer";
+      closeButton.addEventListener("mouseenter", () => { closeButton.style.background = "rgba(255,255,255,.08)"; });
+      closeButton.addEventListener("mouseleave", () => { closeButton.style.background = "transparent"; });
+
+      const close = () => {
+        if (settled) return;
+        settled = true;
+        overlay.remove();
+        if (!document.querySelector(".vp-app-dialog-overlay")) document.body.classList.remove("dialog-open");
+        previousFocus?.focus?.();
+        resolve();
+      };
+      closeButton.addEventListener("click", close);
+      overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
+      overlay.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
+
+      box.appendChild(closeButton);
+      overlay.appendChild(box);
+      document.body.classList.add("dialog-open");
+      document.body.appendChild(overlay);
+      closeButton.focus();
+    });
+  }
+
   // Regra de interface do Vecton: entradas e confirmações usam este sistema,
   // nunca os popovers nativos alert/confirm/prompt do navegador.
   function appPrompt(options) {
@@ -349,6 +404,7 @@
     appAlert,
     appConfirm,
     appPrompt,
+    appViewInfo,
     showToast
   };
 })(window);

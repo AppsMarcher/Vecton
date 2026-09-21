@@ -74,7 +74,7 @@ const { createReportsHelpersModule } = window.VECTON_REPORTS_HELPERS;
 const { createDashboardCardsModule } = window.VECTON_DASHBOARD_CARDS;
 const { createDashboardModule } = window.VECTON_DASHBOARD_MODULE;
 const { createDashboardVisualsModule } = window.VECTON_DASHBOARD_VISUALS;
-const { appAlert, appConfirm, appPrompt, showToast } = window.VECTON_DIALOGS;
+const { appAlert, appConfirm, appPrompt, appViewInfo, showToast } = window.VECTON_DIALOGS;
 const { startMarketTicker } = window.VECTON_MARKET_TICKER;
 const { createReportsBuilderModule } = window.VECTON_REPORTS_BUILDER || {};
 const { createReportSectionsModule } = window.VECTON_REPORT_SECTIONS || {};
@@ -1101,6 +1101,7 @@ const rpsModule = createRpsModule
       appAlert,
       appConfirm,
       appPrompt,
+      appViewInfo,
       uploadToStorage,
       createStorageSignedUrl,
       deleteFromStorage,
