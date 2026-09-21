@@ -8,14 +8,14 @@
   function createDashboard(deps) {
     const esc = deps.escapeHtml;
     let host, root, type = "year", detail = false, user = null, error = "", loading = false, revision = 0;
-    let loaded = null, loadKey = "", entered = false;
+    let loaded = null, loadKey = "", entered = false, declinedKey = null, switchingKey = null;
     let simulation=null, scenarioList=[], saving=false;
     const expanded = new Set();
     let observer, width = 0, frame;
     const q = selector => root.querySelector(selector);
     const access = () => Boolean(deps.getUserId()) && deps.canAccess();
-    function reset() { simulation=null; scenarioList=[]; saving=false; revision++; loaded = null; loadKey = ""; error = ""; detail = false; loading = false; entered = false; expanded.clear(); observer?.disconnect(); }
-    function invalidate() { simulation=null; revision++; loadKey = ""; loading = false; loaded = null; }
+    function reset() { simulation=null; scenarioList=[]; saving=false; revision++; loaded = null; loadKey = ""; declinedKey = null; switchingKey = null; error = ""; detail = false; loading = false; entered = false; expanded.clear(); observer?.disconnect(); }
+    function invalidate() { simulation=null; revision++; loadKey = ""; declinedKey = null; switchingKey = null; loading = false; loaded = null; }
     function leave() { entered = false; observer?.disconnect(); }
     function renderSelected(panel, id) {
       if (id !== "cashFlow") { observer?.disconnect(); entered = false; return false; }
@@ -23,9 +23,25 @@
       host = panel;
       if (!access()) { reset(); host.innerHTML = '<div class="reports-detail-empty">Seu perfil não permite acessar o Fluxo de Caixa.</div>'; return true; }
       const nextKey = `${user}:${deps.getPeriod().year}`;
-      if (!entered || nextKey !== loadKey) { entered = true; void refresh(); }
+      if (!entered) { entered = true; void refresh(); }
+      else if (nextKey !== loadKey && nextKey !== declinedKey && nextKey !== switchingKey) { void switchYear(nextKey); }
       else render();
       return true;
+    }
+    // Trocar o ano pelo seletor de período do cabeçalho não pode descartar uma simulação
+    // não salva silenciosamente — pede confirmação como switchScenario(). switchingKey evita
+    // abrir dois confirms se renderSelected for chamado de novo enquanto o primeiro está aberto;
+    // se o usuário recusar, guarda o ano recusado para não repetir o confirm a cada re-render.
+    async function switchYear(nextKey) {
+      switchingKey = nextKey;
+      try {
+        if (!await discardChanges()) { declinedKey = nextKey; return; }
+        declinedKey = null;
+        await refresh();
+      } finally {
+        if (switchingKey === nextKey) switchingKey = null;
+        render();
+      }
     }
     async function refresh() {
       const token = ++revision, session = deps.getUserId(), year = Number(deps.getPeriod().year);
@@ -98,9 +114,11 @@
     }
     async function deleteScenario() {
       if(!canDeleteScenario() || saving || loading) return;
-      const selected=loaded.scenario, token=revision, session=deps.getUserId();
+      const selected=loaded.scenario, session=deps.getUserId();
+      let token=revision;
       if(!await deps.confirm(`Excluir o cenário “${selected.name}”? Esta ação não pode ser desfeita.${simulation ? " As alterações não salvas também serão descartadas." : ""}`)) return;
       if(token!==revision || session!==deps.getUserId() || loaded?.scenario?.id!==selected.id || !canDeleteScenario() || saving || loading) return;
+      token=++revision;
       saving=true;error="";render();
       try {
         await deps.service.deleteScenario(selected.id);
@@ -115,7 +133,7 @@
       if([...name].length>15){q("[data-fc-scenario-name]").setCustomValidity("Use no máximo 15 caracteres.");q("[data-fc-scenario-name]").reportValidity();return;}
       q("[data-fc-scenario-name]").setCustomValidity("");
       if(!name){q("[data-fc-scenario-name]").focus();return;}
-      const token=revision, session=deps.getUserId(), report=simulation||loaded.report;
+      const token=++revision, session=deps.getUserId(), report=simulation||loaded.report;
       saving=true;error="";render();
       try {
         const id=await deps.service.saveScenario(loaded,report,name);
@@ -163,6 +181,8 @@
       items.sort((a, b) => b.value - a.value); items.push({ name: "Demais saídas", value: rest });
       return `<div class="fc-ranking">${items.map(({ name, value }) => { const percent = total ? value / total * 100 : 0; return `<div data-fc-rank><div><span>${name}</span><strong>${fmt(value)} <small>· ${percent.toFixed(0)}%</small></strong></div><div class="fc-bar-track"><span style="width:${Math.max(0, Math.min(100, percent))}%"></span></div></div>`; }).join("")}</div><div class="fc-ranking-total"><span>Total das saídas</span><strong>${fmt(total)}</strong></div>`;
     }
+    const summaryRows = [["entradas", "Entradas operacionais"], ["saidas", "Saídas operacionais"], ["operacional", "Caixa operacional", true], ["investimentos", "Investimentos"], ["financeiro", "Financeiro"], ["net", "Geração líquida de caixa", true], ["balance", "Saldo final", true]];
+    const summaryTopLevelKeys = new Set(summaryRows.map(([key]) => key));
     function summary(report, month) {
       function cells(key) {
         if (!report) return Array(type === "year" ? 3 : 1).fill('<td>—</td>').join("");
@@ -171,10 +191,12 @@
         return values.map(v => `<td class="${negative(v)}">${fmt(num(v))}</td>`).join("");
       }
       function row(key, name, total = false, depth = 0) {
-        const children = report?.structure.filter(n => n.parent_key === key) || [];
+        // Contas já listadas como linha própria no topo (ex.: entradas/saídas dentro de operacional) não
+        // devem se repetir também como filhas expandidas de outra linha do resumo.
+        const children = (report?.structure.filter(n => n.parent_key === key && !summaryTopLevelKeys.has(n.seed_key))) || [];
         return `<tr class="${total ? "fc-total-row" : ""}"><th scope="row" style="padding-left:${10 + depth * 18}px">${children.length ? `<button type="button" data-fc-expand="${esc(key)}" aria-expanded="${expanded.has(key)}">${expanded.has(key) ? "−" : "+"} ${esc(name)}</button>` : esc(name)}</th>${cells(key)}</tr>` + (expanded.has(key) ? children.map(n => row(n.seed_key, n.name, false, depth + 1)).join("") : "");
       }
-      return [["entradas", "Entradas operacionais"], ["saidas", "Saídas operacionais"], ["operacional", "Caixa operacional", true], ["investimentos", "Investimentos"], ["financeiro", "Financeiro"], ["net", "Geração líquida de caixa", true], ["balance", "Saldo final", true]].map(args => row(...args)).join("");
+      return summaryRows.map(args => row(...args)).join("");
     }
     function detailMarkup(report, year, month) {
       let rows = "";
@@ -184,7 +206,7 @@
           .sort((a,b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, "pt-BR"))
           .forEach(n => {
             const row = { name: n.name, key: n.seed_key, analytic: n.node_class === "Analitica" };
-            const closing = ["operacional", "investimentos", "financeiro"].includes(n.seed_key);
+            const closing = M.PILLARS.includes(n.seed_key);
             if (!closing) ordered.push(row);
             visit(n.seed_key);
             if (closing) ordered.push(row);
@@ -233,7 +255,7 @@
       chart.onkeydown = event => { if (["ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); show(Math.max(0, Math.min(values.length - 1, index + (event.key === "ArrowLeft" ? -1 : 1)))); } if (event.key === "Escape") hide(); };
     }
     function drawBridge(report, month) {
-      const holder = q(".fc-bridge"), s = M.select(report, type, month), values = [s.opening, s.sum("operacional"), s.sum("investimentos"), s.sum("financeiro"), s.closing];
+      const holder = q(".fc-bridge"), s = M.select(report, type, month), values = [s.opening, ...M.PILLARS.map(key => s.sum(key)), s.closing];
       const labels = ["Saldo inicial", "Operacional", "Investimentos", "Financeiro", "Saldo final"], levels = [0, values[0], values[0]+values[1], values[0]+values[1]+values[2], 0];
       const w = Math.max(300, holder.clientWidth), h = w < 520 ? 245 : 215, bottom = h - 52;
       const low = Math.min(0, ...levels, ...levels.map((v,i) => v + values[i])), high = Math.max(0, ...levels, ...levels.map((v,i) => v + values[i])), span = Math.max(1, high - low);

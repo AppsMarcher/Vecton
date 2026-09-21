@@ -1,5 +1,9 @@
 (function (window) {
   "use strict";
+  // Os tr\u00eas fluxos consolidados do FC (Operacional/Investimentos/Financeiro): a estrutura do
+  // Excel de carga/modelo e o gr\u00e1fico de ponte do dashboard s\u00e3o desenhados especificamente
+  // para esses tr\u00eas grupos, ent\u00e3o a lista fica s\u00f3 aqui em vez de repetida em cada consumidor.
+  const PILLARS = Object.freeze(["operacional", "investimentos", "financeiro"]);
   const norm = value => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toLowerCase();
   const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
   const scenario = value => ({ act: "Real", real: "Real", realizado: "Real", fcst: "Fcst", forecast: "Fcst", bud: "Bud", budget: "Bud", orcado: "Bud" })[norm(value)];
@@ -62,7 +66,9 @@
       visiting.delete(key); values[key] = result; return result;
     }
     structure.forEach(n => compute(n.seed_key));
-    values.net = values.operacional.map((v, i) => v + values.investimentos[i] + values.financeiro[i]);
+    const roots = structure.filter(n => !n.parent_key);
+    if (!roots.length) throw new Error("O Plano de Contas FC está incompleto.");
+    values.net = Array.from({ length: 12 }, (_, i) => roots.reduce((total, n) => total + values[n.seed_key][i], 0));
     let balance = number(input.opening, "saldo inicial");
     values.balance = values.net.map(v => (balance += v));
     return { ...input, opening: number(input.opening, "saldo inicial"), values, structure };
@@ -86,7 +92,10 @@
     const opEnd = rows.get(norm("Fluxo de Caixa Operacional"))[0], investEnd = rows.get(norm("Fluxo de Caixa de Investimentos"))[0];
     const outputStart = rows.get(norm("Saídas Operacionais"))[0];
     const bounds = { entradas: [first, outputStart], saidas: [outputStart, opEnd], operacional: [first, opEnd], investimentos: [opEnd, investEnd], financeiro: [investEnd, last] };
-    const aliases = n => [n.name, window.VECTON_FC_STRUCTURE.find(t => t.seed_key === n.seed_key)?.name].filter(Boolean).map(norm);
+    // n já vem de `structure` (o plano vigente da empresa): usar o nome atual apenas, sem
+    // aceitar também o rótulo padrão global, evita validar a importação contra um nome que
+    // a empresa já renomeou no Plano de Contas FC.
+    const aliases = n => [n.name].filter(Boolean).map(norm);
     const marker = n => aliases(n).flatMap(name => rows.get(name) || []).sort((a,b) => a-b)[0];
     function scope(node) {
       if (bounds[node.seed_key]) return bounds[node.seed_key];
@@ -130,5 +139,5 @@
     const sum = key => (report.values[key] || Array(12).fill(0)).slice(start, end).reduce((a, b) => a + b, 0);
     return { start, end, sum, opening: start ? report.values.balance[start - 1] : report.opening, closing: report.values.balance[end - 1], minimum: Math.min(...report.values.balance.slice(start, end)) };
   }
-  window.VECTON_FC_MODEL = { competence, findHeader, parseMatrix, calculate, select };
+  window.VECTON_FC_MODEL = { competence, findHeader, parseMatrix, calculate, select, PILLARS };
 })(window);
