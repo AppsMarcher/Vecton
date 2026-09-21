@@ -9648,6 +9648,10 @@ body.rps-laser-mode .rps-attachment-carousel * {
   line-height: 1;
   align-items: center;
   justify-content: center;
+  /* Contexto de empilhamento próprio: sem isso, o z-index:-1 do ::before
+     escapava da badge e ia parar atrás do fundo opaco do header inteiro,
+     ficando completamente invisível (bug relatado 2026-09-21). */
+  isolation: isolate;
 }
 /* Anel que pulsa ao redor do badge sólido — número fica sempre nítido, só o
    halo por trás cresce e desaparece (efeito "ping"), sem esticar o texto. */
