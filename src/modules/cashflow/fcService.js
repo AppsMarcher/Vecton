@@ -34,13 +34,13 @@
     const rows = [[`FLUXO DE CAIXA ${year}`, ...months], ["Cenário", ...months.map((_,i) => year < current.getFullYear() || year === current.getFullYear() && i < current.getMonth()+1 ? "Real" : "Fcst")], zero("Maquinas Vendidas"), zero("Saldo inicial"), zero("SALDOS BANCÁRIOS")];
     const labels = { entradas:"Entradas Operacionais", saidas:"Saídas Operacionais", operacional:"Fluxo de Caixa Operacional", investimentos:"Fluxo de Caixa de Investimentos", financeiro:"Fluxo de Caixa Financeiro" };
     function visit(node) {
-      const closing = ["operacional","investimentos","financeiro"].includes(node.seed_key);
+      const closing = M.PILLARS.includes(node.seed_key);
       const row = zero(node.node_class === "Analitica" ? node.source_name : labels[node.seed_key] || node.name);
       if (!closing) rows.push(row);
       structure.filter(n=>n.parent_key===node.seed_key).sort((a,b)=>a.sort_order-b.sort_order || a.name.localeCompare(b.name,"pt-BR")).forEach(visit);
       if (closing) rows.push(row);
     }
-    for (const key of ["operacional","investimentos","financeiro"]) {
+    for (const key of M.PILLARS) {
       const node=structure.find(n=>n.seed_key===key);
       if (!node) throw new Error("O Plano de Contas FC está incompleto.");
       visit(node);
