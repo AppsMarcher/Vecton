@@ -167,7 +167,7 @@
     const footer = '<div class="fc-panel-footer"><span>Saldo é posição de fechamento; movimentos acumulam conforme a visão.</span><span>R$</span></div>';
     function dashboardMarkup(report, year, month, period) {
       const selected = report && M.select(report, type, month);
-      const cards = [["Saldo final", selected?.closing, selected ? `Posição em ${MONTHS[selected.end - 1]}/${year}` : period], ["Geração líquida", selected?.sum("net"), period], ["Caixa operacional", selected?.sum("operacional"), period], ["Menor saldo mensal", selected?.minimum, period]];
+      const cards = [["Saldo em Caixa", selected?.closing, selected ? `Posição em ${MONTHS[selected.end - 1]}/${year}` : period], ["Geração líquida", selected?.sum("net"), period], ["Caixa operacional", selected?.sum("operacional"), period], ["Menor saldo mensal", selected?.minimum, period]];
       return `<div class="fc-kpis">${cards.map(([label, value, caption]) => `<article class="fc-kpi"><span>${label}</span><strong class="${negative(value)}"><small>R$</small> ${fmt(value)}</strong><small>${caption}</small></article>`).join("")}</div>
         <div class="fc-chart-grid"><section class="fc-panel"><header><h3>Evolução do saldo</h3><span>R$</span></header><div class="fc-legend"><span class="fc-legend-real">Real</span><span class="fc-legend-fcst">Fcst</span><span class="fc-legend-bud">Bud</span></div><div class="fc-trend">${emptyChart}</div></section><section class="fc-panel"><header><h3>Saídas operacionais</h3><span>R$</span></header>${ranking(selected)}</section></div>
         <section class="fc-panel"><header><h3>Ponte do FC</h3><span>${period} · R$</span></header><div class="fc-bridge">${emptyChart}</div></section>
