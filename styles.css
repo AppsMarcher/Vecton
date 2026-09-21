@@ -2868,6 +2868,10 @@ body.auth-only .vp-update-banner { display: none; }
 }
 
 /* Cores por categoria — via data-report-id */
+[data-report-id="cashFlow"] { border-top-color: #8b5cf6; }
+[data-report-id="cashFlow"]:hover { border-color: rgba(139,92,246,0.35); border-top-color: #8b5cf6; }
+[data-report-id="cashFlow"].active { border-color: rgba(139,92,246,0.70); border-top-color: #8b5cf6; }
+[data-report-id="cashFlow"] .rrc-icon-wrap { background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.22); color: #8b5cf6; }
 [data-report-id^="dre"] { border-top-color: #4f7cff; }
 [data-report-id^="dre"]:hover { border-color: rgba(79,124,255,0.35); border-top-color: #4f7cff; }
 [data-report-id^="dre"].active { border-color: rgba(79,124,255,0.70); border-top-color: #4f7cff; }
@@ -12350,3 +12354,13 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
   width: 15px;
   height: 15px;
 }
+
+/* Plano FC compartilha árvore, editor, cores e responsividade do Plano DRE. */
+.fc-plan-workspace { min-width: 0; }
+.fc-plan-search { display: grid; gap: 8px; margin-bottom: 12px; }
+.fc-plan-select { border: 0; background: transparent; text-align: left; color: inherit; font: inherit; cursor: pointer; min-width: 0; }
+.fc-plan-select strong { overflow-wrap: anywhere; }
+.fc-plan-workspace .tree-panel, .fc-plan-workspace .editor-panel { min-width: 0; }
+.fc-plan-workspace .dre-tree { max-height: 65vh; overflow: auto; }
+#fc-plan-status { font-size: .8rem; color: var(--text-faint); }
+#fc-plan-status[role="alert"] { color: #f87171; }
