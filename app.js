@@ -1608,7 +1608,7 @@ const reportsBuilderModule = createReportsBuilderModule ? createReportsBuilderMo
   renderReportsView,
   getReportTitles: () => REPORT_TITLES,
   initFloatingScrollbar,
-  onCatalogChanged: () => reportsSectionsModule.renderSections(),
+  onCatalogChanged: () => { reportsSectionsModule.renderSections(); applyReportAccess(); },
   fetchScenariosForYear,
   fetchScenarioHeadcountForYear,
   appConfirm,
@@ -1791,9 +1791,17 @@ function applyReportLabels() {
 
 // Esconde os cards de relatório que o perfil do usuário não pode ver.
 // Admin/super_admin: canSeeReport sempre true → nada muda.
+// Também esconde o cabeçalho de cada seção (ex: "FLUXO DE CAIXA", "DRE")
+// quando nenhum card dela sobra visível — senão fica um grupo vazio, sem
+// nenhum relatório embaixo, pra quem não tem acesso a nada daquele grupo.
 function applyReportAccess() {
   document.querySelectorAll(".reports-report-card[data-report-id]").forEach((card) => {
     card.style.display = canSeeReport(card.dataset.reportId) ? "" : "none";
+  });
+  document.querySelectorAll("#reports-card-grid .reports-section").forEach((section) => {
+    const hasVisibleCard = [...section.querySelectorAll(".reports-report-card[data-report-id]")]
+      .some((card) => card.style.display !== "none");
+    section.style.display = hasVisibleCard ? "" : "none";
   });
 }
 
