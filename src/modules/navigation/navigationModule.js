@@ -29,6 +29,7 @@
       canAccessPlanning,
       canAccessReportsMenu,
       canAccessRps,
+      canAccessRpsComercial,
       canAccessStrategic,
       canManageUsers
     } = deps;
@@ -68,6 +69,9 @@
 
       const rpsBtn = document.querySelector(".menu-button[data-view='rps']");
       if (rpsBtn) rpsBtn.style.display = canAccessRps() ? "" : "none";
+
+      const rpsComercialBtn = document.querySelector(".menu-button[data-view='rpsComercial']");
+      if (rpsComercialBtn) rpsComercialBtn.style.display = canAccessRpsComercial() ? "" : "none";
 
       // Módulo isolado — só quem tem gestao_estrategica (primário ou
       // adicional), admin ou super_admin vê o botão. Sem leitura ampla

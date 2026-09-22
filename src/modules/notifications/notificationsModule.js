@@ -49,6 +49,7 @@
       comercial_realizado_batch_applied: "vp-icon-briefcase",
       comercial_planejado_batch_applied: "vp-icon-target",
       rps_gestao_reminder: "vp-icon-activity",
+      rps_comercial_reminder: "vp-icon-briefcase",
       rps_backup_failed: "vp-icon-shield",
       strategic_kpi_off_target: "vp-icon-target",
       strategic_action_due: "vp-icon-activity",

@@ -26,6 +26,7 @@
       renderComercialVendasView,
       renderComercialPlanejadoView,
       renderRps,
+      renderRpsComercial,
       renderStrategic,
       renderDashboard
     } = deps;
@@ -72,6 +73,10 @@
 
       if (getActiveView() === "rps") {
         renderRps();
+      }
+
+      if (getActiveView() === "rpsComercial") {
+        renderRpsComercial();
       }
 
       if (getActiveView() === "strategic") {

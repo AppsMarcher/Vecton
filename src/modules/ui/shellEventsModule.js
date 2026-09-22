@@ -49,6 +49,7 @@
       bindNotificationSettings,
       renderPlanningView,
       renderRps,
+      renderRpsComercial,
       resetPlanningState,
       getPlanningContainer,
     } = deps;
@@ -155,6 +156,9 @@
           }
           if (getActiveView() === "rps") {
             renderRps();
+          }
+          if (getActiveView() === "rpsComercial") {
+            renderRpsComercial();
           }
           if (getActiveView() === "strategic") {
             renderStrategic();

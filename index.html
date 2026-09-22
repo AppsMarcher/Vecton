@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260921c">
+  <link rel="stylesheet" href="styles.css?v=20260922d">
   <link rel="stylesheet" href="src/modules/cashflow/fcDashboard.css?v=20260921v">
 </head>
 <body class="auth-only">
@@ -341,13 +341,17 @@
             <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-gauge"></use></svg>
             <span class="menu-item">Cockpit Gestão</span>
           </button>
+          <button class="menu-button" type="button" data-view="reports">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-reports"></use></svg>
+            <span class="menu-item">Relatórios Gerenciais</span>
+          </button>
           <button class="menu-button" type="button" data-view="rps">
             <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-activity"></use></svg>
             <span class="menu-item">RPS Gestão</span>
           </button>
-          <button class="menu-button" type="button" data-view="reports">
-            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-reports"></use></svg>
-            <span class="menu-item">Relatórios Gerenciais</span>
+          <button class="menu-button" type="button" data-view="rpsComercial">
+            <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-briefcase"></use></svg>
+            <span class="menu-item">RPS Comercial</span>
           </button>
           <button class="menu-button" type="button" data-view="strategic">
             <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-target"></use></svg>
@@ -563,6 +567,10 @@
 
       <section id="rps-view" class="content-view" aria-label="Reunião de Performance Semanal">
         <div id="rps-root" class="rps-root" aria-live="polite"></div>
+      </section>
+
+      <section id="rps-comercial-view" class="content-view" aria-label="RPS Comercial — condução e registro da reunião comercial semanal">
+        <div id="rps-comercial-root" class="rps-comercial-root" aria-live="polite"></div>
       </section>
 
       <section id="strategic-view" class="content-view" aria-label="A3 Estratégicos">
@@ -1376,10 +1384,11 @@
                 </div>
                 <span class="ap-user-count" id="ap-count-comercial">— usuários</span>
               </div>
-              <p class="ap-description">Login direto na tela Relatórios. Enxerga Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças, com visão consolidada (Brasil todo) e drill-down completo. Sem Dashboard, Planejamento, RPS Gestão, Parâmetros ou cargas.</p>
+              <p class="ap-description">Login direto na tela Relatórios. Enxerga Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças, com visão consolidada (Brasil todo) e drill-down completo, além do módulo RPS Comercial (condução e registro da reunião comercial semanal). Sem Dashboard, Planejamento, RPS Gestão, Parâmetros ou cargas.</p>
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças (consolidado + drill-down)</li>
+                <li class="ap-perm ap-perm--yes">RPS Comercial — registrar e conduzir a reunião de todas as áreas</li>
                 <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Fluxo de Caixa, OPEX, Headcount)</li>
                 <li class="ap-perm ap-perm--no">Planejamento</li>
                 <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
@@ -1527,37 +1536,38 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script src="src/core/pwa.js?v=20260902a"></script>
-  <script src="src/core/constants.js?v=20260921g"></script>
+  <script src="src/core/constants.js?v=20260922a"></script>
   <script src="src/core/utils.js?v=20260803b"></script>
   <script src="src/core/storage.js?v=20260719r"></script>
   <script src="src/modules/auth/authSession.js?v=20260902b"></script>
   <script src="src/modules/actuals/actualsModule.js?v=20260921g"></script>
   <script src="src/modules/budget/budgetModule.js?v=20260910a"></script>
-  <script src="src/modules/navigation/navigationModule.js?v=20260921g"></script>
+  <script src="src/modules/navigation/navigationModule.js?v=20260922a"></script>
   <script src="src/modules/ui/headerModule.js?v=20260921b"></script>
   <script src="src/modules/ui/branchTreeModule.js?v=20260719r"></script>
   <script src="src/modules/ui/dreTreeModule.js?v=20260719r"></script>
   <script src="src/modules/ui/ccTreeModule.js?v=20260731a"></script>
-  <script src="src/modules/ui/renderModule.js?v=20260804a"></script>
+  <script src="src/modules/ui/renderModule.js?v=20260922a"></script>
   <script src="src/modules/ui/profileDialogModule.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsDreModule.js?v=20260806a"></script>
   <script src="src/modules/reports/reportsOpexModule.js?v=20260719r"></script>
   <script src="src/modules/forecast/forecastModule.js?v=20260805a"></script>
   <script src="src/modules/rps/rpsModule.js?v=20260902b"></script>
+  <script src="src/modules/rpsComercial/rpsComercialModule.js?v=20260922o"></script>
   <script src="src/modules/strategic/strategicDataModule.js?v=20260909b"></script>
   <script src="src/modules/strategic/strategicModule.js?v=20260909d"></script>
   <script src="src/modules/reports/reportsHeadcountModule.js?v=20260719r"></script>
   <script src="src/modules/headcount/headcountRenderModule.js?v=20260719r"></script>
-  <script src="src/modules/ui/shellEventsModule.js?v=20260829b"></script>
+  <script src="src/modules/ui/shellEventsModule.js?v=20260922a"></script>
   <script src="src/modules/ui/editorEventsModule.js?v=20260731a"></script>
   <script src="src/modules/ui/dialogs.js?v=20260828b"></script>
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsBuilderModule.js?v=20260828b"></script>
   <script src="src/modules/reports/reportsSectionsModule.js?v=20260921c"></script>
-  <script src="src/modules/users/usersModule.js?v=20260829f"></script>
+  <script src="src/modules/users/usersModule.js?v=20260922b"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
   <script src="src/modules/messages/messagesModule.js?v=20260902a"></script>
-  <script src="src/modules/notifications/notificationsModule.js?v=20260921z"></script>
+  <script src="src/modules/notifications/notificationsModule.js?v=20260922a"></script>
   <script src="src/modules/comercial/comercialCadastroModule.js?v=20260806c"></script>
   <script src="src/modules/comercial/comercialVendasCargaModule.js?v=20260828a"></script>
   <script src="src/modules/comercial/comercialPlanejadoCargaModule.js?v=20260828a"></script>
@@ -1587,6 +1597,6 @@
   <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
   <script src="src/modules/cashflow/fcExport.js?v=20260921t"></script>
   <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
-  <script src="app.js?v=20260921w"></script>
+  <script src="app.js?v=20260922c"></script>
 </body>
 </html>
