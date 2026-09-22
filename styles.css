@@ -9336,7 +9336,7 @@ body.rps-carousel-open { overflow: hidden; }
   overflow-wrap: anywhere;
 }
 
-.rps-carousel-comment-text .rps-carousel-comment-label { margin-right: 6px; }
+.rps-carousel-comment-text .rps-carousel-comment-label { display: block; margin-bottom: 4px; }
 
 .rps-carousel-comment-field {
   display: grid;

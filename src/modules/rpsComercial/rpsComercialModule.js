@@ -605,7 +605,7 @@
         const value = att.comment_text || "";
         if (readOnly) {
           commentWrap.style.display = value ? "" : "none";
-          commentWrap.innerHTML = value ? `<p class="rps-carousel-comment-text"><span class="rps-carousel-comment-label">Comentário:</span> ${escapeHtml(value)}</p>` : "";
+          commentWrap.innerHTML = value ? `<p class="rps-carousel-comment-text"><span class="rps-carousel-comment-label">Comentário:</span>${escapeHtml(value)}</p>` : "";
           return;
         }
         commentWrap.style.display = "";
@@ -888,11 +888,11 @@
     }
 
     // Modo apresentação: sem upload/remoção — miniaturas clicáveis (imagem de
-    // verdade pra fotos, já que é o tipo mais comum aqui; ícone genérico pra
-    // PDF/vídeo/áudio/outros) que abrem o carrossel naquele anexo. "Sem
-    // anexo" quando vazio. As miniaturas de imagem são preenchidas depois
+    // verdade pra fotos; primeira página renderizada pra PDF; ícone genérico
+    // pra vídeo/áudio/outros) que abrem o carrossel naquele anexo. "Sem
+    // anexo" quando vazio. As miniaturas de imagem/PDF são preenchidas depois
     // (hydrateThumbnails), pra não travar o render esperando as URLs
-    // assinadas do Storage.
+    // assinadas do Storage (e, no caso do PDF, o render da página).
     function renderAttachmentsViewer(area, block, attachments) {
       if (!attachments.length) {
         return `<div class="rpc-attachments-empty">Sem anexo</div>`;
@@ -900,8 +900,8 @@
       const thumbs = attachments.map((att, index) => {
         const kind = attachmentMediaKind(att);
         const label = escapeHtml(att.file_name || `Arquivo ${index + 1}`);
-        const inner = kind === "image"
-          ? `<img data-thumb-img data-attachment-id="${escapeHtml(att.id)}" data-storage-path="${escapeHtml(att.storage_path)}" alt="${label}">`
+        const inner = (kind === "image" || kind === "pdf")
+          ? `<img data-thumb-img data-thumb-kind="${kind}" data-attachment-id="${escapeHtml(att.id)}" data-storage-path="${escapeHtml(att.storage_path)}" alt="${label}">`
           : `<span class="rpc-attachment-thumb-icon">${attachmentThumbIcon(kind)}</span>`;
         return `
           <button type="button" class="rpc-attachment-thumb" data-attachment-open data-area="${area.id}" data-block="${block.id}" data-index="${index}" title="Clique na imagem para tela cheia">
@@ -912,23 +912,59 @@
       return `<div class="rpc-attachments rpc-attachments-thumbs">${thumbs}</div>`;
     }
 
-    // Cache simples de URL assinada por anexo (miniaturas de imagem), pra
-    // não pedir de novo ao trocar de área/semana e voltar.
+    // Renderiza a 1ª página do PDF num <canvas> (pdf.js, carregado via CDN em
+    // index.html) e devolve como data URL, pra usar como miniatura igual a
+    // uma foto. Reaproveita a mesma URL assinada já obtida pra abrir o PDF
+    // no carrossel (iframe), só que aqui é preciso baixar o arquivo (pdf.js
+    // busca os bytes ele mesmo) em vez de só apontar um src.
+    //
+    // Timeout de segurança: em alguns navegadores/ambientes o passo de
+    // desenhar no canvas pode travar (observado em teste — carregar o PDF
+    // funciona, mas o render não completa). Sem isso a miniatura ficaria
+    // "carregando" pra sempre; com o timeout, cai pro ícone genérico de PDF.
+    const PDF_THUMB_RENDER_TIMEOUT_MS = 8000;
+    async function renderPdfThumbnail(signedUrl) {
+      const pdfjsLib = window.pdfjsLib;
+      if (!pdfjsLib) throw new Error("pdf.js indisponível");
+      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+      }
+      const pdf = await pdfjsLib.getDocument(signedUrl).promise;
+      const page = await pdf.getPage(1);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = 220 / Math.max(baseViewport.width, baseViewport.height);
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const renderTask = page.render({ canvasContext: canvas.getContext("2d"), viewport });
+      renderTask.promise.catch(() => {}); // evita "unhandled rejection" quando o timeout cancela
+      const timeout = new Promise((_resolve, reject) => {
+        setTimeout(() => { renderTask.cancel?.(); reject(new Error("Tempo esgotado ao renderizar a página do PDF")); }, PDF_THUMB_RENDER_TIMEOUT_MS);
+      });
+      await Promise.race([renderTask.promise, timeout]);
+      return canvas.toDataURL("image/png");
+    }
+
+    // Cache simples de URL/data-URL por anexo (miniaturas de imagem e PDF),
+    // pra não pedir/renderizar de novo ao trocar de área/semana e voltar.
     const thumbnailUrlCache = new Map();
     async function hydrateThumbnails(container) {
       const imgs = Array.from(container.querySelectorAll("img[data-thumb-img]"));
       await Promise.all(imgs.map(async (img) => {
         const attachmentId = img.dataset.attachmentId;
+        const kind = img.dataset.thumbKind;
         try {
-          let url = thumbnailUrlCache.get(attachmentId);
-          if (!url) {
-            url = await createStorageSignedUrl(ATTACHMENT_BUCKET, img.dataset.storagePath, 3600);
-            thumbnailUrlCache.set(attachmentId, url);
+          let thumbSrc = thumbnailUrlCache.get(attachmentId);
+          if (!thumbSrc) {
+            const signedUrl = await createStorageSignedUrl(ATTACHMENT_BUCKET, img.dataset.storagePath, 3600);
+            thumbSrc = kind === "pdf" ? await renderPdfThumbnail(signedUrl) : signedUrl;
+            thumbnailUrlCache.set(attachmentId, thumbSrc);
           }
-          img.src = url;
+          img.src = thumbSrc;
         } catch (_err) {
           img.closest(".rpc-attachment-thumb")?.replaceChildren(
-            Object.assign(document.createElement("span"), { className: "rpc-attachment-thumb-icon", textContent: attachmentThumbIcon("image") })
+            Object.assign(document.createElement("span"), { className: "rpc-attachment-thumb-icon", textContent: attachmentThumbIcon(kind) })
           );
         }
       }));
