@@ -80,6 +80,7 @@ const { createReportsBuilderModule } = window.VECTON_REPORTS_BUILDER || {};
 const { createReportSectionsModule } = window.VECTON_REPORT_SECTIONS || {};
 const { createForecastModule } = window.VECTON_FORECAST || {};
 const { createRpsModule } = window.VECTON_RPS || {};
+const { createRpsComercialModule } = window.VECTON_RPS_COMERCIAL || {};
 const { createStrategicModule } = window.VECTON_STRATEGIC || {};
 const { createStrategicMobileModule } = window.VECTON_STRATEGIC_MOBILE || {};
 
@@ -191,6 +192,7 @@ const views = {
   dashboard: document.querySelector("#dashboard-view"),
   planning:  document.querySelector("#planning-view"),
   rps: document.querySelector("#rps-view"),
+  rpsComercial: document.querySelector("#rps-comercial-view"),
   strategic: document.querySelector("#strategic-view"),
   reports: document.querySelector("#reports-view"),
   branchPlan: document.querySelector("#branchPlan-view"),
@@ -660,6 +662,7 @@ const navigationModule = createNavigationModule({
   canAccessPlanning,
   canAccessReportsMenu,
   canAccessRps,
+  canAccessRpsComercial,
   canAccessStrategic,
   canManageUsers
 });
@@ -969,7 +972,7 @@ const comAtribuicaoMod = createCadastroModule({
       options: () => comLinhasNegocioMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
     { key: "coordenacao_id", label: "Coordenação", required: true, type: "select",
       options: () => comCoordenacoesMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
-    { key: "cod_vendedor", label: "Vendedor", required: true, type: "select",
+    { key: "cod_vendedor", label: "Vendedor", required: false, type: "select",
       options: () => comVendedoresMod.getRows().filter((r) => r.situacao === "ativo").map((r) => ({ value: r.codigo, label: `${r.codigo} - ${r.nome}` })),
       autoFill: { target: "responsavel", value: (codigo) => comVendedoresMod.getRows().find((r) => r.codigo === codigo)?.nome } },
     { key: "responsavel", label: "Nome do vendedor", required: true },
@@ -1170,6 +1173,29 @@ const rpsModule = createRpsModule
 
 const renderRps = () => rpsModule.render();
 
+// Módulo RPS Comercial — condução/registro da reunião comercial semanal,
+// isolado do RPS Gestão (tabelas, permissões e bucket de anexos próprios,
+// migrations 233-234). Acesso reaproveita o perfil 'comercial' — sem perfil
+// próprio. Sem getPeriod: a semana é estado interno do próprio módulo, não
+// usa o seletor de mês/ano global do app.
+const rpsComercialModule = createRpsComercialModule
+  ? createRpsComercialModule({
+      root: document.querySelector("#rps-comercial-root"),
+      resolveOrganizationId,
+      authenticatedFetch,
+      supabaseApiUrl: supabaseConfig.projectUrl,
+      getCurrentUserId: () => currentUser?.id || null,
+      appAlert,
+      appConfirm,
+      uploadToStorage,
+      createStorageSignedUrl,
+      deleteFromStorage,
+      escapeHtml
+    })
+  : { render: () => {}, destroy: () => {} };
+
+const renderRpsComercial = () => rpsComercialModule.render();
+
 // Módulo A3 - Gestão Estratégica — isolado de RPS Gestão (tabelas,
 // permissões, snapshots e bucket de anexos próprios). Mesmo padrão de
 // injeção de dependências do rpsModule, mas sem snapshot/backup — grava
@@ -1249,6 +1275,7 @@ const shellEventsModule = createShellEventsModule({
   bindNotificationSettings,
   renderPlanningView,
   renderRps,
+  renderRpsComercial,
   renderStrategic,
   resetStrategicView,
   resetPlanningState,
@@ -1586,6 +1613,7 @@ const renderModule = createRenderModule({
   renderComercialVendasView: () => comVendasCargaMod.renderView(),
   renderComercialPlanejadoView: () => comPlanejadoCargaMod.renderView(),
   renderRps,
+  renderRpsComercial,
   renderStrategic,
   renderDashboard
 });
@@ -2003,11 +2031,15 @@ async function hydrateFromSupabase() {
     // direto para a primeira tela que o perfil efetivamente enxerga —
     // cascata Dashboard > Relatórios > RPS Gestão > Estratégica (A3). Com
     // perfis combináveis (ex: Comercial + RPS Gestão), quem tem Relatórios
-    // por qualquer um dos perfis marcados cai lá; só cai na RPS Gestão quem
-    // NÃO tem Relatórios mas tem RPS (rps_gestao "puro"); só cai na
-    // Estratégica quem não tem nenhum dos dois anteriores (gestao_estrategica
-    // "puro" — achado #7 do review: antes caía direto em "rps" mesmo sem
-    // canAccessRps(), numa tela que a RLS bloqueava e o menu nem mostrava).
+    // por qualquer um dos perfis marcados cai lá — RPS Comercial não tem
+    // perfil próprio (reaproveita 'comercial'), então quem só tem esse
+    // perfil já cai em "reports" por essa mesma regra, com o item RPS
+    // Comercial aparecendo como mais um item de menu, não como landing page;
+    // só cai na RPS Gestão quem NÃO tem Relatórios mas tem RPS (rps_gestao
+    // "puro"); só cai na Estratégica quem não tem nenhum dos dois anteriores
+    // (gestao_estrategica "puro" — achado #7 do review: antes caía direto em
+    // "rps" mesmo sem canAccessRps(), numa tela que a RLS bloqueava e o menu
+    // nem mostrava).
     if (!canAccessDashboard()) {
       activeView = canAccessReportsMenu()
         ? "reports"
@@ -2231,6 +2263,10 @@ function canAccessReportsMenu() { return isSuperAdmin() || isAdmin() || isManage
 // Mesmo conjunto de canFillValues() na RPS (rpsModule.js) — quem não preenche
 // valores também não precisa ver o menu. Comercial/Analista "puros" ficam de fora.
 function canAccessRps() { return isSuperAdmin() || isAdmin() || isManager() || isRpsGestao(); }
+// RPS Comercial não tem perfil próprio (pedido do usuário) — reaproveita o
+// perfil 'comercial' já existente, mesmo critério de can_manage_rps_comercial
+// no banco (migration 233).
+function canAccessRpsComercial() { return isSuperAdmin() || isAdmin() || isManager() || isComercial(); }
 // RBAC granular por A3 desde 2026-08-29 (migrations 142-145): manager
 // (Gestor) ganhou visão TOTAL do módulo (edição continua restrita à Gestão
 // dele, ou ao que foi concedido em extra_strategic_a3_ids — validado no

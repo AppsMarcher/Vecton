@@ -1147,6 +1147,7 @@ body.auth-only .vp-update-banner { display: none; }
 }
 
 .menu-item {
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -6811,6 +6812,15 @@ body.auth-only .content-view {
 
 .cadastro-th-arrow {
   margin-left: 3px;
+}
+
+/* Atribuição Território -> Responsável -> Coordenação: colunas de data
+   (Início/Fim) quebravam em 2 linhas com o font-size padrão do .data-table
+   (0.78rem) — 1px a menos só nesta tela (não em todo .cadastro-table, que é
+   reaproveitado por Produtos/Clientes/etc.) resolve sem mexer em largura de
+   coluna. */
+#comAtribuicao-view .cadastro-table td {
+  font-size: 0.72rem;
 }
 
 /* Tabela de Produtos: larguras fixas via <colgroup> (Código/Descrição/Tipo/
