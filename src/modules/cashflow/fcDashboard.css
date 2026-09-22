@@ -16,6 +16,12 @@
 .fc-kpi > span { font-size: .8rem; color: var(--text-soft); }
 .fc-kpi > strong { font-size: clamp(1.3rem,2.2vw,1.9rem); white-space: nowrap; font-weight: 600; letter-spacing: -.03em; }
 .fc-kpi small { font-size: .7rem; color: var(--text-faint); font-weight: 400; letter-spacing: 0; }
+.fc-kpi--split { flex-direction: row; }
+.fc-kpi--split .split-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.fc-kpi--split .split-col > span { font-size: .8rem; color: var(--text-soft); }
+.fc-kpi--split .split-col > strong { font-size: clamp(1rem,1.5vw,1.28rem); font-weight: 600; letter-spacing: -.03em; white-space: nowrap; }
+.fc-kpi--split .split-col > strong small.unit { font-size: .62em; color: var(--text-soft); font-weight: 500; margin-left: 3px; }
+.fc-kpi--split .split-divider { width: 1px; align-self: stretch; background: var(--line); }
 .fc-chart-grid { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr); gap: 16px; }
 .fc-panel > header { margin-bottom: 18px; }
 .fc-panel h3 { font-size: .86rem; font-weight: 600; margin: 0; }
@@ -27,13 +33,16 @@
 .fc-panel svg .fc-svg-value { fill: var(--text); font-weight: 600; }
 .fc-grid-line { stroke: var(--line); stroke-width: 1; }
 .fc-crosshair { stroke: var(--text-soft); stroke-dasharray: 3 3; opacity: .5; pointer-events: none; }
-.fc-chart-tip { position: absolute; z-index: 3; pointer-events: none; display: flex; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--line); padding: 8px 10px; border-radius: 6px; font-size: .7rem; white-space: nowrap; box-shadow: 0 8px 20px #0003; }
+.fc-chart-tip { position: absolute; z-index: 3; pointer-events: none; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; background: var(--panel); border: 1px solid var(--line); padding: 9px 11px; border-radius: 6px; font-size: .7rem; white-space: nowrap; box-shadow: 0 8px 20px #0003; }
 .fc-chart-tip span { color: var(--text-soft); }
-.fc-chart-tip strong { color: #8b5cf6; }
-.fc-legend { display: flex; gap: 16px; font-size: .68rem; color: var(--text-soft); margin-bottom: 6px; }
-.fc-legend > span::before { content: ""; display: inline-block; width: 15px; margin-right: 5px; vertical-align: middle; border-top: 2px solid #8b5cf6; }
+.fc-chart-tip strong { color: #4f7cff; font-weight: 600; margin-left: 3px; }
+.fc-chart-tip .fc-tip-period { color: var(--text); font-weight: 600; padding-bottom: 3px; margin-bottom: 2px; border-bottom: 1px solid var(--line); align-self: stretch; }
+.fc-chart-tip .fc-tip-vendas { color: #f59e0b; }
+.fc-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px 16px; font-size: .68rem; color: var(--text-soft); margin-top: 8px; }
+.fc-legend > span::before { content: ""; display: inline-block; width: 15px; margin-right: 5px; vertical-align: middle; border-top: 2px solid #4f7cff; }
 .fc-legend > .fc-legend-fcst::before { border-top-style: dashed; }
 .fc-legend > .fc-legend-bud::before { border-top: 2px dotted #d8aa58; }
+.fc-legend > .fc-legend-volume::before { width: 10px; height: 10px; border-top: none; background: linear-gradient(135deg, #b45309, #f59e0b); border-radius: 2px; }
 .fc-ranking { display: grid; gap: 18px; }
 .fc-ranking [data-fc-rank] > div:first-child, .fc-ranking-total { display: flex; justify-content: space-between; gap: 12px; font-size: .76rem; }
 .fc-ranking small { color: var(--text-soft); font-weight: 400; }
@@ -55,9 +64,14 @@
 .fc-panel-footer > :last-child { white-space: nowrap; }
 .fc-detail-scroll { max-height: 65vh; }
 .fc-detail-scroll table { min-width: 1320px; }
-.fc-detail-scroll thead th { position: sticky; top: 0; background: var(--panel); z-index: 2; }
-.fc-detail-scroll th:first-child { position: sticky; left: 0; z-index: 1; background: var(--panel); width: 265px; min-width: 265px; max-width: 265px; }
+.fc-detail-scroll thead th { position: sticky; top: 0; background: var(--panel); z-index: 2; isolation: isolate; }
+.fc-detail-scroll th:first-child { position: sticky; left: 0; z-index: 1; background: var(--panel); width: 265px; min-width: 265px; max-width: 265px; isolation: isolate; }
 .fc-detail-scroll thead th:first-child { z-index: 3; }
+/* .fc-reference-col (2 classes) tem mais especificidade que ".fc-detail-scroll thead th"
+   (1 classe + tags) e por isso vencia a cascata, tornando o cabeçalho fixo do mês de
+   referência translúcido — as linhas do corpo da tabela apareciam "vazando" por baixo dele
+   ao rolar verticalmente. Recompomos o fundo opaco (painel + tom da coluna) só para esse th. */
+.fc-detail-scroll thead th.fc-reference-col { background: linear-gradient(rgba(139,92,246,.16), rgba(139,92,246,.16)), var(--panel); }
 .fc-detail-scroll thead small { display: block; margin-top: 4px; color: var(--text-faint); }
 .fc-detail-analytic th:first-child { padding-left: 26px; }
 .fc-dashboard .fc-reference-col { background: rgba(139,92,246,.08); }
@@ -68,6 +82,8 @@
   .fc-panel, .fc-kpi { padding: 12px; border-radius: 12px; }
   .fc-kpis, .fc-chart-grid { gap: 10px; }
   .fc-kpi > strong { font-size: 1.2rem; }
+  .fc-kpi--split { flex-direction: column; gap: 10px; }
+  .fc-kpi--split .split-divider { width: auto; height: 1px; }
   .fc-panel > header { align-items: flex-start; flex-wrap: wrap; gap: 10px; }
   .fc-panel-footer { align-items: flex-start; }
   .fc-detail-scroll th:first-child { width: 175px; min-width: 175px; max-width: 175px; }
@@ -137,3 +153,29 @@
 .fc-header-scenario { flex:0 0 auto; }
 .fc-header-scenario select { width:180px; min-width:180px; max-width:180px; text-overflow:ellipsis; }
 .fc-simulation-bar > [data-fc-scenario-name] { width:200px; min-width:200px; max-width:200px; flex:0 0 200px; }
+
+.fc-bridge svg [data-fc-bridge-key] { cursor: pointer; }
+.fc-bridge svg [data-fc-bridge-key]:hover { opacity: .82; }
+.fc-bridge svg [data-fc-bridge-key]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.fc-bridge-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 5vh 5vw; }
+.fc-bridge-popover { width: 90vw; height: 90vh; max-width: 1400px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,.5); overflow: hidden; }
+.fc-bridge-popover > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); flex: none; }
+.fc-bridge-popover > header h3 { margin: 0; font-size: .95rem; font-weight: 600; }
+.fc-bridge-popover > header h3 small { margin-left: 8px; font-size: .76rem; font-weight: 400; color: var(--text-soft); }
+.fc-bridge-popover-close { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-alt); color: var(--text-soft); font-size: .85rem; cursor: pointer; }
+.fc-bridge-popover-close:hover { color: var(--text); border-color: #4f7cff; }
+.fc-bridge-popover-scroll { flex: 1; overflow: auto; padding: 0 20px 20px; }
+.fc-bridge-popover-scroll table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .68rem; }
+.fc-bridge-popover-scroll th, .fc-bridge-popover-scroll td { padding: 7px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fc-bridge-popover-scroll thead th { position: sticky; top: 0; background: var(--panel); color: var(--text-soft); font-weight: 500; font-size: .64rem; z-index: 1; }
+.fc-bridge-popover-scroll th:first-child, .fc-bridge-popover-scroll td:first-child { text-align: left; min-width: 220px; white-space: normal; }
+.fc-bridge-popover-scroll tbody th { font-weight: 500; }
+.fc-bridge-popover-scroll .fc-bridge-group-row th { font-weight: 600; color: var(--text); background: rgba(255,255,255,.02); text-align: left; }
+.fc-bridge-popover-scroll .fc-total-row th, .fc-bridge-popover-scroll .fc-total-row td { font-weight: 600; background: #171b2b; border-top: 1px solid var(--line); }
+.fc-bridge-popover-scroll tfoot { position: sticky; bottom: 0; }
+@media(max-width:600px) {
+  .fc-bridge-backdrop { padding: 3vh 3vw; }
+  .fc-bridge-popover { width: 94vw; height: 94vh; }
+  .fc-bridge-popover-scroll th:first-child, .fc-bridge-popover-scroll td:first-child { min-width: 160px; }
+}
