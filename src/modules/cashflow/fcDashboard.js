@@ -2,6 +2,7 @@
   "use strict";
   const M = window.VECTON_FC_MODEL;
   const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const PILLAR_LABELS = { operacional: "Operacional", investimentos: "Investimentos", financeiro: "Financeiro" };
   const fmt = v => v == null ? "—" : Number(v).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
   const num = v => Math.abs(v) < .000001 ? 0 : v;
   const negative = v => v < -.000001 ? "fc-negative" : "";
@@ -10,12 +11,14 @@
     let host, root, type = "year", detail = false, user = null, error = "", loading = false, revision = 0;
     let loaded = null, loadKey = "", entered = false, declinedKey = null, switchingKey = null;
     let simulation=null, scenarioList=[], saving=false;
+    let vendasMonths = null, vendasLoading = false, vendasError = false, vendasRequestYear = null;
+    let bridgeDetail = null;
     const expanded = new Set();
     let observer, width = 0, frame;
     const q = selector => root.querySelector(selector);
     const access = () => Boolean(deps.getUserId()) && deps.canAccess();
-    function reset() { simulation=null; scenarioList=[]; saving=false; revision++; loaded = null; loadKey = ""; declinedKey = null; switchingKey = null; error = ""; detail = false; loading = false; entered = false; expanded.clear(); observer?.disconnect(); }
-    function invalidate() { simulation=null; revision++; loadKey = ""; declinedKey = null; switchingKey = null; loading = false; loaded = null; }
+    function reset() { simulation=null; scenarioList=[]; saving=false; revision++; loaded = null; loadKey = ""; declinedKey = null; switchingKey = null; error = ""; detail = false; loading = false; entered = false; expanded.clear(); observer?.disconnect(); vendasMonths = null; vendasLoading = false; vendasError = false; vendasRequestYear = null; bridgeDetail = null; }
+    function invalidate() { simulation=null; revision++; loadKey = ""; declinedKey = null; switchingKey = null; loading = false; loaded = null; vendasMonths = null; vendasRequestYear = null; bridgeDetail = null; }
     function leave() { entered = false; observer?.disconnect(); }
     function renderSelected(panel, id) {
       if (id !== "cashFlow") { observer?.disconnect(); entered = false; return false; }
@@ -45,7 +48,8 @@
     }
     async function refresh() {
       const token = ++revision, session = deps.getUserId(), year = Number(deps.getPeriod().year);
-      simulation=null; saving=false; scenarioList=[]; loadKey = `${session}:${year}`; loading = true; error = ""; loaded = null; render();
+      simulation=null; saving=false; scenarioList=[]; loadKey = `${session}:${year}`; loading = true; error = ""; loaded = null; bridgeDetail = null; render();
+      void refreshVendas(year);
       try {
         const result = await deps.service.load(year);
         if (token !== revision || session !== deps.getUserId()) return;
@@ -57,6 +61,20 @@
       } catch(e) { if (token === revision) error = `Não foi possível ler a carga anual. ${e.message}`; }
       finally { if (token === revision) { loading = false; if (access() && deps.isActive()) render(); } }
     }
+    async function refreshVendas(year) {
+      if (!deps.getVendasMonths) return;
+      vendasRequestYear = year; vendasMonths = null; vendasLoading = true; vendasError = false;
+      try {
+        const months = await deps.getVendasMonths(year);
+        if (vendasRequestYear !== year) return;
+        vendasMonths = months;
+      } catch (e) {
+        if (vendasRequestYear !== year) return;
+        vendasError = true;
+      } finally {
+        if (vendasRequestYear === year) { vendasLoading = false; if (access() && deps.isActive()) render(); }
+      }
+    }
     function render() {
       if (!host || !access()) return;
       const { year: rawYear, month: rawMonth } = deps.getPeriod();
@@ -66,11 +84,12 @@
       const period = type === "year" ? String(year) : type === "month" ? `${MONTHS[month - 1]}/${year}` : `Jan–${MONTHS[month - 1]}/${year}`;
       observer?.disconnect();
       host.innerHTML = `<div class="fc-dashboard">
-        <div class="fc-heading"><div><h2>${detail ? "Fluxo de caixa detalhado" : "Fluxo de caixa"}</h2><p>Empresa consolidada · ${period} · Valores em R$</p></div><div class="fc-header-controls"><div class="fc-period-control"><div class="fc-period-seg" role="group" aria-label="Visão do fluxo de caixa">${[["month", "Mês"], ["YTD", "YTD"], ["year", "Ano"]].map(([key, label]) => `<button type="button" class="period-month-button" data-fc-period="${key}" aria-pressed="${type === key}">${label}</button>`).join("")}</div></div><label class="fc-header-scenario"><span>Cenário</span> <select data-fc-scenario ${loading || saving ? "disabled" : ""}><option value="">${officialLabel}</option>${scenarioList.map(n=>`<option value="${esc(n.id)}" ${loaded?.scenario?.id===n.id ? "selected" : ""} title="${esc(n.name)} · ${n.is_shared ? "Compartilhado" : "Pessoal"} · ${new Date(n.created_at).toLocaleString("pt-BR")}">${esc(n.name)}</option>`).join("")}</select></label>${window.VECTON_FC_EXPORT.menu(loading || saving || !report)}</div></div>
+        <div class="fc-heading"><div><h2>${detail ? "Fluxo de caixa detalhado" : "Fluxo de caixa"}</h2><p>${period} · Valores em R$</p></div><div class="fc-header-controls"><div class="fc-period-control"><div class="fc-period-seg" role="group" aria-label="Visão do fluxo de caixa">${[["month", "Mês"], ["YTD", "YTD"], ["year", "Ano"]].map(([key, label]) => `<button type="button" class="period-month-button" data-fc-period="${key}" aria-pressed="${type === key}">${label}</button>`).join("")}</div></div><label class="fc-header-scenario"><span>Cenário</span> <select data-fc-scenario ${loading || saving ? "disabled" : ""}><option value="">${officialLabel}</option>${scenarioList.map(n=>`<option value="${esc(n.id)}" ${loaded?.scenario?.id===n.id ? "selected" : ""} title="${esc(n.name)} · ${n.is_shared ? "Compartilhado" : "Pessoal"} · ${new Date(n.created_at).toLocaleString("pt-BR")}">${esc(n.name)}</option>`).join("")}</select></label>${window.VECTON_FC_EXPORT.menu(loading || saving || !report)}</div></div>
         ${loading ? '<p class="fc-load-status" role="status">Carregando o fluxo de caixa…</p>' : !report ? '<p class="fc-load-status">Nenhuma carga anual aplicada para este ano</p>' : ""}
         ${error ? `<p class="fc-message fc-negative" role="alert">${esc(error)}</p>` : ""}
         ${detail ? `<div class="fc-simulation-bar">${report ? `<input data-fc-scenario-name aria-label="Nome do novo cenário" maxlength="15" placeholder="Nome do novo cenário" ${saving ? "disabled" : ""}><button class="ghost-button" data-fc-save ${saving ? "disabled" : ""}>${saving ? "Salvando…" : "Salvar novo cenário"}</button><button class="ghost-button" data-fc-restore ${!simulation || saving ? "disabled" : ""}>Desfazer alterações</button>` : ""}${canDeleteScenario() ? `<button class="delete-button secondary-danger" data-fc-delete ${saving || loading ? "disabled" : ""}>Excluir cenário</button>` : ""}<span role="status">${simulation ? "Simulação com alterações não salvas" : loaded?.scenario ? "Cenário salvo · " + esc(loaded.scenario.name) : officialLabel}</span></div>` : ""}
         ${detail ? detailMarkup(report, year, month) : dashboardMarkup(report, year, month, period)}
+        ${!detail && report && bridgeDetail ? bridgeDetailMarkup(report, bridgeDetail, M.select(report, type, month), period) : ""}
       </div>`;
       root = host.querySelector(".fc-dashboard");
       window.VECTON_FC_EXPORT.bind(root,()=>({report:simulation||loaded?.report,type,month,detail,period,scenario:loaded?.scenario?.name||officialLabel,dirty:Boolean(simulation)}),deps);
@@ -86,6 +105,13 @@
       q("[data-fc-detail]")?.addEventListener("click", () => { detail = true; render(); q("[data-fc-back]")?.focus(); });
       root.querySelectorAll("[data-fc-back]").forEach(button => button.addEventListener("click", () => { detail = false; render(); q("[data-fc-detail]")?.focus(); }));
       root.querySelectorAll("[data-fc-expand]").forEach(button => { button.onclick = () => { const key = button.dataset.fcExpand; expanded.has(key) ? expanded.delete(key) : expanded.add(key); render(); }; });
+      const bridgeBackdrop = q("[data-fc-bridge-backdrop]");
+      if (bridgeBackdrop) {
+        bridgeBackdrop.addEventListener("click", event => { if (event.target === bridgeBackdrop) { bridgeDetail = null; render(); } });
+        bridgeBackdrop.addEventListener("keydown", event => { if (event.key === "Escape") { bridgeDetail = null; render(); } });
+        q("[data-fc-bridge-popover-close]")?.addEventListener("click", () => { bridgeDetail = null; render(); });
+        bridgeBackdrop.focus();
+      }
       if (report && !detail) {
         const draw = () => { if (!root?.isConnected || !q(".fc-trend")) return; drawTrend(report, month); drawBridge(report, month); };
         draw(); width = root.clientWidth;
@@ -161,15 +187,66 @@
       simulation=M.calculate({...current,movements,quantities},current.structure);
       const scroll=q('.fc-detail-scroll'), top=scroll.scrollTop,left=scroll.scrollLeft;
       const name=q('[data-fc-scenario-name]')?.value||"";
-      render();q('.fc-detail-scroll').scrollTop=top;q('.fc-detail-scroll').scrollLeft=left;q('[data-fc-scenario-name]').value=name;
+      render();
+      // Restaura o scroll só no próximo frame: reatribuir scrollTop/scrollLeft no mesmo
+      // tick da troca de innerHTML pode pintar um frame intermediário com os cabeçalhos
+      // sticky ainda na posição antiga sobre as células da tabela recém-recriada.
+      requestAnimationFrame(() => {
+        const nextScroll=q('.fc-detail-scroll');
+        if(nextScroll){nextScroll.scrollTop=top;nextScroll.scrollLeft=left;}
+        const nameInput=q('[data-fc-scenario-name]');
+        if(nameInput)nameInput.value=name;
+      });
     }
     const emptyChart = '<div class="fc-chart-empty">Aguardando dados do período</div>';
     const footer = '<div class="fc-panel-footer"><span>Saldo é posição de fechamento; movimentos acumulam conforme a visão.</span><span>R$</span></div>';
+    // Ticket médio: mês fechado (Real) usa receita/volume do próprio mês; mês corrente ou futuro
+    // (Fcst/Bud) usa a média do último trimestre fechado (últimos até 3 meses com kind Real).
+    // Em YTD/Ano, mescla os dois: meses Real entram pelo valor realizado, meses sem venda real
+    // entram pela estimativa (volume previsto × ticket médio do trimestre).
+    function trailingQuarterTicket(report, vendasMonths) {
+      if (!report || !vendasMonths) return null;
+      const realIdx = [];
+      for (let i = 0; i < 12; i++) if (report.kinds[i] === "Real") realIdx.push(i);
+      const last3 = realIdx.slice(-3);
+      if (!last3.length) return null;
+      let qty = 0, rev = 0;
+      last3.forEach(i => { qty += report.quantities[i] || 0; rev += vendasMonths[i] || 0; });
+      return qty > 0 ? rev / qty : null;
+    }
+    function vendasTicketFor(report, vendasMonths, start, end) {
+      let qty = 0;
+      for (let i = start; i < end; i++) qty += report.quantities[i] || 0;
+      if (!vendasMonths) return { qty, ticket: null, caption: null };
+      const ticketTrimestral = trailingQuarterTicket(report, vendasMonths);
+      let realQty = 0, realRev = 0, estQty = 0;
+      for (let i = start; i < end; i++) {
+        const q = report.quantities[i] || 0;
+        if (report.kinds[i] === "Real") { realQty += q; realRev += vendasMonths[i] || 0; }
+        else estQty += q;
+      }
+      const canEstimate = estQty === 0 || ticketTrimestral != null;
+      const ticket = canEstimate && qty > 0 ? (realRev + estQty * (ticketTrimestral || 0)) / qty : null;
+      const caption = realQty > 0 && estQty === 0 ? "Realizado" : realQty === 0 && estQty > 0 ? "Últ. trimestre" : realQty > 0 && estQty > 0 ? "Realizado + últ. trim." : "Sem dados";
+      return { qty, ticket, caption };
+    }
+    function vendasCardMarkup(report, selected, period) {
+      if (!report || !selected) return `<article class="fc-kpi fc-kpi--split"><div class="split-col"><span>Vendas previstas</span><strong>—</strong><small class="caption">${period}</small></div><div class="split-divider"></div><div class="split-col"><span>Ticket médio</span><strong>—</strong><small class="caption">Sem dados</small></div></article>`;
+      const v = vendasTicketFor(report, vendasMonths, selected.start, selected.end);
+      const qtyText = v.qty.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+      const ticketText = vendasError ? "—" : vendasLoading && !vendasMonths ? "…" : v.ticket != null ? `<small>R$</small> ${fmt(v.ticket)}` : "—";
+      const ticketCaption = vendasError ? "Indisponível" : vendasLoading && !vendasMonths ? "Carregando…" : v.caption || "Sem dados";
+      return `<article class="fc-kpi fc-kpi--split">
+        <div class="split-col"><span>Vendas previstas</span><strong>${qtyText}<small class="unit">un.</small></strong><small class="caption">${period}</small></div>
+        <div class="split-divider"></div>
+        <div class="split-col"><span>Ticket médio</span><strong>${ticketText}</strong><small class="caption">${esc(ticketCaption)}</small></div>
+      </article>`;
+    }
     function dashboardMarkup(report, year, month, period) {
       const selected = report && M.select(report, type, month);
-      const cards = [["Saldo em Caixa", selected?.closing, selected ? `Posição em ${MONTHS[selected.end - 1]}/${year}` : period], ["Geração líquida", selected?.sum("net"), period], ["Caixa operacional", selected?.sum("operacional"), period], ["Menor saldo mensal", selected?.minimum, period]];
-      return `<div class="fc-kpis">${cards.map(([label, value, caption]) => `<article class="fc-kpi"><span>${label}</span><strong class="${negative(value)}"><small>R$</small> ${fmt(value)}</strong><small>${caption}</small></article>`).join("")}</div>
-        <div class="fc-chart-grid"><section class="fc-panel"><header><h3>Evolução do saldo</h3><span>R$</span></header><div class="fc-legend"><span class="fc-legend-real">Real</span><span class="fc-legend-fcst">Fcst</span><span class="fc-legend-bud">Bud</span></div><div class="fc-trend">${emptyChart}</div></section><section class="fc-panel"><header><h3>Saídas operacionais</h3><span>R$</span></header>${ranking(selected)}</section></div>
+      const cards = [["Saldo em Caixa", selected?.closing, selected ? `Posição em ${MONTHS[selected.end - 1]}/${year}` : period], ["Caixa operacional", selected?.sum("operacional"), period], ["Geração líquida", selected?.sum("net"), period]];
+      return `<div class="fc-kpis">${cards.map(([label, value, caption]) => `<article class="fc-kpi"><span>${label}</span><strong class="${negative(value)}"><small>R$</small> ${fmt(value)}</strong><small>${caption}</small></article>`).join("")}${vendasCardMarkup(report, selected, period)}</div>
+        <div class="fc-chart-grid"><section class="fc-panel"><header><h3>Evolução do saldo</h3><span>R$</span></header><div class="fc-trend">${emptyChart}</div><div class="fc-legend"><span class="fc-legend-real">Real</span><span class="fc-legend-fcst">Fcst</span><span class="fc-legend-bud">Bud</span><span class="fc-legend-volume">Máquinas vendidas</span></div></section><section class="fc-panel"><header><h3>Saídas operacionais</h3><span>R$</span></header>${ranking(selected)}</section></div>
         <section class="fc-panel"><header><h3>Ponte do FC</h3><span>${period} · R$</span></header><div class="fc-bridge">${emptyChart}</div></section>
         <section class="fc-panel"><header><h3>Demonstrativo gerencial</h3><button class="ghost-button" type="button" data-fc-detail>Ver FC detalhado</button></header><div class="fc-table-scroll"><table><thead><tr><th>Atividade</th>${(type === "year" ? [`Até ${MONTHS[month - 1]}`, "Restante do ano", String(year)] : [period]).map(label => `<th>${label}</th>`).join("")}</tr></thead><tbody>${summary(report, month)}</tbody></table></div>${footer}</section>`;
     }
@@ -233,22 +310,30 @@
       const values = type === "month" ? [selected.opening, selected.closing] : report.values.balance.slice(0, selected.end);
       const labels = type === "month" ? ["Inicial", MONTHS[month - 1]] : MONTHS.slice(0, selected.end);
       const kinds = type === "month" ? [month > 1 ? report.kinds[month - 2] : "Real", report.kinds[month - 1]] : report.kinds.slice(0, selected.end);
+      const quantities = type === "month" ? [null, report.quantities?.[month - 1] ?? 0] : (report.quantities || Array(12).fill(0)).slice(0, selected.end);
       const w = Math.max(280, holder.clientWidth), h = 245, left = 82, right = w - 14, top = 18, bottom = 204;
       const low = Math.min(0, ...values), high = Math.max(0, ...values), span = Math.max(1, high - low), min = low < 0 ? low - span * .1 : 0, max = high + span * .15;
       const step = (right - left) / Math.max(1, values.length - 1), x = i => values.length === 1 ? (left + right) / 2 : left + step * i, y = v => bottom - (v - min) / (max - min) * (bottom - top);
-      let svg = '<defs><linearGradient id="fc-trend-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#8b5cf6" stop-opacity=".27"/><stop offset="1" stop-color="#8b5cf6" stop-opacity=".015"/></linearGradient></defs>';
+      const maxQty = Math.max(0, ...quantities.map(v => v || 0)), barW = Math.min(26, step * .44), barMaxHeight = (bottom - top) * .3;
+      const barHeight = v => v == null || maxQty <= 0 ? 0 : (v / maxQty) * barMaxHeight;
+      let svg = '<defs>'
+        + '<linearGradient id="fc-trend-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#4f7cff" stop-opacity=".27"/><stop offset="1" stop-color="#4f7cff" stop-opacity=".015"/></linearGradient>'
+        + '<linearGradient id="fc-trend-line" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#315dcc"/><stop offset="1" stop-color="#4f7cff"/></linearGradient>'
+        + '<linearGradient id="fc-bar-gradient" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#b45309"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>'
+        + '</defs>';
       kinds.forEach((kind,i) => { if (kind !== "Real") { const start = i ? x(i) - step / 2 : left, end = i === values.length - 1 ? right : x(i) + step / 2; svg += `<rect data-forecast-zone x="${start}" y="${top}" width="${Math.max(0, end - start)}" height="${bottom - top}" fill="#4f7cff" opacity=".10"/>`; } });
       for (let i = 0; i <= 3; i++) { const v = min + (max - min) * i / 3; svg += `<line x1="${left}" x2="${right}" y1="${y(v)}" y2="${y(v)}" class="fc-grid-line"/><text x="${left - 7}" y="${y(v) + 4}" text-anchor="end">${fmt(v)}</text>`; }
+      quantities.forEach((v,i) => { const hgt = barHeight(v); if (hgt > 0) svg += `<rect data-fc-bar x="${x(i) - barW / 2}" y="${bottom - hgt}" width="${barW}" height="${hgt}" rx="2" fill="url(#fc-bar-gradient)"/>`; });
       const curve = i => `C ${(x(i-1)+x(i))/2} ${y(values[i-1])}, ${(x(i-1)+x(i))/2} ${y(values[i])}, ${x(i)} ${y(values[i])}`;
       if (values.length > 1) svg += `<path d="M ${x(0)} ${y(values[0])} ${values.slice(1).map((_,i) => curve(i+1)).join(" ")} L ${x(values.length-1)} ${y(0)} L ${x(0)} ${y(0)} Z" fill="url(#fc-trend-fill)"/>`;
       values.forEach((v,i) => {
-        if (i) svg += `<path data-fc-curve d="M ${x(i-1)} ${y(values[i-1])} ${curve(i)}" fill="none" stroke="${kinds[i] === "Bud" ? "#d8aa58" : "#8b5cf6"}" stroke-width="2.4" stroke-linecap="round" ${kinds[i] !== "Real" ? 'stroke-dasharray="5 4"' : ""}/>`;
-        svg += `<circle cx="${x(i)}" cy="${y(v)}" r="2.8" fill="${kinds[i] === "Bud" ? "#d8aa58" : "#8b5cf6"}"/>`;
+        if (i) svg += `<path data-fc-curve d="M ${x(i-1)} ${y(values[i-1])} ${curve(i)}" fill="none" stroke="${kinds[i] === "Bud" ? "#d8aa58" : "url(#fc-trend-line)"}" stroke-width="2.4" stroke-linecap="round" ${kinds[i] !== "Real" ? 'stroke-dasharray="5 4"' : ""}/>`;
+        svg += `<circle cx="${x(i)}" cy="${y(v)}" r="2.8" fill="${kinds[i] === "Bud" ? "#d8aa58" : "#4f7cff"}"/>`;
         if (w > 450 || values.length < 5 || (i % 2 === 0 && i < values.length - 2) || i === values.length - 1) svg += `<text x="${x(i)}" y="229" text-anchor="${i === values.length - 1 ? "end" : "middle"}">${labels[i]}</text>`;
       });
-      holder.innerHTML = `<svg viewBox="0 0 ${w} ${h}" tabindex="0" role="img" aria-label="Evolução do saldo. Use as setas para consultar os valores.">${svg}<line class="fc-crosshair" y1="${top}" y2="${bottom}" visibility="hidden"/></svg><div class="fc-chart-tip" role="tooltip" hidden></div>`;
+      holder.innerHTML = `<svg viewBox="0 0 ${w} ${h}" tabindex="0" role="img" aria-label="Evolução do saldo e volume de máquinas vendidas por mês. Use as setas para consultar os valores.">${svg}<line class="fc-crosshair" y1="${top}" y2="${bottom}" visibility="hidden"/></svg><div class="fc-chart-tip" role="tooltip" hidden></div>`;
       const chart = holder.querySelector("svg"), tip = holder.querySelector(".fc-chart-tip"), cross = holder.querySelector(".fc-crosshair"); let index = 0;
-      function show(i) { index = i; tip.innerHTML = `<span>${labels[i]} · ${kinds[i]}</span><strong>R$ ${fmt(values[i])}</strong>`; tip.hidden = false; tip.style.left = `${Math.max(0, Math.min(w - tip.offsetWidth, x(i) - tip.offsetWidth / 2))}px`; tip.style.top = `${Math.max(0, y(values[i]) - 44)}px`; cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible"); }
+      function show(i) { index = i; const qty = quantities[i]; tip.innerHTML = `<span class="fc-tip-period">${labels[i]} · ${kinds[i]}</span><span>Saldo <strong>R$ ${fmt(values[i])}</strong></span>${qty != null ? `<span>Vendas <strong class="fc-tip-vendas">${qty.toLocaleString("pt-BR")} un.</strong></span>` : ""}`; tip.hidden = false; tip.style.left = `${Math.max(0, Math.min(w - tip.offsetWidth, x(i) - tip.offsetWidth / 2))}px`; tip.style.top = `${Math.max(0, y(values[i]) - tip.offsetHeight - 10)}px`; cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible"); }
       function hide() { tip.hidden = true; cross.setAttribute("visibility", "hidden"); }
       chart.onpointermove = event => { const bounds = chart.getBoundingClientRect(); show(Math.max(0, Math.min(values.length - 1, Math.round(((event.clientX - bounds.left) * w / bounds.width - left) / step)))); };
       chart.onpointerleave = hide; chart.onblur = hide; chart.onfocus = () => show(index);
@@ -262,8 +347,51 @@
       const y = v => bottom - (v - low) / span * (bottom - 38), step = (w - 24) / 5, bw = Math.min(100, step * .6);
       let svg = '<defs>' + [["blue", "#668dff", "#243e8c"], ["cyan", "#36c8bd", "#075564"], ["red", "#fa8b91", "#8e2938"]].map(([id,a,b]) => `<linearGradient id="fc-bridge-${id}" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`).join("") + '</defs>';
       svg += `<line x1="12" x2="${w-12}" y1="${y(0)}" y2="${y(0)}" class="fc-grid-line"/>`;
-      values.forEach((v,i) => { const a = levels[i], b = a+v, x = 12+i*step+(step-bw)/2; svg += `<rect x="${x}" y="${y(Math.max(a,b))}" width="${bw}" height="${Math.max(1, Math.abs(y(a)-y(b)))}" rx="4" fill="url(#fc-bridge-${i===0 || i===4 ? "blue" : v >= 0 ? "cyan" : "red"})"/><text class="fc-svg-value" x="${x+bw/2}" y="${y(Math.max(a,b))-9}" text-anchor="middle">${v > 0 && i > 0 && i < 4 ? "+" : ""}${fmt(num(v))}</text><text x="${x+bw/2}" y="${bottom+23}" text-anchor="${w<520 ? "end" : "middle"}" ${w<520 ? `transform="rotate(-27 ${x+bw/2} ${bottom+23})"` : ""}>${labels[i]}</text>`; if (i<4) svg += `<line x1="${x+bw}" x2="${x+step}" y1="${y(b)}" y2="${y(b)}" class="fc-grid-line"/>`; });
+      values.forEach((v,i) => {
+        const a = levels[i], b = a+v, x = 12+i*step+(step-bw)/2, pillarKey = M.PILLARS[i-1];
+        const interactive = i > 0 && i < 4 && pillarKey;
+        svg += `<rect ${interactive ? `data-fc-bridge-key="${esc(pillarKey)}" tabindex="0" role="button" focusable="true" aria-label="Ver composição de ${esc(labels[i])}"` : ""} x="${x}" y="${y(Math.max(a,b))}" width="${bw}" height="${Math.max(1, Math.abs(y(a)-y(b)))}" rx="4" fill="url(#fc-bridge-${i===0 || i===4 ? "blue" : v >= 0 ? "cyan" : "red"})"/><text class="fc-svg-value" x="${x+bw/2}" y="${y(Math.max(a,b))-9}" text-anchor="middle">${v > 0 && i > 0 && i < 4 ? "+" : ""}${fmt(num(v))}</text><text x="${x+bw/2}" y="${bottom+23}" text-anchor="${w<520 ? "end" : "middle"}" ${w<520 ? `transform="rotate(-27 ${x+bw/2} ${bottom+23})"` : ""}>${labels[i]}</text>`;
+        if (i<4) svg += `<line x1="${x+bw}" x2="${x+step}" y1="${y(b)}" y2="${y(b)}" class="fc-grid-line"/>`;
+      });
       holder.innerHTML = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Ponte do FC: saldo inicial, operacional, investimentos, financeiro e saldo final">${svg}</svg>`;
+      holder.querySelectorAll("[data-fc-bridge-key]").forEach(el => {
+        const open = () => { bridgeDetail = el.dataset.fcBridgeKey; render(); };
+        el.addEventListener("click", open);
+        el.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); } });
+      });
+    }
+    // Detalhamento de um degrau da Ponte do FC: lista as contas (com hierarquia) e os
+    // valores mês a mês que compõem o total do pilar, no mesmo recorte de período do dashboard.
+    function pillarRows(report, key) {
+      const rows = [];
+      const visit = (parentKey, depth) => {
+        report.structure.filter(n => n.parent_key === parentKey).sort((a,b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, "pt-BR")).forEach(n => {
+          if (n.node_class === "Analitica") rows.push({ name: n.name, values: report.values[n.seed_key], depth, leaf: true });
+          else { rows.push({ name: n.name, depth, leaf: false }); visit(n.seed_key, depth + 1); }
+        });
+      };
+      visit(key, 0);
+      return rows;
+    }
+    function bridgeDetailMarkup(report, key, selected, period) {
+      const label = PILLAR_LABELS[key] || key;
+      const months = Array.from({ length: Math.max(0, selected.end - selected.start) }, (_, i) => selected.start + i);
+      const rows = pillarRows(report, key);
+      const totals = report.values[key] || Array(12).fill(0);
+      const periodTotal = months.reduce((sum, i) => sum + (totals[i] || 0), 0);
+      return `<div class="fc-bridge-backdrop" data-fc-bridge-backdrop tabindex="-1">
+        <div class="fc-bridge-popover" role="dialog" aria-modal="true" aria-label="Composição de ${esc(label)}">
+          <header><h3>${esc(label)} <small>${esc(period)}</small></h3><button type="button" class="fc-bridge-popover-close" data-fc-bridge-popover-close aria-label="Fechar">✕</button></header>
+          <div class="fc-bridge-popover-scroll"><table>
+            <thead><tr><th>Conta</th>${months.map(i => `<th>${MONTHS[i]}</th>`).join("")}<th>Total</th></tr></thead>
+            <tbody>${rows.length ? rows.map(row => row.leaf
+              ? `<tr class="fc-detail-analytic"><th scope="row" style="padding-left:${10 + row.depth * 16}px">${esc(row.name)}</th>${months.map(i => `<td class="${negative(row.values[i])}">${fmt(num(row.values[i]))}</td>`).join("")}<td class="${negative(months.reduce((s,i) => s + row.values[i], 0))}">${fmt(num(months.reduce((s,i) => s + row.values[i], 0)))}</td></tr>`
+              : `<tr class="fc-bridge-group-row"><th scope="row" colspan="${months.length + 2}" style="padding-left:${10 + row.depth * 16}px">${esc(row.name)}</th></tr>`
+            ).join("") : `<tr><td colspan="${months.length + 2}">Nenhuma conta encontrada para este pilar.</td></tr>`}</tbody>
+            <tfoot><tr class="fc-total-row"><th scope="row">Total ${esc(label)}</th>${months.map(i => `<td class="${negative(totals[i])}">${fmt(num(totals[i]))}</td>`).join("")}<td class="${negative(periodTotal)}">${fmt(num(periodTotal))}</td></tr></tfoot>
+          </table></div>
+        </div>
+      </div>`;
     }
     return { renderSelected, reset, invalidate, leave };
   }

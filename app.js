@@ -608,7 +608,8 @@ fcDashboardModule = window.VECTON_FC_DASHBOARD.createDashboard({
   getPeriod: () => state.currentPeriod,
   isActive: () => activeView === "reports" && selectedReportId === "cashFlow",
   isAdmin,
-  canAccess: () => canSeeReport("cashFlow")
+  canAccess: () => canSeeReport("cashFlow"),
+  getVendasMonths: year => fetchDreVendasMonthsForYear(year)
 });
 const fcPlanModule = window.VECTON_FC_PLAN.createFcPlanModule({
   root: views.fcPlan,
@@ -5609,8 +5610,31 @@ async function ensureReportsDataForYear(year) {
   }
 }
 
+const dreVendasMonthsCache = new Map();
+
+async function fetchDreVendasMonthsForYear(year) {
+  const normalizedYear = Number(year);
+  if (dreVendasMonthsCache.has(normalizedYear)) return dreVendasMonthsCache.get(normalizedYear);
+  const promise = (async () => {
+    const rows = isSupabaseConfigured()
+      ? await fetchActualsReportRowsForYear(normalizedYear)
+      : await buildLocalLedgerEntriesForYear(normalizedYear);
+    const dfsReport = buildDreDfsRealReport(normalizedYear, rows);
+    const vendasLine = dfsReport.lines.find((line) => line.id === "vendas");
+    return vendasLine ? vendasLine.months : zeroMonthArray();
+  })();
+  dreVendasMonthsCache.set(normalizedYear, promise);
+  try {
+    return await promise;
+  } catch (error) {
+    dreVendasMonthsCache.delete(normalizedYear);
+    throw error;
+  }
+}
+
 function invalidateReportsForYear(year) {
   const normalizedYear = Number(year || state.currentPeriod?.year || 2026);
+  dreVendasMonthsCache.delete(normalizedYear);
   reportsLedgerCache.delete(normalizedYear);
   reportsLedgerCache.delete(`opex-cc-${normalizedYear}`);
   [...reportsLedgerCache.keys()]
