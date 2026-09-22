@@ -270,6 +270,17 @@
       return (state.attachments[entry.id]?.[block.id]) || [];
     }
 
+    function findAttachment(attachmentId) {
+      for (const entryId in state.attachments) {
+        const byBlock = state.attachments[entryId];
+        for (const blockId in byBlock) {
+          const found = byBlock[blockId].find((a) => a.id === attachmentId);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
     // Gestor de cada área, lido de Parâmetros -> Comercial -> Coordenação
     // (tabela comercial_coordenacoes, campo "gestor") — carregado 1x só,
     // não muda com a semana selecionada.
@@ -509,6 +520,24 @@
       }
     }
 
+    // Comentário por anexo (comment_text, migration 236) — sem coluna de
+    // versão em rps_comercial_attachments (diferente de rps_comercial_
+    // entries), então é um PATCH direto por id. Atualiza o objeto em
+    // memória (mesma referência guardada em state.attachments) pra não
+    // precisar recarregar tudo nem perder a posição do carrossel.
+    async function saveAttachmentComment(att, value) {
+      const response = await authenticatedFetch(
+        `${supabaseApiUrl}/rest/v1/${TABLE_ATTACHMENTS}?id=eq.${att.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "Prefer": "return=minimal" },
+          body: JSON.stringify({ comment_text: value })
+        }
+      );
+      if (!response.ok) throw new Error(await response.text());
+      att.comment_text = value;
+    }
+
     function closeAttachmentCarousel() {
       document.querySelector(".rps-attachment-carousel")?.remove();
       document.body.classList.remove("rps-carousel-open");
@@ -548,6 +577,7 @@
           <main class="rps-carousel-viewport" data-carousel-viewport aria-live="polite"></main>
           ${attachments.length > 1 ? `<button type="button" class="rps-carousel-arrow is-previous" data-carousel-previous aria-label="Anexo anterior">‹</button>
           <button type="button" class="rps-carousel-arrow is-next" data-carousel-next aria-label="Próximo anexo">›</button>` : ""}
+          <div class="rps-carousel-comment" data-carousel-comment></div>
           <footer class="rps-carousel-footer">
             <div style="display:flex;align-items:center;gap:12px;min-width:0;">
               <div class="rps-carousel-caption"><strong data-carousel-name></strong><span data-carousel-meta></span></div>
@@ -565,6 +595,40 @@
       const metaEl = carousel.querySelector("[data-carousel-meta]");
       const external = carousel.querySelector("[data-carousel-external]");
       const addInput = carousel.querySelector("[data-carousel-add-input]");
+      const commentWrap = carousel.querySelector("[data-carousel-comment]");
+
+      // Comentário deste anexo — abaixo da imagem (pedido do usuário: cada
+      // anexo tem seu próprio comentário, não mais um só campo por bloco).
+      // Editável só fora do modo apresentação; no modo apresentação mostra
+      // como texto fixo, e some se não houver comentário.
+      const renderComment = (att) => {
+        const value = att.comment_text || "";
+        if (readOnly) {
+          commentWrap.style.display = value ? "" : "none";
+          commentWrap.innerHTML = value ? `<p class="rps-carousel-comment-text"><span class="rps-carousel-comment-label">Comentário:</span> ${escapeHtml(value)}</p>` : "";
+          return;
+        }
+        commentWrap.style.display = "";
+        commentWrap.innerHTML = `
+          <div class="rps-carousel-comment-field">
+            <span class="rps-carousel-comment-label">Comentário</span>
+            <textarea class="rps-carousel-comment-input" data-carousel-comment-input placeholder="Escreva um comentário para este anexo…">${escapeHtml(value)}</textarea>
+          </div>
+        `;
+        const input = commentWrap.querySelector("[data-carousel-comment-input]");
+        input.addEventListener("blur", async () => {
+          const newValue = input.value;
+          if (newValue === (att.comment_text || "")) return;
+          input.disabled = true;
+          try {
+            await saveAttachmentComment(att, newValue);
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+          } finally {
+            input.disabled = false;
+          }
+        });
+      };
 
       const mediaMarkup = (att, url) => {
         const safeUrl = escapeHtml(url);
@@ -583,6 +647,7 @@
         counter.textContent = `${activeIndex + 1} / ${attachments.length}`;
         nameEl.textContent = att.file_name || "Arquivo";
         metaEl.textContent = `${formatAttachmentSize(att.file_size)}${att.created_at ? ` · ${new Date(att.created_at).toLocaleString("pt-BR")}` : ""}`;
+        renderComment(att);
         external.removeAttribute("href");
         external.classList.add("is-loading");
         carousel.querySelectorAll("[data-carousel-index]").forEach((button, index) => button.classList.toggle("is-active", index === activeIndex));
@@ -699,17 +764,24 @@
         .rpc-block-text { width:100%; min-height:70px; resize:vertical; padding:8px 10px; border-radius:8px; border:1px solid var(--rpc-line); background:var(--rpc-panel); color:var(--rpc-text); font-size:.82rem; line-height:1.4; }
         .rpc-block-text:focus { outline:none; border-color:var(--rpc-blue); }
         .rpc-attachments { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px; }
-        .rpc-attachment-chip, .rpc-attachment-add { display:inline-flex; align-items:center; gap:6px; height:26px; border-radius:8px; border:1px solid var(--rpc-line); font-size:.68rem; cursor:pointer; }
-        .rpc-attachment-chip { gap:5px; padding:0 6px 0 8px; background:rgba(255,255,255,.04); color:var(--rpc-soft); max-width:220px; }
-        .rpc-attachment-chip:hover { border-color:rgba(79,124,255,.4); }
+        .rpc-attachments-list { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+        .rpc-attachment-item { padding:8px; border-radius:8px; border:1px solid var(--rpc-line); background:rgba(255,255,255,.03); }
+        .rpc-attachment-item-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .rpc-attachment-item-open { display:flex; flex:1; align-items:center; min-width:0; gap:6px; padding:0; border:none; background:none; color:var(--rpc-soft); font-size:.68rem; cursor:pointer; }
+        .rpc-attachment-item-open:hover { color:var(--rpc-text); }
         .rpc-attachment-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .rpc-attachment-remove { background:none; border:none; color:var(--rpc-faint); cursor:pointer; font-size:.9rem; line-height:1; padding:0 0 0 2px; }
+        .rpc-attachment-remove { background:none; border:none; color:var(--rpc-faint); cursor:pointer; font-size:.9rem; line-height:1; padding:0 0 0 2px; flex-shrink:0; }
         .rpc-attachment-remove:hover { color:#f87171; }
-        .rpc-attachment-add { padding:0 10px; border:1px dashed var(--rpc-line); color:var(--rpc-faint); }
+        .rpc-attachment-comment { width:100%; min-height:42px; margin-top:6px; padding:6px 8px; resize:vertical; border-radius:6px; border:1px solid var(--rpc-line); background:var(--rpc-panel); color:var(--rpc-text); font-size:.74rem; line-height:1.35; overflow-wrap:anywhere; }
+        .rpc-attachment-comment:focus { outline:none; border-color:var(--rpc-blue); }
+        .rpc-attachment-add { display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 10px; border-radius:8px; border:1px dashed var(--rpc-line); color:var(--rpc-faint); font-size:.68rem; cursor:pointer; }
         .rpc-attachment-add:hover { border-color:rgba(79,124,255,.4); color:#8fb0ff; }
         .rpc-attachments-empty { font-size:.68rem; color:var(--rpc-faint); margin-bottom:8px; }
-        .rpc-attachments-view { display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 10px; border-radius:8px; border:1px solid rgba(79,124,255,.38); background:rgba(79,124,255,.08); color:#8fb0ff; font-size:.68rem; cursor:pointer; }
-        .rpc-attachments-view:hover { border-color:rgba(79,124,255,.6); background:rgba(79,124,255,.14); }
+        .rpc-attachments-thumbs { gap:8px; }
+        .rpc-attachment-thumb { display:grid; place-items:center; width:110px; height:110px; padding:0; border-radius:10px; border:1px solid var(--rpc-line); background:rgba(255,255,255,.04); color:var(--rpc-faint); overflow:hidden; cursor:pointer; }
+        .rpc-attachment-thumb:hover { border-color:rgba(79,124,255,.55); }
+        .rpc-attachment-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+        .rpc-attachment-thumb-icon { font-size:2.2rem; }
         .rpc-present { position:fixed; inset:0; z-index:9500; display:flex; flex-direction:column; align-items:center; padding:22px 34px; background:var(--rpc-bg); overflow:auto; }
         .rpc-present > .rps-hero { width:100%; margin-bottom:18px; }
         .rpc-present-areas-row { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:18px; }
@@ -763,29 +835,42 @@
     }
 
     // ---------------------------------------------------------------- Render
+    // Comentário passou a ser por anexo (campo comment_text, editado dentro
+    // do carrossel — abre-se o anexo, comenta ali mesmo). O textarea do
+    // bloco inteiro só aparece quando não há nenhum anexo: nesse caso não
+    // tem onde comentar por anexo, então mantém a nota livre de antes.
     function renderBlock(area, entry, block, readOnlyAttachments = false) {
       const attachments = getBlockAttachments(area, block);
       const value = entry?.[block.field] || "";
+      const showBlockText = attachments.length === 0;
       return `
         <div class="rpc-block" data-area="${area.id}" data-block="${block.id}">
           <div class="rpc-block-head"><span class="rpc-block-label">${escapeHtml(block.label)}</span></div>
           ${readOnlyAttachments ? renderAttachmentsViewer(area, block, attachments) : renderAttachmentsStrip(area, block, attachments)}
-          <textarea class="rpc-block-text" data-area="${area.id}" data-block="${block.id}" placeholder="${escapeHtml(block.placeholder)}" rows="3">${escapeHtml(value)}</textarea>
+          ${showBlockText ? `<textarea class="rpc-block-text" data-area="${area.id}" data-block="${block.id}" placeholder="${escapeHtml(block.placeholder)}" rows="3">${escapeHtml(value)}</textarea>` : ""}
         </div>
       `;
     }
 
+    // Cada anexo vira um item com nome + remover + campo de comentário logo
+    // abaixo (pedido do usuário: o campo de comentário tem que aparecer na
+    // tela normal assim que o arquivo é anexado, não só dentro do carrossel).
     function renderAttachmentsStrip(area, block, attachments) {
-      const chips = attachments.map((att, index) => `
-        <span class="rpc-attachment-chip" data-attachment-open data-area="${area.id}" data-block="${block.id}" data-index="${index}" title="${escapeHtml(att.file_name)}">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v2"/></svg>
-          <span class="rpc-attachment-name">${escapeHtml(truncateFileName(att.file_name))}</span>
-          <button type="button" class="rpc-attachment-remove" data-action="remove-attachment" data-attachment-id="${escapeHtml(att.id)}" data-attachment-path="${escapeHtml(att.storage_path)}" title="Remover anexo">&times;</button>
-        </span>
+      const items = attachments.map((att, index) => `
+        <div class="rpc-attachment-item">
+          <div class="rpc-attachment-item-head">
+            <button type="button" class="rpc-attachment-item-open" data-attachment-open data-area="${area.id}" data-block="${block.id}" data-index="${index}" title="Abrir ${escapeHtml(att.file_name)}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v2"/></svg>
+              <span class="rpc-attachment-name">${escapeHtml(truncateFileName(att.file_name))}</span>
+            </button>
+            <button type="button" class="rpc-attachment-remove" data-action="remove-attachment" data-attachment-id="${escapeHtml(att.id)}" data-attachment-path="${escapeHtml(att.storage_path)}" title="Remover anexo">&times;</button>
+          </div>
+          <textarea class="rpc-attachment-comment" data-action="attachment-comment" data-attachment-id="${escapeHtml(att.id)}" placeholder="Comentário deste anexo…" rows="2">${escapeHtml(att.comment_text || "")}</textarea>
+        </div>
       `).join("");
       return `
-        <div class="rpc-attachments">
-          ${chips}
+        <div class="rpc-attachments-list">
+          ${items}
           <label class="rpc-attachment-add">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
             Anexar
@@ -795,20 +880,58 @@
       `;
     }
 
-    // Modo apresentação: sem upload/remoção, só um link que abre o carrossel
-    // (mesmo openAttachmentCarousel) em popover — ou "Sem anexo" quando vazio.
+    function attachmentThumbIcon(kind) {
+      if (kind === "pdf") return "▧";
+      if (kind === "video") return "▶";
+      if (kind === "audio") return "♫";
+      return "▤";
+    }
+
+    // Modo apresentação: sem upload/remoção — miniaturas clicáveis (imagem de
+    // verdade pra fotos, já que é o tipo mais comum aqui; ícone genérico pra
+    // PDF/vídeo/áudio/outros) que abrem o carrossel naquele anexo. "Sem
+    // anexo" quando vazio. As miniaturas de imagem são preenchidas depois
+    // (hydrateThumbnails), pra não travar o render esperando as URLs
+    // assinadas do Storage.
     function renderAttachmentsViewer(area, block, attachments) {
       if (!attachments.length) {
         return `<div class="rpc-attachments-empty">Sem anexo</div>`;
       }
-      return `
-        <div class="rpc-attachments">
-          <button type="button" class="rpc-attachments-view" data-attachment-open data-area="${area.id}" data-block="${block.id}" data-index="0">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v2"/></svg>
-            Ver ${attachments.length} anexo${attachments.length > 1 ? "s" : ""}
+      const thumbs = attachments.map((att, index) => {
+        const kind = attachmentMediaKind(att);
+        const label = escapeHtml(att.file_name || `Arquivo ${index + 1}`);
+        const inner = kind === "image"
+          ? `<img data-thumb-img data-attachment-id="${escapeHtml(att.id)}" data-storage-path="${escapeHtml(att.storage_path)}" alt="${label}">`
+          : `<span class="rpc-attachment-thumb-icon">${attachmentThumbIcon(kind)}</span>`;
+        return `
+          <button type="button" class="rpc-attachment-thumb" data-attachment-open data-area="${area.id}" data-block="${block.id}" data-index="${index}" title="Clique na imagem para tela cheia">
+            ${inner}
           </button>
-        </div>
-      `;
+        `;
+      }).join("");
+      return `<div class="rpc-attachments rpc-attachments-thumbs">${thumbs}</div>`;
+    }
+
+    // Cache simples de URL assinada por anexo (miniaturas de imagem), pra
+    // não pedir de novo ao trocar de área/semana e voltar.
+    const thumbnailUrlCache = new Map();
+    async function hydrateThumbnails(container) {
+      const imgs = Array.from(container.querySelectorAll("img[data-thumb-img]"));
+      await Promise.all(imgs.map(async (img) => {
+        const attachmentId = img.dataset.attachmentId;
+        try {
+          let url = thumbnailUrlCache.get(attachmentId);
+          if (!url) {
+            url = await createStorageSignedUrl(ATTACHMENT_BUCKET, img.dataset.storagePath, 3600);
+            thumbnailUrlCache.set(attachmentId, url);
+          }
+          img.src = url;
+        } catch (_err) {
+          img.closest(".rpc-attachment-thumb")?.replaceChildren(
+            Object.assign(document.createElement("span"), { className: "rpc-attachment-thumb-icon", textContent: attachmentThumbIcon("image") })
+          );
+        }
+      }));
     }
 
     function renderAreaCard(area) {
@@ -905,6 +1028,7 @@
       bindShellEvents();
       bindPresentationEvents();
       bindBlockInteractions(root);
+      void hydrateThumbnails(root);
     }
 
     // ---------------------------------------------------------------- Eventos
@@ -957,6 +1081,22 @@
           textarea.disabled = true;
           await saveBlockText(area, block, textarea.value);
           textarea.disabled = false;
+        });
+      });
+
+      container.querySelectorAll('[data-action="attachment-comment"]').forEach((textarea) => {
+        textarea.addEventListener("blur", async () => {
+          const att = findAttachment(textarea.dataset.attachmentId);
+          if (!att) return;
+          if (textarea.value === (att.comment_text || "")) return;
+          textarea.disabled = true;
+          try {
+            await saveAttachmentComment(att, textarea.value);
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+          } finally {
+            textarea.disabled = false;
+          }
         });
       });
 
