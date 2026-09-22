@@ -509,6 +509,24 @@
       }
     }
 
+    // Comentário por anexo (comment_text, migration 236) — sem coluna de
+    // versão em rps_comercial_attachments (diferente de rps_comercial_
+    // entries), então é um PATCH direto por id. Atualiza o objeto em
+    // memória (mesma referência guardada em state.attachments) pra não
+    // precisar recarregar tudo nem perder a posição do carrossel.
+    async function saveAttachmentComment(att, value) {
+      const response = await authenticatedFetch(
+        `${supabaseApiUrl}/rest/v1/${TABLE_ATTACHMENTS}?id=eq.${att.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "Prefer": "return=minimal" },
+          body: JSON.stringify({ comment_text: value })
+        }
+      );
+      if (!response.ok) throw new Error(await response.text());
+      att.comment_text = value;
+    }
+
     function closeAttachmentCarousel() {
       document.querySelector(".rps-attachment-carousel")?.remove();
       document.body.classList.remove("rps-carousel-open");
@@ -548,6 +566,7 @@
           <main class="rps-carousel-viewport" data-carousel-viewport aria-live="polite"></main>
           ${attachments.length > 1 ? `<button type="button" class="rps-carousel-arrow is-previous" data-carousel-previous aria-label="Anexo anterior">‹</button>
           <button type="button" class="rps-carousel-arrow is-next" data-carousel-next aria-label="Próximo anexo">›</button>` : ""}
+          <div class="rps-carousel-comment" data-carousel-comment></div>
           <footer class="rps-carousel-footer">
             <div style="display:flex;align-items:center;gap:12px;min-width:0;">
               <div class="rps-carousel-caption"><strong data-carousel-name></strong><span data-carousel-meta></span></div>
@@ -565,6 +584,35 @@
       const metaEl = carousel.querySelector("[data-carousel-meta]");
       const external = carousel.querySelector("[data-carousel-external]");
       const addInput = carousel.querySelector("[data-carousel-add-input]");
+      const commentWrap = carousel.querySelector("[data-carousel-comment]");
+
+      // Comentário deste anexo — abaixo da imagem (pedido do usuário: cada
+      // anexo tem seu próprio comentário, não mais um só campo por bloco).
+      // Editável só fora do modo apresentação; no modo apresentação mostra
+      // como texto fixo, e some se não houver comentário.
+      const renderComment = (att) => {
+        const value = att.comment_text || "";
+        if (readOnly) {
+          commentWrap.style.display = value ? "" : "none";
+          commentWrap.innerHTML = value ? `<p class="rps-carousel-comment-text">${escapeHtml(value)}</p>` : "";
+          return;
+        }
+        commentWrap.style.display = "";
+        commentWrap.innerHTML = `<textarea class="rps-carousel-comment-input" data-carousel-comment-input placeholder="Comentário deste anexo…">${escapeHtml(value)}</textarea>`;
+        const input = commentWrap.querySelector("[data-carousel-comment-input]");
+        input.addEventListener("blur", async () => {
+          const newValue = input.value;
+          if (newValue === (att.comment_text || "")) return;
+          input.disabled = true;
+          try {
+            await saveAttachmentComment(att, newValue);
+          } catch (err) {
+            appAlert?.(friendlyError(err), "error");
+          } finally {
+            input.disabled = false;
+          }
+        });
+      };
 
       const mediaMarkup = (att, url) => {
         const safeUrl = escapeHtml(url);
@@ -583,6 +631,7 @@
         counter.textContent = `${activeIndex + 1} / ${attachments.length}`;
         nameEl.textContent = att.file_name || "Arquivo";
         metaEl.textContent = `${formatAttachmentSize(att.file_size)}${att.created_at ? ` · ${new Date(att.created_at).toLocaleString("pt-BR")}` : ""}`;
+        renderComment(att);
         external.removeAttribute("href");
         external.classList.add("is-loading");
         carousel.querySelectorAll("[data-carousel-index]").forEach((button, index) => button.classList.toggle("is-active", index === activeIndex));
@@ -763,14 +812,19 @@
     }
 
     // ---------------------------------------------------------------- Render
+    // Comentário passou a ser por anexo (campo comment_text, editado dentro
+    // do carrossel — abre-se o anexo, comenta ali mesmo). O textarea do
+    // bloco inteiro só aparece quando não há nenhum anexo: nesse caso não
+    // tem onde comentar por anexo, então mantém a nota livre de antes.
     function renderBlock(area, entry, block, readOnlyAttachments = false) {
       const attachments = getBlockAttachments(area, block);
       const value = entry?.[block.field] || "";
+      const showBlockText = attachments.length === 0;
       return `
         <div class="rpc-block" data-area="${area.id}" data-block="${block.id}">
           <div class="rpc-block-head"><span class="rpc-block-label">${escapeHtml(block.label)}</span></div>
           ${readOnlyAttachments ? renderAttachmentsViewer(area, block, attachments) : renderAttachmentsStrip(area, block, attachments)}
-          <textarea class="rpc-block-text" data-area="${area.id}" data-block="${block.id}" placeholder="${escapeHtml(block.placeholder)}" rows="3">${escapeHtml(value)}</textarea>
+          ${showBlockText ? `<textarea class="rpc-block-text" data-area="${area.id}" data-block="${block.id}" placeholder="${escapeHtml(block.placeholder)}" rows="3">${escapeHtml(value)}</textarea>` : ""}
         </div>
       `;
     }
