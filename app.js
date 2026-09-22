@@ -1183,6 +1183,7 @@ const rpsComercialModule = createRpsComercialModule
       root: document.querySelector("#rps-comercial-root"),
       resolveOrganizationId,
       authenticatedFetch,
+      callSupabaseRpc,
       supabaseApiUrl: supabaseConfig.projectUrl,
       getCurrentUserId: () => currentUser?.id || null,
       appAlert,

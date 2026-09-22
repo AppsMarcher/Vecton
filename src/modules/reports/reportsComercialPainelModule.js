@@ -24,7 +24,8 @@
       COORD_STYLE, COORD_ORDER, METRICS,
       metricObj, transform, coordTotals, sumTerrLine, memoOwner, companyTotals, buildCoordDetail, coordCardDelta,
       pecasVendLines,
-      round, nf, fmtR$, fmtFullR$
+      round, nf, fmtR$, fmtFullR$,
+      qtyCells, valCells, ttlCells, ticketCells, drillAttrs, miniHtml: miniHtmlShared
     } = window.VECTON_COMERCIAL_PAINEL_DATA;
 
     const REPORT_ID = "comercialPainel";
@@ -490,7 +491,7 @@
               </div>
             </div>
             <table class="cvp-hero-tbl">
-              <thead><tr><th></th><th${drillAttrs("FAT", heroScope)}>Fatur.</th><th${drillAttrs("FAT,CART", heroScope)}>Fat.+Cart.</th><th>Meta</th><th>${year - 1}</th><th>${year - 2}</th><th>${year - 3}</th></tr></thead>
+              <thead><tr><th></th><th${drillAttrs("FAT", heroScope, escapeHtml)}>Fatur.</th><th${drillAttrs("FAT,CART", heroScope, escapeHtml)}>Fat.+Cart.</th><th>Meta</th><th>${year - 1}</th><th>${year - 2}</th><th>${year - 3}</th></tr></thead>
               <tbody>
                 <tr><td>Grão</td>${qtyRow(grao)}</tr>
                 <tr><td>Pecuária</td>${qtyRow(pec)}</tr>
@@ -589,46 +590,14 @@
       grid.querySelectorAll(".cvp-card").forEach((b) => b.addEventListener("click", () => { currentCoord = b.dataset.coord; renderCards(container); renderDetail(container); }));
     }
 
-    // colunas da mini-tabela: [Fatur, Fat+Cart, Meta, 2025, 2024, 2023]
-    function qtyCells(line) {
-      if (!line) return new Array(6).fill("<td></td>").join("");
-      const cols = [line.fat.q, line.cart.q, line.meta.q, line.y1.q, line.y2.q, line.y3.q];
-      return cols.map((v) => `<td>${nf(v)}</td>`).join("");
-    }
-    function valCells(lines) {
-      const sum = (k, m) => lines.reduce((s, l) => s + (l ? l[k][m] : 0), 0);
-      const cols = [sum("fat", "v"), sum("cart", "v"), sum("meta", "v"), sum("y1", "v"), sum("y2", "v"), sum("y3", "v")];
-      return cols.map((v) => `<td>${fmtR$(v)}</td>`).join("");
-    }
-    function ttlCells(grao, pec) {
-      const lines = [grao, pec].filter(Boolean);
-      if (!lines.length) return new Array(6).fill("<td></td>").join("");
-      const sum = (m) => lines.reduce((s, l) => s + l[m].q, 0);
-      const cols = [sum("fat"), sum("cart"), sum("meta"), sum("y1"), sum("y2"), sum("y3")];
-      return cols.map((v) => `<td>${nf(v)}</td>`).join("");
-    }
-    // Ticket medio por maquina = valor (Grao+Pecuaria) / TTL qtd, por coluna.
-    function ticketCells(grao, pec) {
-      return ["fat", "cart", "meta", "y1", "y2", "y3"].map((m) => {
-        const val = (grao ? grao[m].v : 0) + (pec ? pec[m].v : 0);
-        const qty = (grao ? grao[m].q : 0) + (pec ? pec[m].q : 0);
-        return `<td>${qty > 0 ? fmtR$(val / qty) : "—"}</td>`;
-      }).join("");
+    // qtyCells/valCells/ttlCells/ticketCells/drillAttrs/miniHtml agora moram
+    // em comercialPainelDataModule.js (compartilhados com o RPS Comercial —
+    // ver comentário lá). miniHtml precisa de year/escapeHtml, que só existem
+    // no escopo deste módulo, por isso o wrapper fino abaixo.
+    function miniHtml(terr, name, grao, pec, pecas, isSum, scope, memo) {
+      return miniHtmlShared(terr, name, grao, pec, pecas, isSum, scope, memo, year, escapeHtml);
     }
 
-    // Escopo do drill -> atributos no <th>. Compartilhado por miniHtml e hero.
-    function drillAttrs(origens, scope) {
-      if (!scope || !(scope.linhas || []).length) return "";
-      return ` class="cvp-drill" data-origens="${origens}" data-linhas="${escapeHtml((scope.linhas || []).join(","))}"`
-        + (scope.coord ? ` data-coord="${escapeHtml(scope.coord)}"` : "")
-        + (scope.terr ? ` data-terr="${escapeHtml(scope.terr)}"` : "")
-        + (scope.terrs && scope.terrs.length ? ` data-terrs="${escapeHtml(scope.terrs.join(","))}"` : "")
-        + (scope.label ? ` data-label="${escapeHtml(scope.label)}"` : "")
-        + (scope.vendModo ? ` data-vend-modo="${escapeHtml(scope.vendModo)}"` : "")
-        + (scope.vend ? ` data-vend="${escapeHtml(scope.vend)}"` : "")
-        + (scope.pecas ? ` data-pecas="1"` : "")
-        + (scope.tipos ? ` data-tipos="1"` : "");
-    }
     function bindDrill(root) {
       root.querySelectorAll(".cvp-drill").forEach((th) => th.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -643,40 +612,6 @@
           linhas
         }, origens);
       }));
-    }
-
-    // memo = linha ilustrativa (ex: Pecuaria da casa geografica do Yuri, que
-    // consolida no Paulo). Preenche SO a propria linha; TTL/Faturado/Ticket e o
-    // status "vs meta" continuam olhando so o que a coordenacao consolida.
-    function miniHtml(terr, name, grao, pec, pecas, isSum, scope, memo) {
-      const valLines = pecas ? [pecas] : [grao, pec].filter(Boolean);
-      const pecMemo = !pec && memo ? memo.line : null;
-      const rows = pecas
-        ? `<tr class="fat"><td>Faturado</td>${valCells([pecas])}</tr>`
-        : `<tr><td>Grão</td>${qtyCells(grao)}</tr>
-           <tr${pecMemo ? ' class="memo"' : ""}><td>Pecuária${pecMemo ? " *" : ""}</td>${qtyCells(pec || pecMemo)}</tr>
-           <tr><td>TTL qtd</td>${ttlCells(grao, pec)}</tr>
-           <tr class="fat"><td>Faturado</td>${valCells(valLines)}</tr>
-           <tr class="tkt"><td>Ticket</td>${ticketCells(grao, pec)}</tr>`;
-      // Rotulos Fatur./Fat.+Cart. viram clicaveis (drill) quando ha escopo.
-      const drill = (origens) => drillAttrs(origens, scope);
-      // Status "vs meta" (Fat.+Cart./Meta do periodo) — mesma bolinha semaforo do
-      // box lateral (>=100% verde, >=80% amarelo, abaixo vermelho, sem meta cinza).
-      // l.cart.v JA e o total combinado Faturado+Carteira, nao e incremental.
-      const fatCartVal = valLines.reduce((s, l) => s + (l ? l.cart.v : 0), 0);
-      const metaVal = valLines.reduce((s, l) => s + (l ? l.meta.v : 0), 0);
-      const pct = metaVal > 0 ? (fatCartVal / metaVal) * 100 : null;
-      const dotColor = pct === null ? "#6b7280" : pct >= 100 ? "#22c55e" : pct >= 80 ? "#f59e0b" : "#ef4444";
-      const dotGlow  = pct === null ? "rgba(107,114,128,.15)" : pct >= 100 ? "rgba(34,197,94,.15)" : pct >= 80 ? "rgba(245,158,11,.15)" : "rgba(239,68,68,.15)";
-      const statusLabel = pct === null ? "vs meta —" : `vs meta ${pct.toFixed(1)}%`;
-      return `<div class="cvp-mini${isSum ? " sum" : ""}">
-        <div class="cvp-mini-head">
-          <span class="cvp-mini-terr">${escapeHtml(terr)} <span class="cvp-mini-sep">·</span> <span class="cvp-mini-name">${escapeHtml(name)}</span></span>
-          <span class="cvp-mini-status" style="--dot-color:${dotColor};--dot-glow:${dotGlow}">${statusLabel}</span>
-        </div>
-        <div class="cvp-mini-wrap"><table class="cvp-mini-tbl"><thead><tr><th></th><th${drill("FAT")}>Fatur.</th><th${drill("FAT,CART")}>Fat.+Cart.</th><th>Meta</th><th>${year - 1}</th><th>${year - 2}</th><th>${year - 3}</th></tr></thead>
-        <tbody>${rows}</tbody></table></div>
-        ${pecMemo ? `<div class="cvp-mini-foot">* Pecuária da região — ilustrativo, consolidado em ${escapeHtml(memo.owner)}. Fora do TTL, do Faturado e do vs meta.</div>` : ""}</div>`;
     }
 
     // pecasVendLines (titular/Jenifer vs Demais) mora em comercialPainelDataModule.js

@@ -232,10 +232,90 @@
     return prev > 0 ? ((cur - prev) / prev) * 100 : 0;
   }
 
+  // ---------------------------------------------------------------------
+  // Cartão "mini" de território/consolidado (as 6 colunas Fatur./Fat.+Cart./
+  // Meta/anos × linhas Grão/Pecuária/TTL/Faturado/Ticket). Extraído de
+  // reportsComercialPainelModule.js (desktop) em 2026-09-22 pro RPS Comercial
+  // reaproveitar tal e qual num popover — mesmo motivo do resto do arquivo:
+  // nenhuma tela pode ter sua própria conta/HTML pra esses cartões, senão
+  // divergem silenciosamente entre desktop, mobile e RPS Comercial. Puro:
+  // recebe `year`/`escapeHtml` por parâmetro (o desktop tem os dois no
+  // escopo do módulo; aqui não há esse contexto ambiente).
+  function qtyCells(line) {
+    if (!line) return new Array(6).fill("<td></td>").join("");
+    const cols = [line.fat.q, line.cart.q, line.meta.q, line.y1.q, line.y2.q, line.y3.q];
+    return cols.map((v) => `<td>${nf(v)}</td>`).join("");
+  }
+  function valCells(lines) {
+    const sum = (k, m) => lines.reduce((s, l) => s + (l ? l[k][m] : 0), 0);
+    const cols = [sum("fat", "v"), sum("cart", "v"), sum("meta", "v"), sum("y1", "v"), sum("y2", "v"), sum("y3", "v")];
+    return cols.map((v) => `<td>${fmtR$(v)}</td>`).join("");
+  }
+  function ttlCells(grao, pec) {
+    const lines = [grao, pec].filter(Boolean);
+    if (!lines.length) return new Array(6).fill("<td></td>").join("");
+    const sum = (m) => lines.reduce((s, l) => s + l[m].q, 0);
+    const cols = [sum("fat"), sum("cart"), sum("meta"), sum("y1"), sum("y2"), sum("y3")];
+    return cols.map((v) => `<td>${nf(v)}</td>`).join("");
+  }
+  // Ticket medio por maquina = valor (Grao+Pecuaria) / TTL qtd, por coluna.
+  function ticketCells(grao, pec) {
+    return ["fat", "cart", "meta", "y1", "y2", "y3"].map((m) => {
+      const val = (grao ? grao[m].v : 0) + (pec ? pec[m].v : 0);
+      const qty = (grao ? grao[m].q : 0) + (pec ? pec[m].q : 0);
+      return `<td>${qty > 0 ? fmtR$(val / qty) : "—"}</td>`;
+    }).join("");
+  }
+  // Escopo do drill -> atributos no <th>. scope null/sem linhas = sem drill
+  // (usado pelo RPS Comercial, que só mostra os cartões, sem abrir o
+  // popover de transações do desktop).
+  function drillAttrs(origens, scope, escapeHtml) {
+    if (!scope || !(scope.linhas || []).length) return "";
+    return ` class="cvp-drill" data-origens="${origens}" data-linhas="${escapeHtml((scope.linhas || []).join(","))}"`
+      + (scope.coord ? ` data-coord="${escapeHtml(scope.coord)}"` : "")
+      + (scope.terr ? ` data-terr="${escapeHtml(scope.terr)}"` : "")
+      + (scope.terrs && scope.terrs.length ? ` data-terrs="${escapeHtml(scope.terrs.join(","))}"` : "")
+      + (scope.label ? ` data-label="${escapeHtml(scope.label)}"` : "")
+      + (scope.vendModo ? ` data-vend-modo="${escapeHtml(scope.vendModo)}"` : "")
+      + (scope.vend ? ` data-vend="${escapeHtml(scope.vend)}"` : "")
+      + (scope.pecas ? ` data-pecas="1"` : "")
+      + (scope.tipos ? ` data-tipos="1"` : "");
+  }
+  // memo = linha ilustrativa (ex: Pecuaria da casa geografica do Yuri, que
+  // consolida no Paulo). Preenche SO a propria linha; TTL/Faturado/Ticket e o
+  // status "vs meta" continuam olhando so o que a coordenacao consolida.
+  function miniHtml(terr, name, grao, pec, pecas, isSum, scope, memo, year, escapeHtml) {
+    const valLines = pecas ? [pecas] : [grao, pec].filter(Boolean);
+    const pecMemo = !pec && memo ? memo.line : null;
+    const rows = pecas
+      ? `<tr class="fat"><td>Faturado</td>${valCells([pecas])}</tr>`
+      : `<tr><td>Grão</td>${qtyCells(grao)}</tr>
+         <tr${pecMemo ? ' class="memo"' : ""}><td>Pecuária${pecMemo ? " *" : ""}</td>${qtyCells(pec || pecMemo)}</tr>
+         <tr><td>TTL qtd</td>${ttlCells(grao, pec)}</tr>
+         <tr class="fat"><td>Faturado</td>${valCells(valLines)}</tr>
+         <tr class="tkt"><td>Ticket</td>${ticketCells(grao, pec)}</tr>`;
+    const drill = (origens) => drillAttrs(origens, scope, escapeHtml);
+    const fatCartVal = valLines.reduce((s, l) => s + (l ? l.cart.v : 0), 0);
+    const metaVal = valLines.reduce((s, l) => s + (l ? l.meta.v : 0), 0);
+    const pct = metaVal > 0 ? (fatCartVal / metaVal) * 100 : null;
+    const dotColor = pct === null ? "#6b7280" : pct >= 100 ? "#22c55e" : pct >= 80 ? "#f59e0b" : "#ef4444";
+    const dotGlow  = pct === null ? "rgba(107,114,128,.15)" : pct >= 100 ? "rgba(34,197,94,.15)" : pct >= 80 ? "rgba(245,158,11,.15)" : "rgba(239,68,68,.15)";
+    const statusLabel = pct === null ? "vs meta —" : `vs meta ${pct.toFixed(1)}%`;
+    return `<div class="cvp-mini${isSum ? " sum" : ""}">
+      <div class="cvp-mini-head">
+        <span class="cvp-mini-terr">${escapeHtml(terr)} <span class="cvp-mini-sep">·</span> <span class="cvp-mini-name">${escapeHtml(name)}</span></span>
+        <span class="cvp-mini-status" style="--dot-color:${dotColor};--dot-glow:${dotGlow}">${statusLabel}</span>
+      </div>
+      <div class="cvp-mini-wrap"><table class="cvp-mini-tbl"><thead><tr><th></th><th${drill("FAT")}>Fatur.</th><th${drill("FAT,CART")}>Fat.+Cart.</th><th>Meta</th><th>${year - 1}</th><th>${year - 2}</th><th>${year - 3}</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+      ${pecMemo ? `<div class="cvp-mini-foot">* Pecuária da região — ilustrativo, consolidado em ${escapeHtml(memo.owner)}. Fora do TTL, do Faturado e do vs meta.</div>` : ""}</div>`;
+  }
+
   window.VECTON_COMERCIAL_PAINEL_DATA = {
     COORD_STYLE, COORD_ORDER, METRICS, GEO_COORDS,
     metricObj, transform, coordTotals, sumTerrLine, memoOwner, companyTotals, buildCoordDetail, coordCardDelta,
     pecasVendLines,
-    round, nf, fmtR$, fmtFullR$
+    round, nf, fmtR$, fmtFullR$,
+    qtyCells, valCells, ttlCells, ticketCells, drillAttrs, miniHtml
   };
 })(window);

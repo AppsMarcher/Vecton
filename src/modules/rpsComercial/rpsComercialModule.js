@@ -129,11 +129,14 @@
     }
   }
 
+  const MONTHS_FULL = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
   function createRpsComercialModule(deps) {
     const {
       root,
       resolveOrganizationId,
       authenticatedFetch,
+      callSupabaseRpc,
       supabaseApiUrl,
       getCurrentUserId,
       appAlert,
@@ -143,6 +146,17 @@
       deleteFromStorage,
       escapeHtml
     } = deps;
+
+    // Painel de Vendas (popover do modo apresentação): reaproveita tal e qual
+    // o motor de dados do relatório real (transform/buildCoordDetail/
+    // miniHtml/pecasVendLines em comercialPainelDataModule.js) — mesma
+    // regra do arquivo de origem: nenhuma tela pode ter sua própria conta.
+    const {
+      transform: painelTransform,
+      buildCoordDetail: painelBuildCoordDetail,
+      miniHtml: painelMiniHtml,
+      pecasVendLines: painelPecasVendLines
+    } = window.VECTON_COMERCIAL_PAINEL_DATA || {};
 
     const state = {
       loading: false,
@@ -275,6 +289,116 @@
         state.coordinators = {};
       } finally {
         state.coordinatorsLoaded = true;
+      }
+    }
+
+    // ---------------------------------------------------------------- Painel de Vendas (popover)
+    function weekMonthYear() {
+      const d = new Date(`${state.weekStart}T00:00:00`);
+      return { year: d.getFullYear(), month: d.getMonth() + 1 };
+    }
+
+    // Mesma preferência de cenário do Painel de Vendas real (loadScenarios em
+    // reportsComercialPainelModule.js): prioriza Fcst/5+7, senão o primeiro,
+    // senão Budget (scenario_id nulo) — sem isso o popover podia mostrar
+    // números de um cenário diferente do que a tela oficial mostraria.
+    async function pickScenarioId(orgId, year) {
+      try {
+        const rows = await fetchRest(
+          "forecast_scenarios",
+          `organization_id=eq.${orgId}&reference_year=eq.${year}&order=created_at.asc&select=id,name`
+        );
+        const fcst = (rows || []).find((s) => /fcst|5\s*\+\s*7/i.test(s.name || ""));
+        return (fcst || rows?.[0])?.id || null;
+      } catch (_err) {
+        return null;
+      }
+    }
+
+    let vendasPopoverEl = null;
+    function closeVendasPopover() {
+      if (!vendasPopoverEl) return;
+      vendasPopoverEl.remove();
+      vendasPopoverEl = null;
+      document.removeEventListener("keydown", handleVendasPopoverKeydown);
+    }
+    function handleVendasPopoverKeydown(event) {
+      if (event.key === "Escape") closeVendasPopover();
+    }
+
+    // Reproduz o cartão "consolidado + território a território" do Painel de
+    // Vendas real pra uma coordenação, no mês da semana selecionada — sem o
+    // drill de transações (scope sempre null: só os cartões, como pedido).
+    async function openVendasPopover(area) {
+      closeVendasPopover();
+      if (!painelTransform || !painelBuildCoordDetail || !painelMiniHtml) return;
+      const coordNome = AREA_COORDENACAO_NOME[area.id];
+      const { year, month } = weekMonthYear();
+      const accent = AREA_ACCENT[area.id] || "#4f7cff";
+
+      const backdrop = document.createElement("div");
+      backdrop.className = "rpc-vendas-backdrop";
+      backdrop.innerHTML = `
+        <div class="rpc-vendas-panel">
+          <button type="button" class="rpc-vendas-close" aria-label="Fechar">✕</button>
+          <div class="rpc-vendas-body cvp" data-vendas-body><div class="cvp-empty">Carregando painel de vendas…</div></div>
+        </div>
+      `;
+      document.body.appendChild(backdrop);
+      vendasPopoverEl = backdrop;
+      backdrop.addEventListener("click", (event) => { if (event.target === backdrop) closeVendasPopover(); });
+      backdrop.querySelector(".rpc-vendas-close").addEventListener("click", closeVendasPopover);
+      document.addEventListener("keydown", handleVendasPopoverKeydown);
+
+      const body = backdrop.querySelector("[data-vendas-body]");
+      if (!coordNome) {
+        body.innerHTML = `<div class="cvp-empty">${escapeHtml(area.label)} não tem uma coordenação de vendas equivalente cadastrada.</div>`;
+        return;
+      }
+      try {
+        if (!state.organizationId) state.organizationId = await resolveOrganizationId();
+        const orgId = state.organizationId;
+        const scenarioId = await pickScenarioId(orgId, year);
+        const basePayload = { p_org: orgId, p_year: year, p_month: month, p_period: "mes" };
+        const [rows, pecasVendRows] = await Promise.all([
+          callSupabaseRpc("comercial_painel_vendas", { ...basePayload, p_scenario_id: scenarioId }),
+          coordNome === "Peças"
+            ? callSupabaseRpc("comercial_painel_pecas_vendedor", basePayload).catch(() => [])
+            : Promise.resolve([])
+        ]);
+        if (vendasPopoverEl !== backdrop) return; // fechou (ou trocou de área) enquanto carregava
+        const { coords, regioes } = painelTransform(rows || []);
+        const det = painelBuildCoordDetail(coordNome, coords, regioes);
+        if (!det) {
+          body.innerHTML = `<div class="cvp-empty">Sem dados de vendas pra ${escapeHtml(coordNome)} em ${MONTHS_FULL[month - 1]}/${year}.</div>`;
+          return;
+        }
+        const cards = [];
+        if (det.isPecas) {
+          const consPecas = det.consolidado.pecas;
+          cards.push(painelMiniHtml(coordNome.toUpperCase(), det.coord.gestor || "", null, null, consPecas, true, null, null, year, escapeHtml));
+          const vendCards = painelPecasVendLines ? painelPecasVendLines(consPecas, pecasVendRows) : [];
+          if (vendCards.length) {
+            vendCards.forEach((vc) => cards.push(painelMiniHtml(vc.label, vc.sub, null, null, vc.line, false, null, null, year, escapeHtml)));
+          } else {
+            det.territorios.forEach((t) => cards.push(painelMiniHtml(t.terr, t.resp, null, null, t.pecas, false, null, null, year, escapeHtml)));
+          }
+        } else {
+          cards.push(painelMiniHtml(coordNome.toUpperCase(), det.coord.gestor || "", det.consolidado.grao, det.consolidado.pec, null, true, null, det.consolidado.memo, year, escapeHtml));
+          det.territorios.forEach((t) => cards.push(painelMiniHtml(t.terr, t.resp, t.grao, t.pec, null, false, null, null, year, escapeHtml)));
+        }
+        body.innerHTML = `
+          <div class="cvp-detail" style="--accent:${accent};--accent-soft:${accent}26">
+            <div class="cvp-detail-head">
+              <h2><span class="cvp-dot"></span>${escapeHtml(coordNome)}</h2>
+              <span class="cvp-note">${MONTHS_FULL[month - 1]}/${year} · Consolidado + território a território</span>
+            </div>
+            <div class="cvp-mini-grid">${cards.join("")}</div>
+          </div>
+        `;
+      } catch (err) {
+        if (vendasPopoverEl !== backdrop) return;
+        body.innerHTML = `<div class="cvp-empty">${escapeHtml(friendlyError(err))}</div>`;
       }
     }
 
@@ -596,6 +720,44 @@
         .rpc-present-blocks { display:grid; gap:16px; width:100%; max-width:900px; margin:0 auto; }
         .rpc-present-blocks .rpc-block-label { font-size:calc(.68rem + var(--rpc-presentation-zoom, 0px)); }
         .rpc-present-blocks .rpc-block-text { min-height:110px; font-size:calc(.95rem + var(--rpc-presentation-zoom, 0px)); }
+        .rpc-vendas-backdrop { position:fixed; inset:0; z-index:9700; background:rgba(0,0,0,.72); display:flex; align-items:center; justify-content:center; padding:5vh 5vw; }
+        .rpc-vendas-panel { position:relative; width:90vw; height:90vh; background:#09090a; border:1px solid #2a2d34; border-radius:16px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 30px 90px rgba(0,0,0,.6); }
+        .rpc-vendas-close { position:absolute; top:14px; right:14px; z-index:2; width:32px; height:32px; border-radius:8px; border:1px solid var(--rpc-line); background:rgba(255,255,255,.06); color:#fff; cursor:pointer; font-size:15px; }
+        .rpc-vendas-close:hover { background:rgba(255,255,255,.12); }
+        .rpc-vendas-body { flex:1; min-height:0; overflow:auto; padding:24px; }
+        /* Subconjunto de .cvp-* do Painel de Vendas (reportsComercialPainelModule.js)
+           — mesmas classes, reaproveitadas tal e qual pra o cartão de
+           coordenação/território ficar idêntico ao relatório real. */
+        .cvp { --cvp-bg:#09090a; --cvp-bg-soft:#0e0e10; --cvp-panel:#121317; --cvp-panel-hover:#191b20; --cvp-line:#2a2d34; --cvp-text:#fff; --cvp-soft:#a1a7b3; --cvp-faint:#6b7280; --cvp-pos:#4ade80; --cvp-neg:#f87171; color:var(--cvp-text); }
+        .cvp * { box-sizing:border-box; }
+        .cvp-detail { background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:16px; overflow:hidden; }
+        .cvp-detail-head { display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--cvp-line); flex-wrap:wrap; gap:6px; }
+        .cvp-detail-head h2 { font-size:15px; font-weight:600; margin:0; display:flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:.03em; }
+        .cvp-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); }
+        .cvp-note { font-size:12px; color:var(--cvp-faint); text-transform:none; letter-spacing:0; }
+        .cvp-mini-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:16px; }
+        .cvp-mini { border:1px solid var(--cvp-line); border-radius:10px; overflow:hidden; background:var(--cvp-bg-soft); min-width:0; }
+        .cvp-mini-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:9px 10px; background:rgba(255,255,255,.03); border-bottom:1px solid var(--cvp-line); }
+        .cvp-mini-terr { font-size:13px; font-weight:700; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .cvp-mini-terr .cvp-mini-sep { color:var(--cvp-faint); font-weight:400; margin:0 2px; }
+        .cvp-mini-name { font-size:10.5px; color:var(--cvp-faint); font-weight:500; white-space:nowrap; }
+        .cvp-mini-status { display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; color:var(--cvp-soft); white-space:nowrap; flex-shrink:0; }
+        .cvp-mini-status::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--dot-color,#6b7280); box-shadow:0 0 0 3px var(--dot-glow,rgba(107,114,128,.15)); flex-shrink:0; }
+        .cvp-mini.sum { border-color:var(--accent); } .cvp-mini.sum .cvp-mini-head { background:var(--accent-soft); } .cvp-mini.sum .cvp-mini-terr { color:var(--accent); }
+        .cvp-mini-wrap { overflow-x:auto; }
+        .cvp-mini-tbl { width:100%; border-collapse:collapse; table-layout:fixed; }
+        .cvp-mini-tbl th, .cvp-mini-tbl td { padding:5px 4px; font-size:10.3px; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .cvp-mini-tbl th:first-child, .cvp-mini-tbl td:first-child { width:78px; text-align:left; }
+        .cvp-mini-tbl th { color:var(--cvp-faint); font-weight:500; font-size:9px; text-transform:uppercase; letter-spacing:.03em; }
+        .cvp-mini-tbl td:first-child { color:var(--cvp-soft); font-size:9.5px; text-transform:uppercase; letter-spacing:.03em; }
+        .cvp-mini-tbl tbody tr:not(:last-child) td { border-bottom:1px solid rgba(255,255,255,.05); }
+        .cvp-mini-tbl tr.fat td { font-weight:600; font-size:9.3px; color:var(--cvp-text); border-top:1px solid var(--cvp-line); }
+        .cvp-mini-tbl tr.tkt td { font-size:9.3px; color:var(--cvp-soft); }
+        .cvp-mini-tbl tr.memo td { color:var(--cvp-faint); font-style:italic; opacity:.85; }
+        .cvp-mini-tbl tr.memo + tr td { border-top:1px dashed rgba(255,255,255,.12); }
+        .cvp-mini-foot { padding:0 2px 2px; font-size:9px; font-style:italic; color:var(--cvp-faint); line-height:1.35; }
+        .cvp-empty { padding:40px; text-align:center; color:var(--cvp-faint); }
+        @media (max-width:900px) { .cvp-mini-grid { grid-template-columns:1fr; } }
       `;
       document.head.append(s);
     }
@@ -711,7 +873,8 @@
           </div>
           <div class="rps-toolbar">
             <strong class="rps-status-pill" data-rpc-status data-state="${state.status}"><i></i><span data-rpc-status-text>${escapeHtml(statusLabel())}</span></strong>
-            ${state.presentation ? `<button type="button" class="rps-action" data-action="zoom-in" title="Aumentar os textos em 2 pixels">＋ <span>Zoom</span></button>
+            ${state.presentation ? `<button type="button" class="rps-action" data-action="vendas-popover" title="Painel de Vendas desta coordenação, no mês da reunião">📊 <span>Painel de Vendas</span></button>
+            <button type="button" class="rps-action" data-action="zoom-in" title="Aumentar os textos em 2 pixels">＋ <span>Zoom</span></button>
             <button type="button" class="rps-action" data-action="zoom-out" title="Diminuir os textos em 2 pixels" ${state.presentationZoom <= 0 ? "disabled" : ""}>− <span>Zoom</span></button>` : ""}
             <button type="button" class="rps-action" data-action="refresh" title="Recarregar dados">↻ <span>Atualizar</span></button>
             <button type="button" class="rps-action rps-action-primary" data-action="present">▣ <span>${state.presentation ? "Sair" : "Apresentar"}</span></button>
@@ -762,6 +925,9 @@
         state.presentationZoom = Math.max(0, state.presentationZoom - 2);
         applyPresentationZoom();
         renderShell();
+      });
+      root.querySelector('[data-action="vendas-popover"]')?.addEventListener("click", () => {
+        openVendasPopover(AREAS[state.presentationAreaIndex]);
       });
     }
 
@@ -866,6 +1032,7 @@
       state.presentation = false;
       state.presentationZoom = 0;
       document.body.style.removeProperty("--rpc-presentation-zoom");
+      closeVendasPopover();
       if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
       renderShell();
     }
@@ -890,7 +1057,7 @@
     // também derrubava a apresentação inteira.
     function handlePresentationKeydown(event) {
       if (!state.presentation) return;
-      if (document.querySelector(".rps-attachment-carousel")) return;
+      if (document.querySelector(".rps-attachment-carousel") || vendasPopoverEl) return;
       if (event.key === "Escape") exitPresentation();
       else if (event.key === "ArrowLeft") gotoPresentationArea(state.presentationAreaIndex - 1);
       else if (event.key === "ArrowRight") gotoPresentationArea(state.presentationAreaIndex + 1);
@@ -912,6 +1079,7 @@
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("keydown", handlePresentationKeydown);
       closeAttachmentCarousel();
+      closeVendasPopover();
       document.body.style.removeProperty("--rpc-presentation-zoom");
       state.presentation = false;
     }
