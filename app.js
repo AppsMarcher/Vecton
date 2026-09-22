@@ -81,6 +81,7 @@ const { createReportSectionsModule } = window.VECTON_REPORT_SECTIONS || {};
 const { createForecastModule } = window.VECTON_FORECAST || {};
 const { createRpsModule } = window.VECTON_RPS || {};
 const { createRpsComercialModule } = window.VECTON_RPS_COMERCIAL || {};
+const { createRpsComercialMobileModule } = window.VECTON_RPS_COMERCIAL_MOBILE || {};
 const { createStrategicModule } = window.VECTON_STRATEGIC || {};
 const { createStrategicMobileModule } = window.VECTON_STRATEGIC_MOBILE || {};
 
@@ -1197,6 +1198,26 @@ const rpsComercialModule = createRpsComercialModule
 
 const renderRpsComercial = () => rpsComercialModule.render();
 
+// Versão mobile do RPS Comercial — mesmos deps do módulo desktop acima, só
+// muda o container (fornecido pelo shell mobile a cada mount(), não fixo
+// como o #rps-comercial-root do desktop). Ver rpsComercialMobileModule.js:
+// reabre a mesma fábrica, edição completa (não é uma versão só-leitura).
+const rpsComercialMobileModule = createRpsComercialMobileModule
+  ? createRpsComercialMobileModule({
+      resolveOrganizationId,
+      authenticatedFetch,
+      callSupabaseRpc,
+      supabaseApiUrl: supabaseConfig.projectUrl,
+      getCurrentUserId: () => currentUser?.id || null,
+      appAlert,
+      appConfirm,
+      uploadToStorage,
+      createStorageSignedUrl,
+      deleteFromStorage,
+      escapeHtml
+    })
+  : null;
+
 // Módulo A3 - Gestão Estratégica — isolado de RPS Gestão (tabelas,
 // permissões, snapshots e bucket de anexos próprios). Mesmo padrão de
 // injeção de dependências do rpsModule, mas sem snapshot/backup — grava
@@ -1459,11 +1480,13 @@ function handleMobileLogout() {
 const mobileShellModule = createMobileShellModule({
   canSeeReport,
   canAccessStrategic,
+  canAccessRpsComercial,
   getCurrentUser: () => currentUser,
   getProfileAvatarSnapshot,
   handleLogout: handleMobileLogout,
   comercialPainelMobileModule,
   strategicMobileModule,
+  rpsComercialMobileModule,
   messagesModule: messagesTab,
 });
 const comercialMapaModule = createComercialMapaModule({

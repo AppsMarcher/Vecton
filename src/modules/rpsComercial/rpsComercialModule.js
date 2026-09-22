@@ -784,7 +784,7 @@
         .rpc-attachment-thumb-icon { font-size:2.2rem; }
         .rpc-present { position:fixed; inset:0; z-index:9500; display:flex; flex-direction:column; align-items:center; padding:22px 34px; background:var(--rpc-bg); overflow:auto; }
         .rpc-present > .rps-hero { width:100%; margin-bottom:18px; }
-        .rpc-present-areas-row { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:18px; }
+        .rpc-present-areas-row { display:flex; align-items:flex-start; justify-content:center; gap:10px; margin-bottom:18px; }
         .rpc-present-areas { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:6px; }
         .rpc-present-dot { display:inline-flex; align-items:center; min-height:32px; border-radius:9px; border:1px solid var(--rpc-line); background:transparent; color:var(--rpc-soft); font-size:calc(.7rem + var(--rpc-presentation-zoom, 0px)); padding:0 12px; cursor:pointer; }
         .rpc-present-dot.is-active { background:var(--rpc-blue); border-color:var(--rpc-blue); color:#fff; }
@@ -835,19 +835,19 @@
     }
 
     // ---------------------------------------------------------------- Render
-    // Comentário passou a ser por anexo (campo comment_text, editado dentro
-    // do carrossel — abre-se o anexo, comenta ali mesmo). O textarea do
-    // bloco inteiro só aparece quando não há nenhum anexo: nesse caso não
-    // tem onde comentar por anexo, então mantém a nota livre de antes.
+    // Comentário por anexo (campo comment_text, editado dentro do carrossel)
+    // convive com o texto livre do bloco inteiro (campo da entry) — o texto
+    // livre é pro comentário avulso, sem anexo nenhum atrelado, e por isso
+    // fica sempre visível, anexo ou não (pedido do usuário: não pode
+    // desaparecer só porque anexaram algo).
     function renderBlock(area, entry, block, readOnlyAttachments = false) {
       const attachments = getBlockAttachments(area, block);
       const value = entry?.[block.field] || "";
-      const showBlockText = attachments.length === 0;
       return `
         <div class="rpc-block" data-area="${area.id}" data-block="${block.id}">
           <div class="rpc-block-head"><span class="rpc-block-label">${escapeHtml(block.label)}</span></div>
           ${readOnlyAttachments ? renderAttachmentsViewer(area, block, attachments) : renderAttachmentsStrip(area, block, attachments)}
-          ${showBlockText ? `<textarea class="rpc-block-text" data-area="${area.id}" data-block="${block.id}" placeholder="${escapeHtml(block.placeholder)}" rows="3">${escapeHtml(value)}</textarea>` : ""}
+          <textarea class="rpc-block-text" data-area="${area.id}" data-block="${block.id}" placeholder="${escapeHtml(block.placeholder)}" rows="3">${escapeHtml(value)}</textarea>
         </div>
       `;
     }
