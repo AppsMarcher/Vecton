@@ -63,7 +63,7 @@
 .fc-panel-footer { color: var(--text-faint); font-size: .68rem; margin-top: 14px; line-height: 1.5; }
 .fc-panel-footer > :last-child { white-space: nowrap; }
 .fc-detail-scroll { max-height: 65vh; }
-.fc-detail-scroll table { min-width: 1320px; }
+.fc-detail-scroll table { min-width: 1320px; font-size: calc(.76rem - 2px); }
 .fc-detail-scroll thead th { position: sticky; top: 0; background: var(--panel); z-index: 2; isolation: isolate; }
 .fc-detail-scroll th:first-child { position: sticky; left: 0; z-index: 1; background: var(--panel); width: 265px; min-width: 265px; max-width: 265px; isolation: isolate; }
 .fc-detail-scroll thead th:first-child { z-index: 3; }
