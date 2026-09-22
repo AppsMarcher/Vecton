@@ -13,22 +13,20 @@
     const {
       canSeeReport,
       canAccessStrategic,
-      canAccessRpsComercial,
       getCurrentUser,
       getProfileAvatarSnapshot,
       handleLogout,
       comercialPainelMobileModule,
       strategicMobileModule,
-      rpsComercialMobileModule,
       messagesModule
     } = deps;
 
     const BREAKPOINT_QUERY = "(max-width: 767px)";
     // Cada módulo se autoriza do seu próprio jeito: Painel de Vendas usa o
     // gate genérico de relatório (canSeeReport, RBAC por extra_report_ids);
-    // A3 Estratégicos e RPS Comercial usam o gate próprio do módulo
-    // (access_role — não é um "relatório" no sentido de extra_report_ids).
-    // moduleCanOpen() abaixo resolve qualquer um dos formatos.
+    // A3 Estratégicos usa o gate próprio do módulo (canAccessStrategic,
+    // access_role — não é um "relatório" no sentido de extra_report_ids).
+    // moduleCanOpen() abaixo resolve qualquer um dos dois formatos.
     const MODULES = [
       {
         key: "painelVendas", nome: "Painel de Vendas",
@@ -39,11 +37,6 @@
         key: "a3", nome: "A3 Estratégicos",
         desc: "Norte Verdadeiro, metas e indicadores por gestão.",
         accent: "#8b5cf6", icon: "target", checkAccess: () => canAccessStrategic && canAccessStrategic(), available: true
-      },
-      {
-        key: "rpsComercial", nome: "RPS Comercial",
-        desc: "Condução e registro da reunião comercial semanal, por área.",
-        accent: "#14b8a6", icon: "briefcase", checkAccess: () => canAccessRpsComercial && canAccessRpsComercial(), available: true
       }
     ];
 
@@ -71,9 +64,6 @@
     function moduleIconSvg(name) {
       if (name === "target") {
         return '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-target"></use></svg>';
-      }
-      if (name === "briefcase") {
-        return '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-briefcase"></use></svg>';
       }
       return '<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-pie"></use></svg>';
     }
@@ -243,8 +233,6 @@
         comercialPainelMobileModule.mount(screenEl);
       } else if (activeModuleKey === "a3" && strategicMobileModule) {
         strategicMobileModule.mount(screenEl);
-      } else if (activeModuleKey === "rpsComercial" && rpsComercialMobileModule) {
-        rpsComercialMobileModule.mount(screenEl);
       }
     }
 
@@ -294,7 +282,6 @@
     function goToMenu() {
       if (activeModuleKey === "painelVendas" && comercialPainelMobileModule) comercialPainelMobileModule.unmount();
       else if (activeModuleKey === "a3" && strategicMobileModule) strategicMobileModule.unmount();
-      else if (activeModuleKey === "rpsComercial" && rpsComercialMobileModule) rpsComercialMobileModule.unmount();
       activeModuleKey = null;
       profileOpen = false;
       syncProfilePopover();
@@ -381,7 +368,6 @@
     function deactivate() {
       if (activeModuleKey === "painelVendas" && comercialPainelMobileModule) comercialPainelMobileModule.unmount();
       else if (activeModuleKey === "a3" && strategicMobileModule) strategicMobileModule.unmount();
-      else if (activeModuleKey === "rpsComercial" && rpsComercialMobileModule) rpsComercialMobileModule.unmount();
       activeModuleKey = null;
       // profileOpen é variável do módulo (sobrevive ao unmount) -- sem
       // resetar aqui, sair com o popover do avatar aberto (avatar > Sair)
