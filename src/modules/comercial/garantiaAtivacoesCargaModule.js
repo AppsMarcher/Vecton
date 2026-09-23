@@ -52,12 +52,13 @@
       view.innerHTML = `
         <div id="garcarga-detail" class="actuals-layout">
           <div class="content-card actuals-intake-card">
-            <div class="actuals-intake-header">
-              <div class="actuals-intake-controls">
-                <strong>Carga de Ativações de Garantia</strong>
+            <div class="card-toolbar">
+              <div>
+                <p class="section-kicker">Upload</p>
+                <h4 class="inline-card-title">Carga de Ativações de Garantia</h4>
               </div>
             </div>
-            <p class="section-kicker" style="margin:0 0 10px">
+            <p class="actuals-intake-hint">
               Suba a exportação do AltForce (aba "AltForce" da planilha). A carga é aditiva: reimportar
               atualiza as ativações existentes (pelo campo "Número") e adiciona as novas, sem apagar nada.
             </p>

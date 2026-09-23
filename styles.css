@@ -2889,6 +2889,10 @@ body.auth-only .vp-update-banner { display: none; }
 [data-report-id^="comercial"]:hover { border-color: rgba(20,184,166,0.30); border-top-color: #14b8a6; }
 [data-report-id^="comercial"].active { border-color: rgba(20,184,166,0.65); border-top-color: #14b8a6; }
 
+[data-report-id="garantiaAtivacoes"] { border-top-color: #ec4899; }
+[data-report-id="garantiaAtivacoes"]:hover { border-color: rgba(236,72,153,0.30); border-top-color: #ec4899; }
+[data-report-id="garantiaAtivacoes"].active { border-color: rgba(236,72,153,0.65); border-top-color: #ec4899; }
+
 /* Ícones coloridos por categoria */
 [data-report-id^="dre"] .rrc-icon-wrap {
   background: rgba(79,124,255,0.12);
@@ -2909,6 +2913,11 @@ body.auth-only .vp-update-banner { display: none; }
   background: rgba(20,184,166,0.12);
   border-color: rgba(20,184,166,0.22);
   color: #14b8a6;
+}
+[data-report-id="garantiaAtivacoes"] .rrc-icon-wrap {
+  background: rgba(236,72,153,0.12);
+  border-color: rgba(236,72,153,0.22);
+  color: #ec4899;
 }
 
 .reports-report-card--soon {
@@ -3108,6 +3117,22 @@ body.can-edit-reports .fc-scenario-card .fc-card-menu-btn { right: 42px; }
 .rrc-dragging { opacity: 0.45; }
 .rrc-drag-over { outline: 2px dashed var(--blue); outline-offset: 3px; }
 .rrc-drag-over-empty { outline: 2px dashed var(--blue); outline-offset: -6px; border-radius: 12px; }
+
+/* Seção sem card nenhum, visível só durante "Reorganizar" (ver reportsSectionsModule.js) —
+   sem isso a área tem altura zero e não dá pra soltar o primeiro card nela. */
+.reports-section-body:empty {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+.reports-section-body:empty::before {
+  content: "Arraste um card para cá";
+  color: var(--text-faint);
+  font-size: 0.78rem;
+}
 
 /* Popover "Gerenciar seções" */
 .rsm-popover {
@@ -4030,6 +4055,13 @@ thead .col-frozen-3 {
 
 .actuals-upload-feedback.is-warn {
   color: var(--amber);
+}
+
+.actuals-intake-hint {
+  margin: 0 0 14px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-faint);
 }
 
 .inline-card-title {

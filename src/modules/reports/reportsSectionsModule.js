@@ -118,7 +118,10 @@
 
       activeSections().forEach((section) => {
         const secItems = (itemsBySection.get(section.id) || []).sort((a, b) => a.sort_order - b.sort_order);
-        if (!secItems.length) return; // seção sem relatório atribuído fica escondida
+        // Seção sem relatório atribuído fica escondida no dia a dia — mas no
+        // modo reorganizar precisa aparecer vazia, senão uma seção recém-criada
+        // nunca teria onde soltar o primeiro card (beco sem saída).
+        if (!secItems.length && !_reorderMode) return;
         const sectionEl = buildSectionEl(section);
         const body = sectionEl.querySelector(".reports-section-body");
         secItems.forEach((item) => body.appendChild(cardById.get(item.report_id)));
@@ -253,6 +256,10 @@
     // ── Modo reorganizar (liga drag em todos os cards) ──────────────────
     function setReorderMode(on, reorderBtn) {
       _reorderMode = on;
+      // Reconstrói a grade: ligando, revela seções vazias como área pra soltar
+      // o primeiro card; desligando, volta a escondê-las (mesmo rebuildGrid,
+      // só que agora lendo _reorderMode=false de novo).
+      rebuildGrid();
       document.querySelectorAll("#reports-card-grid .reports-report-card").forEach((c) => {
         c.draggable = on;
         c.classList.toggle("rrc-reorder-mode", on);

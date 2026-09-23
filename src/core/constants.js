@@ -95,7 +95,8 @@ const VIEW_HEADER_METADATA = {
   comVendedores:     { kicker: "PARÂMETROS", title: "Time Comercial" },
   comAtribuicao:     { kicker: "PARÂMETROS", title: "Atribuição Território → Responsável" },
   comercialVendas:   { kicker: "PARÂMETROS", title: "Carga de Vendas realizadas" },
-  comercialPlanejado:{ kicker: "PARÂMETROS", title: "Carga de Vendas planejadas" }
+  comercialPlanejado:{ kicker: "PARÂMETROS", title: "Carga de Vendas planejadas" },
+  garantiaAtivacoesCarga: { kicker: "PARÂMETROS", title: "Carga de Ativações de Garantia" }
 };
 
 global.VECTON_CORE_CONSTANTS = {
