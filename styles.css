@@ -5159,6 +5159,10 @@ textarea[disabled] {
 .load-catalog-card--green:hover { border-color: rgba(34,197,94,0.28); border-top-color: #22c55e; }
 .load-catalog-card--green .lcc-icon-wrap { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.22); color: #22c55e; }
 
+.load-catalog-card--sky { border-top-color: #0ea5e9; }
+.load-catalog-card--sky:hover { border-color: rgba(14,165,233,0.28); border-top-color: #0ea5e9; }
+.load-catalog-card--sky .lcc-icon-wrap { background: rgba(14,165,233,0.12); border-color: rgba(14,165,233,0.22); color: #0ea5e9; }
+
 .lcc-icon-wrap {
   display: inline-flex;
   align-items: center;
@@ -12426,3 +12430,30 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .fc-plan-workspace .dre-tree { max-height: 65vh; overflow: auto; }
 #fc-plan-status { font-size: .8rem; color: var(--text-faint); }
 #fc-plan-status[role="alert"] { color: #f87171; }
+
+/* Relatório "Ativações de Garantia" (reportsGarantiaAtivacoesModule.js) — CSS próprio, prefixo gar-. */
+.gar-summary-bar { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 14px; font-size: .82rem; color: var(--text-faint); }
+.gar-summary-bar strong { color: var(--text); font-size: 1rem; }
+.gar-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.gar-card-wide { grid-column: 1 / -1; }
+.gar-hint { font-size: .78rem; color: var(--text-faint); margin: -4px 0 10px; }
+.gar-toggle { display: inline-flex; gap: 4px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+.gar-toggle button { border: 0; background: transparent; padding: 5px 10px; border-radius: 6px; font-size: .76rem; color: var(--text-faint); cursor: pointer; }
+.gar-toggle button.active { background: var(--panel-alt); color: var(--blue); }
+.gar-heatmap-body { display: grid; gap: 14px; }
+.gar-ufmap-wrap { display: flex; justify-content: center; }
+.gar-ufmap { width: 100%; max-width: 360px; height: auto; }
+.gar-heat-table-shell { max-height: 420px; overflow: auto; }
+.gar-heat-table th, .gar-heat-table td { white-space: nowrap; padding: 6px 10px; }
+.gar-ranking { display: grid; gap: 8px; }
+.gar-ranking-row { display: grid; grid-template-columns: 20px minmax(0,1fr) minmax(60px,120px) 28px; align-items: center; gap: 8px; }
+.gar-ranking-pos { font-size: .74rem; color: var(--text-faint); text-align: right; }
+.gar-ranking-name { font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gar-ranking-bar-wrap { background: var(--panel-alt); border-radius: 4px; height: 8px; overflow: hidden; }
+.gar-ranking-bar { background: linear-gradient(90deg, #1d4ed8, #3b82f6); height: 100%; border-radius: 4px; }
+.gar-ranking-count { font-size: .8rem; font-weight: 600; text-align: right; }
+.gar-unresolved { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-alt); font-size: .78rem; color: var(--text-faint); }
+.gar-unresolved ul { margin: 6px 0 0; padding-left: 18px; }
+@media (max-width: 900px) {
+  .gar-grid { grid-template-columns: 1fr; }
+}

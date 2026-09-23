@@ -64,6 +64,8 @@ const { createMessagesModule } = window.VECTON_MESSAGES;
 const { createCadastroModule } = window.VECTON_COMERCIAL_CADASTRO_MODULE;
 const { createComercialVendasCargaModule } = window.VECTON_COMERCIAL_VENDAS_CARGA;
 const { createComercialPlanejadoCargaModule } = window.VECTON_COMERCIAL_PLANEJADO_CARGA;
+const { createGarantiaAtivacoesCargaModule } = window.VECTON_GARANTIA_ATIVACOES_CARGA;
+const { createReportsGarantiaAtivacoesModule } = window.VECTON_REPORTS_GARANTIA_ATIVACOES;
 const { createComercialPainelModule } = window.VECTON_COMERCIAL_PAINEL;
 const { createComercialPainelMobileModule } = window.VECTON_COMERCIAL_PAINEL_MOBILE;
 const { createMobileShellModule } = window.VECTON_MOBILE_SHELL;
@@ -217,7 +219,8 @@ const views = {
   comVendedores: document.querySelector("#comVendedores-view"),
   comAtribuicao: document.querySelector("#comAtribuicao-view"),
   comercialVendas: document.querySelector("#comercialVendas-view"),
-  comercialPlanejado: document.querySelector("#comercialPlanejado-view")
+  comercialPlanejado: document.querySelector("#comercialPlanejado-view"),
+  garantiaAtivacoesCarga: document.querySelector("#garantiaAtivacoesCarga-view")
 };
 const profileDialog = document.querySelector("#profile-dialog");
 
@@ -396,7 +399,8 @@ const actualsModule = createActualsModule({
   setSyncStatus,
   upsertSupabaseRows,
   appConfirm,
-  openComercialVendasCarga
+  openComercialVendasCarga,
+  openGarantiaAtivacoesCarga
 });
 const {
   ensureViewShell: ensureActualsViewShell,
@@ -1057,6 +1061,35 @@ function openComercialVendasCarga() {
   void comVendasCargaMod.loadAndRender();
 }
 
+// Carga de Ativações de Garantia (planilha AltForce) — acessada pelo card
+// "Ativações de Garantia" do catalogo Carga de Realizado. Sem lotes/auditoria
+// (ver garantiaAtivacoesCargaModule.js): upload simples, upsert por Número.
+const garantiaAtivacoesCargaMod = createGarantiaAtivacoesCargaModule({
+  state,
+  views,
+  escapeHtml,
+  formatDisplayDate,
+  normalizeDateInput,
+  normalizeHeaderName,
+  chunkArray,
+  isSupabaseConfigured,
+  fetchAllSupabaseRows,
+  upsertSupabaseRows,
+  resolveOrganizationId,
+  formatFileSize,
+  onBack: () => openActualsLoadCatalog(),
+  MAX_BROWSER_XLSX_BYTES,
+  UPSERT_CHUNK_SIZE: ACTUALS_IMPORT_UPSERT_CHUNK_SIZE
+});
+
+function openGarantiaAtivacoesCarga() {
+  activeView = "garantiaAtivacoesCarga";
+  renderNavigation();
+  garantiaAtivacoesCargaMod.ensureViewShell();
+  garantiaAtivacoesCargaMod.renderView();
+  void garantiaAtivacoesCargaMod.loadAndRender();
+}
+
 function openActualsLoadCatalog() {
   setSelectedActualsLoadType(null);
   activeView = "actualsLoad";
@@ -1479,6 +1512,12 @@ const comercialMapaGeograficoModule = createComercialMapaGeograficoModule({
   state,
   resolveOrganizationId,
   callSupabaseRpc,
+  fetchAllSupabaseRows,
+  isSupabaseConfigured,
+});
+const reportsGarantiaAtivacoesModule = createReportsGarantiaAtivacoesModule({
+  escapeHtml,
+  resolveOrganizationId,
   fetchAllSupabaseRows,
   isSupabaseConfigured,
 });
@@ -2325,14 +2364,14 @@ function isConsolidatedReport(reportId) {
   return String(reportId).startsWith("dre") || reportId === "cashFlow";
 }
 
-const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo"];
+const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo", "garantiaAtivacoes"];
 
 // Visibilidade do card no catálogo — modelo POR PAPEL (conforme tela Perfis de Acesso):
 //  • admin/super_admin: tudo
-//  • manager (Gestor): tudo, incluindo os quatro relatórios comerciais
+//  • manager (Gestor): tudo, incluindo os relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS)
 //  • analyst (Analista): somente OPEX e Headcount por gestão/CC
-//  • comercial: allowlist fixa dos quatro relatórios comerciais
-//  • extra_report_ids: concessão ADICIONAL, exceto para os quatro relatórios
+//  • comercial: allowlist fixa dos relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS)
+//  • extra_report_ids: concessão ADICIONAL, exceto para os relatórios
 //    comerciais fixos, que exigem um perfil que os autorize explicitamente
 // Com perfis combináveis, o resultado é a UNIÃO do que cada perfil marcado
 // libera (basta UM dos perfis da pessoa liberar o relatório).
@@ -3060,7 +3099,8 @@ const REPORT_TITLES = {
   comercialPainel: "Painel de Vendas",
   comercialMapa: "Mapa de Vendas",
   comercialMapaGeografico: "Ranking Geográfico",
-  comercialPecasGeo: "Performance de Peças"
+  comercialPecasGeo: "Performance de Peças",
+  garantiaAtivacoes: "Ativações de Garantia"
 };
 
 /*
@@ -3293,6 +3333,7 @@ function renderReportsView() {
     comercialMapaModule.renderSelectedMapa(detailPanel, selectedReportId) ||
     comercialMapaGeograficoModule.renderSelectedMapaGeografico(detailPanel, selectedReportId) ||
     comercialPecasGeoModule.renderSelectedPecasGeo(detailPanel, selectedReportId) ||
+    reportsGarantiaAtivacoesModule.renderSelectedGarantiaAtivacoes(detailPanel, selectedReportId) ||
     reportsDreModule.renderSelectedDreReport(detailPanel, selectedReportId) ||
     reportsOpexModule.renderSelectedOpexReport(detailPanel, selectedReportId) ||
     reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId);
