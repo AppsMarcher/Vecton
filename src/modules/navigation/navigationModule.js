@@ -48,7 +48,7 @@
       const paramsViews = [
         "branchPlan", "drePlan", "fcPlan", "fcLoad", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles", "notifications",
         "comProdutos", "comClientes", "comTerritorios", "comCoordenacoes", "comTipos", "comCulturas", "comLinhasNegocio", "comVendedores", "comAtribuicao",
-        "comercialVendas", "comercialPlanejado"
+        "comercialVendas", "comercialPlanejado", "garantiaAtivacoesCarga"
       ];
       paramsToggle.classList.toggle("active", paramsViews.includes(activeView));
 
