@@ -42,7 +42,8 @@
       setSyncStatus,
       upsertSupabaseRows,
       appConfirm,
-      openComercialVendasCarga
+      openComercialVendasCarga,
+      openGarantiaAtivacoesCarga
     } = deps;
 
     const ACTUALS_LOAD_LABELS = {
@@ -126,6 +127,12 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4 5.6A1 1 0 0 0 6.6 20H19"/><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
               </span>
               <strong>Volumes de Vendas</strong>
+            </button>
+            <button class="load-catalog-card load-catalog-card--sky" type="button" data-garantia-carga>
+              <span class="lcc-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+              </span>
+              <strong>Ativações de Garantia</strong>
             </button>
             <button class="load-catalog-card load-catalog-card--green" type="button" data-headcount-entry="realizado">
               <span class="lcc-icon-wrap">
@@ -252,6 +259,11 @@
         const comercialCard = event.target.closest("[data-comercial-carga]");
         if (comercialCard && !comercialCard.disabled) {
           openComercialVendasCarga?.();
+          return;
+        }
+        const garantiaCard = event.target.closest("[data-garantia-carga]");
+        if (garantiaCard && !garantiaCard.disabled) {
+          openGarantiaAtivacoesCarga?.();
           return;
         }
         const card = event.target.closest("[data-load-type]");

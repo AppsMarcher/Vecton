@@ -179,7 +179,11 @@
             renderNavigation();
             ensureActualsViewShell();
             renderActualsCatalog();
-            await ensureActualsBatchRowsLoaded(getSelectedActualsBatchId());
+            // selectedLoadType acabou de ser zerado (catálogo, não detalhe de
+            // lote): renderActualsView() sai sem fazer nada nesse estado, então
+            // pré-carregar as linhas do último lote selecionado aqui só trava a
+            // navegação por nada (achado real: lote grande de DRE travando a
+            // troca de tela por minutos, ver [[project_vecton_plan]]).
             renderActualsView();
             return;
           }
@@ -191,7 +195,6 @@
             renderNavigation();
             ensureBudgetViewShell();
             renderBudgetCatalog();
-            await ensureBudgetBatchRowsLoaded(getSelectedBudgetBatchId());
             renderBudgetView();
             return;
           }
