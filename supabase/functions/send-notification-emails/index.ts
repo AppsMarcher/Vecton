@@ -97,8 +97,16 @@ function buildHtml(subject: string, bodyText: string, linkPath?: string | null):
                     ${rest}
                     <table role="presentation" cellspacing="0" cellpadding="0" style="margin:22px 0 0;">
                       <tr>
-                        <td align="center" bgcolor="#4f7cff" style="border-radius:12px;">
-                          <a href="${href}" style="display:inline-block;padding:12px 22px;font-size:14px;font-weight:700;line-height:1;text-decoration:none;color:#ffffff;">${rotulo}</a>
+                        <td align="center">
+                          <!--[if mso]>
+                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${href}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="27%" stroke="f" fillcolor="#4f7cff">
+                          <w:anchorlock/>
+                          <center style="color:#ffffff;font-family:Segoe UI,Arial,sans-serif;font-size:14px;font-weight:700;">${rotulo}</center>
+                          </v:roundrect>
+                          <![endif]-->
+                          <!--[if !mso]><!-->
+                          <a href="${href}" style="background-color:#4f7cff;border-radius:12px;color:#ffffff;display:inline-block;font-family:Inter,Segoe UI,Arial,sans-serif;font-size:14px;font-weight:700;line-height:44px;text-align:center;text-decoration:none;width:220px;-webkit-text-size-adjust:none;mso-hide:all;">${rotulo}</a>
+                          <!--<![endif]-->
                         </td>
                       </tr>
                     </table>

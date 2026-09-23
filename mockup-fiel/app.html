@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <base href="../">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; frame-src 'self' blob:">
+  <script src="mockup-fiel/guard.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#2563eb">
@@ -10,12 +13,13 @@
   <title>Vecton Planning</title>
   <link rel="icon" type="image/png" href="fav-icon.png">
   <link rel="apple-touch-icon" href="assets/pwa-icon-192.png">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  
+  
+  
   <link rel="stylesheet" href="styles.css?v=20260922h">
   <link rel="stylesheet" href="src/modules/cashflow/fcDashboard.css?v=20260921v">
+<link rel="stylesheet" href="mockup-fiel/clear.css"><link rel="stylesheet" href="mockup-fiel/profile-appearance.css">
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -1530,13 +1534,13 @@
   <script src="seed-data.js?v=20260719r"></script>
   <script src="dre-structure.js?v=20260719r"></script>
   <script src="cc-structure.js?v=20260719r"></script>
-  <script src="supabase-config.js?v=20260719r"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-  <script src="src/core/pwa.js?v=20260902a"></script>
+  
+  
+  
+  
+  
+  
+  
   <script src="src/core/constants.js?v=20260922a"></script>
   <script src="src/core/utils.js?v=20260803b"></script>
   <script src="src/core/storage.js?v=20260719r"></script>
@@ -1598,6 +1602,10 @@
   <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
   <script src="src/modules/cashflow/fcExport.js?v=20260921t"></script>
   <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
-  <script src="app.js?v=20260922f"></script>
-</body>
+  <script src="mockup-fiel/vendor/lucide.min.js"></script>
+<script src="mockup-fiel/fixtures.js"></script>
+<script src="mockup-fiel/bridge.js"></script>
+<script src="app.js?v=20260922f"></script>
+<script src="mockup-fiel/preview.js"></script>
+<script src="mockup-fiel/profile-appearance.js"></script></body>
 </html>

@@ -1,0 +1,18 @@
+{
+  "screens": 72,
+  "productionViewsCovered": 30,
+  "productionReportsCovered": 15,
+  "viewports": [
+    1440,
+    1280,
+    390
+  ],
+  "themes": [
+    "clear",
+    "dark"
+  ],
+  "renders": 432,
+  "errors": [],
+  "external": [],
+  "overflow": []
+}

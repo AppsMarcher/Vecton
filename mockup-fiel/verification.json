@@ -1,0 +1,660 @@
+{
+  "screenCount": 45,
+  "structureUnchanged": true,
+  "productionRenderers": true,
+  "errors": [],
+  "external": [],
+  "failures": [],
+  "screens": [
+    {
+      "id": "cockpit",
+      "headings": [
+        "Marcher",
+        "OPEX Mensal — Real x Budget",
+        "Raio-X por Área",
+        "Gestão",
+        "HC",
+        "Gasto com Pessoal",
+        "Demais Opex",
+        "OPEX por Grupo de Despesa",
+        "Grupo",
+        "Real Mês"
+      ],
+      "tables": 2,
+      "svg": 12,
+      "unchanged": true
+    },
+    {
+      "id": "rps",
+      "headings": [
+        "Reunião de Performance Semanal",
+        "Área / indicador",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "Mês",
+        "Meta",
+        "Var."
+      ],
+      "tables": 1,
+      "svg": 350,
+      "unchanged": true
+    },
+    {
+      "id": "rpsComercial",
+      "headings": [
+        "RPS - Comercial",
+        "Comercial Norte",
+        "Comercial Sul",
+        "Comercial Oeste",
+        "Comercial Exportação",
+        "Comercial Peças",
+        "Comercial Administrativo"
+      ],
+      "tables": 0,
+      "svg": 18,
+      "unchanged": true
+    },
+    {
+      "id": "strategic",
+      "headings": [
+        "Norte Verdadeiro",
+        "Áreas"
+      ],
+      "tables": 0,
+      "svg": 10,
+      "unchanged": true
+    },
+    {
+      "id": "dashboard",
+      "headings": [
+        "Demonstrativo de Resultados",
+        "Matéria-prima",
+        "EBITDA"
+      ],
+      "tables": 0,
+      "svg": 12,
+      "unchanged": true
+    },
+    {
+      "id": "planning",
+      "headings": [
+        "Repositório de Cenários"
+      ],
+      "tables": 0,
+      "svg": 8,
+      "unchanged": true
+    },
+    {
+      "id": "reports",
+      "headings": [
+        "Central de Relatórios"
+      ],
+      "tables": 0,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "branchPlan",
+      "headings": [
+        "[ 01 - Matriz Gravatai ]"
+      ],
+      "tables": 0,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "fcLoad",
+      "headings": [
+        "Carga do Fluxo de Caixa",
+        "Fluxo de Caixa · Carga anual",
+        "Lotes",
+        "Selecione um lote"
+      ],
+      "tables": 0,
+      "svg": 1,
+      "unchanged": true
+    },
+    {
+      "id": "fcPlan",
+      "headings": [
+        "Selecione uma conta"
+      ],
+      "tables": 0,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "drePlan",
+      "headings": [
+        "[ 31101001 - RECEITA DE MAQUINAS - NACIONAL ]"
+      ],
+      "tables": 0,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "managements",
+      "headings": [],
+      "tables": 0,
+      "svg": 40,
+      "unchanged": true
+    },
+    {
+      "id": "ccPlan",
+      "headings": [
+        "[ 10001 - DIRETORIA ]"
+      ],
+      "tables": 0,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "actualsLoad",
+      "headings": [
+        "Carga de Realizado",
+        "Lotes",
+        "Selecione um lote",
+        "#",
+        "Data",
+        "Emp",
+        "Conta",
+        "CC",
+        "Historico",
+        "Lote"
+      ],
+      "tables": 1,
+      "svg": 7,
+      "unchanged": true
+    },
+    {
+      "id": "budgetLoad",
+      "headings": [
+        "Carga de Planejado",
+        "Lotes",
+        "Selecione um lote",
+        "#",
+        "Emp",
+        "Conta",
+        "CC",
+        "Historico",
+        "Lote",
+        "Valor"
+      ],
+      "tables": 1,
+      "svg": 7,
+      "unchanged": true
+    },
+    {
+      "id": "headcountLoad",
+      "headings": [
+        "Lotes",
+        "Selecione um lote",
+        "#",
+        "Empresa",
+        "CC",
+        "Matrícula",
+        "Colaborador",
+        "Cargo",
+        "Status",
+        "Ação"
+      ],
+      "tables": 1,
+      "svg": 2,
+      "unchanged": true
+    },
+    {
+      "id": "users",
+      "headings": [
+        "Usuários",
+        "Usuário ↑",
+        "E-mail",
+        "Departamento",
+        "Perfil de Acesso",
+        "Status",
+        "Demais Parâmetros"
+      ],
+      "tables": 1,
+      "svg": 25,
+      "unchanged": true
+    },
+    {
+      "id": "accessProfiles",
+      "headings": [
+        "Perfis de Acesso"
+      ],
+      "tables": 0,
+      "svg": 7,
+      "unchanged": true
+    },
+    {
+      "id": "notifications",
+      "headings": [
+        "Notificações"
+      ],
+      "tables": 0,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comProdutos",
+      "headings": [
+        "Produtos",
+        "Código ↑",
+        "Descrição",
+        "Tipo",
+        "Nome reduzido",
+        "Cultura",
+        ""
+      ],
+      "tables": 1,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comClientes",
+      "headings": [
+        "Clientes",
+        "Código ↑",
+        "Descrição",
+        "Cidade",
+        "UF",
+        "Código IBGE",
+        ""
+      ],
+      "tables": 1,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comTerritorios",
+      "headings": [
+        "Território",
+        "Nome ↑",
+        ""
+      ],
+      "tables": 1,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comCoordenacoes",
+      "headings": [
+        "Coordenação",
+        "Nome ↑",
+        "Gestor",
+        ""
+      ],
+      "tables": 1,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comTipos",
+      "headings": [
+        "Tipo",
+        "Nome ↑",
+        ""
+      ],
+      "tables": 1,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comCulturas",
+      "headings": [
+        "Cultura",
+        "Nome ↑",
+        ""
+      ],
+      "tables": 1,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comLinhasNegocio",
+      "headings": [
+        "Linha de Negócio",
+        "Nome ↑",
+        ""
+      ],
+      "tables": 1,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comVendedores",
+      "headings": [
+        "Time Comercial",
+        "Código ↑",
+        "Nome",
+        "Cargo",
+        "Situação",
+        ""
+      ],
+      "tables": 1,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comAtribuicao",
+      "headings": [
+        "Atribuição Território → Responsável → Coordenação",
+        "Território ↑",
+        "Linha de Negócio",
+        "Coordenação",
+        "Cód. vendedor",
+        "Responsável",
+        "Início",
+        "Fim",
+        ""
+      ],
+      "tables": 1,
+      "svg": 0,
+      "unchanged": true
+    },
+    {
+      "id": "comercialVendas",
+      "headings": [
+        "Lotes",
+        "Selecione um lote",
+        "# ↑",
+        "Data",
+        "Origem",
+        "Tipo",
+        "Produto",
+        "Cliente",
+        "NF / Documento",
+        "Série"
+      ],
+      "tables": 1,
+      "svg": 2,
+      "unchanged": true
+    },
+    {
+      "id": "comercialPlanejado",
+      "headings": [
+        "Lotes",
+        "Selecione um lote",
+        "# ↑",
+        "Mês",
+        "Produto",
+        "Território",
+        "Qtd",
+        "Valor",
+        "%MB",
+        "Status"
+      ],
+      "tables": 1,
+      "svg": 2,
+      "unchanged": true
+    },
+    {
+      "id": "report:comercialPainel",
+      "headings": [
+        "Central de Relatórios",
+        "Painel de Vendas — Setembro/2026",
+        "",
+        "Fatur.",
+        "Fat.+Cart.",
+        "Meta",
+        "2025",
+        "2024",
+        "2023",
+        ""
+      ],
+      "tables": 6,
+      "svg": 57,
+      "unchanged": true
+    },
+    {
+      "id": "report:comercialMapa",
+      "headings": [
+        "Central de Relatórios",
+        "Mapa de Vendas — Setembro/2026",
+        "Top regiões",
+        "Top estados",
+        "Legenda"
+      ],
+      "tables": 0,
+      "svg": 55,
+      "unchanged": true
+    },
+    {
+      "id": "report:comercialMapaGeografico",
+      "headings": [
+        "Central de Relatórios",
+        "Top Estados",
+        "",
+        "UF",
+        "Qtd",
+        "Part",
+        "Preço médio",
+        "Mix por Modelo — BRASIL",
+        "Cultura",
+        "Preço Médio"
+      ],
+      "tables": 1,
+      "svg": 59,
+      "unchanged": true
+    },
+    {
+      "id": "report:comercialPecasGeo",
+      "headings": [
+        "Central de Relatórios",
+        "PERFORMANCE GEOGRÁFICA DE PEÇAS",
+        "MAPA DO BRASIL",
+        "Ranking por faturamento",
+        "Ranking por clientes",
+        "Ranking por recorrência",
+        "TOP MUNICÍPIOS",
+        "Município",
+        "UF",
+        "Clientes"
+      ],
+      "tables": 3,
+      "svg": 71,
+      "unchanged": true
+    },
+    {
+      "id": "report:cashFlow",
+      "headings": [
+        "Central de Relatórios",
+        "Fluxo de caixa",
+        "Evolução do saldo",
+        "Saídas operacionais",
+        "Ponte do FC",
+        "Demonstrativo gerencial",
+        "Atividade",
+        "Até Set",
+        "Restante do ano",
+        "2026"
+      ],
+      "tables": 1,
+      "svg": 58,
+      "unchanged": true
+    },
+    {
+      "id": "report:dreSocReal",
+      "headings": [
+        "Central de Relatórios",
+        "Cod Conta",
+        "Desc Conta Contabil",
+        "Classe",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "report:dreGerReal",
+      "headings": [
+        "Central de Relatórios",
+        "Linha Gerencial",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "report:dreDfsReal",
+      "headings": [
+        "Central de Relatórios",
+        "Linha DFs",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "report:dreSocBudget",
+      "headings": [
+        "Central de Relatórios",
+        "Cod Conta",
+        "Desc Conta Contabil",
+        "Classe",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "report:dreGerBudget",
+      "headings": [
+        "Central de Relatórios",
+        "Linha Gerencial",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "report:dreDfsBudget",
+      "headings": [
+        "Central de Relatórios",
+        "Linha DFs",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "report:opexReal",
+      "headings": [
+        "Central de Relatórios",
+        "# Conta",
+        "Descritivo",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "report:opexBudget",
+      "headings": [
+        "Central de Relatórios",
+        "# Conta",
+        "Descritivo",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "report:headcountReal",
+      "headings": [
+        "Central de Relatórios",
+        "Gestão / Centro de custo",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    },
+    {
+      "id": "report:headcountBudget",
+      "headings": [
+        "Central de Relatórios",
+        "Gestão / Centro de custo",
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago"
+      ],
+      "tables": 1,
+      "svg": 52,
+      "unchanged": true
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+/* APENAS APARÊNCIA: nenhum grid, tamanho, padding, ordem ou componente alterado. */
+html[data-vecton-theme="clear"]{color-scheme:light;
+ --bg:#ffffff;--bg-soft:#f6f8fb;--panel:#ffffff;--panel-hover:#f0f4f9;--panel-alt:#f8f9fc;
+ --line:#dce2eb;--line-soft:rgba(39,58,88,.09);--text:#253044;--text-soft:#58677c;--text-faint:#69788d;
+ --blue:#3565dc;--blue-strong:#2858d0;--blue-soft:rgba(53,101,220,.09);--green:#17844e;--red:#cc3b49;
+ --pos:#17844e;--neg:#cc3b49;--amber:#a8730c;--cyan:#118879;--violet:#7651cd;
+ --shadow:0 12px 32px rgba(30,48,80,.10);
+ --background:#fff;--background-secondary:#f6f8fb;--surface:#fff;--surface-elevated:#fff;--border:#dce2eb;--border-subtle:#edf0f5;--text-primary:#253044;--text-secondary:#58677c;--text-muted:#69788d;--accent:#3565dc;--success:#17844e;--warning:#a8730c;--danger:#cc3b49;--info:#3565dc;
+}
+html[data-vecton-theme="clear"] body,html[data-vecton-theme="clear"] button,html[data-vecton-theme="clear"] input,html[data-vecton-theme="clear"] select,html[data-vecton-theme="clear"] textarea{font-family:Inter,"Segoe UI",sans-serif!important;font-synthesis:none;-webkit-font-smoothing:antialiased}
+html[data-vecton-theme="clear"] body{background:#fff!important;color:var(--text)!important}
+html[data-vecton-theme="clear"] .brand-logo,html[data-vecton-theme="clear"] .vmob-brand-logo{filter:brightness(.27) saturate(.85)}
+html[data-vecton-theme="clear"] :is(h1,h2,h3,h4){font-weight:600!important;text-shadow:none!important}
+html[data-vecton-theme="clear"] :is(.kpi-number,.kpi-value,.dash-card-title){font-weight:600!important}
+html[data-vecton-theme="clear"] :is(td,th,.kpi-value,.kpi-number){font-variant-numeric:tabular-nums}
+html[data-vecton-theme="clear"] :focus-visible{outline-color:#3565dc!important}
+html[data-vecton-theme="clear"] ::selection{background:#dae6ff;color:#24488f}
+html[data-vecton-theme="clear"] :is(.sidebar,.main-panel,.app-layout,.topbar){background:var(--bg)!important}
+html[data-vecton-theme="clear"] :is(.kpi-card,.dash-card,.topbar,.panel){box-shadow:0 2px 10px rgba(30,48,80,.035)!important}
+html[data-vecton-theme="clear"] :is(.dre-mode-btn.active,.period-month-button.active,.period-month-button[aria-pressed="true"]){background:#eaf0fd!important;color:#2858d0!important}

@@ -9065,7 +9065,7 @@ body.rps-carousel-open { overflow: hidden; }
   width: min(1600px, 100%);
   height: calc(100vh - 28px);
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   overflow: hidden;
   border: 1px solid rgba(79,124,255,.5);
   border-radius: 16px;
@@ -9153,6 +9153,8 @@ body.rps-carousel-open { overflow: hidden; }
 .rps-carousel-viewport {
   position: relative;
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -9307,6 +9309,56 @@ body.rps-carousel-open { overflow: hidden; }
   background: rgba(79,124,255,.14);
   color: #dbe5ff;
 }
+
+.rps-carousel-comment {
+  position: relative;
+  z-index: 3;
+  padding: 0 18px;
+  background: rgba(7,8,11,.94);
+}
+
+.rps-carousel-comment-label {
+  color: #7196ec;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.rps-carousel-comment-text {
+  margin: 0;
+  padding: 10px 0;
+  border-top: 1px solid rgba(79,124,255,.18);
+  color: #dbe5ff;
+  font-size: .78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rps-carousel-comment-text .rps-carousel-comment-label { display: block; margin-bottom: 4px; }
+
+.rps-carousel-comment-field {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0;
+}
+
+.rps-carousel-comment-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid rgba(79,124,255,.28);
+  border-radius: 8px;
+  background: rgba(255,255,255,.03);
+  color: #f4f7ff;
+  font-family: inherit;
+  font-size: .78rem;
+  resize: vertical;
+  overflow-wrap: anywhere;
+}
+
+.rps-carousel-comment-input:focus { outline: none; border-color: #4f7cff; }
 
 .rps-carousel-loading,
 .rps-carousel-error {
