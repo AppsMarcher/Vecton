@@ -8,7 +8,7 @@
   const negative = v => v < -.000001 ? "fc-negative" : "";
   function createDashboard(deps) {
     const esc = deps.escapeHtml;
-    let host, root, type = "year", detail = false, user = null, error = "", loading = false, revision = 0;
+    let host, root, type = "year", detail = false, editMode = false, user = null, error = "", loading = false, revision = 0;
     let loaded = null, loadKey = "", entered = false, declinedKey = null, switchingKey = null;
     let simulation=null, scenarioList=[], saving=false;
     let vendasMonths = null, vendasLoading = false, vendasError = false, vendasRequestYear = null;
@@ -17,8 +17,8 @@
     let observer, width = 0, frame;
     const q = selector => root.querySelector(selector);
     const access = () => Boolean(deps.getUserId()) && deps.canAccess();
-    function reset() { simulation=null; scenarioList=[]; saving=false; revision++; loaded = null; loadKey = ""; declinedKey = null; switchingKey = null; error = ""; detail = false; loading = false; entered = false; expanded.clear(); observer?.disconnect(); vendasMonths = null; vendasLoading = false; vendasError = false; vendasRequestYear = null; bridgeDetail = null; }
-    function invalidate() { simulation=null; revision++; loadKey = ""; declinedKey = null; switchingKey = null; loading = false; loaded = null; vendasMonths = null; vendasRequestYear = null; bridgeDetail = null; }
+    function reset() { simulation=null; scenarioList=[]; saving=false; revision++; loaded = null; loadKey = ""; declinedKey = null; switchingKey = null; error = ""; detail = false; editMode = false; loading = false; entered = false; expanded.clear(); observer?.disconnect(); vendasMonths = null; vendasLoading = false; vendasError = false; vendasRequestYear = null; bridgeDetail = null; }
+    function invalidate() { simulation=null; revision++; loadKey = ""; declinedKey = null; switchingKey = null; loading = false; loaded = null; editMode = false; vendasMonths = null; vendasRequestYear = null; bridgeDetail = null; }
     function leave() { entered = false; observer?.disconnect(); }
     function renderSelected(panel, id) {
       if (id !== "cashFlow") { observer?.disconnect(); entered = false; return false; }
@@ -87,7 +87,7 @@
         <div class="fc-heading"><div><h2>${detail ? "Fluxo de caixa detalhado" : "Fluxo de caixa"}</h2><p>${period} · Valores em R$</p></div><div class="fc-header-controls"><div class="fc-period-control"><div class="fc-period-seg" role="group" aria-label="Visão do fluxo de caixa">${[["month", "Mês"], ["YTD", "YTD"], ["year", "Ano"]].map(([key, label]) => `<button type="button" class="period-month-button" data-fc-period="${key}" aria-pressed="${type === key}">${label}</button>`).join("")}</div></div><label class="fc-header-scenario"><span>Cenário</span> <select data-fc-scenario ${loading || saving ? "disabled" : ""}><option value="">${officialLabel}</option>${scenarioList.map(n=>`<option value="${esc(n.id)}" ${loaded?.scenario?.id===n.id ? "selected" : ""} title="${esc(n.name)} · ${n.is_shared ? "Compartilhado" : "Pessoal"} · ${new Date(n.created_at).toLocaleString("pt-BR")}">${esc(n.name)}</option>`).join("")}</select></label>${window.VECTON_FC_EXPORT.menu(loading || saving || !report)}</div></div>
         ${loading ? '<p class="fc-load-status" role="status">Carregando o fluxo de caixa…</p>' : !report ? '<p class="fc-load-status">Nenhuma carga anual aplicada para este ano</p>' : ""}
         ${error ? `<p class="fc-message fc-negative" role="alert">${esc(error)}</p>` : ""}
-        ${detail ? `<div class="fc-simulation-bar">${report ? `<input data-fc-scenario-name aria-label="Nome do novo cenário" maxlength="15" placeholder="Nome do novo cenário" ${saving ? "disabled" : ""}><button class="ghost-button" data-fc-save ${saving ? "disabled" : ""}>${saving ? "Salvando…" : "Salvar novo cenário"}</button><button class="ghost-button" data-fc-restore ${!simulation || saving ? "disabled" : ""}>Desfazer alterações</button>` : ""}${canDeleteScenario() ? `<button class="delete-button secondary-danger" data-fc-delete ${saving || loading ? "disabled" : ""}>Excluir cenário</button>` : ""}<span role="status">${simulation ? "Simulação com alterações não salvas" : loaded?.scenario ? "Cenário salvo · " + esc(loaded.scenario.name) : officialLabel}</span></div>` : ""}
+        ${detail ? `<div class="fc-simulation-bar">${report ? `<input data-fc-scenario-name aria-label="Nome do novo cenário" maxlength="15" placeholder="Nome do novo cenário" ${saving ? "disabled" : ""}><button class="ghost-button" data-fc-save ${saving ? "disabled" : ""}>${saving ? "Salvando…" : "Salvar novo cenário"}</button><button class="ghost-button" data-fc-restore ${!simulation || saving ? "disabled" : ""}>Desfazer alterações</button>` : ""}${canDeleteScenario() ? `<button class="delete-button secondary-danger" data-fc-delete ${saving || loading ? "disabled" : ""}>Excluir cenário</button>` : ""}<span role="status">${simulation ? "Simulação com alterações não salvas" : loaded?.scenario ? "Cenário salvo · " + esc(loaded.scenario.name) : officialLabel}</span>${report ? `<button type="button" class="ghost-button fc-edit-toggle ${editMode ? "fc-edit-toggle--active" : ""}" data-fc-edit-toggle aria-pressed="${editMode}" ${saving ? "disabled" : ""}>${editMode ? "Concluir edição" : "Editar"}</button>` : ""}</div>` : ""}
         ${detail ? detailMarkup(report, year, month) : dashboardMarkup(report, year, month, period)}
         ${!detail && report && bridgeDetail ? bridgeDetailMarkup(report, bridgeDetail, M.select(report, type, month), period) : ""}
       </div>`;
@@ -97,13 +97,14 @@
       q("[data-fc-delete]")?.addEventListener("click",()=>{void deleteScenario();});
       q("[data-fc-save]")?.addEventListener("click",()=>{void saveScenario();});
       q("[data-fc-restore]")?.addEventListener("click",async()=>{if(await discardChanges()){simulation=null;render();}});
+      q("[data-fc-edit-toggle]")?.addEventListener("click",()=>{editMode=!editMode;render();});
       root.querySelectorAll("[data-fc-edit]").forEach(input=>{
         input.onchange=()=>editValue(input);
         input.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();input.blur();} if(event.key==='Escape'){input.value=input.dataset.original;input.blur();}};
       });
       root.querySelectorAll("[data-fc-period]").forEach(button => { button.onclick = () => { type = button.dataset.fcPeriod; render(); }; });
-      q("[data-fc-detail]")?.addEventListener("click", () => { detail = true; render(); q("[data-fc-back]")?.focus(); });
-      root.querySelectorAll("[data-fc-back]").forEach(button => button.addEventListener("click", () => { detail = false; render(); q("[data-fc-detail]")?.focus(); }));
+      q("[data-fc-detail]")?.addEventListener("click", () => { detail = true; editMode = false; render(); q("[data-fc-back]")?.focus(); });
+      root.querySelectorAll("[data-fc-back]").forEach(button => button.addEventListener("click", () => { detail = false; editMode = false; render(); q("[data-fc-detail]")?.focus(); }));
       root.querySelectorAll("[data-fc-expand]").forEach(button => { button.onclick = () => { const key = button.dataset.fcExpand; expanded.has(key) ? expanded.delete(key) : expanded.add(key); render(); }; });
       const bridgeBackdrop = q("[data-fc-bridge-backdrop]");
       if (bridgeBackdrop) {
@@ -300,10 +301,11 @@
         rows = fixed.map(row => {
           const values = row.values || report.values[row.key];
           const total = row.position ? (row.order === 5 ? report.opening : values[11]) : values.reduce((a,b) => a+b, 0);
-          return `<tr class="${row.analytic ? "fc-detail-analytic" : "fc-total-row"}"><th scope="row">${esc(row.name)}</th>${[...values, total].map((v, i) => `<td class="${negative(v)} ${i === month - 1 ? "fc-reference-col" : ""}">${i<12 && ["Fcst","Bud"].includes(report.kinds[i]) && (row.analytic || row.quantity) ? `<input class="fc-simulation-input ${negative(v)}" data-fc-edit="${esc(row.key)}" data-month="${i}" data-original="${v.toLocaleString("pt-BR",{maximumFractionDigits:0})}" aria-label="${esc(row.name)} · ${MONTHS[i]} ${report.kinds[i]}" inputmode="decimal" value="${v.toLocaleString("pt-BR",{maximumFractionDigits:0})}" ${saving ? "disabled" : ""}>` : row.quantity ? v.toLocaleString("pt-BR") : fmt(num(v))}</td>`).join("")}</tr>`;
+          return `<tr class="${row.analytic ? "fc-detail-analytic" : "fc-total-row"}"><th scope="row">${esc(row.name)}</th>${[...values, total].map((v, i) => `<td class="${negative(v)} ${i === month - 1 ? "fc-reference-col" : ""}">${i<12 && editMode && ["Fcst","Bud"].includes(report.kinds[i]) && (row.analytic || row.quantity) ? `<input class="fc-simulation-input ${negative(v)}" data-fc-edit="${esc(row.key)}" data-month="${i}" data-original="${v.toLocaleString("pt-BR",{maximumFractionDigits:0})}" aria-label="${esc(row.name)} · ${MONTHS[i]} ${report.kinds[i]}" inputmode="decimal" value="${v.toLocaleString("pt-BR",{maximumFractionDigits:0})}" ${saving ? "disabled" : ""}>` : row.quantity ? v.toLocaleString("pt-BR") : fmt(num(v))}</td>`).join("")}</tr>`;
         }).join("");
       }
-      return `<section class="fc-panel"><header><h3>Fluxo de caixa detalhado · ${year}</h3><button class="ghost-button" type="button" data-fc-back>Voltar ao dashboard</button></header><div class="fc-table-scroll fc-detail-scroll" tabindex="0" aria-label="Fluxo de caixa completo, role para consultar todas as contas e meses"><table><thead><tr><th>Atividade</th>${MONTHS.map((m,i) => `<th class="${i === month - 1 ? "fc-reference-col" : ""}">${m}<small>${report?.kinds[i] || "—"}</small></th>`).join("")}<th>${year}</th></tr></thead><tbody>${rows}</tbody></table></div><div class="fc-panel-footer"><span>Fcst/Bud: edite contas e quantidades · Real bloqueado · Subtotais e saldos calculados</span><span>R$</span></div></section>`;
+      const footerHint = editMode ? "Fcst/Bud: edite contas e quantidades · Real bloqueado · Subtotais e saldos calculados" : "Clique em “Editar” para habilitar a edição de Fcst/Bud · Real bloqueado";
+      return `<section class="fc-panel"><header><h3>Fluxo de caixa detalhado · ${year}</h3><button class="ghost-button" type="button" data-fc-back>Voltar ao dashboard</button></header><div class="fc-table-scroll fc-detail-scroll" tabindex="0" aria-label="Fluxo de caixa completo, role para consultar todas as contas e meses"><table><thead><tr><th>Atividade</th>${MONTHS.map((m,i) => `<th class="${i === month - 1 ? "fc-reference-col" : ""}">${m}<small>${report?.kinds[i] || "—"}</small></th>`).join("")}<th>${year}</th></tr></thead><tbody>${rows}</tbody></table></div><div class="fc-panel-footer"><span>${footerHint}</span><span>R$</span></div></section>`;
     }
     function drawTrend(report, month) {
       const holder = q(".fc-trend"), selected = M.select(report, type, month);

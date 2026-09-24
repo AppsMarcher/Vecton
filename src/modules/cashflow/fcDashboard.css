@@ -124,6 +124,7 @@
 .fc-dashboard .fc-simulation-input:focus { outline:2px solid var(--blue); outline-offset:1px; }
 
 .fc-simulation-bar > input { width:240px; flex:0 1 240px; }
+.fc-edit-toggle--active { background:rgba(139,92,246,.16); border-color:rgba(139,92,246,.4); color:#e4d9ff; }
 #reports-view .fc-detail-scroll table { table-layout:auto; }
 #reports-view .fc-detail-scroll td:has(.fc-simulation-input) { min-width:150px; }
 .fc-export {position:relative;}

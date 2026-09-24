@@ -119,6 +119,8 @@ const repo = path.resolve(__dirname, '..');
     await page.screenshot({ path: path.join(repo, 'artifacts/fc-dashboard-vecton.png'), fullPage: true });
     await page.locator('[data-fc-detail]').click();
     assert.equal(await page.locator('.fc-detail-analytic').count(), 76);
+    assert.equal(await page.locator('[data-fc-edit]').count(),0);
+    await page.locator('[data-fc-edit-toggle]').click();
     assert.equal(await page.locator('[data-fc-edit][data-month="0"]').count(),0);
     assert.equal(await page.locator('[data-fc-edit][data-month="8"]').count(),77);
     assert.equal(await page.locator('[data-fc-edit][data-month="11"]').count(),77);
