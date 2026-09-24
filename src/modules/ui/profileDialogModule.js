@@ -16,6 +16,10 @@
       renderAccessTrees
     } = deps;
 
+    const appearance = window.VECTON_APPEARANCE;
+    const appearanceControl = document.querySelector('#profile-appearance');
+    const appearanceError = document.querySelector('#appearance-error');
+
     function bindProfileEvents() {
       if (!profileForm) {
         return;
@@ -23,6 +27,13 @@
 
       profileForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        if (appearance && appearanceControl && !appearance.save(appearanceControl.checked ? 'clear' : 'dark')) {
+          if (appearanceError) {
+            appearanceError.textContent = 'Não foi possível salvar a aparência neste navegador. Tente novamente.';
+            appearanceError.hidden = false;
+          }
+          return;
+        }
         const formData = new FormData(profileForm);
         const draft = getEditableProfile();
         state.profile = {
@@ -38,6 +49,11 @@
         persistAndRender();
         closeProfileDialog();
         await syncUserProfile();
+      });
+
+      appearanceControl?.addEventListener('change', () => {
+        if (appearanceError) appearanceError.hidden = true;
+        appearance?.preview(appearanceControl.checked ? 'clear' : 'dark');
       });
 
       profilePhotoTrigger?.addEventListener("click", () => {
@@ -100,6 +116,8 @@
 
     function openProfileDialog() {
       if (!profileDialog) return;
+      if (appearanceControl) appearanceControl.checked = appearance?.get() === 'clear';
+      if (appearanceError) appearanceError.hidden = true;
       renderProfileEditor();
       renderAccessTrees();
       profileDialog.showModal();
@@ -108,6 +126,7 @@
 
     function closeProfileDialog() {
       if (!profileDialog) return;
+      appearance?.restore();
       profileDialog.close();
       document.body.classList.remove("dialog-open");
       setProfileDraft(null);

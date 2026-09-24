@@ -16,6 +16,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20260922h">
   <link rel="stylesheet" href="src/modules/cashflow/fcDashboard.css?v=20260921v">
+  <link rel="stylesheet" href="src/styles/appearance.css?v=20260924a">
+  <script src="src/core/appearance.js?v=20260924a"></script>
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -1516,6 +1518,10 @@
           </label>
         </div>
 
+        <section class="profile-appearance" aria-labelledby="appearance-label">
+          <div><strong id="appearance-label">Aparência</strong><span id="appearance-help">Sua preferência neste navegador.</span><span id="appearance-error" role="alert" hidden></span></div>
+          <label class="appearance-choice"><span>Dark</span><input id="profile-appearance" type="checkbox" role="switch" aria-label="Tema claro" aria-describedby="appearance-help"><span class="appearance-track" aria-hidden="true"></span><span>Claro</span></label>
+        </section>
         <!-- Acessos Disponíveis -->
         <div class="profile-dialog-access-section">
           <div class="profile-access-header">
@@ -1560,7 +1566,7 @@
   <script src="src/modules/ui/dreTreeModule.js?v=20260719r"></script>
   <script src="src/modules/ui/ccTreeModule.js?v=20260731a"></script>
   <script src="src/modules/ui/renderModule.js?v=20260922a"></script>
-  <script src="src/modules/ui/profileDialogModule.js?v=20260719r"></script>
+  <script src="src/modules/ui/profileDialogModule.js?v=20260924a"></script>
   <script src="src/modules/reports/reportsDreModule.js?v=20260806a"></script>
   <script src="src/modules/reports/reportsOpexModule.js?v=20260719r"></script>
   <script src="src/modules/forecast/forecastModule.js?v=20260805a"></script>
@@ -1611,6 +1617,6 @@
   <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
   <script src="src/modules/cashflow/fcExport.js?v=20260921t"></script>
   <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
-  <script src="app.js?v=20260922f"></script>
+  <script src="app.js?v=20260924a"></script>
 </body>
 </html>
