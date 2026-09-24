@@ -1298,7 +1298,6 @@ body.auth-only .vp-update-banner { display: none; }
 .content-card {
   background: var(--theme-surface, rgba(12, 14, 18, 0.9));
   border: 1px solid var(--line);
-  box-shadow: var(--shadow);
   outline: 2px solid transparent;
   outline-offset: -1px;
   transition: outline-color 180ms ease;
@@ -6481,7 +6480,7 @@ body.auth-only .content-view {
   display: none !important;
 }
 
-/* ── Sombra interna decorativa nos cards ─────────────────────────────────── */
+/* Cards planos: sem sombra projetada, só a borda já definida na base. */
 .content-card,
 .dash-card,
 .kpi-card,
@@ -6490,7 +6489,7 @@ body.auth-only .content-view {
 .dre-panel,
 .tree-panel,
 .editor-panel {
-  box-shadow: var(--shadow), inset 0 -1px 0 rgba(255, 255, 255, 0.035);
+  box-shadow: none;
 }
 
 .dre-workspace,
