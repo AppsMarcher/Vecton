@@ -136,13 +136,13 @@
               </span>
               <strong>Balanço Patrimonial</strong>
             </button>
-            <button class="load-catalog-card load-catalog-card--cyan load-catalog-card--soon" type="button" disabled>
+            <button class="load-catalog-card load-catalog-card--purple load-catalog-card--soon" type="button" disabled>
               <span class="lcc-icon-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
               </span>
               <strong>Fluxo de Caixa</strong>
             </button>
-            <button class="load-catalog-card load-catalog-card--amber" type="button" data-comercial-carga="vendas-planejado">
+            <button class="load-catalog-card load-catalog-card--cyan" type="button" data-comercial-carga="vendas-planejado">
               <span class="lcc-icon-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4 5.6A1 1 0 0 0 6.6 20H19"/><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/></svg>
               </span>
