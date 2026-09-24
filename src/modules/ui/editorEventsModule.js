@@ -5,6 +5,7 @@
       ccNodeForm,
       branchNodeForm,
       appAlert,
+      appConfirm,
       normalizeBranchCode,
       normalizeCostCenterManagement,
       generateBranchDraftCode,
@@ -137,6 +138,10 @@
           return;
         }
 
+        if (!await appConfirm(`Salvar as alterações da conta "${newCode} - ${newName}"?`)) {
+          return;
+        }
+
         const wasNew = Boolean(selectedNode.isNew);
 
         state.dreNodes = state.dreNodes.map((node) => {
@@ -170,6 +175,10 @@
         const state = getState();
         const selectedNode = findDreNode(getSelectedDreCode());
         if (!selectedNode) {
+          return;
+        }
+
+        if (!await appConfirm(`Remover a conta "${selectedNode.code} - ${selectedNode.name}"?`, "danger")) {
           return;
         }
 
@@ -217,6 +226,10 @@
           return;
         }
 
+        if (!await appConfirm(`Salvar as alterações do centro de custos "${newCode} - ${newName}"?`)) {
+          return;
+        }
+
         const parentCode = selectedNode.class === "Sintetica"
           ? selectedNode.parentCode
           : getCcTypeNodeCode(newType) || selectedNode.parentCode;
@@ -252,6 +265,10 @@
           return;
         }
 
+        if (!await appConfirm(`Remover o centro de custos "${selectedNode.code} - ${selectedNode.name}"?`, "danger")) {
+          return;
+        }
+
         const deletedCode = selectedNode.code;
         state.ccNodes = state.ccNodes.filter((node) => node.code !== selectedNode.code);
         state.costCenters = state.costCenters.filter((cc) => cc.number !== selectedNode.code);
@@ -283,6 +300,10 @@
           return;
         }
 
+        if (!await appConfirm(`Salvar as alterações da empresa/filial "${newCode} - ${newName}"?`)) {
+          return;
+        }
+
         state.branches = state.branches.map((branch) => (
           branch.code === selectedBranch.code
             ? { ...branch, code: newCode, name: newName, note: newNote }
@@ -298,6 +319,10 @@
         const state = getState();
         const selectedBranch = findBranch(getSelectedBranchCode());
         if (!selectedBranch) {
+          return;
+        }
+
+        if (!await appConfirm(`Remover a empresa/filial "${selectedBranch.code} - ${selectedBranch.name}"?`, "danger")) {
           return;
         }
 

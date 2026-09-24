@@ -129,6 +129,8 @@
 
     async function saveEdit(id, oldName, newName) {
       if (!newName || newName === oldName) { loadAndRender(); return; }
+      const ok = await appConfirm(`Salvar a gestão como "${newName}"?`);
+      if (!ok) { loadAndRender(); return; }
       try {
         const orgId = await resolveOrganizationId();
         await upsertSupabaseRows("managements", [{ id, organization_id: orgId, name: newName }], ["id"]);
@@ -170,6 +172,8 @@
     async function handleAdd() {
       const name = prompt("Nome da nova gestão:")?.trim();
       if (!name) return;
+      const ok = await appConfirm(`Criar a gestão "${name}"?`);
+      if (!ok) return;
       try {
         const orgId = await resolveOrganizationId();
         const maxOrder = Math.max(0, ...(state.managements || []).map(m => m.sort_order || 0));

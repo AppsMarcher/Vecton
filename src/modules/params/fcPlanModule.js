@@ -75,13 +75,14 @@
       };
       el("#fc-plan-refresh").onclick = () => { if (!busy) { loaded = false; void render(); } };
       el("#fc-plan-search").oninput = drawTree;
-      el("#fc-plan-form").onsubmit = event => {
+      el("#fc-plan-form").onsubmit = async event => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
         const original = draft || nodes.find(item => item.id === selectedId);
         if (!original) return;
         const node = { ...original, name: data.get("name").trim(), node_class: data.get("node_class"), active: data.get("active") === "true", parent_id: data.get("parent_id") || null, source_name: data.get("source_name")?.trim() || null, sort_order: Number(data.get("sort_order")), note: data.get("note").trim() };
         if (node.node_class === "Sintetica") node.source_name = null;
+        if (!await deps.confirm(`Salvar as alterações da conta "${node.name || "sem nome"}"?`)) return;
         void save(node);
       };
       el('[name="node_class"]').onchange = classHint;

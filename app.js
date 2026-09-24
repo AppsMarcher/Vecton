@@ -1322,6 +1322,7 @@ const editorEventsModule = createEditorEventsModule({
   ccNodeForm,
   branchNodeForm,
   appAlert,
+  appConfirm,
   normalizeBranchCode,
   normalizeCostCenterManagement,
   generateBranchDraftCode,
