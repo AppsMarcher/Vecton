@@ -206,6 +206,7 @@ const views = {
   budgetLoad: document.querySelector("#budgetLoad-view"),
   headcountLoad: document.querySelector("#headcountLoad-view"),
   managements: document.querySelector("#managements-view"),
+  announcements: document.querySelector("#announcements-view"),
   users: document.querySelector("#users-view"),
   accessProfiles: document.querySelector("#accessProfiles-view"),
   notifications: document.querySelector("#notifications-view"),
@@ -223,6 +224,7 @@ const views = {
   garantiaAtivacoesCarga: document.querySelector("#garantiaAtivacoesCarga-view")
 };
 const profileDialog = document.querySelector("#profile-dialog");
+const announcementDialog = document.querySelector("#announcement-dialog");
 
 const branchTree = document.querySelector("#branch-tree");
 const branchNodeForm = document.querySelector("#branch-node-form");
@@ -637,6 +639,7 @@ const fcPlanModule = window.VECTON_FC_PLAN.createFcPlanModule({
 const navigationModule = createNavigationModule({
   renderFcPlan: () => fcPlanModule.render(),
   renderFcLoad: () => fcLoadModule.render(),
+  renderAnnouncements: () => announcementsAdminModule.render(),
   renderCockpit: () => cockpitModule.render(),
   VIEW_HEADER_METADATA,
   MONTH_LABELS,
@@ -740,6 +743,43 @@ const { loadAndRenderManagements, bindManagementsAddButton } = createManagements
   isAdmin,
   appAlert,
   appConfirm
+});
+const ANNOUNCEMENTS_BUCKET = "product-announcements";
+const announcementsAdminModule = window.VECTON_ANNOUNCEMENTS_ADMIN.createAnnouncementsAdminModule({
+  root: views.announcements,
+  escapeHtml,
+  isAdmin,
+  getCurrentUserId: () => currentUser?.id || null,
+  getActiveView: () => activeView,
+  resolveOrganizationId,
+  confirm: (message, type) => appConfirm(message, type || "warn"),
+  publicImageUrl: (path) => publicStorageUrl(ANNOUNCEMENTS_BUCKET, path),
+  fetchAnnouncements: (org) => fetchSupabaseRowsSafe("product_announcements", `organization_id=eq.${org}&order=sort_order.asc`),
+  fetchSlides: (org) => fetchSupabaseRowsSafe("product_announcement_slides", `organization_id=eq.${org}&order=sort_order.asc`),
+  insertAnnouncement: (fields) => insertSupabaseRows("product_announcements", [fields]),
+  updateAnnouncement: (org, id, fields) => updateSupabaseRows("product_announcements", `organization_id=eq.${org}&id=eq.${id}`, fields),
+  deleteAnnouncement: (org, id) => deleteSupabaseRows("product_announcements", `organization_id=eq.${org}&id=eq.${id}`),
+  deleteSlides: (announcementId) => deleteSupabaseRows("product_announcement_slides", `announcement_id=eq.${announcementId}`),
+  insertSlides: (rows) => insertSupabaseRows("product_announcement_slides", rows),
+  uploadImage: (path, file) => uploadToStorage(ANNOUNCEMENTS_BUCKET, path, file)
+});
+const announcementsDisplayModule = window.VECTON_ANNOUNCEMENTS_DISPLAY.createAnnouncementsDisplayModule({
+  dialog: announcementDialog,
+  escapeHtml,
+  resolveOrganizationId,
+  getCurrentUserId: () => currentUser?.id || null,
+  publicImageUrl: (path) => publicStorageUrl(ANNOUNCEMENTS_BUCKET, path),
+  fetchAnnouncements: (org) => fetchSupabaseRowsSafe("product_announcements", `organization_id=eq.${org}&select=id,active,starts_at,ends_at,sort_order`),
+  fetchSlides: (org, announcementId) => fetchSupabaseRowsSafe("product_announcement_slides", `organization_id=eq.${org}&announcement_id=eq.${announcementId}&order=sort_order.asc`),
+  fetchDismissals: (org, userId) => fetchSupabaseRowsSafe("user_announcement_dismissals", `organization_id=eq.${org}&user_id=eq.${userId}&select=announcement_id`),
+  dismiss: async (announcementId) => {
+    const org = await resolveOrganizationId();
+    await insertSupabaseRows("user_announcement_dismissals", [{
+      organization_id: org,
+      user_id: currentUser.id,
+      announcement_id: announcementId
+    }]);
+  }
 });
 
 // Clique numa notificação abre o relatório do evento já no período dele. O
@@ -2199,6 +2239,7 @@ async function hydrateFromSupabase() {
     if (canManageUsers()) void loadAndRenderUsers();
     startNotifications();
     applyPendingDeepLink();
+    void announcementsDisplayModule.checkAndShow();
   } catch (error) {
     console.error(error);
     if (String(error?.message || "").includes("Sessao")) {
@@ -6577,6 +6618,11 @@ async function deleteFromStorage(bucket, paths) {
     { method: "DELETE", body: JSON.stringify({ prefixes }) }
   );
   if (!response.ok) throw new Error(await response.text());
+}
+
+// Bucket público (sem RLS na leitura): URL direta, sem precisar assinar.
+function publicStorageUrl(bucket, path) {
+  return `${supabaseConfig.projectUrl}/storage/v1/object/public/${bucket}/${encodeURI(path)}`;
 }
 
 // Chama uma Supabase Edge Function (/functions/v1/<nome>) com o token do usuário.

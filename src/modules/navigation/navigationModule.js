@@ -46,7 +46,7 @@
         button.classList.toggle("active", button.dataset.view === activeView);
       });
       const paramsViews = [
-        "branchPlan", "drePlan", "fcPlan", "fcLoad", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles", "notifications",
+        "branchPlan", "drePlan", "fcPlan", "fcLoad", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles", "notifications", "announcements",
         "comProdutos", "comClientes", "comTerritorios", "comCoordenacoes", "comTipos", "comCulturas", "comLinhasNegocio", "comVendedores", "comAtribuicao",
         "comercialVendas", "comercialPlanejado", "garantiaAtivacoesCarga"
       ];
@@ -66,6 +66,7 @@
       void deps.renderCockpit?.();
       void deps.renderFcPlan?.();
       void deps.renderFcLoad?.();
+      void deps.renderAnnouncements?.();
 
       const rpsBtn = document.querySelector(".menu-button[data-view='rps']");
       if (rpsBtn) rpsBtn.style.display = canAccessRps() ? "" : "none";

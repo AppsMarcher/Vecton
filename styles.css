@@ -12554,3 +12554,327 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 @media (max-width: 640px) {
   .garcarga-file-row { flex-direction: column; align-items: stretch; }
 }
+
+/* ── Novidades (Parâmetros > Novidades) — admin do pop-up de lançamento ──── */
+.ann-shell {
+  max-width: 1400px;
+}
+.ann-workspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 32%) minmax(340px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.ann-list-panel,
+.ann-editor-panel {
+  min-width: 0;
+}
+.ann-list {
+  display: grid;
+  gap: 8px;
+}
+.ann-empty {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+.ann-list-item {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-alt);
+  color: var(--text);
+}
+.ann-list-item:hover {
+  border-color: var(--blue);
+}
+.ann-list-item.selected {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+.ann-list-item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.ann-list-item-delete {
+  flex-shrink: 0;
+  align-self: center;
+  margin-right: 8px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.ann-list-item-delete:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+}
+.ann-list-item-draft {
+  cursor: default;
+}
+.ann-list-item-draft .ann-list-item-main {
+  cursor: default;
+}
+.ann-list-title {
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+.ann-list-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-faint);
+  font-size: 0.7rem;
+}
+.ann-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+.ann-status-dot.on {
+  background: var(--green);
+}
+.ann-slides-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.ann-slides {
+  display: grid;
+  gap: 12px;
+}
+.ann-slide-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  background: var(--panel-alt);
+}
+.ann-slide-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ann-slide-num {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+.ann-slide-head select {
+  width: auto;
+  flex: 1 1 160px;
+}
+.ann-slide-move {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.ann-slide-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.ann-slide-preview {
+  grid-column: 1 / -1;
+  max-height: 160px;
+  width: auto;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  object-fit: contain;
+  background: var(--panel);
+}
+@media (max-width: 900px) {
+  .ann-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Novidades — pop-up de exibição na abertura do app ───────────────────── */
+.announcement-dialog {
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  max-width: min(1180px, 96vw);
+  max-height: 92vh;
+  width: 100%;
+  overflow-y: auto;
+  background: var(--panel);
+  box-shadow: 0 24px 64px var(--theme-shadow-color, rgba(0, 0, 0, 0.5));
+  color: var(--text);
+}
+.announcement-dialog::backdrop {
+  background: var(--theme-overlay, rgba(0, 0, 0, 0.55));
+}
+.ann-view-inner {
+  position: relative;
+  padding-top: 8px;
+}
+.ann-view-close-x {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  background: var(--panel);
+  color: var(--text-soft);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  box-shadow: 0 2px 8px var(--theme-shadow-color, rgba(0, 0, 0, 0.25));
+}
+.ann-view-close-x:hover {
+  color: var(--text);
+  border-color: var(--blue);
+}
+.ann-view-stage {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+}
+.ann-view-slide-host {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ann-view-slide {
+  width: 100%;
+  min-height: 260px;
+  display: flex;
+}
+.ann-view-slide-image {
+  width: 100%;
+  justify-content: center;
+}
+.ann-view-slide-image img {
+  max-width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+  border-radius: 12px;
+  margin: 0 auto;
+}
+.ann-view-image-cta {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 4px;
+}
+.ann-view-slide-content {
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+.ann-view-heading {
+  margin: 4px 0 0;
+  padding: 0 32px;
+  font-size: 1.2rem;
+}
+.ann-view-image-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 14px 28px 0;
+}
+.ann-view-image-wrap img {
+  max-width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+  border-radius: 12px;
+}
+.ann-view-copy {
+  padding: 16px 32px 20px;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+.ann-view-copy p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+.ann-view-cta {
+  margin-top: 4px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.ann-view-nav {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel-alt);
+  color: var(--text-soft);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.ann-view-nav:hover {
+  color: var(--text);
+  border-color: var(--blue);
+}
+.ann-view-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 0 0;
+}
+.ann-view-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.ann-view-dot.on {
+  background: var(--blue);
+}
+.ann-view-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 24px 20px;
+}
+.ann-view-dismiss-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.ann-view-dismiss-check input {
+  width: auto;
+}

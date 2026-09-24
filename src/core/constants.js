@@ -85,6 +85,7 @@ const VIEW_HEADER_METADATA = {
   users:           { kicker: "PARÂMETROS", title: "Usuários" },
   accessProfiles:  { kicker: "PARÂMETROS", title: "Perfis de Acesso" },
   notifications:   { kicker: "PARÂMETROS", title: "Notificações" },
+  announcements:   { kicker: "PARÂMETROS", title: "Novidades" },
   comProdutos:       { kicker: "PARÂMETROS", title: "Produtos" },
   comClientes:       { kicker: "PARÂMETROS", title: "Clientes" },
   comTerritorios:    { kicker: "PARÂMETROS", title: "Território" },

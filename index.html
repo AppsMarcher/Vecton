@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260924clear2">
+  <link rel="stylesheet" href="styles.css?v=20260924ann7">
   <link rel="stylesheet" href="src/modules/cashflow/fcDashboard.css?v=20260924clear1">
   <link rel="stylesheet" href="src/styles/appearance.css?v=20260924maps1">
   <script src="src/core/appearance.js?v=20260924a"></script>
@@ -106,6 +106,10 @@
     <symbol id="vp-icon-bell" viewBox="0 0 24 24">
       <path d="M7 10a5 5 0 1 1 10 0c0 5 2 6 2 6H5s2-1 2-6Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
       <path d="M10 19a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="vp-icon-megaphone" viewBox="0 0 24 24">
+      <path d="M3 11l18-5v12L3 14v-3z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
     <symbol id="vp-icon-mail" viewBox="0 0 24 24">
       <path d="M4 7h16v10H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
@@ -375,6 +379,7 @@
               <button class="submenu-button" type="button" data-view="users"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-users"></use></svg><span>Usuários</span></button>
               <button class="submenu-button" type="button" data-view="accessProfiles"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-shield"></use></svg><span>Perfis de Acesso</span></button>
               <button class="submenu-button" type="button" data-view="notifications"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-bell"></use></svg><span>Notificações</span></button>
+              <button class="submenu-button" type="button" data-view="announcements"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-megaphone"></use></svg><span>Novidades</span></button>
               <!-- Demais parâmetros -->
               <button class="submenu-button" type="button" data-view="branchPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-branch"></use></svg><span>Empresas</span></button>
               <button class="submenu-button" type="button" data-view="drePlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-accounts"></use></svg><span>Plano de Contas DRE</span></button>
@@ -956,6 +961,8 @@
           </div>
         </div>
       </section>
+
+      <section id="announcements-view" class="content-view"></section>
 
       <section id="comProdutos-view" class="content-view">
         <div class="cadastro-shell">
@@ -1543,6 +1550,10 @@
   </dialog>
   <!-- ── FIM POPOVER PERFIL ──────────────────────────────────────────── -->
 
+  <!-- ── POP-UP DE NOVIDADES (Parâmetros > Novidades) ───────────────────── -->
+  <dialog id="announcement-dialog" class="announcement-dialog" aria-label="Novidades"></dialog>
+  <!-- ── FIM POP-UP DE NOVIDADES ─────────────────────────────────────── -->
+
   <!-- v=YYYYMMDD — atualize esta data a cada deploy para invalidar o cache do browser -->
   <script src="seed-data.js?v=20260719r"></script>
   <script src="dre-structure.js?v=20260719r"></script>
@@ -1554,13 +1565,13 @@
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <script src="src/core/pwa.js?v=20260902a"></script>
-  <script src="src/core/constants.js?v=20260922a"></script>
+  <script src="src/core/constants.js?v=20260924ann1"></script>
   <script src="src/core/utils.js?v=20260803b"></script>
   <script src="src/core/storage.js?v=20260719r"></script>
   <script src="src/modules/auth/authSession.js?v=20260902b"></script>
   <script src="src/modules/actuals/actualsModule.js?v=20260921g"></script>
   <script src="src/modules/budget/budgetModule.js?v=20260910a"></script>
-  <script src="src/modules/navigation/navigationModule.js?v=20260922a"></script>
+  <script src="src/modules/navigation/navigationModule.js?v=20260924ann1"></script>
   <script src="src/modules/ui/headerModule.js?v=20260921b"></script>
   <script src="src/modules/ui/branchTreeModule.js?v=20260719r"></script>
   <script src="src/modules/ui/dreTreeModule.js?v=20260719r"></script>
@@ -1584,6 +1595,8 @@
   <script src="src/modules/reports/reportsSectionsModule.js?v=20260921c"></script>
   <script src="src/modules/users/usersModule.js?v=20260922b"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
+  <script src="src/modules/announcements/announcementsAdminModule.js?v=20260924d"></script>
+  <script src="src/modules/announcements/announcementsDisplayModule.js?v=20260924b"></script>
   <script src="src/modules/messages/messagesModule.js?v=20260924clear2"></script>
   <script src="src/modules/notifications/notificationsModule.js?v=20260922a"></script>
   <script src="src/modules/comercial/comercialCadastroModule.js?v=20260806c"></script>
@@ -1618,6 +1631,6 @@
   <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
   <script src="src/modules/cashflow/fcExport.js?v=20260921t"></script>
   <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
-  <script src="app.js?v=20260924scroll1"></script>
+  <script src="app.js?v=20260924ann1"></script>
 </body>
 </html>
