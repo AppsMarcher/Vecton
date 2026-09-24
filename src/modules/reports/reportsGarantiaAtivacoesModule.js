@@ -184,12 +184,27 @@
         if (!st.rings || !st.rings.length) return "";
         const count = counts.get(st.uf) || 0;
         const fill = heat(count, 0, max);
-        return `<path d="${statePath(st.rings)}" fill="${fill}" stroke="#0b0f16" stroke-width="0.6"><title>${escapeHtml(st.nome)}: ${count} ativação(ões)</title></path>`;
+        return `<path d="${statePath(st.rings)}" fill="${fill}" stroke="rgba(255,255,255,0.55)" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} ativação(ões)</title></path>`;
       }).join("");
+
+      const legend = max > 0 ? `
+        <div class="gar-ufmap-legend">
+          <span>0</span>
+          <div class="gar-ufmap-legend-bar">
+            <span style="background:${heat(0, 0, max)}"></span>
+            <span style="background:${heat(max * 0.33, 0, max)}"></span>
+            <span style="background:${heat(max * 0.66, 0, max)}"></span>
+            <span style="background:${heat(max, 0, max)}"></span>
+          </div>
+          <span>${max}</span>
+          <span class="gar-ufmap-legend-caption">ativações por estado</span>
+        </div>
+      ` : "";
 
       return `
         <div class="gar-ufmap-wrap">
           <svg viewBox="0 0 ${VW} ${VH}" class="gar-ufmap">${paths}</svg>
+          ${legend}
         </div>
       `;
     }

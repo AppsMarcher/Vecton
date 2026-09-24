@@ -1075,6 +1075,8 @@ const garantiaAtivacoesCargaMod = createGarantiaAtivacoesCargaModule({
   isSupabaseConfigured,
   fetchAllSupabaseRows,
   upsertSupabaseRows,
+  deleteSupabaseRows,
+  appConfirm,
   resolveOrganizationId,
   formatFileSize,
   onBack: () => openActualsLoadCatalog(),

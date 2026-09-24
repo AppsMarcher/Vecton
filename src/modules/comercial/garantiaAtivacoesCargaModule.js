@@ -16,6 +16,8 @@
       isSupabaseConfigured,
       fetchAllSupabaseRows,
       upsertSupabaseRows,
+      deleteSupabaseRows,
+      appConfirm,
       resolveOrganizationId,
       formatFileSize,
       onBack,
@@ -58,19 +60,28 @@
                 <h4 class="inline-card-title">Carga de Ativações de Garantia</h4>
               </div>
             </div>
-            <p class="actuals-intake-hint">
-              Suba a exportação do AltForce (aba "AltForce" da planilha). A carga é aditiva: reimportar
-              atualiza as ativações existentes (pelo campo "Número") e adiciona as novas, sem apagar nada.
+            <p class="actuals-intake-hint" id="garcarga-mode-hint">
+              Carga adicional: reimportar atualiza as ativações existentes (pelo campo "Número") e
+              adiciona as novas, sem apagar nada.
             </p>
             <form id="garcarga-upload-form" class="form-grid actuals-upload-form">
-              <label class="full-span vecton-file-field">
-                Arquivo
-                <span class="vecton-file-trigger">
-                  <span class="vecton-file-btn">Selecionar arquivo</span>
-                  <span class="vecton-file-name" data-file-name>Nenhum arquivo selecionado</span>
-                </span>
-                <input id="garcarga-file-input" name="file" type="file" accept=".xlsx,.xls" class="vecton-file-native">
-              </label>
+              <div class="full-span garcarga-file-row">
+                <label class="vecton-file-field">
+                  Arquivo
+                  <span class="vecton-file-trigger">
+                    <span class="vecton-file-btn">Selecionar arquivo</span>
+                    <span class="vecton-file-name" data-file-name>Nenhum arquivo selecionado</span>
+                  </span>
+                  <input id="garcarga-file-input" name="file" type="file" accept=".xlsx,.xls" class="vecton-file-native">
+                </label>
+                <label class="garcarga-mode-field">
+                  Modo de carga
+                  <select id="garcarga-load-mode" class="actuals-mode-select">
+                    <option value="additional">Carga adicional</option>
+                    <option value="complete">Carga completa</option>
+                  </select>
+                </label>
+              </div>
               <div class="editor-actions full-span">
                 <button class="primary-button" type="submit">Importar arquivo</button>
                 <button id="garcarga-back" class="ghost-button" type="button">&larr; Voltar</button>
@@ -86,7 +97,7 @@
                 <h4 class="inline-card-title">Resumo</h4>
               </div>
             </div>
-            <div id="garcarga-summary" class="actuals-summary-grid"></div>
+            <div id="garcarga-summary" class="actuals-summary-grid garcarga-summary-grid"></div>
           </div>
 
           <div class="content-card actuals-detail-card">
@@ -104,11 +115,11 @@
               <span id="garcarga-rows-count" class="actuals-rows-count"></span>
             </div>
             <div class="table-shell actuals-table-shell">
-              <table class="data-table actuals-table">
+              <table class="data-table actuals-table garcarga-table">
                 <thead>
                   <tr>
-                    <th>Número</th><th>Status</th><th>Produto</th><th>Modelo</th><th>Revenda</th>
-                    <th>Vendedor</th><th>Cidade</th><th>UF</th><th>Valor NF unit.</th><th>Cadastro</th>
+                    <th class="garcarga-col-numero">Número</th><th class="garcarga-col-status">Status</th><th>Produto</th><th class="garcarga-col-modelo">Modelo</th><th>Revenda</th>
+                    <th>Vendedor</th><th>Cidade</th><th class="garcarga-col-uf">UF</th><th class="garcarga-col-valor">Valor NF unit.</th><th class="garcarga-col-cadastro">Cadastro</th>
                   </tr>
                 </thead>
                 <tbody id="garcarga-rows-body"></tbody>
@@ -133,6 +144,17 @@
         searchTerm = event.target.value;
         renderRowsTable();
       });
+      document.querySelector("#garcarga-load-mode")?.addEventListener("change", (event) => {
+        updateModeHint(event.target.value);
+      });
+    }
+
+    function updateModeHint(mode) {
+      const hint = document.querySelector("#garcarga-mode-hint");
+      if (!hint) return;
+      hint.textContent = mode === "complete"
+        ? 'Carga completa: apaga TODAS as ativações de garantia já carregadas para esta organização e substitui pelas desta planilha (aba "AltForce").'
+        : 'Carga adicional: reimportar atualiza as ativações existentes (pelo campo "Número") e adiciona as novas, sem apagar nada.';
     }
 
     // -------------------------------------------------------------- render
@@ -229,6 +251,7 @@
       event.preventDefault();
       const fileInput = document.querySelector("#garcarga-file-input");
       const file = fileInput?.files?.[0];
+      const loadMode = document.querySelector("#garcarga-load-mode")?.value === "complete" ? "complete" : "additional";
       if (!file) {
         setFeedback("Selecione um arquivo para importar.", "error");
         return;
@@ -237,13 +260,20 @@
         setFeedback(`Arquivo muito grande para importação no navegador (${formatFileSize(file.size)}).`, "error");
         return;
       }
+      if (loadMode === "complete") {
+        const confirmed = await appConfirm(
+          "Carga completa vai apagar TODAS as ativações de garantia já carregadas e substituir pelas desta planilha. Deseja continuar?",
+          "warn"
+        );
+        if (!confirmed) return;
+      }
       try {
         setFeedback("Lendo arquivo...", "warn");
         const sheetRows = await parseFile(file);
         setFeedback("Resolvendo cadastros de produto e revenda...", "warn");
         const organizationId = await resolveOrganizationId();
         const { produtos, clientes } = await loadCadastrosParaMatch(organizationId);
-        const existing = isSupabaseConfigured()
+        const existing = isSupabaseConfigured() && loadMode === "additional"
           ? new Set((await fetchAllSupabaseRows("garantia_ativacoes", `organization_id=eq.${organizationId}&select=numero`)).map((r) => r.numero))
           : new Set();
 
@@ -252,6 +282,10 @@
 
         const payloadRows = resolved.map((row) => toPayload(organizationId, row));
         if (isSupabaseConfigured()) {
+          if (loadMode === "complete") {
+            setFeedback("Apagando ativações existentes...", "warn");
+            await deleteSupabaseRows("garantia_ativacoes", `organization_id=eq.${organizationId}`);
+          }
           const chunks = chunkArray(payloadRows, CHUNK);
           for (let index = 0; index < chunks.length; index += 1) {
             if (chunks.length > 1) setFeedback(`Gravando: bloco ${index + 1} de ${chunks.length}...`, "warn");
