@@ -5173,6 +5173,10 @@ textarea[disabled] {
   pointer-events: none;
 }
 
+.load-catalog-grid + .load-catalog-grid {
+  margin-top: 14px;
+}
+
 /* Cores por tipo */
 .load-catalog-card--blue  { border-top-color: #4f7cff; }
 .load-catalog-card--blue:hover  { border-color: rgba(79,124,255,0.35); border-top-color: #4f7cff; }
@@ -5194,6 +5198,10 @@ textarea[disabled] {
 .load-catalog-card--sky { border-top-color: #0ea5e9; }
 .load-catalog-card--sky:hover { border-color: rgba(14,165,233,0.28); border-top-color: #0ea5e9; }
 .load-catalog-card--sky .lcc-icon-wrap { background: rgba(14,165,233,0.12); border-color: rgba(14,165,233,0.22); color: #0ea5e9; }
+
+.load-catalog-card--pink { border-top-color: #ec4899; }
+.load-catalog-card--pink:hover { border-color: rgba(236,72,153,0.30); border-top-color: #ec4899; }
+.load-catalog-card--pink .lcc-icon-wrap { background: rgba(236,72,153,0.12); border-color: rgba(236,72,153,0.22); color: #ec4899; }
 
 .lcc-icon-wrap {
   display: inline-flex;
