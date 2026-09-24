@@ -716,19 +716,22 @@
         return;
       }
 
-      const initials = getUserInitials(name);
-      element.textContent = initials;
       element.style.backgroundImage = "";
       element.classList.remove("has-photo");
       element.classList.remove("is-silhouette");
 
       const photoSource = resolveProfilePhotoSource(photoKind, photoValue);
       if (photoSource) {
+        // Sem foto/avatar de fundo, o CSS (color: transparent) some com as
+        // iniciais; com foto, o texto some de vez (não só de cor) — evita
+        // qualquer sobreposição visual das iniciais por cima da imagem.
+        element.textContent = "";
         element.style.backgroundImage = `linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04)), url("${photoSource.replaceAll('"', "%22")}")`;
         element.classList.add("has-photo");
         return;
       }
 
+      element.textContent = getUserInitials(name);
       element.classList.add("is-silhouette");
     }
 
