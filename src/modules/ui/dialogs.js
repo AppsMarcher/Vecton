@@ -109,7 +109,7 @@
     // função — o diálogo é sempre pra bloquear tudo até responder, então
     // sempre deve ficar acima de QUALQUER overlay existente; 10500 folga
     // acima do maior z-index hoje no app (10100, o carrossel).
-    overlay.style.cssText = "position:fixed;inset:0;z-index:10500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.55);animation:fadeInOv .12s ease";
+    overlay.style.cssText = "position:fixed;inset:0;z-index:10500;display:flex;align-items:center;justify-content:center;background:var(--theme-overlay, rgba(0,0,0,0.55));animation:fadeInOv .12s ease";
     return overlay;
   }
 
@@ -122,7 +122,7 @@
     box.setAttribute("aria-modal", "true");
     box.setAttribute("aria-labelledby", titleId);
     box.setAttribute("aria-describedby", messageId);
-    box.style.cssText = "background:var(--panel);border:0.5px solid var(--line);border-radius:14px;padding:24px 28px;min-width:360px;max-width:460px;box-shadow:0 24px 56px rgba(0,0,0,0.55);animation:slideUpDlg .14s ease";
+    box.style.cssText = "background:var(--panel);border:0.5px solid var(--line);border-radius:14px;padding:24px 28px;min-width:360px;max-width:460px;box-shadow:0 24px 56px var(--theme-shadow-color, rgba(0,0,0,0.55));animation:slideUpDlg .14s ease";
     const header = document.createElement("div");
     header.style.cssText = "display:flex;align-items:flex-start;gap:14px;margin-bottom:18px";
     const iconEl = document.createElement("span");
@@ -266,7 +266,7 @@
         if (description) description.style.marginTop = "10px";
       }
       const icon = box.querySelector('span[aria-hidden="true"]');
-      if (icon) icon.style.cssText += ";color:#fbbf24;text-shadow:0 0 7px rgba(245,158,11,.45)";
+      if (icon) icon.style.cssText += ";color:var(--theme-ink-amber, #fbbf24);text-shadow:0 0 7px rgba(245,158,11,.45)";
       const eyebrow = box.querySelector("p");
       if (eyebrow) eyebrow.style.cssText += ";color:var(--text);font-weight:700";
       box.style.position = "relative";
@@ -277,7 +277,7 @@
       closeButton.textContent = "×";
       closeButton.setAttribute("aria-label", "Fechar");
       closeButton.style.cssText = "position:absolute;top:10px;right:10px;width:26px;height:26px;border:0;border-radius:7px;background:transparent;color:var(--text-soft);font-size:1.2rem;line-height:1;cursor:pointer";
-      closeButton.addEventListener("mouseenter", () => { closeButton.style.background = "rgba(255,255,255,.08)"; });
+      closeButton.addEventListener("mouseenter", () => { closeButton.style.background = "var(--theme-surface-tint, rgba(255,255,255,.08))"; });
       closeButton.addEventListener("mouseleave", () => { closeButton.style.background = "transparent"; });
 
       const close = () => {

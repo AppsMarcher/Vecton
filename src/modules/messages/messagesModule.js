@@ -274,16 +274,21 @@
 
     function aplicarTemaEm(elemento, ajustes = _ajustes) {
       if (!elemento) return;
+      // The default palette follows app appearance; a personalized palette stays intact.
+      const padrao = ajustes.corTexto === AJUSTES_PADRAO.corTexto && ajustes.corFundo === AJUSTES_PADRAO.corFundo;
+      const texto = padrao ? `var(--theme-ink, ${ajustes.corTexto})` : ajustes.corTexto;
+      const fundo = padrao ? `var(--theme-surface, ${ajustes.corFundo})` : ajustes.corFundo;
+      const linha = padrao && ajustes.corLinha === AJUSTES_PADRAO.corLinha ? `var(--theme-border, ${ajustes.corLinha})` : ajustes.corLinha;
       elemento.style.setProperty("--blue", ajustes.corLinha);
-      elemento.style.setProperty("--line", ajustes.corLinha);
-      elemento.style.setProperty("--text", ajustes.corTexto);
-      elemento.style.setProperty("--text-soft", ajustes.corTexto);
-      elemento.style.setProperty("--text-faint", ajustes.corTexto);
-      elemento.style.setProperty("--bg-soft", ajustes.corFundo);
-      elemento.style.setProperty("--panel", ajustes.corFundo);
-      elemento.style.setProperty("--panel-strong", ajustes.corFundo);
-      elemento.style.backgroundColor = ajustes.corFundo;
-      elemento.style.color = ajustes.corTexto;
+      elemento.style.setProperty("--line", linha);
+      elemento.style.setProperty("--text", texto);
+      elemento.style.setProperty("--text-soft", texto);
+      elemento.style.setProperty("--text-faint", texto);
+      elemento.style.setProperty("--bg-soft", fundo);
+      elemento.style.setProperty("--panel", fundo);
+      elemento.style.setProperty("--panel-strong", fundo);
+      elemento.style.backgroundColor = fundo;
+      elemento.style.color = texto;
     }
 
     function aplicarTemaMessenger(ajustes = _ajustes) {

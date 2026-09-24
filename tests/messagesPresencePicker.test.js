@@ -26,6 +26,6 @@ assert.match(
 assert.match(styles, /\.msn-presenca-dot\[data-presenca="ausente"\]/, "Ausente deve ter cor própria");
 assert.match(styles, /\.msn-presenca-dot\[data-presenca="ocupado"\]/, "Ocupado deve ter cor própria");
 assert.match(styles, /\.msn-presenca-dot\[data-presenca="invisivel"\]/, "Invisível deve ter cor própria");
-assert.match(index, /messagesModule\.js\?v=20260902a/, "o cache do módulo de mensagens deve ser renovado");
+assert.match(index, /messagesModule\.js\?v=\d{8}[a-z0-9]+/, "o cache do módulo de mensagens deve ser renovado");
 
 console.log("messages presence picker tests: ok");

@@ -32,4 +32,4 @@ for (const [file, hash] of Object.entries(baseline.hashes)) {
   const restored = resolveDark(source).replaceAll('\r\n','\n');
   assert.equal(crypto.createHash('sha256').update(restored).digest('hex'), hash, file + ': changed beyond theme tokens');
 }
-console.log('Dark baseline: all 13 source files preserve original colors, markup and logic.');
+console.log('Dark baseline: all ' + Object.keys(baseline.hashes).length + ' source files preserve original colors, markup and logic.');

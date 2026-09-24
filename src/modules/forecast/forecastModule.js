@@ -292,9 +292,9 @@
       const budgetCard = `
         <button class="reports-report-card fc-scenario-card fc-budget-card" type="button"
           data-scenario-id="budget"
-          style="border-top-color:#64748b;--fc-accent:#64748b">
+          style="border-top-color:var(--theme-border, #64748b);--fc-accent:#64748b">
           <div class="rrc-top">
-            <span class="rrc-icon-wrap" style="background:${hexToRgba("#64748b", 0.12)};border-color:${hexToRgba("#64748b", 0.25)};color:#94a3b8">
+            <span class="rrc-icon-wrap" style="background:${hexToRgba("#64748b", 0.12)};border-color:${hexToRgba("#64748b", 0.25)};color:var(--theme-ink-secondary, #94a3b8)">
               ${iconSvg("vp-icon-briefcase")}
             </span>
             ${starBtn("budget", !hasScenarioFav)}
@@ -697,7 +697,7 @@
             <div class="fc-detail-header">
               <button class="fc-back-btn" id="fc-detail-back" type="button">← Cenários</button>
               <div class="fc-detail-title-row">
-                <span class="fc-detail-icon" style="background:#64748b;color:#fff">${iconSvg("vp-icon-briefcase")}</span>
+                <span class="fc-detail-icon" style="background:var(--theme-surface-raised, #64748b);color:#fff">${iconSvg("vp-icon-briefcase")}</span>
                 <div>
                   <h2 class="fc-detail-name">Budget</h2>
                   <span class="fc-detail-meta">Orçamento oficial · ${year}</span>
@@ -706,7 +706,7 @@
             </div>
             <div class="reports-card-grid">
               <button class="reports-report-card fc-scenario-card" type="button" data-fc-report="dreSoc" style="border-top-color:#4f7cff">
-                <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(79,124,255,0.12);border-color:rgba(79,124,255,0.22);color:#4f7cff"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg></span></div>
+                <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(79,124,255,0.12);border-color:rgba(79,124,255,0.22);color:var(--theme-ink-blue, #4f7cff)"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg></span></div>
                 <strong>DRE Societário</strong>
                 <span class="rrc-subtitle">Budget</span>
               </button>
@@ -752,7 +752,7 @@
             </div>
             <div class="reports-card-grid">
               <button class="reports-report-card fc-scenario-card" type="button" data-fc-report="dreSoc" style="border-top-color:#4f7cff">
-                <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(79,124,255,0.12);border-color:rgba(79,124,255,0.22);color:#4f7cff"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg></span></div>
+                <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(79,124,255,0.12);border-color:rgba(79,124,255,0.22);color:var(--theme-ink-blue, #4f7cff)"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg></span></div>
                 <strong>DRE Societário</strong>
                 <span class="rrc-subtitle">${escapeHtml(scenario.name)}</span>
               </button>

@@ -8,6 +8,9 @@ Branch: `codex/tema-claro`. Worktree separado; `main` continua entregando Dark.
 - Preferência local por ID do usuário; logout retorna ao Dark.
 - Logo fornecido para o Claro, mantendo o branco no Dark.
 - Tokens explícitos no shell, perfil, dashboards, relatórios, tooltips e mapas.
+- A3 Estratégicos (desktop e mobile), RPS Gestão, RPS Comercial, Planejamento, cadastros e diálogos adaptados.
+- Messenger acompanha o tema na paleta padrão e preserva as cores personalizadas.
+- Logo do login com dimensões corrigidas e marca do Messenger com contraste no Claro.
 - Trilhos dos gauges, fundos e estados sem dados dos mapas adaptados ao Claro.
 - Séries, gradientes quantitativos e cores de categorias preservados.
 - Nenhuma alteração de API, filtros, agregação, indicadores ou geometria dos gráficos.
@@ -20,8 +23,10 @@ Cores de categoria, gradientes de séries e cores escolhidas pelo usuário no co
 
 ## Validação desta etapa
 - `node tests/appearance.test.js`: preferência, isolamento por usuário, cancelamento, logout e falhas de armazenamento.
-- `node tests/appearanceMigration.test.js`: resolver os fallbacks recupera exatamente os 13 arquivos originais da base `ee85c65`, incluindo código, markup, cores e cálculos.
-- `node tests/appearance.browser.test.js`: 18 telas + 6 cenários adicionais nos dois temas, sem conversor do mockup e sem acesso ao backend. Compara textos, tabelas e geometria de SVGs. Inclui modos do mapa, YTD, 76 contas analíticas do caixa e notebook.
+- `node tests/appearanceMigration.test.js`: resolver os fallbacks recupera exatamente os 18 arquivos originais das bases `ee85c65` e `a2482d2`, incluindo código, markup, cores e cálculos.
+- `node tests/appearance.browser.test.js`: 47 telas + 23 cenários adicionais nos dois temas, sem conversor do mockup e sem acesso ao backend. Compara textos, tabelas e geometria de SVGs. Inclui A3 (cadastro, indicadores, lançamento mensal e mobile), apresentações e backups de RPS, vendas do RPS Comercial, convite de usuários, Messenger, notificações, login, mapas, YTD, 76 contas analíticas do caixa e notebook.
+- `node tests/messagesAppearance.test.js`: paleta padrão e cores personalizadas do Messenger.
+- Testes de RPS (layout e concorrência), planejamento, presença de mensagens, viewport de login e avatar mobile aprovados.
 - Testes existentes de Cockpit, serviço de Cockpit, modelo de caixa, OPEX e avatar aprovados.
 - Teste adicional `fcDashboard.integration.test.js` não executado: dependência `xlsx` ausente no ambiente. Não houve alteração de importação/exportação.
 - Capturas e resultado da comparação ficam em `artifacts/theme/` (dados demonstrativos).
@@ -30,7 +35,6 @@ O teste de navegador requer Playwright e Edge; `NODE_PATH` ou `PLAYWRIGHT_MODULE
 
 ## Antes da liberação geral
 - Homologar com dados reais, permissões e estados de erro/vazio de cada módulo.
-- Concluir a revisão visual de A3, RPS, Planejamento e telas administrativas (fora desta etapa de dashboards e relatórios).
 - Validar impressão, exportação e atualização PWA em homologação.
 - Definir sincronização entre dispositivos caso desejada; atualmente a escolha é por navegador.
 

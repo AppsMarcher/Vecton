@@ -30,4 +30,7 @@ assert.match(
   /@media \(max-width:\s*720px\)[\s\S]*#rps-view\.content-view\.active\s*\{[^}]*flex:\s*none;[^}]*overflow:\s*visible;/,
   "em telas pequenas, a rolagem natural da página deve ser preservada"
 );
-assert.match(index, /styles\.css\?v=20260902f/, "o cache do CSS deve ser renovado");
+const cssAsset = index.match(/href="(styles\.css\?v=[^"]+)"/)?.[1];
+assert.ok(cssAsset, "o CSS deve possuir uma versão de cache");
+const worker = fs.readFileSync(path.join(__dirname, "..", "sw.js"), "utf8");
+assert.ok(worker.includes(`"./${cssAsset}"`), "o PWA deve usar a mesma versão de CSS do HTML");

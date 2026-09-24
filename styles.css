@@ -336,7 +336,7 @@ textarea {
   padding: 24px;
   background:
     radial-gradient(circle at 20% 20%, rgba(79, 124, 255, 0.1), transparent 24%),
-    linear-gradient(180deg, #09090a 0%, #111214 100%);
+    linear-gradient(180deg, var(--theme-surface, #09090a) 0%, var(--theme-surface, #111214) 100%);
 }
 
 .auth-shell.active {
@@ -462,12 +462,12 @@ body.auth-only {
 }
 
 .auth-shell {
-  --auth-bg: #020814;
+  --auth-bg: var(--theme-surface, #020814);
   --auth-blue: #1677ff;
   --auth-blue-bright: #1e90ff;
   --auth-cyan: #19d3f3;
-  --auth-text: #f5f7fb;
-  --auth-text-soft: #b9c3d4;
+  --auth-text: var(--theme-ink, #f5f7fb);
+  --auth-text-soft: var(--theme-ink-secondary, #b9c3d4);
   position: relative;
   isolation: isolate;
   min-height: 100vh;
@@ -478,7 +478,7 @@ body.auth-only {
   background:
     radial-gradient(ellipse at 54% 40%, rgba(2, 79, 194, .24) 0%, rgba(3, 28, 75, .14) 31%, transparent 58%),
     radial-gradient(ellipse at 78% 23%, rgba(14, 61, 151, .18), transparent 38%),
-    linear-gradient(112deg, #01050e 0%, #020817 40%, #030a1d 70%, #020615 100%);
+    linear-gradient(112deg, var(--theme-surface, #01050e) 0%, var(--theme-surface, #020817) 40%, var(--theme-surface, #030a1d) 70%, var(--theme-surface, #020615) 100%);
 }
 
 .auth-shell.active { display: block; }
@@ -5444,7 +5444,7 @@ textarea[disabled] {
   border-top: 1px solid var(--blue);
   /* Opaco (em vez do --blue-soft translúcido direto) pra tapar de verdade as
      linhas rolando por baixo, já que o rodapé fica sticky. */
-  background: linear-gradient(var(--blue-soft), var(--blue-soft)), #14161d;
+  background: linear-gradient(var(--blue-soft), var(--blue-soft)), var(--theme-surface, #14161d);
   color: var(--text);
   font-weight: 700;
 }
@@ -7819,7 +7819,7 @@ table th,
   border-radius: 8px;
   border: none;
   background: var(--blue);
-  color: var(--theme-ink, #fff);
+  color: var(--theme-on-accent, #fff);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -7966,7 +7966,7 @@ table th,
   border-radius: var(--radius);
   background:
     radial-gradient(circle at 0 0, rgba(79, 124, 255, .14), transparent 32%),
-    linear-gradient(135deg, rgba(18, 19, 23, .98), rgba(10, 12, 16, .98));
+    linear-gradient(135deg, var(--theme-surface, rgba(18, 19, 23, .98)), var(--theme-surface, rgba(10, 12, 16, .98)));
   box-shadow: var(--shadow), inset 0 -1px 0 rgba(255,255,255,.035);
 }
 
@@ -8045,7 +8045,7 @@ table th,
 }
 
 .rps-action-primary {
-  color: var(--theme-ink, #fff);
+  color: var(--theme-on-accent, #fff);
   border-color: rgba(79,124,255,.7);
   background: linear-gradient(135deg, #315dcc, #4f7cff);
   box-shadow: 0 8px 22px rgba(37,99,235,.2);
@@ -8247,7 +8247,7 @@ table th,
   border: 1px solid rgba(79,124,255,.7);
   border-radius: 10px;
   background: linear-gradient(135deg, #315dcc, #4f7cff);
-  color: var(--theme-ink, #fff);
+  color: var(--theme-on-accent, #fff);
   font-weight: 700;
   cursor: pointer;
 }
@@ -8556,7 +8556,7 @@ table th,
 
 .rps-table thead th.is-focused {
   background: #1f5fb5;
-  color: var(--theme-ink, #fff);
+  color: var(--theme-on-accent, #fff);
   box-shadow: inset 0 -2px 0 #73a0ff;
 }
 
@@ -8586,7 +8586,7 @@ table th,
 .rps-area-row th {
   height: 37px;
   padding: 0;
-  background: color-mix(in srgb, var(--rps-area-color) 7%, #0c0e12);
+  background: color-mix(in srgb, var(--rps-area-color) 7%, var(--theme-surface, #0c0e12));
   text-align: left;
 }
 
@@ -11145,18 +11145,18 @@ body.rps-laser-mode .rps-attachment-carousel * {
    ============================================================================ */
 .vmob-shell {
   display: none;
-  --vmob-bg: #09090a;
-  --vmob-panel: #121317;
-  --vmob-panel-elevated: #191b20;
-  --vmob-line: #2a2d34;
-  --vmob-text: #ffffff;
-  --vmob-soft: #a1a7b3;
-  --vmob-faint: #6b7280;
+  --vmob-bg: var(--theme-surface, #09090a);
+  --vmob-panel: var(--theme-surface, #121317);
+  --vmob-panel-elevated: var(--theme-surface-raised, #191b20);
+  --vmob-line: var(--theme-border, #2a2d34);
+  --vmob-text: var(--theme-ink, #ffffff);
+  --vmob-soft: var(--theme-ink-secondary, #a1a7b3);
+  --vmob-faint: var(--theme-ink-muted, #6b7280);
   --vmob-accent: #4f7cff;
   --vmob-accent-soft: rgba(79, 124, 255, 0.14);
-  --vmob-positive: #4ade80;
-  --vmob-negative: #f87171;
-  --vmob-warning: #f59e0b;
+  --vmob-positive: var(--theme-ink-green, #4ade80);
+  --vmob-negative: var(--theme-ink-red, #f87171);
+  --vmob-warning: var(--theme-ink-amber, #f59e0b);
   color: var(--vmob-text);
   font-family: "Inter", -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums;
@@ -11345,7 +11345,7 @@ body.mobile-shell-active .vmob-shell {
 .vmob-month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .vmob-month-item { all: unset; box-sizing: border-box; text-align: center; padding: 10px 0; font-size: 12.5px; font-weight: 600; color: var(--vmob-soft); border-radius: 10px; cursor: pointer; background: var(--vmob-bg); border: 1px solid transparent; }
 .vmob-month-item:active { background: var(--vmob-panel); }
-.vmob-month-item.is-selected { background: var(--vmob-accent); color: var(--theme-ink, #fff); }
+.vmob-month-item.is-selected { background: var(--vmob-accent); color: var(--theme-on-accent, #fff); }
 
 /* Menu de módulos */
 .vmob-module-list { display: flex; flex-direction: column; gap: 10px; }
@@ -11403,7 +11403,7 @@ body.mobile-shell-active .vmob-shell {
   padding: 10px 20px;
   border-radius: 11px;
   background: var(--vmob-accent);
-  color: var(--theme-ink, #fff);
+  color: var(--theme-on-accent, #fff);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;

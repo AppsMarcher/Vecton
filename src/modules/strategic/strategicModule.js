@@ -247,15 +247,15 @@
            elemento em document.body, modal incluso — o prefixo --sa3- já
            evita colisão com variáveis de outros módulos. */
         :root {
-          --sa3-bg:#09090a; --sa3-bg-soft:#0e0e10; --sa3-panel:#121317; --sa3-panel-alt:#0f1013; --sa3-panel-hover:#191b20;
-          --sa3-line:#2a2d34; --sa3-line-soft:rgba(255,255,255,.06);
-          --sa3-text:#ffffff; --sa3-soft:#a1a7b3; --sa3-faint:#6b7280;
-          --sa3-blue:#4f7cff; --sa3-pos:#4ade80; --sa3-neg:#f87171; --sa3-amber:#f59e0b; --sa3-violet:#8b5cf6;
+          --sa3-bg:var(--theme-surface, #09090a); --sa3-bg-soft:var(--theme-surface-raised, #0e0e10); --sa3-panel:var(--theme-surface, #121317); --sa3-panel-alt:var(--theme-surface, #0f1013); --sa3-panel-hover:var(--theme-surface-raised, #191b20);
+          --sa3-line:var(--theme-border, #2a2d34); --sa3-line-soft:var(--theme-border-subtle, rgba(255,255,255,.06));
+          --sa3-text:var(--theme-ink, #ffffff); --sa3-soft:var(--theme-ink-secondary, #a1a7b3); --sa3-faint:var(--theme-ink-muted, #6b7280);
+          --sa3-blue:#4f7cff; --sa3-pos:var(--theme-ink-green, #4ade80); --sa3-neg:var(--theme-ink-red, #f87171); --sa3-amber:var(--theme-ink-amber, #f59e0b); --sa3-violet:#8b5cf6;
         }
         .sa3 { color:var(--sa3-text); font-family:inherit; }
         .sa3 * { box-sizing:border-box; }
         .sa3 button { font-family:inherit; }
-        .sa3-card { background:rgba(12,14,18,.9); border:1px solid var(--sa3-line); border-radius:16px; box-shadow:0 18px 48px rgba(0,0,0,.32); padding:18px 20px; margin-bottom:14px; }
+        .sa3-card { background:var(--theme-surface, rgba(12,14,18,.9)); border:1px solid var(--sa3-line); border-radius:16px; box-shadow:0 18px 48px var(--theme-shadow-color, rgba(0,0,0,.32)); padding:18px 20px; margin-bottom:14px; }
         /* Card "Norte Verdadeiro" em destaque (pedido do usuário,
            2026-08-29) — é a meta anual macro da empresa, no topo da Tela
            1, então a borda usa o azul do projeto em vez do cinza padrão
@@ -265,7 +265,7 @@
         .sa3-head h2, .sa3-head h3 { margin:0; font-size:1rem; font-weight:700; letter-spacing:-.01em; }
         .sa3-head p { margin:4px 0 0; font-size:.78rem; color:var(--sa3-soft); max-width:520px; line-height:1.45; }
         .sa3-btn { border-radius:10px; padding:8px 14px; font-size:.78rem; font-weight:600; cursor:pointer; border:1px solid var(--sa3-line); background:transparent; color:var(--sa3-soft); }
-        .sa3-btn:hover { background:rgba(255,255,255,.05); color:var(--sa3-text); }
+        .sa3-btn:hover { background:var(--theme-surface-tint, rgba(255,255,255,.05)); color:var(--sa3-text); }
         .sa3-btn.primary { background:var(--sa3-blue); border-color:var(--sa3-blue); color:#fff; }
         /* Excluir item arquivado (pedido do usuário, 2026-08-29) — mesmo
            padrão visual de .sa3-btn.primary, só na cor de "perigo". */
@@ -286,7 +286,7 @@
           border-left:3px solid var(--row-accent, var(--sa3-line)); cursor:pointer; width:100%; text-align:left; color:var(--sa3-text);
         }
         .sa3-area-row:hover { background:var(--sa3-panel-hover); }
-        .sa3-area-icon { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; font-weight:700; font-size:.72rem; background:rgba(255,255,255,.05); }
+        .sa3-area-icon { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; font-weight:700; font-size:.72rem; background:var(--theme-surface-tint, rgba(255,255,255,.05)); }
         .sa3-area-name { font-size:.82rem; font-weight:700; }
         .sa3-area-sub { font-size:.68rem; color:var(--sa3-faint); margin-top:1px; }
         /* Tela "Itens arquivados" (melhoria #8 do review) — mesmo padrão
@@ -297,12 +297,12 @@
         .sa3-archived-meta { font-size:.68rem; color:var(--sa3-faint); margin-top:1px; }
         .sa3-archived-tag { font-size:.6rem; font-weight:700; text-transform:uppercase; color:var(--sa3-faint); border:1px solid var(--sa3-line); border-radius:999px; padding:1px 6px; margin-left:4px; vertical-align:middle; }
         .sa3-subtabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
-        .sa3-subtab { border:1px solid var(--sa3-line); background:rgba(255,255,255,.02); color:var(--sa3-soft); padding:6px 12px; border-radius:9px; font-size:.74rem; font-weight:600; cursor:pointer; }
-        .sa3-subtab.active { background:rgba(79,124,255,.14); border-color:rgba(79,124,255,.4); color:#8fb0ff; }
+        .sa3-subtab { border:1px solid var(--sa3-line); background:var(--theme-surface-tint, rgba(255,255,255,.02)); color:var(--sa3-soft); padding:6px 12px; border-radius:9px; font-size:.74rem; font-weight:600; cursor:pointer; }
+        .sa3-subtab.active { background:rgba(79,124,255,.14); border-color:rgba(79,124,255,.4); color:var(--theme-ink-blue, #8fb0ff); }
         .sa3-objective-text { white-space:pre-wrap; font-size:.82rem; line-height:1.5; color:var(--sa3-text); }
         .sa3-objective-text.hidden { display:none; }
         .sa3-objective-editor.hidden { display:none; }
-        .sa3-objective-textarea { width:100%; min-height:220px; resize:vertical; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:10px; color:var(--sa3-text); font:inherit; font-size:.82rem; line-height:1.5; padding:12px 14px; margin-bottom:10px; }
+        .sa3-objective-textarea { width:100%; min-height:220px; resize:vertical; background:var(--theme-surface-tint, rgba(255,255,255,.03)); border:1px solid var(--sa3-line); border-radius:10px; color:var(--sa3-text); font:inherit; font-size:.82rem; line-height:1.5; padding:12px 14px; margin-bottom:10px; }
         .sa3-objective-textarea:focus { border-color:rgba(79,124,255,.6); outline:none; }
         .sa3-analysis-list { display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
         .sa3-analysis-item { padding:10px 12px; border-radius:9px; background:var(--sa3-panel-alt); border:1px solid var(--sa3-line-soft); font-size:.78rem; }
@@ -312,7 +312,7 @@
         .sa3-analysis-tag.cause { background:rgba(245,158,11,.12); color:var(--sa3-amber); }
         .sa3-analysis-tag.countermeasure { background:rgba(74,222,128,.12); color:var(--sa3-pos); }
         .sa3-analysis-kpis { margin-top:5px; display:flex; gap:5px; flex-wrap:wrap; }
-        .sa3-analysis-kpi-chip { font-size:.62rem; color:var(--sa3-faint); background:rgba(255,255,255,.04); border-radius:999px; padding:2px 7px; }
+        .sa3-analysis-kpi-chip { font-size:.62rem; color:var(--sa3-faint); background:var(--theme-surface-tint, rgba(255,255,255,.04)); border-radius:999px; padding:2px 7px; }
         .sa3-item-actions { display:flex; gap:4px; }
         .sa3-icon-btn { background:none; border:none; color:var(--sa3-faint); cursor:pointer; padding:2px; }
         .sa3-icon-btn:hover { color:var(--sa3-text); }
@@ -322,7 +322,7 @@
           font-size:.68rem; line-height:1; border-radius:999px; cursor:pointer;
           text-transform:none; font-weight:600; margin-bottom:0;
         }
-        .sa3-attachment-chip { gap:5px; padding:0 6px 0 8px; background:rgba(255,255,255,.04); border:1px solid var(--sa3-line-soft); color:var(--sa3-soft); max-width:220px; }
+        .sa3-attachment-chip { gap:5px; padding:0 6px 0 8px; background:var(--theme-surface-tint, rgba(255,255,255,.04)); border:1px solid var(--sa3-line-soft); color:var(--sa3-soft); max-width:220px; }
         .sa3-attachment-chip:hover { border-color:rgba(79,124,255,.4); }
         .sa3-attachment-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .sa3-attachment-remove { background:none; border:none; color:var(--sa3-faint); cursor:pointer; font-size:.9rem; line-height:1; padding:0 0 0 2px; }
@@ -332,7 +332,7 @@
            renderizada dentro do form, senão "+Anexar" vira um <label>
            genérico (uppercase, display:block), desalinhado dos chips do lado. */
         .sa3-attachments .sa3-attachment-add { gap:4px; padding:0 10px; border:1px dashed var(--sa3-line); color:var(--sa3-faint); }
-        .sa3-attachments .sa3-attachment-add:hover { border-color:rgba(79,124,255,.4); color:#8fb0ff; }
+        .sa3-attachments .sa3-attachment-add:hover { border-color:rgba(79,124,255,.4); color:var(--theme-ink-blue, #8fb0ff); }
         /* Picker de Responsáveis — fechado por padrão (só um botão-flag com
            a contagem); clicar abre a lista em popover ancorado embaixo do
            botão, largura travada na soma de Prioridade+Progresso (150+150+
@@ -345,7 +345,7 @@
           display:flex; flex-direction:column; max-height:160px; overflow-y:auto;
           position:absolute; top:calc(100% + 4px); left:0; width:100%; z-index:6;
           border:1px solid var(--sa3-line); border-radius:8px; padding:4px 6px;
-          background:var(--sa3-panel); box-shadow:0 14px 32px rgba(0,0,0,.4);
+          background:var(--sa3-panel); box-shadow:0 14px 32px var(--theme-shadow-color, rgba(0,0,0,.4));
         }
         .sa3-owner-list.hidden { display:none; }
         /* .sa3-owner-row é um <label> — precisa de 2 classes na especificidade
@@ -356,11 +356,11 @@
           font-size:.76rem; font-weight:400; text-transform:none; color:var(--sa3-soft);
           cursor:pointer; user-select:none; margin-bottom:0;
         }
-        .sa3-owner-list .sa3-owner-row:hover { background:rgba(255,255,255,.04); }
+        .sa3-owner-list .sa3-owner-row:hover { background:var(--theme-surface-tint, rgba(255,255,255,.04)); }
         .sa3-owner-row input[type="checkbox"] {
           appearance:none; -webkit-appearance:none; margin:0; flex-shrink:0; cursor:pointer;
           width:14px; height:14px; border-radius:4px; border:1px solid var(--sa3-line);
-          background:rgba(255,255,255,.03); display:grid; place-items:center;
+          background:var(--theme-surface-tint, rgba(255,255,255,.03)); display:grid; place-items:center;
         }
         .sa3-owner-row input[type="checkbox"]::after {
           content:""; width:7px; height:4px; opacity:0;
@@ -411,20 +411,20 @@
         .rps-carousel-remove {
           display:inline-flex; align-items:center; gap:6px; flex-shrink:0; height:32px; padding:0 12px;
           border:1px solid rgba(248,113,113,.4); border-radius:8px; background:rgba(248,113,113,.12);
-          color:#f87171; font-size:.68rem; font-weight:700; cursor:pointer; white-space:nowrap;
+          color:var(--theme-ink-red, #f87171); font-size:.68rem; font-weight:700; cursor:pointer; white-space:nowrap;
         }
         .rps-carousel-remove:hover { background:rgba(248,113,113,.22); border-color:rgba(248,113,113,.6); }
         .rps-carousel-remove svg { width:13px; height:13px; flex-shrink:0; }
         .sa3-kpi-title-edit.hidden { display:none; }
-        .sa3-kpi-title-edit input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; margin-bottom:6px; }
+        .sa3-kpi-title-edit input { width:100%; background:var(--theme-surface-tint, rgba(255,255,255,.03)); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; margin-bottom:6px; }
         .sa3-kpi-title-edit input:last-of-type { margin-bottom:10px; }
         .sa3-pill { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.66rem; font-weight:700; white-space:nowrap; }
         .sa3-pill.pos { background:rgba(74,222,128,.12); color:var(--sa3-pos); }
         .sa3-pill.neg { background:rgba(248,113,113,.12); color:var(--sa3-neg); }
         .sa3-pill.warn { background:rgba(245,158,11,.12); color:var(--sa3-amber); }
         .sa3-pill.pause { background:rgba(139,92,246,.12); color:var(--sa3-violet); }
-        .sa3-pill.cancel { background:rgba(255,255,255,.05); color:var(--sa3-faint); text-decoration:line-through; }
-        .sa3-pill.muted { background:rgba(255,255,255,.05); color:var(--sa3-faint); }
+        .sa3-pill.cancel { background:var(--theme-surface-tint, rgba(255,255,255,.05)); color:var(--sa3-faint); text-decoration:line-through; }
+        .sa3-pill.muted { background:var(--theme-surface-tint, rgba(255,255,255,.05)); color:var(--sa3-faint); }
         .sa3-chevron { color:var(--sa3-faint); }
         .sa3-kpi-block-head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
         .sa3-kpi-title { font-size:.9rem; font-weight:700; }
@@ -440,14 +440,14 @@
         .sa3-chart-plot { position:relative; height:116px; }
         .sa3-bars { position:absolute; inset:0; display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:6px; padding:0 2px; z-index:1; }
         .sa3-bar-col { position:relative; height:100%; min-width:0; }
-        .sa3-bar-real { position:absolute; left:50%; transform:translateX(-50%); width:min(27px,86%); border-radius:5px 5px 1px 1px; background:linear-gradient(180deg,#b6c2d2 0%,#78889d 24%,#374151 100%); box-shadow:0 8px 12px rgba(15,23,42,.24); overflow:hidden; }
+        .sa3-bar-real { position:absolute; left:50%; transform:translateX(-50%); width:min(27px,86%); border-radius:5px 5px 1px 1px; background:linear-gradient(180deg,#b6c2d2 0%,#78889d 24%,#374151 100%); box-shadow:0 8px 12px var(--theme-shadow-color, rgba(15,23,42,.24)); overflow:hidden; }
         .sa3-bar-real::after { content:""; position:absolute; top:1px; left:1px; right:1px; height:28%; min-height:2px; border-radius:4px 4px 2px 2px; background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.06)); pointer-events:none; }
         .sa3-bar-real.pos { background:linear-gradient(180deg,#74e89b 0%,#2dcc6b 24%,#0d6b38 100%); box-shadow:0 8px 12px rgba(34,197,94,.20); }
         .sa3-bar-real.neg { background:linear-gradient(180deg,#f58a8a 0%,#ef5050 24%,#8b202b 100%); box-shadow:0 8px 12px rgba(239,68,68,.20); }
         .sa3-chart-zero { position:absolute; left:2px; right:2px; height:1px; background:rgba(255,255,255,.08); z-index:0; }
         .sa3-target-svg { position:absolute; inset:0 2px; width:calc(100% - 4px); height:100%; overflow:visible; pointer-events:none; z-index:2; }
         .sa3-target-line { fill:none; stroke:#4f7cff; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; filter:drop-shadow(0 2px 4px rgba(79,124,255,.34)); }
-        .sa3-target-point { fill:#4f7cff; stroke:#111318; stroke-width:1.5; vector-effect:non-scaling-stroke; }
+        .sa3-target-point { fill:#4f7cff; stroke:var(--theme-border, #111318); stroke-width:1.5; vector-effect:non-scaling-stroke; }
         /* KPI comparisonMode='range' não tem 1 meta só — desenha mín/máx como
            2 linhas pontilhadas mais discretas em vez de 1 linha cheia. */
         .sa3-target-line.band { stroke-width:1.6; stroke-dasharray:5 4; opacity:.62; filter:none; }
@@ -458,7 +458,7 @@
         .sa3-chart-legend span { display:inline-flex; align-items:center; gap:5px; }
         .sa3-legend-bar { width:10px; height:10px; border-radius:2px 2px 0 0; background:linear-gradient(90deg,#22c55e 0 50%,#ef4444 50% 100%); }
         .sa3-legend-line { width:16px; height:0; border-top:2px solid #4f7cff; }
-        .sa3-chart-tooltip { position:fixed; z-index:9999; display:none; min-width:138px; padding:9px 11px; border-radius:8px; background:#0c0e12; border:1px solid var(--sa3-line); box-shadow:0 12px 30px rgba(0,0,0,.42); pointer-events:none; }
+        .sa3-chart-tooltip { position:fixed; z-index:9999; display:none; min-width:138px; padding:9px 11px; border-radius:8px; background:var(--theme-surface, #0c0e12); border:1px solid var(--sa3-line); box-shadow:0 12px 30px var(--theme-shadow-color, rgba(0,0,0,.42)); pointer-events:none; }
         .sa3-chart-tooltip-month { padding-bottom:6px; margin-bottom:5px; border-bottom:1px solid var(--sa3-line-soft); color:var(--sa3-text); font-size:.68rem; font-weight:800; text-transform:lowercase; }
         .sa3-chart-tooltip-row { display:flex; align-items:center; justify-content:space-between; gap:14px; color:var(--sa3-soft); font-size:.68rem; line-height:1.55; }
         .sa3-chart-tooltip-row strong { color:var(--sa3-text); font-weight:700; text-align:right; white-space:nowrap; }
@@ -470,7 +470,7 @@
         .sa3-form { display:flex; flex-direction:column; gap:10px; margin-top:10px; padding:14px; border-radius:12px; border:1px dashed rgba(79,124,255,.35); background:rgba(79,124,255,.035); }
         .sa3-form.hidden { display:none; }
         .sa3-form label { display:block; font-size:.64rem; font-weight:700; text-transform:uppercase; color:var(--sa3-faint); margin-bottom:4px; }
-        .sa3-form input, .sa3-form select, .sa3-form textarea { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.78rem; padding:8px 10px; }
+        .sa3-form input, .sa3-form select, .sa3-form textarea { width:100%; background:var(--theme-surface-tint, rgba(255,255,255,.03)); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.78rem; padding:8px 10px; }
         /* input e select têm altura intrínseca diferente por padrão do
            navegador (select "cresce" mais) — trava os dois na mesma altura
            pra Prioridade/Progresso ficarem visualmente idênticos. */
@@ -484,7 +484,7 @@
           background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
           background-repeat:no-repeat; background-position:right 10px center; background-size:13px; padding-right:28px;
         }
-        .sa3-form select option { background:#121317; color:#ffffff; }
+        .sa3-form select option { background:var(--theme-surface, #121317); color:var(--theme-ink, #ffffff); }
         .sa3-form-grid { display:grid; grid-template-columns:1fr 130px 150px; gap:10px; }
         .sa3-form-foot { display:flex; justify-content:flex-end; gap:8px; }
         /* Tela 3 (lançamento mensal) — layout ÚNICO pra 100% dos indicadores,
@@ -505,14 +505,14 @@
         .sa3-entry-meta, .sa3-entry-real, .sa3-entry-save { display:flex; flex-direction:column; gap:4px; }
         .sa3-entry-meta .k, .sa3-entry-real .k, .sa3-entry-save .k { font-size:.6rem; text-transform:uppercase; letter-spacing:.04em; color:var(--sa3-faint); font-weight:700; }
         .sa3-entry-meta-row { display:flex; gap:4px; }
-        .sa3-entry-meta-row input, .sa3-entry-real > input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; text-align:right; }
+        .sa3-entry-meta-row input, .sa3-entry-real > input { width:100%; background:var(--theme-surface-tint, rgba(255,255,255,.03)); border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:8px 10px; text-align:right; }
         .sa3-entry-meta-row input:disabled, .sa3-entry-real > input:disabled { opacity:.55; }
         /* Remoção do seletor nativo (setinhas) de input number agora é
            regra global em styles.css — não precisa repetir aqui. */
         .sa3-entry-real .sa3-entry-target { margin-top:0; padding-top:8px; }
         .sa3-entry-driver-row { display:flex; align-items:center; gap:6px; margin-top:2px; }
         .sa3-entry-driver-row label { font-size:.62rem; color:var(--sa3-faint); flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .sa3-entry-driver-row input { width:76px; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.74rem; padding:5px 6px; text-align:right; }
+        .sa3-entry-driver-row input { width:76px; background:var(--theme-surface-tint, rgba(255,255,255,.03)); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.74rem; padding:5px 6px; text-align:right; }
         /* Pedido do usuário (2026-08-29): 1ª tentativa foi align-self:
            stretch + centralizar por dentro, mas na tela real o botão saía
            mais baixo que o rótulo "META"/"REAL" — a suposição de que a
@@ -532,7 +532,7 @@
            texto "Não salvo" de volta, mas com white-space:nowrap (a coluna
            do Salvar tinha só 100px, forçava quebra em 2 linhas — agora tem
            160px) e uma cor mais viva (rosa) que o âmbar original. */
-        .sa3-dirty-badge { display:none; font-size:.68rem; font-weight:700; white-space:nowrap; color:#f472b6; }
+        .sa3-dirty-badge { display:none; font-size:.68rem; font-weight:700; white-space:nowrap; color:var(--theme-ink-pink, #f472b6); }
         .sa3-entry-row.dirty .sa3-dirty-badge { display:inline; animation:sa3-dirty-pulse 1.6s ease-in-out infinite; }
         @keyframes sa3-dirty-pulse { 0%, 100% { opacity:1; } 50% { opacity:.4; } }
         /* Flash de confirmação (pedido do usuário 2026-08-29): depois do
@@ -556,23 +556,23 @@
         .sa3-breakdown-rows { display:flex; flex-direction:column; gap:6px; }
         .sa3-breakdown-row { display:grid; grid-template-columns:1fr 120px 120px 100px 26px; gap:8px; align-items:center; }
         .sa3-breakdown-row.no-weight { grid-template-columns:1fr 120px 120px 26px; }
-        .sa3-breakdown-row input { width:100%; background:rgba(255,255,255,.03); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.76rem; padding:6px 8px; }
+        .sa3-breakdown-row input { width:100%; background:var(--theme-surface-tint, rgba(255,255,255,.03)); border:1px solid var(--sa3-line); border-radius:6px; color:var(--sa3-text); font:inherit; font-size:.76rem; padding:6px 8px; }
         .sa3-breakdown-row input[type="number"] { text-align:right; }
-        .sa3-badge-auto { display:inline-flex; align-items:center; gap:4px; margin-left:8px; padding:2px 8px; border-radius:999px; background:rgba(79,124,255,.12); color:#8fb0ff; border:1px solid rgba(79,124,255,.28); font-size:.62rem; font-weight:700; vertical-align:middle; }
+        .sa3-badge-auto { display:inline-flex; align-items:center; gap:4px; margin-left:8px; padding:2px 8px; border-radius:999px; background:rgba(79,124,255,.12); color:var(--theme-ink-blue, #8fb0ff); border:1px solid rgba(79,124,255,.28); font-size:.62rem; font-weight:700; vertical-align:middle; }
         .sa3-period-status { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
         .sa3-loading, .sa3-error { padding:40px 20px; text-align:center; color:var(--sa3-faint); font-size:.84rem; }
         .sa3-error { color:var(--sa3-neg); }
         /* Modais de criação (A3 nova / indicador novo) — só super_admin/
            admin, ver isSuperAdminOrAdmin(). Overlay simples, sem depender
            de nenhuma classe global do app (módulo autocontido). */
-        .sa3-modal-overlay { position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; padding:20px; }
-        .sa3-modal-card { background:var(--sa3-panel); border:1px solid var(--sa3-line); border-radius:16px; box-shadow:0 24px 60px rgba(0,0,0,.5); padding:22px 24px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; }
+        .sa3-modal-overlay { position:fixed; inset:0; z-index:1000; background:var(--theme-overlay, rgba(0,0,0,.6)); display:flex; align-items:center; justify-content:center; padding:20px; }
+        .sa3-modal-card { background:var(--sa3-panel); border:1px solid var(--sa3-line); border-radius:16px; box-shadow:0 24px 60px var(--theme-shadow-color, rgba(0,0,0,.5)); padding:22px 24px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; }
         .sa3-modal-title { font-size:1rem; font-weight:700; margin:0 0 4px; }
         .sa3-modal-subtitle { font-size:.76rem; color:var(--sa3-soft); margin:0 0 16px; }
         .sa3-modal-field { margin-bottom:12px; }
         .sa3-modal-field label { display:block; font-size:.64rem; font-weight:700; text-transform:uppercase; color:var(--sa3-faint); margin-bottom:4px; }
         .sa3-modal-field input, .sa3-modal-field select {
-          width:100%; height:38px; box-sizing:border-box; background:rgba(255,255,255,.03);
+          width:100%; height:38px; box-sizing:border-box; background:var(--theme-surface-tint, rgba(255,255,255,.03));
           border:1px solid var(--sa3-line); border-radius:8px; color:var(--sa3-text); font:inherit; font-size:.82rem; padding:0 10px;
         }
         .sa3-modal-field select {
@@ -580,12 +580,12 @@
           background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
           background-repeat:no-repeat; background-position:right 10px center; background-size:13px; padding-right:28px;
         }
-        .sa3-modal-field select option { background:#121317; color:#fff; }
+        .sa3-modal-field select option { background:var(--theme-surface, #121317); color:var(--theme-ink, #fff); }
         .sa3-modal-hint { font-size:.68rem; color:var(--sa3-faint); margin-top:4px; }
         .sa3-modal-foot { display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
         .sa3-modal-radio-group { display:flex; gap:8px; }
         .sa3-modal-radio { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px; border:1px solid var(--sa3-line); border-radius:8px; cursor:pointer; font-size:.78rem; color:var(--sa3-soft); text-align:center; }
-        .sa3-modal-radio.active { border-color:rgba(79,124,255,.55); background:rgba(79,124,255,.1); color:#8fb0ff; }
+        .sa3-modal-radio.active { border-color:rgba(79,124,255,.55); background:rgba(79,124,255,.1); color:var(--theme-ink-blue, #8fb0ff); }
         .sa3-modal-hidden { display:none; }
       `;
       document.head.append(s);

@@ -71,3 +71,11 @@ html[data-vecton-theme="clear"] {
   --theme-map-hover:#dce7f5;
   --theme-shadow-color:rgba(30,48,80,.06);
 }
+
+html[data-vecton-theme="clear"] { --theme-on-accent:#fff; --text-1:var(--text); --text-main:var(--text); }
+
+/* Preserve the login brand size with the tightly cropped Claro asset. */
+html[data-vecton-theme="clear"] .auth-shell .auth-hero-logo{width:clamp(175px,11.6vw,210px);height:auto}
+
+/* Keep the white Messenger wordmark legible on its light header. */
+html[data-vecton-theme="clear"] .msn-head-logo{filter:brightness(.4) saturate(1.4)}
