@@ -184,7 +184,7 @@
         if (!st.rings || !st.rings.length) return "";
         const count = counts.get(st.uf) || 0;
         const fill = heat(count, 0, max);
-        return `<path d="${statePath(st.rings)}" fill="${fill}" stroke="rgba(255,255,255,0.55)" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} ativação(ões)</title></path>`;
+        return `<path d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} ativação(ões)</title></path>`;
       }).join("");
 
       const legend = max > 0 ? `

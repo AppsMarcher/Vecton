@@ -218,7 +218,7 @@
 
         const tip = document.createElement("div");
         tip.style.cssText = "position:fixed;z-index:9999;display:none;pointer-events:none;" +
-          "background:#13161c;border:0.5px solid #2a2d34;border-radius:5px;padding:5px 9px;line-height:1.5;white-space:nowrap";
+          "background:var(--theme-surface, #13161c);border:0.5px solid var(--theme-border, #2a2d34);border-radius:5px;padding:5px 9px;line-height:1.5;white-space:nowrap";
         document.body.appendChild(tip);
 
         const svg = el.querySelector(`#${svgId}`);
@@ -226,7 +226,7 @@
         allDots.forEach((dot) => {
           dot.addEventListener("mouseenter", () => {
             tip.innerHTML = `<span style="display:flex;justify-content:space-between;gap:14px">` +
-              `<span style="font-size:0.62rem;color:#a1a7b3">${escapeHtml(dot.dataset.label)}</span>` +
+              `<span style="font-size:0.62rem;color:var(--theme-ink-secondary, #a1a7b3)">${escapeHtml(dot.dataset.label)}</span>` +
               `<span style="font-size:0.72rem;font-weight:700;color:${dynamicStroke}">${escapeHtml(dot.dataset.val)}</span>` +
               `</span>`;
             tip.style.display = "block";
@@ -462,7 +462,7 @@
           tip = document.createElement("div");
           tip.id = tipId;
           tip.style.cssText = "position:fixed;z-index:9999;display:none;pointer-events:none;" +
-            "background:#13161c;border:0.5px solid #2a2d34;border-radius:5px;padding:5px 9px;line-height:1.5;white-space:nowrap";
+            "background:var(--theme-surface, #13161c);border:0.5px solid var(--theme-border, #2a2d34);border-radius:5px;padding:5px 9px;line-height:1.5;white-space:nowrap";
           document.body.appendChild(tip);
         }
         const hideTip = () => { tip.style.display = "none"; };
@@ -470,9 +470,9 @@
           track.addEventListener("mousemove", (e) => {
             const { bv, pv, dv, dvColor: dc, cmp } = track.dataset;
             const html = `
-              <span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">Real</span><span style="font-size:0.72rem;font-weight:700;color:#fff">${bv}</span></span>
-              <span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">${cmp} (Meta)</span><span style="font-size:0.72rem;font-weight:600;color:#a1a7b3">${pv}</span></span>
-              <span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:#a1a7b3">Var. R$</span><span style="font-size:0.72rem;font-weight:600;color:${dc}">${dv}</span></span>`;
+              <span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:var(--theme-ink-secondary, #a1a7b3)">Real</span><span style="font-size:0.72rem;font-weight:700;color:var(--theme-ink, #fff)">${bv}</span></span>
+              <span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:var(--theme-ink-secondary, #a1a7b3)">${cmp} (Meta)</span><span style="font-size:0.72rem;font-weight:600;color:var(--theme-ink-secondary, #a1a7b3)">${pv}</span></span>
+              <span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:var(--theme-ink-secondary, #a1a7b3)">Var. R$</span><span style="font-size:0.72rem;font-weight:600;color:${dc}">${dv}</span></span>`;
             tip.innerHTML = html;
             tip.style.display = "block";
             tip.style.left = (e.clientX - tip.offsetWidth / 2) + "px";

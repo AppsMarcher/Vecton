@@ -1,0 +1,18 @@
+{
+  "base": "ee85c65",
+  "hashes": {
+    "styles.css": "fb374f9d1c81d5a3e815d6373adc963a1a493d9cd3406de6f98c646404f811c3",
+    "src/modules/cashflow/fcDashboard.css": "5097147b6a8ff8baeef103028f41c98f4f20580600141b6a7d09df2bfd437f8f",
+    "src/modules/dashboard/dashboardCards.js": "d735e3d1a604bbab989b8d41f55041abee6b38597bfac296d38977ed3ac94867",
+    "src/modules/dashboard/dashboardModule.js": "815a16c0b8bf716e461f8e1afe49fee41de42552abf8f737fb035a090120a805",
+    "src/modules/dashboard/dashboardVisuals.js": "c54eea48c940bf4698d3574ef0ff2703e2568403521006e3d4e6d2057f907276",
+    "src/modules/reports/comercialReportsModule.js": "bbabe081a235909d44ab26cbe9bb7466088abb358ffa19aff73a9dc670919e70",
+    "src/modules/reports/reportsBuilderModule.js": "ee59d08d4b2b1323bf270de0ea9b437b3f34864a0236c88a649d67eef3046222",
+    "src/modules/reports/reportsComercialMapaGeograficoModule.js": "ec92aee0c046d9fe62040f701dd05841b240a50e2294c00685ca82cb1f044bf9",
+    "src/modules/reports/reportsComercialMapaModule.js": "38cfb908b9b4151abbef70fbaad450c6694f75a3fe735bac3f8704a6bd4037ff",
+    "src/modules/reports/reportsComercialPainelMobileModule.js": "6e9dfd778c1b28d3378d3c86f47913712a6af2cf21541827d75c52030f3772ca",
+    "src/modules/reports/reportsComercialPainelModule.js": "3bb3749e8e32a658475d95320919e7db775ded76af968ab4bea3b43139f6cfc6",
+    "src/modules/reports/reportsComercialPecasGeoModule.js": "778dd9e14008359dceecbad55b9526cb6d2f8cb1fca663f61ea45c4e1081fb64",
+    "src/modules/reports/reportsGarantiaAtivacoesModule.js": "614cd16dbae779a0e6dc480e4710b6f0039f420fabc6ac5883aa75e5feff3093"
+  }
+}

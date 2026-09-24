@@ -1,4 +1,4 @@
-/* Tema claro explícito: primeira etapa, shell e perfil. Módulos analíticos em migração. */
+/* Tema Claro: shell, perfil, dashboards e relatórios. Layouts compartilhados com Dark. */
 html[data-vecton-theme="clear"]{color-scheme:light;
  --bg:#ffffff;--bg-soft:#f6f8fb;--panel:#ffffff;--panel-hover:#f0f4f9;--panel-alt:#f8f9fc;
  --line:#dce2eb;--line-soft:rgba(39,58,88,.09);--text:#253044;--text-soft:#58677c;--text-faint:#69788d;
@@ -9,7 +9,7 @@ html[data-vecton-theme="clear"]{color-scheme:light;
 }
 html[data-vecton-theme="clear"] body,html[data-vecton-theme="clear"] button,html[data-vecton-theme="clear"] input,html[data-vecton-theme="clear"] select,html[data-vecton-theme="clear"] textarea{font-family:Inter,"Segoe UI",sans-serif;font-synthesis:none;-webkit-font-smoothing:antialiased}
 html[data-vecton-theme="clear"] body{background:#fff;color:var(--text)}
-html[data-vecton-theme="clear"] .brand-logo,html[data-vecton-theme="clear"] .vmob-brand-logo{filter:brightness(.27) saturate(.85)}
+html[data-vecton-theme="clear"] :is(.brand-logo,.header-brand-logo,.vmob-brand-logo){content:url("../../assets/logo-preto.png?v=20260924d");filter:none;object-fit:contain;width:auto}
 html[data-vecton-theme="clear"] :is(h1,h2,h3,h4){font-weight:600;text-shadow:none}
 html[data-vecton-theme="clear"] :is(.kpi-number,.kpi-value,.dash-card-title){font-weight:600}
 html[data-vecton-theme="clear"] :is(td,th,.kpi-value,.kpi-number){font-variant-numeric:tabular-nums}
@@ -41,3 +41,33 @@ html[data-vecton-theme="clear"] .profile-dialog .ghost-button{color:var(--text-s
 #appearance-error{color:var(--red)}
 #appearance-error[hidden]{display:none}
 html[data-vecton-theme="clear"] .profile-photo-preview{background-color:var(--bg-soft);color:var(--text);border-color:var(--line)}
+
+/* Explicit roles for migrated legacy surfaces, text, grids and overlays.
+   Dark uses the original fallback at each declaration. */
+html[data-vecton-theme="clear"]{
+  --theme-border:#dce2eb;
+  --theme-border-subtle:rgba(39,58,88,.10);
+  --theme-ink:#253044;
+  --theme-ink-amber:#96620b;
+  --theme-ink-blue:#2858c7;
+  --theme-ink-green:#16783f;
+  --theme-ink-muted:#65758b;
+  --theme-ink-red:#c42e40;
+  --theme-ink-secondary:#58677c;
+  --theme-ink-teal:#087d78;
+  --theme-ink-violet:#7044bb;
+  --theme-ink-pink:#b32b7e;
+  --theme-overlay:rgba(15,23,42,.45);
+  --theme-shadow-color:rgba(30,48,80,.12);
+  --theme-surface:#ffffff;
+  --theme-surface-muted:#edf2f8;
+  --theme-surface-raised:#f6f8fb;
+  --theme-surface-tint:rgba(39,58,88,.04);
+}
+
+html[data-vecton-theme="clear"] {
+  --bg-inset:#e3e8f0;
+  --theme-map-land:#edf2f8;
+  --theme-map-hover:#dce7f5;
+  --theme-shadow-color:rgba(30,48,80,.06);
+}
