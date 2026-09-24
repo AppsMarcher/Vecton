@@ -8,7 +8,7 @@
     "src/modules/dashboard/dashboardVisuals.js": "c54eea48c940bf4698d3574ef0ff2703e2568403521006e3d4e6d2057f907276",
     "src/modules/reports/comercialReportsModule.js": "bbabe081a235909d44ab26cbe9bb7466088abb358ffa19aff73a9dc670919e70",
     "src/modules/reports/reportsBuilderModule.js": "ee59d08d4b2b1323bf270de0ea9b437b3f34864a0236c88a649d67eef3046222",
-    "src/modules/reports/reportsComercialMapaGeograficoModule.js": "aaf99f81fe0d2e487162075bceaeb1017ec8a2e80c8f7f9b2894372b41ee248e",
+    "src/modules/reports/reportsComercialMapaGeograficoModule.js": "2556048bc57e71d3bb0014621614e3edf9ed7dd04941ff60e3f5b0e5d9d848a8",
     "src/modules/reports/reportsComercialMapaModule.js": "ce187deb80e19dbf2dadfcc90b36a30cd7d94e3c247efc78f887eedba331dac9",
     "src/modules/reports/reportsComercialPainelMobileModule.js": "6e9dfd778c1b28d3378d3c86f47913712a6af2cf21541827d75c52030f3772ca",
     "src/modules/reports/reportsComercialPainelModule.js": "3bb3749e8e32a658475d95320919e7db775ded76af968ab4bea3b43139f6cfc6",
@@ -21,5 +21,5 @@
     "src/modules/ui/dialogs.js": "4c52516e55980cd5c86f809b242dce5189799843ff7f127cef6665def418da6e"
   },
   "remainingModulesBase": "a2482d2",
-  "mapPaletteRevision": "20260924: user-requested shared Performance de Pecas map palette and contours, including Dark; services and calculations unchanged."
+  "mapPaletteRevision": "20260924: user-requested shared Performance de Pecas map palette and contours, including Dark; services and calculations unchanged. Hollow geographic ranking rings requested by user; background circles removed."
 }

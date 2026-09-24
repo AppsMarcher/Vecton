@@ -562,7 +562,6 @@
           if (selectedState && selectedState !== uf) cls.push("cmg-dim");
           const fs = Math.max(10, r * 0.34);
           return `<g class="${cls.join(" ")}" data-uf="${uf}">
-            <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r + sw / 2 + 1.5).toFixed(1)}" fill="var(--theme-surface, #0a0d16)" opacity=".55"/>
             ${donutSvg(cx, cy, r, sw, segs)}
             <text class="cmg-donut-lbl" x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" font-size="${fs.toFixed(1)}">${uf}</text>
           </g>`;
