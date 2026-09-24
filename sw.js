@@ -1,12 +1,12 @@
 const CACHE_PREFIX = "vecton-static-";
-const CACHE_NAME = `${CACHE_PREFIX}20260924clear3`;
+const CACHE_NAME = `${CACHE_PREFIX}20260924clear4`;
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./styles.css?v=20260924clear2",
   "./src/modules/cashflow/fcDashboard.css?v=20260924clear1",
-  "./src/styles/appearance.css?v=20260924clear3",
+  "./src/styles/appearance.css?v=20260924clear4",
   "./src/core/appearance.js?v=20260924a",
   "./assets/vecton-messenger-clear.svg?v=20260924a",
   "./assets/logo-preto.png?v=20260924d",

@@ -79,3 +79,6 @@ html[data-vecton-theme="clear"] .auth-shell .auth-hero-logo{width:clamp(175px,11
 
 /* Recolor only the wordmark; preserve the original blue symbol and subtitle. */
 html[data-vecton-theme="clear"] .msn-head-logo{content:url("../../assets/vecton-messenger-clear.svg?v=20260924a");filter:none}
+
+/* Report canvases must not inherit the generic card inset header separator. */
+.content-card.reports-table-card{box-shadow:none}
