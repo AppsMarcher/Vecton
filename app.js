@@ -761,7 +761,29 @@ const announcementsAdminModule = window.VECTON_ANNOUNCEMENTS_ADMIN.createAnnounc
   deleteAnnouncement: (org, id) => deleteSupabaseRows("product_announcements", `organization_id=eq.${org}&id=eq.${id}`),
   deleteSlides: (announcementId) => deleteSupabaseRows("product_announcement_slides", `announcement_id=eq.${announcementId}`),
   insertSlides: (rows) => insertSupabaseRows("product_announcement_slides", rows),
-  uploadImage: (path, file) => uploadToStorage(ANNOUNCEMENTS_BUCKET, path, file)
+  uploadImage: (path, file) => uploadToStorage(ANNOUNCEMENTS_BUCKET, path, file),
+  fetchDismissals: async (org, announcementId) => {
+    const dismissals = await fetchSupabaseRowsSafe(
+      "user_announcement_dismissals",
+      `organization_id=eq.${org}&announcement_id=eq.${announcementId}&select=user_id,dismissed_at&order=dismissed_at.desc`
+    );
+    if (!dismissals.length) return [];
+    const userIds = [...new Set(dismissals.map((row) => row.user_id))];
+    const profiles = await fetchSupabaseRowsSafe(
+      "user_profiles",
+      `organization_id=eq.${org}&user_id=in.(${userIds.join(",")})&select=user_id,full_name,email`
+    );
+    const profileByUser = new Map(profiles.map((row) => [row.user_id, row]));
+    return dismissals.map((row) => ({
+      userId: row.user_id,
+      dismissedAt: row.dismissed_at,
+      name: profileByUser.get(row.user_id)?.full_name || profileByUser.get(row.user_id)?.email || "Usuário sem perfil"
+    }));
+  },
+  reactivateForUser: (org, announcementId, userId) => deleteSupabaseRows(
+    "user_announcement_dismissals",
+    `organization_id=eq.${org}&announcement_id=eq.${announcementId}&user_id=eq.${userId}`
+  )
 });
 const announcementsDisplayModule = window.VECTON_ANNOUNCEMENTS_DISPLAY.createAnnouncementsDisplayModule({
   dialog: announcementDialog,

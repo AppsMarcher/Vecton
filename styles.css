@@ -12709,6 +12709,42 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
     grid-template-columns: 1fr;
   }
 }
+.ann-views-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.ann-views-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.ann-view-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel-alt);
+}
+.ann-view-row-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ann-view-row-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.ann-view-row-date {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}
 
 /* ── Novidades — pop-up de exibição na abertura do app ───────────────────── */
 .announcement-dialog {

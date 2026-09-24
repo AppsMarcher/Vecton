@@ -12,6 +12,9 @@
     let draft = null;         // anúncio novo, ainda não salvo
     let context = null;       // {user, org}
     let loaded = false, pending = false, busy = false, mounted = false;
+    let dismissals = [];              // [{userId, name, dismissedAt}] do anúncio selecionado
+    let dismissalsLoadedFor = null;   // id do anúncio já carregado em `dismissals`
+    let dismissalsPending = false;
 
     function newSlide(sortOrder) {
       return {
@@ -63,6 +66,13 @@
                 <div id="ann-slides" class="ann-slides full-span"></div>
                 <div class="editor-actions full-span"><button class="primary-button" type="submit">Salvar</button><button class="delete-button secondary-danger" id="ann-delete" type="button">Remover</button></div>
               </form>
+              <div id="ann-views-section" class="ann-views-section" hidden>
+                <div class="ann-slides-header">
+                  <p class="section-kicker">Visualizações</p>
+                </div>
+                <p id="ann-views-status" class="toolbar-note"></p>
+                <div id="ann-views-list" class="ann-views-list"></div>
+              </div>
             </div>
           </div>
         </div>`;
@@ -256,15 +266,91 @@
     function drawEditor() {
       const item = selected();
       const form = el("#ann-form");
+      const viewsSection = el("#ann-views-section");
       form.style.display = item ? "" : "none";
       el("#ann-editor-title").textContent = draft ? "Novo anúncio" : (item?.title || "Selecione um anúncio");
-      if (!item) return;
+      if (!item) { viewsSection.hidden = true; return; }
       form.elements.title.value = item.title;
       form.elements.active.value = String(item.active);
       form.elements.starts_at.value = item.starts_at || "";
       form.elements.ends_at.value = item.ends_at || "";
       drawSlides();
       el("#ann-delete").disabled = busy || Boolean(draft);
+
+      // Rascunho ainda não tem id gravado no banco — não há o que consultar.
+      if (draft) {
+        viewsSection.hidden = true;
+        return;
+      }
+      viewsSection.hidden = false;
+      if (dismissalsLoadedFor === item.id) {
+        drawDismissals();
+      } else {
+        void loadDismissals(item.id);
+      }
+    }
+
+    function formatDismissedAt(iso) {
+      try {
+        return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      } catch {
+        return iso || "";
+      }
+    }
+
+    async function loadDismissals(announcementId) {
+      dismissalsPending = true;
+      el("#ann-views-status").textContent = "Carregando…";
+      el("#ann-views-list").innerHTML = "";
+      const key = context;
+      try {
+        const rows = await deps.fetchDismissals(key.org, announcementId);
+        if (key !== context || selected()?.id !== announcementId) return;
+        dismissals = rows;
+        dismissalsLoadedFor = announcementId;
+        drawDismissals();
+      } catch (error) {
+        if (key === context && selected()?.id === announcementId) {
+          el("#ann-views-status").textContent = `Não foi possível carregar as visualizações: ${error.message}`;
+        }
+      } finally {
+        dismissalsPending = false;
+      }
+    }
+
+    function drawDismissals() {
+      const list = el("#ann-views-list");
+      el("#ann-views-status").textContent = dismissals.length
+        ? `${dismissals.length} pessoa${dismissals.length === 1 ? "" : "s"} ${dismissals.length === 1 ? "marcou" : "marcaram"} "não exibir mais".`
+        : `Ninguém marcou "não exibir mais" para este anúncio ainda.`;
+      list.innerHTML = dismissals.map((row) => `
+        <div class="ann-view-row">
+          <div class="ann-view-row-info">
+            <span class="ann-view-row-name">${esc(row.name)}</span>
+            <span class="ann-view-row-date">Dispensou em ${esc(formatDismissedAt(row.dismissedAt))}</span>
+          </div>
+          <button type="button" class="ghost-button compact-button" data-action="reactivate" data-user-id="${esc(row.userId)}">Reativar</button>
+        </div>`).join("");
+      list.querySelectorAll('[data-action="reactivate"]').forEach((btn) => {
+        btn.onclick = () => void reactivate(btn.dataset.userId);
+      });
+    }
+
+    async function reactivate(userId) {
+      const item = selected();
+      if (!item || draft || busy) return;
+      const row = dismissals.find((d) => d.userId === userId);
+      const key = context;
+      const announcementId = item.id;
+      try {
+        await deps.reactivateForUser(key.org, announcementId, userId);
+        if (key !== context || selected()?.id !== announcementId) return;
+        dismissals = dismissals.filter((d) => d.userId !== userId);
+        drawDismissals();
+        status(`Anúncio reativado para ${row?.name || "o usuário"}.`);
+      } catch (error) {
+        if (key === context) status(`Não foi possível reativar: ${error.message}`, true);
+      }
     }
 
     async function save(item) {
@@ -350,7 +436,7 @@
       if (!allowed()) { root.textContent = "Acesso restrito aos administradores."; mounted = false; loaded = false; context = null; return; }
       mount();
       const user = deps.getCurrentUserId();
-      if (context?.user !== user) { loaded = false; announcements = []; selectedId = null; draft = null; }
+      if (context?.user !== user) { loaded = false; announcements = []; selectedId = null; draft = null; dismissals = []; dismissalsLoadedFor = null; }
       if (pending || loaded) return;
       pending = true; drawList(); drawEditor(); controls(); status("Carregando anúncios…");
       try {
