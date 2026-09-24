@@ -183,18 +183,18 @@
       const paths = (BR.states || []).map((st) => {
         if (!st.rings || !st.rings.length) return "";
         const count = counts.get(st.uf) || 0;
-        const fill = heat(count, 0, max);
-        return `<path d="${statePath(st.rings)}" fill="${fill}" stroke="rgba(255,255,255,0.55)" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} ativação(ões)</title></path>`;
+        const fill = window.VECTON_MAP_APPEARANCE.heat(count, max);
+        return `<path class="gar-map-state" d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} ativação(ões)</title></path>`;
       }).join("");
 
       const legend = max > 0 ? `
         <div class="gar-ufmap-legend">
           <span>0</span>
           <div class="gar-ufmap-legend-bar">
-            <span style="background:${heat(0, 0, max)}"></span>
-            <span style="background:${heat(max * 0.33, 0, max)}"></span>
-            <span style="background:${heat(max * 0.66, 0, max)}"></span>
-            <span style="background:${heat(max, 0, max)}"></span>
+            <span style="background:${window.VECTON_MAP_APPEARANCE.heat(0, max)}"></span>
+            <span style="background:${window.VECTON_MAP_APPEARANCE.heat(max * 0.33, max)}"></span>
+            <span style="background:${window.VECTON_MAP_APPEARANCE.heat(max * 0.66, max)}"></span>
+            <span style="background:${window.VECTON_MAP_APPEARANCE.heat(max, max)}"></span>
           </div>
           <span>${max}</span>
           <span class="gar-ufmap-legend-caption">ativações por estado</span>

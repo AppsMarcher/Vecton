@@ -1,0 +1,93 @@
+/* Tema Claro: shell, perfil, dashboards e relatórios. Layouts compartilhados com Dark. */
+html[data-vecton-theme="clear"]{color-scheme:light;
+ --bg:#ffffff;--bg-soft:#f6f8fb;--panel:#ffffff;--panel-hover:#f0f4f9;--panel-alt:#f8f9fc;
+ --line:#dce2eb;--line-soft:rgba(39,58,88,.09);--text:#253044;--text-soft:#58677c;--text-faint:#69788d;
+ --blue:#3565dc;--blue-strong:#2858d0;--blue-soft:rgba(53,101,220,.09);--green:#17844e;--red:#cc3b49;
+ --pos:#17844e;--neg:#cc3b49;--amber:#a8730c;--cyan:#118879;--violet:#7651cd;
+ --shadow:0 12px 32px rgba(30,48,80,.10);
+ --background:#fff;--background-secondary:#f6f8fb;--surface:#fff;--surface-elevated:#fff;--border:#dce2eb;--border-subtle:#edf0f5;--text-primary:#253044;--text-secondary:#58677c;--text-muted:#69788d;--accent:#3565dc;--success:#17844e;--warning:#a8730c;--danger:#cc3b49;--info:#3565dc;
+}
+html[data-vecton-theme="clear"] body,html[data-vecton-theme="clear"] button,html[data-vecton-theme="clear"] input,html[data-vecton-theme="clear"] select,html[data-vecton-theme="clear"] textarea{font-family:Inter,"Segoe UI",sans-serif;font-synthesis:none;-webkit-font-smoothing:antialiased}
+html[data-vecton-theme="clear"] body{background:#fff;color:var(--text)}
+html[data-vecton-theme="clear"] :is(.brand-logo,.header-brand-logo,.vmob-brand-logo){content:url("../../assets/logo-preto.png?v=20260924d");filter:none;object-fit:contain;width:auto}
+html[data-vecton-theme="clear"] :is(h1,h2,h3,h4){font-weight:600;text-shadow:none}
+html[data-vecton-theme="clear"] :is(.kpi-number,.kpi-value,.dash-card-title){font-weight:600}
+html[data-vecton-theme="clear"] :is(td,th,.kpi-value,.kpi-number){font-variant-numeric:tabular-nums}
+html[data-vecton-theme="clear"] :focus-visible{outline-color:#3565dc}
+html[data-vecton-theme="clear"] ::selection{background:#dae6ff;color:#24488f}
+html[data-vecton-theme="clear"] :is(.sidebar,.main-panel,.app-layout,.topbar){background:var(--bg)}
+html[data-vecton-theme="clear"] :is(.kpi-card,.dash-card,.topbar,.panel){box-shadow:0 2px 10px rgba(30,48,80,.035)}
+html[data-vecton-theme="clear"] :is(.dre-mode-btn.active,.period-month-button.active,.period-month-button[aria-pressed="true"]){background:#eaf0fd;color:#2858d0}
+
+.profile-appearance{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 24px;border-top:1px solid var(--line);color:var(--text)}
+.profile-appearance strong{display:block;font-size:13px;font-weight:600}
+.profile-appearance div>span{display:block;margin-top:4px;font-size:12px;color:var(--text-soft)}
+.appearance-choice{display:flex;align-items:center;gap:8px;position:relative;cursor:pointer;font-size:12px;flex-shrink:0}
+.appearance-choice input{position:absolute;width:44px;height:28px;left:34px;opacity:0;cursor:pointer;margin:0}
+.appearance-track{display:block;width:40px;height:24px;border-radius:16px;background:var(--panel-hover);border:1px solid var(--line);transition:background .15s}
+.appearance-track:after{content:'';display:block;width:16px;height:16px;margin:3px;background:var(--text-soft);border-radius:50%;transition:transform .15s}
+.appearance-choice input:checked+.appearance-track{background:var(--blue);border-color:var(--blue)}
+.appearance-choice input:checked+.appearance-track:after{transform:translateX(16px);background:#fff}
+.appearance-choice input:focus-visible+.appearance-track{outline:2px solid var(--blue);outline-offset:3px}
+@media(max-width:480px){.profile-appearance{align-items:flex-start;flex-direction:column;gap:12px}}
+.appearance-choice input{z-index:1}
+
+html[data-vecton-theme="clear"] .profile-dialog { border-color:var(--line);box-shadow:var(--shadow); }
+html[data-vecton-theme="clear"] :is(.profile-dialog-header,.profile-dialog-preview,.profile-dialog-access-section,.profile-dialog-footer,.field-badge){border-color:var(--line-soft)}
+html[data-vecton-theme="clear"] .profile-dialog :is(input,.access-tree,.access-tree-header){background:var(--bg-soft);color:var(--text);border-color:var(--line)}
+html[data-vecton-theme="clear"] .profile-dialog input[readonly]{opacity:1;color:var(--text-soft)}
+html[data-vecton-theme="clear"] .profile-dialog .primary-button{background:var(--blue);color:#fff;border-color:var(--blue)}
+html[data-vecton-theme="clear"] .profile-dialog .ghost-button{color:var(--text-soft);border-color:var(--line)}
+#appearance-error{color:var(--red)}
+#appearance-error[hidden]{display:none}
+html[data-vecton-theme="clear"] .profile-photo-preview{background-color:var(--bg-soft);color:var(--text);border-color:var(--line)}
+
+/* Explicit roles for migrated legacy surfaces, text, grids and overlays.
+   Dark uses the original fallback at each declaration. */
+html[data-vecton-theme="clear"]{
+  --theme-border:#dce2eb;
+  --theme-border-subtle:rgba(39,58,88,.10);
+  --theme-ink:#253044;
+  --theme-ink-amber:#96620b;
+  --theme-ink-blue:#2858c7;
+  --theme-ink-green:#16783f;
+  --theme-ink-muted:#65758b;
+  --theme-ink-red:#c42e40;
+  --theme-ink-secondary:#58677c;
+  --theme-ink-teal:#087d78;
+  --theme-ink-violet:#7044bb;
+  --theme-ink-pink:#b32b7e;
+  --theme-overlay:rgba(15,23,42,.45);
+  --theme-shadow-color:rgba(30,48,80,.12);
+  --theme-surface:#ffffff;
+  --theme-surface-muted:#edf2f8;
+  --theme-surface-raised:#f6f8fb;
+  --theme-surface-tint:rgba(39,58,88,.04);
+}
+
+html[data-vecton-theme="clear"] {
+  --bg-inset:#e3e8f0;
+  --theme-map-land:#edf2f8;
+  --theme-map-hover:#dce7f5;
+  --theme-shadow-color:rgba(30,48,80,.06);
+}
+
+html[data-vecton-theme="clear"] { --theme-on-accent:#fff; --text-1:var(--text); --text-main:var(--text); }
+
+/* Preserve the login brand size with the tightly cropped Claro asset. */
+html[data-vecton-theme="clear"] .auth-shell .auth-hero-logo{width:clamp(175px,11.6vw,210px);height:auto}
+
+/* Recolor only the wordmark; preserve the original blue symbol and subtitle. */
+html[data-vecton-theme="clear"] .msn-head-logo{content:url("../../assets/vecton-messenger-clear.svg?v=20260924a");filter:none}
+
+/* Report canvases must not inherit the generic card inset header separator. */
+.content-card.reports-table-card{box-shadow:none}
+
+/* Header and market ticker keep their outlines without shadows in either theme. */
+.main-header,.market-ticker{box-shadow:none}
+
+/* Shared map outlines and hover treatment from Performance de Peças. */
+.reports-table-card :is(.cvm-state,.cmg-state,.gar-map-state){stroke:var(--theme-border,#94a3b8);stroke-width:1.25;vector-effect:non-scaling-stroke;transition:filter .15s,opacity .15s}
+.reports-table-card :is(.cvm-state,.cmg-state,.gar-map-state):hover,
+.reports-table-card .cvm-state.cvm-hi,.reports-table-card .cmg-state.cmg-hi{filter:brightness(1.5) drop-shadow(0 0 4px #6ea8ff);stroke:var(--theme-border,#94a3b8);stroke-width:1.25}
+.reports-table-card .cvm-state:hover{opacity:1}

@@ -87,7 +87,7 @@
         .vmob-filters.is-open .vmob-filters-body { display:flex; }
         .vmob-segmented { display:flex; background:var(--vmob-bg); border:1px solid var(--vmob-line); border-radius:9px; padding:2px; gap:2px; }
         .vmob-segmented button { all:unset; box-sizing:border-box; padding:6px 11px; font-size:12.5px; font-weight:600; color:var(--vmob-soft); border-radius:7px; cursor:pointer; }
-        .vmob-segmented button.is-active { background:var(--vmob-accent); color:#fff; }
+        .vmob-segmented button.is-active { background:var(--vmob-accent); color:var(--theme-ink, #fff); }
         .vmob-cenario-list { display:none; flex-direction:column; margin-top:6px; border:1px solid var(--vmob-line); border-radius:10px; overflow:hidden; }
         .vmob-cenario-list.is-open { display:flex; }
         .vmob-cenario-item { all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; width:100%; padding:10px 12px; font-size:13px; color:var(--vmob-soft); cursor:pointer; background:var(--vmob-bg); }
@@ -100,7 +100,7 @@
         .vmob-matrix th:first-child { text-align:left; }
         .vmob-matrix td { padding:8px 0; font-size:13px; text-align:right; border-top:1px solid var(--vmob-line); }
         .vmob-matrix td:first-child { text-align:left; color:var(--vmob-soft); font-weight:600; }
-        .vmob-matrix tr.vmob-row-total td { font-weight:800; color:var(--vmob-text); border-top:1px solid rgba(255,255,255,0.16); }
+        .vmob-matrix tr.vmob-row-total td { font-weight:800; color:var(--vmob-text); border-top:1px solid var(--theme-border, rgba(255,255,255,0.16)); }
         .vmob-matrix tr.vmob-row-sub td { color:var(--vmob-faint); font-weight:400; }
         .vmob-matrix tr.vmob-row-tkt td { color:var(--vmob-faint); }
         .vmob-matrix tr.vmob-row-tkt td:first-child { font-weight:500; }
@@ -127,7 +127,7 @@
         .vmob-coord-card { all:unset; box-sizing:border-box; display:flex; flex-direction:column; width:100%; min-width:0; background:var(--vmob-panel); border:1px solid var(--vmob-line); border-top:3px solid var(--vmob-card-accent, var(--vmob-accent)); border-radius:14px; padding:12px 11px; cursor:pointer; }
         .vmob-coord-card:active { background:var(--vmob-panel-elevated); }
         .vmob-card-top { display:flex; align-items:center; gap:8px; margin-bottom:9px; min-width:0; }
-        .vmob-card-av { width:26px; height:26px; border-radius:8px; background:var(--vmob-card-accent, var(--vmob-accent)); color:#fff; flex-shrink:0; display:grid; place-items:center; font-size:10px; font-weight:800; }
+        .vmob-card-av { width:26px; height:26px; border-radius:8px; background:var(--vmob-card-accent, var(--vmob-accent)); color:var(--theme-ink, #fff); flex-shrink:0; display:grid; place-items:center; font-size:10px; font-weight:800; }
         .vmob-card-id { min-width:0; overflow:hidden; }
         .vmob-card-name { display:block; font-size:12.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .vmob-card-gestor { display:block; font-size:10px; color:var(--vmob-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -166,7 +166,7 @@
            (app-loading-spinner em styles.css: anel girando + texto), só que
            inline no lugar do "Carregando…" em texto puro que tinha antes. */
         .vmob-loading { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; min-height:60vh; padding:20px; color:var(--vmob-faint); font-size:13px; text-align:center; }
-        .vmob-loading-spinner { width:34px; height:34px; border-radius:50%; border:3px solid rgba(255,255,255,0.12); border-top-color:var(--vmob-accent); animation:app-loading-spin 0.8s linear infinite; }
+        .vmob-loading-spinner { width:34px; height:34px; border-radius:50%; border:3px solid var(--theme-border-subtle, rgba(255,255,255,0.12)); border-top-color:var(--vmob-accent); animation:app-loading-spin 0.8s linear infinite; }
         @media (prefers-reduced-motion: reduce) { .vmob-loading-spinner { animation:none; } }
       `;
       document.head.appendChild(s);

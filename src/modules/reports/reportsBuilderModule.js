@@ -528,9 +528,9 @@
       const kind = drillKindFor(sources[0]);
 
       const overlay = document.createElement("div");
-      overlay.style.cssText = `position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.65);
+      overlay.style.cssText = `position:fixed;inset:0;z-index:9500;background:var(--theme-overlay, rgba(0,0,0,.65));
         display:flex;align-items:center;justify-content:center;padding:16px`;
-      overlay.innerHTML = `<div style="background:var(--panel);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.6);
+      overlay.innerHTML = `<div style="background:var(--panel);border-radius:14px;box-shadow:0 16px 48px var(--theme-shadow-color, rgba(0,0,0,.6));
         width:94vw;max-height:90vh;display:flex;flex-direction:column;overflow:hidden">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);flex-shrink:0">
           <div>
@@ -820,7 +820,7 @@
       if (_activeMenu) { _activeMenu.remove(); _activeMenu = null; }
       const menu = document.createElement("div");
       menu.style.cssText = `position:fixed;z-index:9999;background:var(--panel);border:1px solid var(--line);
-        border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);padding:4px;min-width:140px`;
+        border-radius:10px;box-shadow:0 8px 24px var(--theme-shadow-color, rgba(0,0,0,.5));padding:4px;min-width:140px`;
       const rect = btn.getBoundingClientRect();
       menu.style.top  = (rect.bottom + 4) + "px";
       menu.style.left = Math.max(8, rect.right - 140) + "px";
@@ -1436,12 +1436,12 @@
 
     function createModal(title, bodyHtml, onSave) {
       const overlay = document.createElement("div");
-      overlay.style.cssText = `position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.65);
+      overlay.style.cssText = `position:fixed;inset:0;z-index:9000;background:var(--theme-overlay, rgba(0,0,0,.65));
         display:flex;align-items:center;justify-content:center;padding:16px`;
 
       const dlg = document.createElement("div");
       dlg.style.cssText = `background:var(--panel);border-radius:14px;
-        box-shadow:0 16px 48px rgba(0,0,0,.6);width:100%;max-width:580px;
+        box-shadow:0 16px 48px var(--theme-shadow-color, rgba(0,0,0,.6));width:100%;max-width:580px;
         max-height:92vh;display:flex;flex-direction:column;overflow:hidden`;
 
       dlg.innerHTML = `
@@ -1716,7 +1716,7 @@
                   background:var(--panel-hover);color:var(--text-soft);cursor:pointer">Adicionar linha</button>
                 <div id="rm-row-picker" style="display:none;position:absolute;top:100%;left:0;z-index:200;
                   background:var(--panel);border:1px solid var(--line);border-radius:8px;
-                  min-width:200px;max-height:160px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 16px rgba(0,0,0,.4)">
+                  min-width:200px;max-height:160px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 16px var(--theme-shadow-color, rgba(0,0,0,.4))">
                   ${rowRefs || `<div style="padding:8px 10px;font-size:12px;color:var(--text-faint)">Nenhuma linha ainda.</div>`}
                 </div>
               </div>
@@ -1917,7 +1917,7 @@
                   background:var(--panel-hover);color:var(--text-soft);cursor:pointer">Adicionar coluna</button>
                 <div id="cm-col-picker" style="display:none;position:absolute;top:100%;left:0;z-index:200;
                   background:var(--panel);border:1px solid var(--line);border-radius:8px;
-                  min-width:200px;max-height:160px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 16px rgba(0,0,0,.4)">
+                  min-width:200px;max-height:160px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 16px var(--theme-shadow-color, rgba(0,0,0,.4))">
                   ${colRefs || `<div style="padding:8px 10px;font-size:12px;color:var(--text-faint)">Nenhuma coluna ainda.</div>`}
                 </div>
               </div>
@@ -2045,7 +2045,7 @@
           background:var(--panel-hover);color:var(--text-soft);cursor:pointer">Adicionar função</button>
         <div id="${prefix}-fn-picker" style="display:none;position:absolute;top:100%;left:0;z-index:200;
           background:var(--panel);border:1px solid var(--line);border-radius:8px;min-width:180px;
-          margin-top:2px;box-shadow:0 4px 16px rgba(0,0,0,.4)">
+          margin-top:2px;box-shadow:0 4px 16px var(--theme-shadow-color, rgba(0,0,0,.4))">
           ${[["SE","SE(cond; ver; fal)"],["E","E(a; b)"],["OU","OU(a; b)"],["ABS","ABS(valor)"],["ROUND","ROUND(valor)"]].map(
             ([name, snippet]) =>
             `<div class="vb-fn-item" data-val="${escapeHtml(snippet)}"

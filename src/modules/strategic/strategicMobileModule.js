@@ -174,13 +174,13 @@
            sobre a coluna, mostrar a legenda") -- realce visual + popover
            flutuante com o valor do mês (ver .sa3mob-chart-tooltip abaixo). */
         .sa3mob-chart-col.is-active .sa3mob-chart-bar { filter:brightness(1.35); }
-        .sa3mob-chart-col.is-active::after { content:""; position:absolute; inset:0; background:rgba(255,255,255,.05); border-radius:3px; }
+        .sa3mob-chart-col.is-active::after { content:""; position:absolute; inset:0; background:var(--theme-surface-tint, rgba(255,255,255,.05)); border-radius:3px; }
         .sa3mob-chart-bar.pos { background:linear-gradient(180deg,#74e89b 0%,#2dcc6b 24%,#0d6b38 100%); }
         .sa3mob-chart-bar.neg { background:linear-gradient(180deg,#f58a8a 0%,#ef5050 24%,#8b202b 100%); }
         .sa3mob-chart-zero { position:absolute; left:0; right:0; height:1px; background:rgba(255,255,255,.08); z-index:0; }
         .sa3mob-chart-svg { position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; z-index:2; }
         .sa3mob-chart-line { fill:none; stroke:#4f7cff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
-        .sa3mob-chart-point { fill:#4f7cff; stroke:#121317; stroke-width:1.3; vector-effect:non-scaling-stroke; }
+        .sa3mob-chart-point { fill:#4f7cff; stroke:var(--theme-border, #121317); stroke-width:1.3; vector-effect:non-scaling-stroke; }
         .sa3mob-chart-line.band { stroke-width:1.4; stroke-dasharray:4 3; opacity:.62; }
         .sa3mob-chart-point.band { opacity:.62; }
         .sa3mob-chart-months { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:3px; padding-top:5px; text-align:center; }
@@ -207,8 +207,8 @@
            dentro de containerEl (dentro da árvore do .vmob-shell) — seguro
            porque fecharChartTooltip() já roda ANTES de todo render() (que
            é quem substitui containerEl.innerHTML), nunca depois. */
-        .sa3mob-chart-tooltip { position:fixed; z-index:9999; min-width:138px; padding:9px 11px; border-radius:8px; background:#0c0e12; border:1px solid var(--vmob-line); box-shadow:0 12px 30px rgba(0,0,0,.42); pointer-events:none; }
-        .sa3mob-chart-tooltip-month { padding-bottom:6px; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,.06); color:var(--vmob-text); font-size:10.5px; font-weight:800; text-transform:lowercase; }
+        .sa3mob-chart-tooltip { position:fixed; z-index:9999; min-width:138px; padding:9px 11px; border-radius:8px; background:var(--theme-surface, #0c0e12); border:1px solid var(--vmob-line); box-shadow:0 12px 30px var(--theme-shadow-color, rgba(0,0,0,.42)); pointer-events:none; }
+        .sa3mob-chart-tooltip-month { padding-bottom:6px; margin-bottom:5px; border-bottom:1px solid var(--theme-border-subtle, rgba(255,255,255,.06)); color:var(--vmob-text); font-size:10.5px; font-weight:800; text-transform:lowercase; }
         .sa3mob-chart-tooltip-row { display:flex; align-items:center; justify-content:space-between; gap:14px; color:var(--vmob-soft); font-size:10.5px; line-height:1.55; }
         .sa3mob-chart-tooltip-row strong { color:var(--vmob-text); font-weight:700; text-align:right; white-space:nowrap; }
 

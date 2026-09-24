@@ -33,7 +33,6 @@
     // nenhum problema de dado por trás — só matemática de amostra pequena.
     const MODEL_TOP_N = 8;
     const CULTURA_COLORS = { "Grãos": "#14b8a6", "Pecuária": "#8b5cf6", "Outros": OUTROS_COLOR };
-    const HEAT_STOPS = ["#131a28", "#183480", "#1d4ed8"];
     const DF_FALLBACK_LONLAT = [-47.93, -15.78]; // brStatesGeo.js traz DF com rings vazios (embutido em GO no dado simplificado)
 
     const BR = window.VECTON_BR_GEO || { bbox: [-74, -34, -32, 6], states: [] };
@@ -146,16 +145,9 @@
       const up = d >= 0;
       return `<span class="cmg-delta ${up ? "up" : "down"}">${up ? "↑" : "↓"} ${fmtPct(Math.abs(d))} <small>vs. período anterior</small></span>`;
     }
-    function lerp(a, b, t) {
-      const ah = a.match(/\w\w/g).map((h) => parseInt(h, 16));
-      const bh = b.match(/\w\w/g).map((h) => parseInt(h, 16));
-      return "#" + ah.map((v, i) => Math.round(v + (bh[i] - v) * t).toString(16).padStart(2, "0")).join("");
-    }
     function heat(v, min, max) {
-      if (v == null || max <= min) return "#141922";
-      const t = Math.max(0, Math.min(1, (v - min) / (max - min)));
-      const s = t * (HEAT_STOPS.length - 1), i = Math.min(HEAT_STOPS.length - 2, Math.floor(s));
-      return lerp(HEAT_STOPS[i], HEAT_STOPS[i + 1], s - i);
+      if (v == null || v <= 0) return window.VECTON_MAP_APPEARANCE.heat(0, 0);
+      return window.VECTON_MAP_APPEARANCE.heat(max > min ? Math.max(.12, (v - min) / (max - min)) : 1, 1);
     }
     function statePath(rings) {
       return rings.map((r) => "M" + r.map(([lo, la]) => { const [x, y] = proj(lo, la); return x.toFixed(1) + "," + y.toFixed(1); }).join("L") + "Z").join(" ");
@@ -267,7 +259,7 @@
       const s = document.createElement("style");
       s.id = "cmg-style";
       s.textContent = `
-        .cmg { --bg:#0a0d16; --panel:#121826; --panel2:#171f30; --line:#232c40; --ink:#eef1f6; --soft:#9aa4b8; --faint:#6b7690; --accent:#1d4ed8; color:var(--ink); }
+        .cmg { --bg:var(--theme-surface, #0a0d16); --panel:var(--theme-surface, #121826); --panel2:var(--theme-surface, #171f30); --line:var(--theme-border, #232c40); --ink:var(--theme-ink, #eef1f6); --soft:var(--theme-ink-secondary, #9aa4b8); --faint:var(--theme-ink-muted, #6b7690); --accent:#1d4ed8; color:var(--ink); }
         .cmg * { box-sizing:border-box; }
         .cmg-crumb { font-size:12px; color:var(--soft); margin-bottom:10px; }
         .cmg-crumb a { color:var(--accent); cursor:pointer; text-decoration:none; }
@@ -277,12 +269,12 @@
            bastante pra nunca cobrir o calendario do cabecalho. */
         .cmg-filters { display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:14px; position:relative; z-index:10; }
         .cmg-chip { position:relative; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:10px 12px; display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; }
-        .cmg-chip:hover { background:#1d2537; }
+        .cmg-chip:hover { background:var(--theme-surface-raised, #1d2537); }
         .cmg-chip.on { border-color:var(--accent); }
         .cmg-chip .ico { color:var(--faint); display:flex; }
         .cmg-chip .lbl { color:var(--faint); }
         .cmg-chip .val { color:var(--ink); font-weight:600; white-space:nowrap; }
-        .cmg-pop { position:absolute; top:calc(100% + 6px); left:0; z-index:15; background:#171f30; border:1px solid var(--line); border-radius:12px; padding:12px; min-width:220px; max-width:320px; box-shadow:0 20px 44px rgba(0,0,0,.5); }
+        .cmg-pop { position:absolute; top:calc(100% + 6px); left:0; z-index:15; background:var(--theme-surface, #171f30); border:1px solid var(--line); border-radius:12px; padding:12px; min-width:220px; max-width:320px; box-shadow:0 20px 44px var(--theme-shadow-color, rgba(0,0,0,.5)); }
         .cmg-pop.right { left:auto; right:0; }
         .cmg-pop h4 { margin:0 0 8px; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:600; }
         .cmg-pop .grp + .grp { margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
@@ -291,7 +283,7 @@
            do site (styles.css) — sem isso, o controle "estica" e empurra o
            texto do label pro canto direito do popover. */
         .cmg-pop label { display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:8px; font-size:12.5px; text-align:left; padding:5px 6px; border-radius:7px; cursor:pointer; }
-        .cmg-pop label:hover { background:#1d2537; }
+        .cmg-pop label:hover { background:var(--theme-surface-raised, #1d2537); }
         .cmg-pop label span { text-align:left; }
         .cmg-pop input[type=checkbox], .cmg-pop input[type=radio] { width:auto; min-width:0; flex:none; accent-color:var(--accent); margin:0; }
         .cmg-pop-ufgrid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px; max-height:260px; overflow-y:auto; }
@@ -312,8 +304,8 @@
         .cmg-kpi .v { font-size:21px; font-weight:700; line-height:1.15; white-space:nowrap; }
         .cmg-kpi .l { font-size:12px; color:var(--soft); margin-top:2px; }
         .cmg-delta { display:block; font-size:10.5px; margin-top:5px; font-weight:600; }
-        .cmg-delta.up { color:#22c55e; }
-        .cmg-delta.down { color:#f87171; }
+        .cmg-delta.up { color:var(--theme-ink-green, #22c55e); }
+        .cmg-delta.down { color:var(--theme-ink-red, #f87171); }
         .cmg-delta small { color:var(--faint); font-weight:400; }
         .cmg-row2 { display:grid; grid-template-columns:1fr 360px; gap:14px; margin-bottom:14px; align-items:start; }
         @media (max-width:1000px) { .cmg-row2 { grid-template-columns:1fr; } }
@@ -333,21 +325,21 @@
            (#09090a) — so pra dar presenca ao mapa, nao codifica dado (quem
            representa dado e o tamanho do donut, exceto no modo Preco Medio,
            que sobrescreve via inline style). Linhas cinzas = fronteira. */
-        .cmg-state { fill:#13203a; stroke:rgba(148,163,184,.4); stroke-width:.7; cursor:pointer; transition:fill .12s; }
-        .cmg-state:hover { fill:#1a2c50; }
+        .cmg-state { fill:var(--theme-map-land, #13203a); stroke:var(--theme-border, rgba(148,163,184,.4)); stroke-width:.7; cursor:pointer; transition:fill .12s; }
+        .cmg-state:hover { fill:var(--theme-map-hover, #1a2c50); }
         .cmg-state.cmg-dim { opacity:.25; }
-        .cmg-state.cmg-hi { stroke:#fff; stroke-width:1.6; }
+        .cmg-state.cmg-hi { stroke:var(--theme-border, #fff); stroke-width:1.6; }
         .cmg-donut { cursor:pointer; }
         .cmg-donut.cmg-dim { opacity:.18; }
         .cmg-donut-lbl { fill:#fff; font-weight:700; text-anchor:middle; dominant-baseline:middle; paint-order:stroke; stroke:#0a0d16; stroke-width:2px; pointer-events:none; }
-        .cmg-price-lbl { fill:#dfe6f2; font-weight:600; text-anchor:middle; pointer-events:none; paint-order:stroke; stroke:#0a0d16; stroke-width:2.4px; }
-        .cmg-zoom { position:absolute; top:12px; left:12px; z-index:5; display:flex; flex-direction:column; gap:5px; background:rgba(18,24,38,.85); border:1px solid var(--line); border-radius:10px; padding:5px; backdrop-filter:blur(4px); }
-        .cmg-zoom button { width:26px; height:26px; border:none; border-radius:7px; background:#1d2537; color:var(--ink); font-size:14px; cursor:pointer; }
-        .cmg-zoom button:hover { background:#26304a; }
+        .cmg-price-lbl { fill:var(--theme-ink, #dfe6f2); font-weight:600; text-anchor:middle; pointer-events:none; paint-order:stroke; stroke:#0a0d16; stroke-width:2.4px; }
+        .cmg-zoom { position:absolute; top:12px; left:12px; z-index:5; display:flex; flex-direction:column; gap:5px; background:var(--theme-surface, rgba(18,24,38,.85)); border:1px solid var(--line); border-radius:10px; padding:5px; backdrop-filter:blur(4px); }
+        .cmg-zoom button { width:26px; height:26px; border:none; border-radius:7px; background:var(--theme-surface-raised, #1d2537); color:var(--ink); font-size:14px; cursor:pointer; }
+        .cmg-zoom button:hover { background:var(--theme-surface-raised, #26304a); }
         .cmg-legend { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:0 16px 14px; font-size:11.5px; color:var(--soft); }
         .cmg-lg-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
         .cmg-lg-scale { display:flex; align-items:center; gap:8px; }
-        .cmg-lg-bar { width:120px; height:8px; border-radius:99px; background:linear-gradient(90deg,${HEAT_STOPS.join(",")}); }
+        .cmg-lg-bar { width:120px; height:8px; border-radius:99px; background:${window.VECTON_MAP_APPEARANCE.gradient}; }
         .cmg-note { font-size:10.5px; color:var(--faint); padding:0 16px 12px; }
         .cmg-side { padding:14px 16px 16px; }
         .cmg-side table { width:100%; border-collapse:collapse; font-size:11.5px; table-layout:fixed; }
@@ -355,11 +347,11 @@
         .cmg-side thead th.num, .cmg-side td.num { text-align:right; white-space:nowrap; }
         .cmg-side tbody td { padding:8px 5px; border-top:1px solid var(--line); vertical-align:middle; }
         .cmg-side tbody tr { cursor:pointer; }
-        .cmg-side tbody tr:hover td { background:#171f30; }
+        .cmg-side tbody tr:hover td { background:var(--theme-surface, #171f30); }
         .cmg-side tbody tr.sel td { background:rgba(29,78,216,.14); }
         .cmg-rk { color:var(--faint); font-variant-numeric:tabular-nums; width:18px; display:inline-block; }
         .cmg-uf-bar-wrap { display:flex; align-items:center; gap:8px; }
-        .cmg-uf-bar { flex:1; height:5px; border-radius:99px; background:#1c2438; overflow:hidden; min-width:40px; }
+        .cmg-uf-bar { flex:1; height:5px; border-radius:99px; background:var(--theme-surface-raised, #1c2438); overflow:hidden; min-width:40px; }
         .cmg-uf-bar i { display:block; height:100%; background:var(--accent); }
         .cmg-more { display:block; text-align:left; margin-top:10px; background:none; border:none; color:var(--accent); font:inherit; font-size:12.5px; cursor:pointer; padding:4px 6px; }
         .cmg-more:hover { text-decoration:underline; }
@@ -368,7 +360,7 @@
         .cmg-bars { padding:14px 16px 16px; display:flex; flex-direction:column; gap:10px; }
         .cmg-bar-row { display:grid; grid-template-columns:minmax(96px,128px) 1fr 38px; align-items:center; gap:8px; font-size:11.5px; }
         .cmg-bar-row .nm { color:var(--soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .cmg-bar-track { height:9px; border-radius:99px; background:#1c2438; overflow:hidden; }
+        .cmg-bar-track { height:9px; border-radius:99px; background:var(--theme-surface-raised, #1c2438); overflow:hidden; }
         .cmg-bar-fill { height:100%; border-radius:99px; }
         .cmg-bar-pct { text-align:right; color:var(--ink); font-weight:600; }
         .cmg-cult { padding:14px 16px 16px; display:flex; align-items:center; gap:18px; }
@@ -387,8 +379,8 @@
         .cmg-cmp th:first-child { text-align:left; }
         .cmg-cmp td { padding:8px; border-top:1px solid var(--line); text-align:right; }
         .cmg-cmp td:first-child { text-align:left; display:flex; align-items:center; gap:7px; }
-        .cmg-cmp .pos { color:#22c55e; } .cmg-cmp .neg { color:#f87171; }
-        .cmg-tt { position:fixed; pointer-events:none; z-index:9700; background:#0e1320; border:1px solid var(--line); border-radius:9px; padding:9px 12px; font-size:12px; box-shadow:0 12px 34px rgba(0,0,0,.6); max-width:250px; color:var(--ink); }
+        .cmg-cmp .pos { color:var(--theme-ink-green, #22c55e); } .cmg-cmp .neg { color:var(--theme-ink-red, #f87171); }
+        .cmg-tt { position:fixed; pointer-events:none; z-index:9700; background:var(--theme-surface, #0e1320); border:1px solid var(--line); border-radius:9px; padding:9px 12px; font-size:12px; box-shadow:0 12px 34px var(--theme-shadow-color, rgba(0,0,0,.6)); max-width:250px; color:var(--ink); }
         .cmg-tt .t { font-weight:600; margin-bottom:4px; }
         .cmg-tt .m { color:var(--soft); line-height:1.6; }
         .cmg-empty { padding:44px 20px; text-align:center; color:var(--faint); }
@@ -541,13 +533,14 @@
         Object.values(d.byUF).forEach((v) => { const p = avgPrice(v.val, v.qtd); if (p != null) { minP = Math.min(minP, p); maxP = Math.max(maxP, p); } });
         if (!Number.isFinite(minP)) { minP = 0; maxP = 1; }
       }
+      const maxMapQty = Math.max(0, ...Object.values(d.byUF).map(v => v.qtd));
       const states = BR.states.map((st) => {
         const v = d.byUF[st.uf];
-        const fill = isPreco ? heat(v ? avgPrice(v.val, v.qtd) : null, minP, maxP) : "";
+        const fill = isPreco ? heat(v ? avgPrice(v.val, v.qtd) : null, minP, maxP) : window.VECTON_MAP_APPEARANCE.heat(v?.qtd || 0, maxMapQty);
         const cls = ["cmg-state"];
         if (selectedState && selectedState !== st.uf) cls.push("cmg-dim");
         if (selectedState === st.uf) cls.push("cmg-hi");
-        const style = isPreco ? ` style="fill:${fill}"` : "";
+        const style = ` style="fill:${fill}"`;
         return `<path class="${cls.join(" ")}" d="${statePath(st.rings)}"${style} data-uf="${st.uf}" data-nm="${escapeHtml(st.nome)}"/>`;
       }).join("");
 
@@ -569,7 +562,6 @@
           if (selectedState && selectedState !== uf) cls.push("cmg-dim");
           const fs = Math.max(10, r * 0.34);
           return `<g class="${cls.join(" ")}" data-uf="${uf}">
-            <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r + sw / 2 + 1.5).toFixed(1)}" fill="#0a0d16" opacity=".55"/>
             ${donutSvg(cx, cy, r, sw, segs)}
             <text class="cmg-donut-lbl" x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" font-size="${fs.toFixed(1)}">${uf}</text>
           </g>`;
@@ -761,7 +753,8 @@
               ${mapMode === "precoMedio" ? `<div class="cmg-legend"><span>Preço médio</span><div class="cmg-lg-scale"><span>menor</span><div class="cmg-lg-bar"></div><span>maior</span></div></div>`
                 : mapMode === "cultura" ? `<div class="cmg-legend">${Object.entries(CULTURA_COLORS).filter(([k]) => k !== "Outros").map(([k, c]) => `<span><span class="cmg-lg-dot" style="background:${c}"></span>${k}</span>`).join("")}</div>`
                 : `<div class="cmg-legend">${topNPlusOutros(mapMode === "cultura" ? d.byCulturaBR : d.byModeloBR, MODEL_TOP_N).map((e) => `<span><span class="cmg-lg-dot" style="background:${colorForModel(e.key)}"></span>${e.key === "OUTROS" ? "Outros" : escapeHtml(e.key)}</span>`).join("")}</div>`}
-              <div class="cmg-note">Tamanho do gráfico = quantidade de máquinas vendidas. Clique num estado pra detalhar.</div>
+              ${mapMode !== "precoMedio" ? `<div class="cmg-legend"><span>Máquinas por estado</span><div class="cmg-lg-scale"><span>menor</span><div class="cmg-lg-bar"></div><span>maior</span></div></div>` : ""}
+            <div class="cmg-note">Tamanho do gráfico = quantidade de máquinas vendidas. Clique num estado pra detalhar.</div>
             </div>
             ${renderRanking(d)}
           </div>

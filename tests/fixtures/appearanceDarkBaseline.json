@@ -1,0 +1,25 @@
+{
+  "base": "ee85c65",
+  "hashes": {
+    "styles.css": "fb374f9d1c81d5a3e815d6373adc963a1a493d9cd3406de6f98c646404f811c3",
+    "src/modules/cashflow/fcDashboard.css": "5097147b6a8ff8baeef103028f41c98f4f20580600141b6a7d09df2bfd437f8f",
+    "src/modules/dashboard/dashboardCards.js": "d735e3d1a604bbab989b8d41f55041abee6b38597bfac296d38977ed3ac94867",
+    "src/modules/dashboard/dashboardModule.js": "815a16c0b8bf716e461f8e1afe49fee41de42552abf8f737fb035a090120a805",
+    "src/modules/dashboard/dashboardVisuals.js": "c54eea48c940bf4698d3574ef0ff2703e2568403521006e3d4e6d2057f907276",
+    "src/modules/reports/comercialReportsModule.js": "bbabe081a235909d44ab26cbe9bb7466088abb358ffa19aff73a9dc670919e70",
+    "src/modules/reports/reportsBuilderModule.js": "ee59d08d4b2b1323bf270de0ea9b437b3f34864a0236c88a649d67eef3046222",
+    "src/modules/reports/reportsComercialMapaGeograficoModule.js": "2556048bc57e71d3bb0014621614e3edf9ed7dd04941ff60e3f5b0e5d9d848a8",
+    "src/modules/reports/reportsComercialMapaModule.js": "ce187deb80e19dbf2dadfcc90b36a30cd7d94e3c247efc78f887eedba331dac9",
+    "src/modules/reports/reportsComercialPainelMobileModule.js": "6e9dfd778c1b28d3378d3c86f47913712a6af2cf21541827d75c52030f3772ca",
+    "src/modules/reports/reportsComercialPainelModule.js": "3bb3749e8e32a658475d95320919e7db775ded76af968ab4bea3b43139f6cfc6",
+    "src/modules/reports/reportsComercialPecasGeoModule.js": "7971477e81d64156bd39e3634ea0d79c6715abc2c92da1a75f669c44cfd2121b",
+    "src/modules/reports/reportsGarantiaAtivacoesModule.js": "e92a19cf427ef3859678b11e051ba67e90b9dc69df4297a201f1f7400da06aa8",
+    "src/modules/forecast/forecastModule.js": "8b9ae46169035f264356e4671fa00cf17403fa18d2886f8df751b45ca57baade",
+    "src/modules/rpsComercial/rpsComercialModule.js": "257512ff184d7b9ff2d90138068414f9b4aa5f327cfce2c3570a9c7fddb3b0b0",
+    "src/modules/strategic/strategicMobileModule.js": "853ad68fe9a9636bbd374a46336416594ec26bc81d6e035b53988d2a8807d29c",
+    "src/modules/strategic/strategicModule.js": "4ae5f76f61f679331493abf1ad110fb848384e7effb9232904e3c23cecd77f71",
+    "src/modules/ui/dialogs.js": "4c52516e55980cd5c86f809b242dce5189799843ff7f127cef6665def418da6e"
+  },
+  "remainingModulesBase": "a2482d2",
+  "mapPaletteRevision": "20260924: user-requested shared Performance de Pecas map palette and contours, including Dark; services and calculations unchanged. Hollow geographic ranking rings requested by user; background circles removed."
+}

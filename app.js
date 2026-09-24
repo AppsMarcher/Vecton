@@ -268,7 +268,7 @@ const authModule = createAuthModule({
   getCurrentSession: () => currentSession,
   setCurrentSession: (value) => { currentSession = value; },
   getCurrentUser: () => currentUser,
-  setCurrentUser: (value) => { currentUser = value; },
+  setCurrentUser: (value) => { currentUser = value; window.VECTON_APPEARANCE?.setUser(value?.id); },
   getProfileDraft: () => profileDraft,
   setProfileDraft: (value) => { profileDraft = value; }
 });

@@ -300,8 +300,8 @@
         opexTip = document.createElement("div");
         opexTip.id = "dash-opex-legend-tip";
         opexTip.style.cssText = "position:fixed;z-index:9999;display:none;pointer-events:none;" +
-          "background:#13161c;border:0.5px solid #2a2d34;border-radius:5px;padding:5px 9px;" +
-          "font-size:0.68rem;color:#a1a7b3;white-space:nowrap";
+          "background:var(--theme-surface, #13161c);border:0.5px solid var(--theme-border, #2a2d34);border-radius:5px;padding:5px 9px;" +
+          "font-size:0.68rem;color:var(--theme-ink-secondary, #a1a7b3);white-space:nowrap";
         document.body.appendChild(opexTip);
       }
 
@@ -475,7 +475,7 @@
             const pop = document.createElement("div");
             pop.id = "dash-hc-noaccess-pop";
             pop.style.cssText = "position:fixed;z-index:9900;background:var(--panel);border:0.5px solid var(--line);" +
-              "border-radius:10px;padding:12px 14px;max-width:300px;box-shadow:0 16px 40px rgba(0,0,0,0.5);" +
+              "border-radius:10px;padding:12px 14px;max-width:300px;box-shadow:0 16px 40px var(--theme-shadow-color, rgba(0,0,0,0.5));" +
               "font-size:0.78rem;color:var(--text-soft);line-height:1.4;display:flex;align-items:center;gap:9px;" +
               "left:50%;top:50%;transform:translate(-50%,-50%)";
             pop.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>` +
@@ -620,7 +620,7 @@
         if (vals[index] !== 0) {
           const cy = toY(vals[index]).toFixed(1);
           if (isFocus) {
-            dots += `<circle cx="${xc}" cy="${cy}" r="4" fill="#8b5cf6" stroke="#0d1224" stroke-width="2"/>`;
+            dots += `<circle cx="${xc}" cy="${cy}" r="4" fill="#8b5cf6" stroke="var(--theme-border, #0d1224)" stroke-width="2"/>`;
           } else {
             dots += `<circle cx="${xc}" cy="${cy}" r="2.2" fill="#8b5cf6" opacity="0.7"/>`;
           }
@@ -657,7 +657,7 @@
         tip = document.createElement("div");
         tip.id = tipId;
         tip.style.cssText = "position:fixed;z-index:9999;display:none;pointer-events:none;" +
-          "background:#13161c;border:0.5px solid #2a2d34;border-radius:5px;padding:5px 9px;line-height:1.5;white-space:nowrap";
+          "background:var(--theme-surface, #13161c);border:0.5px solid var(--theme-border, #2a2d34);border-radius:5px;padding:5px 9px;line-height:1.5;white-space:nowrap";
         document.body.appendChild(tip);
       }
 
@@ -676,8 +676,8 @@
         const monthIndex = Math.round((xRel - PAD_L) / groupW - 0.5);
         if (monthIndex >= 0 && monthIndex < 12 && vals[monthIndex] !== 0) {
           tip.innerHTML = `<span style="display:flex;justify-content:space-between;gap:14px">
-            <span style="font-size:0.62rem;color:#a1a7b3">${escapeHtml(MONTH_LABELS[monthIndex])}</span>
-            <span style="font-size:0.72rem;font-weight:700;color:#8b5cf6">${escapeHtml(fmtTip(vals[monthIndex]))}</span>
+            <span style="font-size:0.62rem;color:var(--theme-ink-secondary, #a1a7b3)">${escapeHtml(MONTH_LABELS[monthIndex])}</span>
+            <span style="font-size:0.72rem;font-weight:700;color:var(--theme-ink-violet, #8b5cf6)">${escapeHtml(fmtTip(vals[monthIndex]))}</span>
           </span>`;
           tip.style.display = "block";
           tip.style.left = `${event.clientX - tip.offsetWidth / 2}px`;
@@ -726,7 +726,7 @@
       document.querySelector("#hc-mgmt-popover-overlay")?.remove();
       const overlay = document.createElement("div");
       overlay.id = "hc-mgmt-popover-overlay";
-      overlay.style.cssText = "position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.50)";
+      overlay.style.cssText = "position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;background:var(--theme-overlay, rgba(0,0,0,0.50))";
 
       const buildLevel1 = () => `
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -829,7 +829,7 @@
       // O nível 2 (tabela CC/Nome CC/Mat/Colaborador/Cargo, 5 colunas) ainda
       // truncava nome/cargo nos 820px — mais largo agora (1040px) com fonte
       // um pouco menor, pra caber mais texto de cada coluna sem estourar.
-      inner.style.cssText = "background:var(--panel);border:0.5px solid var(--line);border-radius:14px;padding:20px 24px;width:1040px;max-width:94vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 56px rgba(0,0,0,0.55)";
+      inner.style.cssText = "background:var(--panel);border:0.5px solid var(--line);border-radius:14px;padding:20px 24px;width:1040px;max-width:94vw;max-height:90vh;overflow-y:auto;box-shadow:0 24px 56px var(--theme-shadow-color, rgba(0,0,0,0.55))";
       overlay.appendChild(inner);
       document.body.appendChild(overlay);
       overlay.addEventListener("click", (event) => {
@@ -882,7 +882,7 @@
       const pop = document.createElement("div");
       pop.id = "dash-opex-noaccess-pop";
       pop.style.cssText = "position:fixed;z-index:9900;background:var(--panel);border:0.5px solid var(--line);" +
-        "border-radius:10px;padding:12px 14px;max-width:300px;box-shadow:0 16px 40px rgba(0,0,0,0.5);" +
+        "border-radius:10px;padding:12px 14px;max-width:300px;box-shadow:0 16px 40px var(--theme-shadow-color, rgba(0,0,0,0.5));" +
         "font-size:0.78rem;color:var(--text-soft);line-height:1.4;display:flex;align-items:center;gap:9px";
       pop.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12.5"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>` +
         `<span>Você não tem acesso ao detalhamento de <strong style="color:var(--text)">${escapeHtml(mgmt)}</strong>.</span>`;
