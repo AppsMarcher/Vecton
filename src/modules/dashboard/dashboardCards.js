@@ -261,7 +261,10 @@
         });
         legendRows.forEach((row) => {
           if (row.dataset.mgmt === mgmt) {
-            row.style.background = "rgba(255,255,255,0.07)";
+            // rgba(255,255,255,.07) puro sumia no tema Claro (branco sobre
+            // fundo já claro): usa o token de tema, que no Claro resolve pra
+            // um tom escuro translúcido em vez do branco do fallback Dark.
+            row.style.background = "var(--theme-surface-tint, rgba(255,255,255,0.07))";
             row.querySelector(".dash-opex-legend-name").style.color = "var(--text)";
             row.querySelector(".dash-opex-legend-val").style.color = "var(--text)";
           } else {
