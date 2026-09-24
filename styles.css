@@ -1299,6 +1299,9 @@ body.auth-only .vp-update-banner { display: none; }
   background: var(--theme-surface, rgba(12, 14, 18, 0.9));
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
+  outline: 2px solid transparent;
+  outline-offset: -1px;
+  transition: outline-color 180ms ease;
 }
 
 .main-header {
@@ -1781,12 +1784,14 @@ body.auth-only .vp-update-banner { display: none; }
   border: 1px solid var(--line);
   display: grid;
   gap: 6px;
-  transition: background 180ms ease, border-color 180ms ease;
+  outline: 2px solid transparent;
+  outline-offset: -1px;
+  transition: background 180ms ease, border-color 180ms ease, outline-color 180ms ease;
 }
 
 .kpi-card:hover,
 .content-card:hover {
-  background: var(--panel-hover);
+  outline-color: var(--blue);
 }
 
 .kpi-label {
@@ -2725,9 +2730,9 @@ body.auth-only .vp-update-banner { display: none; }
 }
 
 /* Painel de relatório e um conteiner transparente, nao um card interativo:
-   anula o realce cinza do .content-card:hover ao passar o mouse. */
+   anula o realce (contorno azul) do .content-card:hover ao passar o mouse. */
 .content-card.reports-table-card:hover {
-  background: transparent;
+  outline-color: transparent;
 }
 
 .reports-catalog-head {
