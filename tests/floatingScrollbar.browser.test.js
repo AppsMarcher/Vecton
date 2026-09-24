@@ -1,0 +1,24 @@
+const fs=require('node:fs');
+const path=require('node:path');
+const assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
+const app=fs.readFileSync(path.join(__dirname,'../app.js'),'utf8');
+const logic=app.slice(app.indexOf('let _floatingHScrollCleanup'),app.indexOf('let _verticalScrollBoundsCleanup'));
+(async()=>{const b=await chromium.launch({channel:'msedge',headless:true});try{
+ const p=await b.newPage({viewport:{width:800,height:600}});
+ await p.setContent('<style>body{margin:0}.wrap{width:500px;height:900px;overflow:auto;margin-top:30px}.table{width:1400px;height:1000px}.floating-hscroll{position:fixed;bottom:0;height:16px;overflow-x:auto;z-index:99}.floating-hscroll-inner{height:1px}</style><div class="wrap"><div class="table">DRE</div></div>');
+ await p.addScriptTag({content:logic});
+ await p.evaluate(()=>initFloatingScrollbar(document.querySelector('.wrap')));
+ await p.locator('.floating-hscroll').waitFor({state:'visible'});
+ await p.evaluate(()=>document.querySelector('.floating-hscroll').scrollLeft=240);
+ await p.waitForTimeout(150);
+ assert.equal(await p.locator('.wrap').evaluate(e=>e.scrollLeft),240,'Dragging the floating track must move the table');
+ await p.locator('.wrap').evaluate(e=>e.scrollLeft=430);
+ await p.waitForTimeout(150);
+ assert.equal(await p.locator('.floating-hscroll').evaluate(e=>e.scrollLeft),430,'Table scrolling must move the floating track');
+ await p.locator('.wrap').evaluate(e=>e.style.height='300px');
+ await p.locator('.floating-hscroll').waitFor({state:'hidden'});
+ await p.evaluate(()=>clearFloatingScrollbar());
+ assert.equal(await p.locator('.floating-hscroll').count(),0);
+ console.log('Floating scrollbar: bidirectional scroll and cleanup passed.');
+}finally{await b.close()}})().catch(e=>{console.error(e);process.exitCode=1});

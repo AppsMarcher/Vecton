@@ -5470,7 +5470,11 @@ function initFloatingScrollbar(wrap) {
   // de bubble — mas a fase de CAPTURA passa por todos os ancestrais mesmo
   // assim, então ouvir em document com capture:true pega a rolagem de
   // qualquer container da página sem precisar descobrir qual é.
-  document.addEventListener("scroll", updateGeometry, true);
+  // Capturing the track scroll here would reset it before onTrackScroll runs.
+  function onDocumentScroll(event) {
+    if (event.target !== track && event.target !== wrap) updateGeometry();
+  }
+  document.addEventListener("scroll", onDocumentScroll, true);
   window.addEventListener("resize", updateGeometry);
 
   updateGeometry();
@@ -5478,7 +5482,7 @@ function initFloatingScrollbar(wrap) {
   _floatingHScrollCleanup = () => {
     wrap.removeEventListener("scroll", onWrapScroll);
     track.removeEventListener("scroll", onTrackScroll);
-    document.removeEventListener("scroll", updateGeometry, true);
+    document.removeEventListener("scroll", onDocumentScroll, true);
     window.removeEventListener("resize", updateGeometry);
     ro.disconnect();
     io.disconnect();
