@@ -85,3 +85,9 @@ html[data-vecton-theme="clear"] .msn-head-logo{content:url("../../assets/vecton-
 
 /* Header and market ticker keep their outlines without shadows in either theme. */
 .main-header,.market-ticker{box-shadow:none}
+
+/* Shared map outlines and hover treatment from Performance de Peças. */
+.reports-table-card :is(.cvm-state,.cmg-state,.gar-map-state){stroke:var(--theme-border,#94a3b8);stroke-width:1.25;vector-effect:non-scaling-stroke;transition:filter .15s,opacity .15s}
+.reports-table-card :is(.cvm-state,.cmg-state,.gar-map-state):hover,
+.reports-table-card .cvm-state.cvm-hi,.reports-table-card .cmg-state.cmg-hi{filter:brightness(1.5) drop-shadow(0 0 4px #6ea8ff);stroke:var(--theme-border,#94a3b8);stroke-width:1.25}
+.reports-table-card .cvm-state:hover{opacity:1}

@@ -33,7 +33,6 @@
     // nenhum problema de dado por trás — só matemática de amostra pequena.
     const MODEL_TOP_N = 8;
     const CULTURA_COLORS = { "Grãos": "#14b8a6", "Pecuária": "#8b5cf6", "Outros": OUTROS_COLOR };
-    const HEAT_STOPS = ["#131a28", "#183480", "#1d4ed8"];
     const DF_FALLBACK_LONLAT = [-47.93, -15.78]; // brStatesGeo.js traz DF com rings vazios (embutido em GO no dado simplificado)
 
     const BR = window.VECTON_BR_GEO || { bbox: [-74, -34, -32, 6], states: [] };
@@ -146,16 +145,9 @@
       const up = d >= 0;
       return `<span class="cmg-delta ${up ? "up" : "down"}">${up ? "↑" : "↓"} ${fmtPct(Math.abs(d))} <small>vs. período anterior</small></span>`;
     }
-    function lerp(a, b, t) {
-      const ah = a.match(/\w\w/g).map((h) => parseInt(h, 16));
-      const bh = b.match(/\w\w/g).map((h) => parseInt(h, 16));
-      return "#" + ah.map((v, i) => Math.round(v + (bh[i] - v) * t).toString(16).padStart(2, "0")).join("");
-    }
     function heat(v, min, max) {
-      if (v == null || max <= min) return "var(--theme-map-land, #141922)";
-      const t = Math.max(0, Math.min(1, (v - min) / (max - min)));
-      const s = t * (HEAT_STOPS.length - 1), i = Math.min(HEAT_STOPS.length - 2, Math.floor(s));
-      return lerp(HEAT_STOPS[i], HEAT_STOPS[i + 1], s - i);
+      if (v == null || v <= 0) return window.VECTON_MAP_APPEARANCE.heat(0, 0);
+      return window.VECTON_MAP_APPEARANCE.heat(max > min ? Math.max(.12, (v - min) / (max - min)) : 1, 1);
     }
     function statePath(rings) {
       return rings.map((r) => "M" + r.map(([lo, la]) => { const [x, y] = proj(lo, la); return x.toFixed(1) + "," + y.toFixed(1); }).join("L") + "Z").join(" ");
@@ -347,7 +339,7 @@
         .cmg-legend { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:0 16px 14px; font-size:11.5px; color:var(--soft); }
         .cmg-lg-dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
         .cmg-lg-scale { display:flex; align-items:center; gap:8px; }
-        .cmg-lg-bar { width:120px; height:8px; border-radius:99px; background:linear-gradient(90deg,${HEAT_STOPS.join(",")}); }
+        .cmg-lg-bar { width:120px; height:8px; border-radius:99px; background:${window.VECTON_MAP_APPEARANCE.gradient}; }
         .cmg-note { font-size:10.5px; color:var(--faint); padding:0 16px 12px; }
         .cmg-side { padding:14px 16px 16px; }
         .cmg-side table { width:100%; border-collapse:collapse; font-size:11.5px; table-layout:fixed; }
@@ -541,13 +533,14 @@
         Object.values(d.byUF).forEach((v) => { const p = avgPrice(v.val, v.qtd); if (p != null) { minP = Math.min(minP, p); maxP = Math.max(maxP, p); } });
         if (!Number.isFinite(minP)) { minP = 0; maxP = 1; }
       }
+      const maxMapQty = Math.max(0, ...Object.values(d.byUF).map(v => v.qtd));
       const states = BR.states.map((st) => {
         const v = d.byUF[st.uf];
-        const fill = isPreco ? heat(v ? avgPrice(v.val, v.qtd) : null, minP, maxP) : "";
+        const fill = isPreco ? heat(v ? avgPrice(v.val, v.qtd) : null, minP, maxP) : window.VECTON_MAP_APPEARANCE.heat(v?.qtd || 0, maxMapQty);
         const cls = ["cmg-state"];
         if (selectedState && selectedState !== st.uf) cls.push("cmg-dim");
         if (selectedState === st.uf) cls.push("cmg-hi");
-        const style = isPreco ? ` style="fill:${fill}"` : "";
+        const style = ` style="fill:${fill}"`;
         return `<path class="${cls.join(" ")}" d="${statePath(st.rings)}"${style} data-uf="${st.uf}" data-nm="${escapeHtml(st.nome)}"/>`;
       }).join("");
 
@@ -761,7 +754,8 @@
               ${mapMode === "precoMedio" ? `<div class="cmg-legend"><span>Preço médio</span><div class="cmg-lg-scale"><span>menor</span><div class="cmg-lg-bar"></div><span>maior</span></div></div>`
                 : mapMode === "cultura" ? `<div class="cmg-legend">${Object.entries(CULTURA_COLORS).filter(([k]) => k !== "Outros").map(([k, c]) => `<span><span class="cmg-lg-dot" style="background:${c}"></span>${k}</span>`).join("")}</div>`
                 : `<div class="cmg-legend">${topNPlusOutros(mapMode === "cultura" ? d.byCulturaBR : d.byModeloBR, MODEL_TOP_N).map((e) => `<span><span class="cmg-lg-dot" style="background:${colorForModel(e.key)}"></span>${e.key === "OUTROS" ? "Outros" : escapeHtml(e.key)}</span>`).join("")}</div>`}
-              <div class="cmg-note">Tamanho do gráfico = quantidade de máquinas vendidas. Clique num estado pra detalhar.</div>
+              ${mapMode !== "precoMedio" ? `<div class="cmg-legend"><span>Máquinas por estado</span><div class="cmg-lg-scale"><span>menor</span><div class="cmg-lg-bar"></div><span>maior</span></div></div>` : ""}
+            <div class="cmg-note">Tamanho do gráfico = quantidade de máquinas vendidas. Clique num estado pra detalhar.</div>
             </div>
             ${renderRanking(d)}
           </div>

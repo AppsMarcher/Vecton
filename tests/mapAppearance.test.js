@@ -1,0 +1,15 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const context = {window:{}};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/modules/reports/mapAppearance.js'),'utf8'),context);
+const {heat} = context.window.VECTON_MAP_APPEARANCE;
+assert.equal(heat(0,100),'var(--theme-map-land, #282d37)');
+assert.equal(heat(null,100),heat(0,100));
+assert.equal(heat(NaN,100),heat(0,100));
+assert.equal(heat(100,100),'rgb(29,78,216)');
+assert.equal(heat(50,100),'rgb(24,52,128)');
+assert.equal(heat(1,100),'rgb(20,32,61)');
+assert.equal(heat(1000,100),heat(100,100));
+console.log('Shared map palette: missing, minimum, midpoint, maximum and clamping passed.');

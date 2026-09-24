@@ -23,7 +23,6 @@
     const VW = 1000, VH = Math.round(VW * gH / gW);
     const proj = (lo, la) => [(lo - minx) * kx / gW * VW, (maxy - la) / gH * VH];
 
-    const STOPS = ["#101a2e", "#26408f", "#1d4ed8"];
     const GRAO = "#63b3ff", PEC = "#f59e0b", BLUE = "#1d4ed8";
 
     let period = "ytd";
@@ -123,7 +122,7 @@
         .cvm-legend { display:flex; flex-direction:column; gap:11px; }
         .cvm-lg { display:flex; align-items:center; gap:9px; font-size:12px; color:var(--soft); }
         .cvm-dot { width:11px; height:11px; border-radius:50%; flex:none; }
-        .cvm-scale { height:9px; border-radius:99px; flex:1; background:linear-gradient(90deg,var(--theme-surface, #101a2e),#26408f,#1d4ed8); }
+        .cvm-scale { height:9px; border-radius:99px; flex:1; background:${window.VECTON_MAP_APPEARANCE.gradient}; }
         .cvm-tt { position:fixed; pointer-events:none; z-index:9700; background:var(--theme-surface, #0e1116); border:1px solid var(--line); border-radius:9px; padding:8px 11px; font-size:12px; box-shadow:0 12px 34px var(--theme-shadow-color, rgba(0,0,0,.6)); max-width:240px; color:var(--ink); }
         .cvm-tt .t { font-weight:600; margin-bottom:3px; }
         .cvm-tt .m { color:var(--soft); font-variant-numeric:tabular-nums; }
@@ -176,17 +175,7 @@
     function fmtQtd(v) { return nf(v) + " un"; }
     function fmtVal(v) { return metric === "qtd" ? fmtQtd(v) : fmtMil(v); }
     function lval(g, p) { return layer === "grao" ? g : layer === "pec" ? p : (g + p); }
-    function lerp(a, b, t) {
-      const ah = a.match(/\w\w/g).map((h) => parseInt(h, 16));
-      const bh = b.match(/\w\w/g).map((h) => parseInt(h, 16));
-      return "#" + ah.map((v, i) => Math.round(v + (bh[i] - v) * t).toString(16).padStart(2, "0")).join("");
-    }
-    function heat(v, maxUF) {
-      if (!v || maxUF <= 0) return "var(--theme-map-land, #141922)";
-      const t = Math.sqrt(Math.min(1, v / maxUF));
-      const s = t * (STOPS.length - 1), i = Math.min(STOPS.length - 2, Math.floor(s));
-      return lerp(STOPS[i], STOPS[i + 1], s - i);
-    }
+    function heat(v, maxUF) { return window.VECTON_MAP_APPEARANCE.heat(v, maxUF); }
     function statePath(rings) {
       return rings.map((r) => "M" + r.map(([lo, la]) => { const [x, y] = proj(lo, la); return x.toFixed(1) + "," + y.toFixed(1); }).join("L") + "Z").join(" ");
     }

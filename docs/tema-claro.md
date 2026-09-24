@@ -40,3 +40,7 @@ O teste de navegador requer Playwright e Edge; `NODE_PATH` ou `PLAYWRIGHT_MODULE
 
 ## Trabalho em paralelo
 Manter commits pequenos por módulo e incorporar main frequentemente nesta branch, resolvendo conflitos aqui. Cada nova funcionalidade usa os mesmos renderizadores e tokens para ambos os temas. Validar os dois temas antes de integrar. A branch principal e a produção não foram alteradas.
+
+## Padronização dos mapas — 24/09/2026
+A pedido do usuário, os quatro mapas passaram a compartilhar a escala linear azul de Performance de Peças, contornos e realce de estados, em ambos os temas. `mapAppearance.js` centraliza a paleta. Mapa de Vendas mantém bolhas por cidade; Ranking mantém os anéis de composição e acrescenta intensidade por quantidade (ou preço no modo correspondente). Estados sem dados usam a superfície neutra de cada tema. Ativações usa a mesma escala no mapa; tabelas mantêm suas regras existentes.
+A referência de comparação Dark dos quatro módulos foi atualizada deliberadamente para esta mudança visual autorizada. As projeções, serviços, filtros e agregações foram preservados. Validação: 70 cenários gerais, comparação dos dois temas e verificação adicional de garantia com 12 ativações demonstrativas.
