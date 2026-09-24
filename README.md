@@ -58,7 +58,8 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
    - plano de contas;
    - gestões e centros de custos;
    - carga de realizado, planejado e headcount;
-   - usuários e perfis de acesso.
+   - usuários e perfis de acesso;
+   - Empresas, Plano de Contas DRE, Plano de Contas FC, Centros de Custos e Gestões pedem confirmação antes de efetivar Salvar/Remover, para evitar ajustes acidentais.
 
 10. **Comercial**
     - cadastros de produtos, clientes, territórios, coordenações, tipos, culturas e linhas de negócio;
