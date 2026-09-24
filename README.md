@@ -72,6 +72,8 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
 
 Preferência de tema por usuário (padrão Dark), salva em `localStorage` por ID de usuário, aplicada via atributo `data-vecton-theme` no `<html>`. Cobre shell, perfil, dashboards, relatórios, A3, RPS, Mensagens e mapas. Ver [docs/tema-claro.md](docs/tema-claro.md).
 
+Cards (`.content-card`, `.kpi-card` e afins) não têm mais sombra projetada nem realce cinza no hover — o hover marca o card com um contorno azul (`var(--blue)`), consistente nos dois temas.
+
 ## Como o frontend funciona
 
 O projeto é uma SPA estática. Não existe etapa de compilação.
