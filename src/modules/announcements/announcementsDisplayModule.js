@@ -4,8 +4,10 @@
   function createAnnouncementsDisplayModule(deps) {
     const dialog = deps.dialog;
     const esc = deps.escapeHtml;
-    let current = null;   // anúncio mostrado agora: {id, slides: [...]}
+    let current = null;   // anúncio mostrado agora: {id, org, slides: [...]}
     let slideIndex = 0;
+    let queue = [];        // ids dos anúncios pendentes desta visita, na ordem de exibição
+    let queueIndex = 0;
 
     function withinPeriod(row, now) {
       if (row.starts_at && new Date(row.starts_at) > now) return false;
@@ -27,27 +29,44 @@
 
         const dismissed = new Set(dismissalRows.map((row) => row.announcement_id));
         const now = new Date();
-        const pending = announcementRows
+        queue = announcementRows
           .filter((row) => row.active && withinPeriod(row, now) && !dismissed.has(row.id))
-          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+          .map((row) => row.id);
+        queueIndex = 0;
 
-        if (!pending.length) return;
-
-        const target = pending[0];
-        const slideRows = await deps.fetchSlides(org, target.id);
-        if (!slideRows.length) return;
-
-        current = {
-          id: target.id,
-          org,
-          slides: slideRows.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-        };
-        slideIndex = 0;
-        render();
-        dialog.showModal();
+        if (!queue.length) return;
+        await advance(org);
       } catch (error) {
         console.error("Falha ao carregar anúncios:", error);
       }
+    }
+
+    // Mostra o próximo anúncio pendente da fila (pulando os sem slides), sem
+    // fechar/reabrir o <dialog> entre um e outro — só troca o conteúdo. Fecha
+    // de fato só quando a fila desta visita acaba.
+    async function advance(org) {
+      while (queueIndex < queue.length) {
+        const id = queue[queueIndex];
+        let slideRows;
+        try {
+          slideRows = await deps.fetchSlides(org, id);
+        } catch (error) {
+          console.error("Falha ao carregar slides do anúncio:", error);
+          queueIndex++;
+          continue;
+        }
+        if (slideRows.length) {
+          current = { id, org, slides: slideRows.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)) };
+          slideIndex = 0;
+          render();
+          if (!dialog.open) dialog.showModal();
+          return;
+        }
+        queueIndex++;
+      }
+      current = null;
+      if (dialog.open) dialog.close();
     }
 
     function renderSlide(slide) {
@@ -109,8 +128,7 @@
 
     async function close(dismiss) {
       const announcementId = current?.id;
-      dialog.close();
-      current = null;
+      const org = current?.org;
       if (dismiss && announcementId) {
         try {
           await deps.dismiss(announcementId);
@@ -118,6 +136,8 @@
           console.error("Falha ao registrar dispensa do anúncio:", error);
         }
       }
+      queueIndex++;
+      await advance(org);
     }
 
     dialog?.addEventListener("cancel", (event) => { event.preventDefault(); close(false); });
