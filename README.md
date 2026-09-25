@@ -59,6 +59,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
    - gestões e centros de custos;
    - carga de realizado, planejado e headcount;
    - usuários e perfis de acesso;
+   - Novidades: pop-up de lançamentos/campanhas exibido na abertura do app (carrossel de slides, imagem cheia ou cabeçalho+texto+imagem), com registro de quem já viu/dispensou cada anúncio;
    - Empresas, Plano de Contas DRE, Plano de Contas FC, Centros de Custos e Gestões pedem confirmação antes de efetivar Salvar/Remover, para evitar ajustes acidentais.
 
 10. **Comercial**
@@ -100,6 +101,7 @@ src/
 │   └── utils.js
 └── modules/
     ├── actuals/       carga de realizado
+    ├── announcements/ Novidades — pop-up de lançamentos/campanhas e admin de anúncios
     ├── auth/          login, sessão, convite e recuperação
     ├── budget/        carga de planejado
     ├── cashflow/       Fluxo de Caixa (FC): plano de contas, carga, cenários, export e dashboard
@@ -249,7 +251,7 @@ Principais RPCs:
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `237` (240 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `242` (245 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -281,6 +283,9 @@ Resumo por fase:
 | `231–232` | rótulos de notificação (DRE, e-mail) |
 | `233–236` | RPS Comercial: schema, storage, lembrete agendado, comentários por anexo |
 | `237` | `garantia_ativacoes` — base da carga e do relatório de Ativações de Garantia |
+| `238–239` | Novidades (`product_announcements`, slides e dismissals) — pop-up de lançamentos e tela de administração |
+| `240–241` | evolução mensal de Peças (com meta) na Performance Geográfica comercial |
+| `242` | RPS Comercial — área Comercial Pecuária |
 
 ### Divergências conhecidas do schema
 
@@ -349,8 +354,8 @@ assets, incremente também o sufixo de `CACHE_NAME` em `sw.js`.
 
 Versões relevantes neste checkout:
 
-- `styles.css?v=20260924clear2`
-- `app.js?v=20260924scroll1`
+- `styles.css?v=20260925toggle1`
+- `app.js?v=20260925a`
 
 Cada módulo em `src/` carrega seu próprio `?v=`, atualizado independentemente (ver a lista completa de `<script>` em `index.html`); não é preciso subir a versão de `app.js` para publicar um módulo isolado, só a do(s) arquivo(s) alterado(s).
 
@@ -417,11 +422,12 @@ Também confira:
 | Fluxo de Caixa | `src/modules/cashflow/`, `src/modules/params/fcPlanModule.js`, migrations `219–230` |
 | Gestão Estratégica (A3) | `src/modules/strategic/`, migrations `127–177`, `184–187` |
 | RPS | `src/modules/rps/rpsModule.js`, migrations `102–108`, `179–180` |
-| RPS Comercial | `src/modules/rpsComercial/rpsComercialModule.js`, migrations `233–236` |
+| RPS Comercial | `src/modules/rpsComercial/rpsComercialModule.js`, migrations `233–236`, `242` |
 | Mensagens/Notificações | `src/modules/messages/`, `src/modules/notifications/`, migrations `092–101`, `178` |
+| Novidades (pop-up + admin) | `src/modules/announcements/`, migrations `238–239` |
 | tema Claro/Dark | `src/core/appearance.js`, `styles.css`, [docs/tema-claro.md](docs/tema-claro.md) |
 | cadastros comerciais | `comercialCadastroModule.js`, configurações em `app.js`, migrations `032–037` |
 | cargas comerciais | `comercialVendasCargaModule.js`, `comercialPlanejadoCargaModule.js`, migrations `038–042` |
 | Ativações de Garantia | `garantiaAtivacoesCargaModule.js`, `reportsGarantiaAtivacoesModule.js`, migration `237` |
-| painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `112–126` |
+| painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `112–126`, `240–241` |
 | campanhas e criador de relatórios comerciais | `src/modules/reports/comercialReportsModule.js`, migrations `064–069` |
