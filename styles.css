@@ -1255,7 +1255,7 @@ body.auth-only .vp-update-banner { display: none; }
 
 .logout-button {
   border: none;
-  background: var(--theme-surface-tint, rgba(255, 255, 255, 0.03));
+  background: transparent;
   color: var(--text-soft);
   cursor: pointer;
   transition: background 180ms ease, color 180ms ease;
