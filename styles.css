@@ -1100,6 +1100,13 @@ body.auth-only .vp-update-banner { display: none; }
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 4px;
+  /* Rolagem só pelo mouse/trackpad — sem barra visível, igual ao AllStrategy
+     Plano (achado do usuário, 2026-09-25). */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.nav-panel::-webkit-scrollbar {
+  display: none;
 }
 
 .menu-group {
