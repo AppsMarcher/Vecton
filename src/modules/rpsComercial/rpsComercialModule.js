@@ -15,9 +15,9 @@
   // usuário), mesmo critério de can_manage_rps_comercial no banco.
   //
   // Áreas fixas (não é cadastro administrável — mesma decisão de produto
-  // que MANAGEMENT_OPTIONS no A3): Norte, Sul, Oeste, Exportação, Peças,
-  // Administrativo. Quem tem acesso ao módulo preenche as 6, sem recorte
-  // por região nesta v1 (RLS: can_manage_rps_comercial, migration 233).
+  // que MANAGEMENT_OPTIONS no A3): Norte, Sul, Oeste, Pecuária, Exportação,
+  // Peças, Administrativo. Quem tem acesso ao módulo preenche as 7, sem
+  // recorte por região nesta v1 (RLS: can_manage_rps_comercial, migration 233).
   // ==========================================================================
 
   const ATTACHMENT_BUCKET = "rps-comercial-attachments";
@@ -29,6 +29,7 @@
     { id: "norte", label: "Comercial Norte" },
     { id: "sul", label: "Comercial Sul" },
     { id: "oeste", label: "Comercial Oeste" },
+    { id: "pecuaria", label: "Comercial Pecuária" },
     { id: "exportacao", label: "Comercial Exportação" },
     { id: "pecas", label: "Comercial Peças" },
     { id: "administrativo", label: "Comercial Administrativo" }
@@ -49,6 +50,7 @@
     norte: "Norte",
     sul: "Sul",
     oeste: "Oeste",
+    pecuaria: "Pecuária",
     exportacao: "Exportação",
     pecas: "Peças",
     administrativo: "Comercial Administrativo"
@@ -61,6 +63,7 @@
     norte: "#14b8a6",
     sul: "#4f7cff",
     oeste: "#8b5cf6",
+    pecuaria: "#f59e0b",
     exportacao: "#22c55e",
     pecas: "#ef4444",
     administrativo: "#ec4899"
