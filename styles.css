@@ -12559,6 +12559,10 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .ann-shell {
   max-width: 1100px;
 }
+.ann-shell #ann-add {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .ann-list-card {
   padding: 0;
   overflow: hidden;
