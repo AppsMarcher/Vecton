@@ -1247,8 +1247,8 @@ body.auth-only .vp-update-banner { display: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 8px 8px;
+  gap: 10px;
+  padding: 6px 8px;
   background: var(--theme-surface, #09090a);
   flex: 0 0 auto;
 }
@@ -1268,13 +1268,14 @@ body.auth-only .vp-update-banner { display: none; }
 }
 
 .logout-button-round {
-  width: 42px;
-  height: 42px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   display: grid;
   place-items: center;
   padding: 0;
   font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .main-panel {
@@ -1689,8 +1690,8 @@ body.auth-only .vp-update-banner { display: none; }
   padding: 0;
   background: transparent;
   border: 0;
-  color: var(--text-soft);
-  font-size: 0.72rem;
+  color: var(--text-faint);
+  font-size: 0.6rem;
   font-weight: 500;
   line-height: 1.25;
   text-align: left;
