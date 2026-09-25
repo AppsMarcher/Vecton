@@ -12557,89 +12557,60 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 
 /* ── Novidades (Parâmetros > Novidades) — admin do pop-up de lançamento ──── */
 .ann-shell {
-  max-width: 1400px;
+  max-width: 1100px;
 }
-.ann-workspace {
-  display: grid;
-  grid-template-columns: minmax(260px, 32%) minmax(340px, 1fr);
-  gap: 16px;
-  align-items: start;
+.ann-list-card {
+  padding: 0;
+  overflow: hidden;
 }
-.ann-list-panel,
-.ann-editor-panel {
-  min-width: 0;
-}
-.ann-list {
-  display: grid;
-  gap: 8px;
+.ann-rows {
+  display: flex;
+  flex-direction: column;
 }
 .ann-empty {
   color: var(--text-faint);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  padding: 32px 20px;
+  text-align: center;
 }
-.ann-list-item {
-  display: flex;
-  align-items: stretch;
-  gap: 4px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--panel-alt);
-  color: var(--text);
+.ann-row {
+  display: grid;
+  grid-template-columns: 1fr 200px auto;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
 }
-.ann-list-item:hover {
-  border-color: var(--blue);
+.ann-row:last-child {
+  border-bottom: none;
 }
-.ann-list-item.selected {
-  border-color: var(--blue);
-  background: var(--blue-soft);
+.ann-row:hover {
+  background: var(--theme-surface-tint, rgba(255, 255, 255, 0.03));
 }
-.ann-list-item-main {
-  flex: 1 1 auto;
+.ann-row-main {
   min-width: 0;
   display: grid;
   gap: 4px;
-  text-align: left;
-  padding: 10px 12px;
-  border: none;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
 }
-.ann-list-item-delete {
-  flex-shrink: 0;
-  align-self: center;
-  margin-right: 8px;
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: 7px;
-  border: none;
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-}
-.ann-list-item-delete:hover {
-  background: rgba(239, 68, 68, 0.12);
-  color: var(--red);
-}
-.ann-list-item-draft {
-  cursor: default;
-}
-.ann-list-item-draft .ann-list-item-main {
-  cursor: default;
-}
-.ann-list-title {
+.ann-row-title {
   font-weight: 600;
-  font-size: 0.84rem;
+  font-size: 0.88rem;
+  color: var(--text);
 }
-.ann-list-meta {
+.ann-row-meta {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 0.72rem;
   color: var(--text-faint);
-  font-size: 0.7rem;
+}
+.ann-row-vigencia {
+  display: grid;
+  gap: 5px;
+}
+.ann-row-vig-value {
+  font-size: 0.76rem;
+  color: var(--text-soft);
 }
 .ann-status-dot {
   width: 7px;
@@ -12651,6 +12622,47 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .ann-status-dot.on {
   background: var(--green);
 }
+.ann-row-actions {
+  display: flex;
+  gap: 2px;
+  justify-self: end;
+}
+@media (max-width: 720px) {
+  .ann-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .ann-row-actions {
+    justify-self: start;
+  }
+}
+
+/* Painéis do editor e das visualizações — reaproveitam .ue-panel (mesmo
+   padrão do painel de edição de usuário: overlay + caixa central). */
+.ann-editor-inner {
+  width: 680px;
+  max-width: calc(100vw - 40px);
+}
+.ann-views-inner {
+  width: 460px;
+  max-width: calc(100vw - 40px);
+}
+.ann-panel-kicker {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 0 0 3px;
+}
+.ann-editor-footer {
+  justify-content: space-between;
+}
+.ann-editor-footer-main {
+  display: flex;
+  gap: 8px;
+}
+
 .ann-slides-header {
   display: flex;
   align-items: center;
@@ -12704,22 +12716,11 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
   object-fit: contain;
   background: var(--panel);
 }
-@media (max-width: 900px) {
-  .ann-workspace {
-    grid-template-columns: 1fr;
-  }
-}
-.ann-views-section {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-}
+
 .ann-views-list {
   display: grid;
   gap: 6px;
   margin-top: 8px;
-  max-height: 260px;
-  overflow-y: auto;
 }
 .ann-view-row {
   display: flex;

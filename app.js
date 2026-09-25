@@ -749,6 +749,7 @@ const announcementsAdminModule = window.VECTON_ANNOUNCEMENTS_ADMIN.createAnnounc
   root: views.announcements,
   escapeHtml,
   isAdmin,
+  showToast,
   getCurrentUserId: () => currentUser?.id || null,
   getActiveView: () => activeView,
   resolveOrganizationId,
