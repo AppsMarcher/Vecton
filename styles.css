@@ -1254,17 +1254,16 @@ body.auth-only .vp-update-banner { display: none; }
 }
 
 .logout-button {
-  border: 1px solid var(--line-soft);
+  border: none;
   background: var(--theme-surface-tint, rgba(255, 255, 255, 0.03));
   color: var(--text-soft);
   cursor: pointer;
-  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+  transition: background 180ms ease, color 180ms ease;
 }
 
 .logout-button:hover {
   background: var(--theme-surface-tint, rgba(255, 255, 255, 0.08));
   color: var(--text);
-  border-color: var(--theme-border-subtle, rgba(255, 255, 255, 0.12));
 }
 
 .logout-button-round {
