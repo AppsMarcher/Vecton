@@ -118,17 +118,29 @@
     function skusHtml(){const arr=(data?.topSkus||[]).slice(0,expanded.skus?50:5);return `<div class="cpg-card">${cardTitle("box","TOP SKUs","skus")}<div class="cpg-table-wrap"><table class="cpg-table"><thead><tr><th>SKU</th><th>Descrição</th><th class="num">Qtd. vendida</th><th class="num">Faturamento</th><th class="num">%</th><th class="num">Clientes</th><th class="num">UFs</th><th class="num">Municípios</th></tr></thead><tbody>${arr.map(r=>`<tr class="clickable" data-sku="${escapeHtml(r.sku)}" data-sku-label="${escapeHtml(`${r.sku} — ${r.description}`)}"><td>${escapeHtml(r.sku)}</td><td>${escapeHtml(r.description)}</td><td class="num">${number(r.quantity)}</td><td class="num">${money(r.revenue)}</td><td class="num">${pct(r.share)}</td><td class="num">${number(r.customers)}</td><td class="num">${number(r.territories)}</td><td class="num">${number(r.municipalities)}</td></tr>`).join("")||`<tr><td colspan="8">Sem dados.</td></tr>`}</tbody></table></div></div>`;}
     function periodControl(){return `<div class="cpg-period">${[["mes","Mês"],["ytd","YTD"],["fy","Ano"]].map(([v,l])=>`<button data-period="${v}" class="${filters.periodMode===v?"active":""}">${l}</button>`).join("")}</div>`;}
     function viewControl(){return `<div class="cpg-period" role="group" aria-label="Exibição">${[["geo","Geografia"],["evolucao","Evolução"]].map(([v,l])=>`<button data-view="${v}" class="${filters.view===v?"active":""}">${l}</button>`).join("")}</div>`;}
+    function evoBarGradientDefs(gradId,glowId){
+      return `<defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#688eff"/><stop offset="22%" stop-color="#4f7cff"/><stop offset="100%" stop-color="#243978"/></linearGradient><filter id="${glowId}" x="-20%" y="-10%" width="140%" height="130%"><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="rgba(79,124,255,0.16)"/></filter></defs>`;
+    }
+    function evoRealBar(xr,yy,w,h,gradId,glowId){
+      if(h<=0)return "";
+      const glossH=Math.max(4,Math.min(10,h*0.16));
+      return `<rect x="${xr.toFixed(1)}" y="${yy.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="url(#${gradId})" filter="url(#${glowId})"/><rect x="${(xr+1).toFixed(1)}" y="${(yy+1).toFixed(1)}" width="${Math.max(w-2,1).toFixed(1)}" height="${Math.max(glossH-1,1).toFixed(1)}" fill="rgba(255,255,255,0.10)" rx="2"/><rect x="${xr.toFixed(1)}" y="${yy.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="none" stroke="rgba(36,57,120,0.55)" stroke-width="0.8" rx="3"/>`;
+    }
+    function evoHit(x,w,padT,innerH,label,k1,v1,k2,v2){
+      return `<rect class="cpg-evo-hit" x="${x.toFixed(1)}" y="${padT}" width="${w.toFixed(1)}" height="${innerH.toFixed(1)}" fill="transparent" data-label="${escapeHtml(label)}" data-k1="${escapeHtml(k1)}" data-v1="${escapeHtml(v1)}" data-k2="${escapeHtml(k2)}" data-v2="${escapeHtml(v2)}"/>`;
+    }
     function evoBarChart(rows){
       const W=600,H=210,padL=54,padR=10,padT=10,padB=24;
       const max=Math.max(1,...rows.flatMap(r=>[Number(r.revenueCurrent)||0,Number(r.meta)||0]));
       const innerW=W-padL-padR,innerH=H-padT-padB,bw=innerW/rows.length,bwGhost=bw*0.62,bwReal=bwGhost*0.72;
       const xGhost=(i)=>padL+i*bw+(bw-bwGhost)/2,cx=(i)=>xGhost(i)+bwGhost/2;
       const y=(v)=>padT+innerH*(1-v/max);
-      const ghostBars=rows.map((r,i)=>{const v=Number(r.meta)||0;if(!v)return "";const yy=y(v),h=padT+innerH-yy;return `<rect x="${xGhost(i).toFixed(1)}" y="${yy.toFixed(1)}" width="${bwGhost.toFixed(1)}" height="${Math.max(0,h).toFixed(1)}" rx="4" fill="rgba(79,124,255,0.16)" stroke="rgba(79,124,255,0.55)" stroke-width="1" stroke-dasharray="2,2"><title>${MONTH_LABELS[r.month-1]} · Meta: ${money(v)}</title></rect>`;}).join("");
-      const bars=rows.map((r,i)=>{const v=Number(r.revenueCurrent)||0,yy=y(v),h=padT+innerH-yy,xr=cx(i)-bwReal/2;return `<rect x="${xr.toFixed(1)}" y="${yy.toFixed(1)}" width="${bwReal.toFixed(1)}" height="${Math.max(0,h).toFixed(1)}" rx="3" fill="var(--accent2)"><title>${MONTH_LABELS[r.month-1]}: ${money(v)}</title></rect>`;}).join("");
+      const ghostBars=rows.map((r,i)=>{const v=Number(r.meta)||0;if(!v)return "";const yy=y(v),h=padT+innerH-yy;return `<rect x="${xGhost(i).toFixed(1)}" y="${yy.toFixed(1)}" width="${bwGhost.toFixed(1)}" height="${Math.max(0,h).toFixed(1)}" rx="4" fill="rgba(79,124,255,0.16)" stroke="rgba(79,124,255,0.55)" stroke-width="1" stroke-dasharray="2,2"/>`;}).join("");
+      const bars=rows.map((r,i)=>{const v=Number(r.revenueCurrent)||0,yy=y(v),h=padT+innerH-yy,xr=cx(i)-bwReal/2;return evoRealBar(xr,yy,bwReal,Math.max(0,h),"cpg-evo-bar-grad","cpg-evo-bar-glow");}).join("");
       const grid=[0,.25,.5,.75,1].map(t=>{const yy=padT+innerH*(1-t);return `<line x1="${padL}" x2="${W-padR}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${(padL-6).toFixed(1)}" y="${(yy+3).toFixed(1)}" text-anchor="end" class="cpg-evo-axis">${moneyCompact(max*t)}</text>`;}).join("");
       const labels=rows.map((r,i)=>`<text x="${cx(i).toFixed(1)}" y="${H-6}" text-anchor="middle" class="cpg-evo-axis">${MONTH_LABELS[r.month-1]}</text>`).join("");
-      return `<svg viewBox="0 0 ${W} ${H}" class="cpg-evo-svg" role="img" aria-label="Faturamento mensal de peças comparado à meta">${grid}${ghostBars}${bars}${labels}</svg>`;
+      const hits=rows.map((r,i)=>evoHit(padL+i*bw,bw,padT,innerH,MONTH_LABELS[r.month-1],"Real",money(Number(r.revenueCurrent)||0),"Meta",money(Number(r.meta)||0))).join("");
+      return `<svg viewBox="0 0 ${W} ${H}" class="cpg-evo-svg" role="img" aria-label="Faturamento mensal de peças comparado à meta">${evoBarGradientDefs("cpg-evo-bar-grad","cpg-evo-bar-glow")}${grid}${ghostBars}${bars}${labels}${hits}</svg>`;
     }
     function smoothPath(pts){
       if(pts.length<2)return pts.length?`M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`:"";
@@ -139,20 +151,21 @@
       }
       return d;
     }
-    function evoComboChart(rows){
+    function evoComboChart(rows,yr,prevYr){
       const W=600,H=180,padL=54,padR=10,padT=10,padB=24;
       const innerW=W-padL-padR,innerH=H-padT-padB,bw=innerW/rows.length,bwEff=bw*0.56;
       const x=(i)=>padL+i*bw+(bw-bwEff)/2;
       const cx=(i)=>x(i)+bwEff/2;
       const max=Math.max(1,...rows.flatMap(r=>[Number(r.revenueCurrent)||0,Number(r.revenuePrevious)||0]));
       const y=(v)=>padT+innerH*(1-v/max);
-      const bars=rows.map((r,i)=>{const v=Number(r.revenueCurrent)||0,yy=y(v),h=padT+innerH-yy;return `<rect x="${x(i).toFixed(1)}" y="${yy.toFixed(1)}" width="${bwEff.toFixed(1)}" height="${Math.max(0,h).toFixed(1)}" rx="3" fill="var(--accent2)"><title>${MONTH_LABELS[r.month-1]}: ${money(v)}</title></rect>`;}).join("");
+      const bars=rows.map((r,i)=>{const v=Number(r.revenueCurrent)||0,yy=y(v),h=padT+innerH-yy,xr=cx(i)-bwEff/2;return evoRealBar(xr,yy,bwEff,Math.max(0,h),"cpg-evo-combo-grad","cpg-evo-combo-glow");}).join("");
       const linePts=rows.map((r,i)=>({x:cx(i),y:y(Number(r.revenuePrevious)||0)}));
       const linePath=smoothPath(linePts);
-      const lineDots=rows.map((r,i)=>`<circle cx="${cx(i).toFixed(1)}" cy="${y(Number(r.revenuePrevious)||0).toFixed(1)}" r="3.2" fill="var(--accent2)"><title>${MONTH_LABELS[r.month-1]}: ${money(r.revenuePrevious)}</title></circle>`).join("");
+      const lineDots=rows.map((r,i)=>`<circle cx="${cx(i).toFixed(1)}" cy="${y(Number(r.revenuePrevious)||0).toFixed(1)}" r="3.2" fill="var(--accent2)"/>`).join("");
       const grid=[0,.25,.5,.75,1].map(t=>{const yy=padT+innerH*(1-t);return `<line x1="${padL}" x2="${W-padR}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${(padL-6).toFixed(1)}" y="${(yy+3).toFixed(1)}" text-anchor="end" class="cpg-evo-axis">${moneyCompact(max*t)}</text>`;}).join("");
       const labels=rows.map((r,i)=>`<text x="${cx(i).toFixed(1)}" y="${H-6}" text-anchor="middle" class="cpg-evo-axis">${MONTH_LABELS[r.month-1]}</text>`).join("");
-      return `<svg viewBox="0 0 ${W} ${H}" class="cpg-evo-svg" role="img" aria-label="Faturamento mensal do ano atual em colunas comparado à linha suave do ano anterior">${grid}${bars}<path d="${linePath}" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${lineDots}${labels}</svg>`;
+      const hits=rows.map((r,i)=>evoHit(x(i)-(bw-bwEff)/2,bw,padT,innerH,MONTH_LABELS[r.month-1],String(yr),money(Number(r.revenueCurrent)||0),String(prevYr),money(Number(r.revenuePrevious)||0))).join("");
+      return `<svg viewBox="0 0 ${W} ${H}" class="cpg-evo-svg" role="img" aria-label="Faturamento mensal do ano atual em colunas comparado à linha suave do ano anterior">${evoBarGradientDefs("cpg-evo-combo-grad","cpg-evo-combo-glow")}${grid}${bars}<path d="${linePath}" fill="none" stroke="var(--accent2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${lineDots}${labels}${hits}</svg>`;
     }
     function evolucaoHtml(){
       const rows=evoData?.months||[];
@@ -162,7 +175,7 @@
       const yr=evoData.year,prevYr=evoData.previousYear;
       return `<div class="cpg-evo-grid">
         <div class="cpg-card cpg-evo-card"><div class="cpg-card-head"><h2>${icon("bar-chart-3",14)}FATURAMENTO MENSAL — ${yr}</h2></div><div class="cpg-evo-body"><div class="cpg-evo-legend"><span class="cpg-evo-legend-item" style="color:var(--accent2)"><span class="cpg-evo-legend-dot"></span>Real</span><span class="cpg-evo-legend-item" style="color:var(--accent2)"><span class="cpg-evo-legend-dot cpg-evo-legend-dot--ghost"></span>Meta</span></div>${evoBarChart(rows)}</div></div>
-        <div class="cpg-card cpg-evo-card"><div class="cpg-card-head"><h2>${icon("trending-up",14)}FATURAMENTO: ${yr} vs ${prevYr}</h2></div><div class="cpg-evo-body"><div class="cpg-evo-legend"><span class="cpg-evo-legend-item" style="color:var(--accent2)"><span class="cpg-evo-legend-dot"></span>${yr}</span><span class="cpg-evo-legend-item" style="color:var(--accent2)"><span class="cpg-evo-legend-dot cpg-evo-legend-dot--ghost"></span>${prevYr}</span></div>${evoComboChart(rows)}</div></div>
+        <div class="cpg-card cpg-evo-card"><div class="cpg-card-head"><h2>${icon("trending-up",14)}FATURAMENTO: ${yr} vs ${prevYr}</h2></div><div class="cpg-evo-body"><div class="cpg-evo-legend"><span class="cpg-evo-legend-item" style="color:var(--accent2)"><span class="cpg-evo-legend-dot"></span>${yr}</span><span class="cpg-evo-legend-item" style="color:var(--accent2)"><span class="cpg-evo-legend-dot cpg-evo-legend-dot--ghost"></span>${prevYr}</span></div>${evoComboChart(rows,yr,prevYr)}</div></div>
       </div>`;
     }
     function filterBar(){const cityDisabled=filters.state==="EX",help="NFs: peças já faturadas. Cart: pedidos em carteira no período. NFs + Cart: faturado + carteira.";return `<div class="cpg-filters"><div class="cpg-field"><label class="cpg-scope-label" title="${help}">Visão ${icon("circle-help",11)}</label><div class="cpg-scope" role="group" aria-label="Visão dos valores"><button data-revenue-scope="nf" class="${filters.revenueScope==="nf"?"active":""}" title="Peças já faturadas">NFs</button><button data-revenue-scope="cart" class="${filters.revenueScope==="cart"?"active":""}" title="Pedidos em carteira no período">Cart</button><button data-revenue-scope="nf_cart" class="${filters.revenueScope==="nf_cart"?"active":""}" title="Peças faturadas mais pedidos em carteira">NFs + Cart</button></div></div><div class="cpg-field"><label>Vendedor</label><select class="cpg-control" data-filter="seller"><option value="all">Todos</option><option value="jenifer" ${filters.seller==="jenifer"?"selected":""}>Jenifer</option><option value="others" ${filters.seller==="others"?"selected":""}>Outros</option></select></div><div class="cpg-field"><label>UF</label><select class="cpg-control" data-filter="state"><option value="">Todos</option>${UFS.map(u=>`<option value="${u}" ${filters.state===u?"selected":""}>${u}${u==="EX"?" — Exterior":""}</option>`).join("")}</select></div><div class="cpg-field"><label>Município</label><select class="cpg-control" data-filter="city" ${cityDisabled?"disabled":""}><option value="">${cityDisabled?"Indisponível para EX":"Todos"}</option>${(data?.cities||[]).map(c=>`<option value="${escapeHtml(c)}" ${filters.city===c?"selected":""}>${escapeHtml(c)}</option>`).join("")}</select></div>${searchField("customer","Cliente",filters.customerLabel||"Todos os clientes")}${searchField("sku","SKU",filters.skuLabel||"Todos os SKUs")}<button class="cpg-clear" data-clear>${icon("filter-x",14)}LIMPAR FILTROS</button></div>`;}
@@ -173,6 +186,7 @@
 
     function showTooltip(e,uf){const r=(data?.map||[]).find(x=>x.territory===uf);if(!tooltip){tooltip=document.createElement("div");tooltip.className="cpg-tt";document.body.appendChild(tooltip);}tooltip.hidden=false;tooltip.innerHTML=r?`<strong>${escapeHtml(STATE_NAMES[uf]||uf)} (${uf})</strong><div class="row"><span>Faturamento</span><b>${money(r.revenue)}</b></div><div class="row"><span>% do total</span><b>${pct(r.revenueShare)}</b></div><div class="row"><span>Clientes</span><b>${number(r.customers)}</b></div><div class="row"><span>% da base</span><b>${pct(r.customerShare)}</b></div><div class="row"><span>${purchaseLabel()}</span><b>${number(r.invoices)}</b></div><div class="row"><span>Fat. médio/cliente</span><b>${money(r.revenuePerCustomer)}</b></div><div class="row"><span>Compras/cliente</span><b>${number(r.purchasesPerCustomer,2)}</b></div>`:`<strong>${escapeHtml(STATE_NAMES[uf]||uf)} (${uf})</strong>Sem vendas no período.`;tooltip.style.left=Math.min(e.clientX+14,window.innerWidth-245)+"px";tooltip.style.top=Math.min(e.clientY+14,window.innerHeight-210)+"px";}
     function hideTooltip(){if(tooltip)tooltip.hidden=true;}
+    function showChartTip(e,d){if(!tooltip){tooltip=document.createElement("div");tooltip.className="cpg-tt";document.body.appendChild(tooltip);}tooltip.hidden=false;tooltip.innerHTML=`<strong>${escapeHtml(d.label)}</strong><div class="row"><span>${escapeHtml(d.k1)}</span><b>${escapeHtml(d.v1)}</b></div><div class="row"><span>${escapeHtml(d.k2)}</span><b>${escapeHtml(d.v2)}</b></div>`;tooltip.style.left=Math.min(e.clientX+14,window.innerWidth-245)+"px";tooltip.style.top=Math.min(e.clientY+14,window.innerHeight-210)+"px";}
     async function searchOptions(kind,q,box){try{const org=await resolveOrganizationId(),rows=await callSupabaseRpc("comercial_pecas_geo_options",{p_org:org,p_kind:kind,p_search:q,p_state:filters.state&&filters.state!=="EX"?filters.state:null,p_limit:20});box.innerHTML=(rows||[]).map(r=>`<button data-option-kind="${kind}" data-option-id="${escapeHtml(r.id)}" data-option-label="${escapeHtml(r.label)}">${escapeHtml(r.label)}</button>`).join("")||`<div class="empty">Nenhum resultado</div>`;box.hidden=false;}catch(e){console.error(e);box.innerHTML=`<div class="empty">Não foi possível pesquisar.</div>`;box.hidden=false;}}
     function setState(uf){filters.state=filters.state===uf?"":uf;filters.city="";filters.customerId="";filters.customerLabel="";expanded={cities:false,customers:false,skus:false};refreshAll();}
     function bind(container){
@@ -188,6 +202,13 @@
       container.querySelector("[data-clear]")?.addEventListener("click",()=>{filters={...filters,revenueScope:"nf",seller:"all",state:"",city:"",customerId:"",customerLabel:"",sku:"",skuLabel:"",mapMetric:"revenue"};expanded={cities:false,customers:false,skus:false};refreshAll();});
       container.querySelectorAll("[data-metric]").forEach(b=>b.addEventListener("click",()=>{filters.mapMetric=b.dataset.metric;render(container);}));
       container.querySelectorAll("[data-map-uf],[data-rank-uf]").forEach(el=>{const uf=el.dataset.mapUf||el.dataset.rankUf;el.addEventListener("click",()=>setState(uf));el.addEventListener("mousemove",e=>showTooltip(e,uf));el.addEventListener("mouseleave",hideTooltip);});
+      container.querySelectorAll(".cpg-evo-svg").forEach(svg=>{
+        const hits=[...svg.querySelectorAll(".cpg-evo-hit")];
+        if(!hits.length)return;
+        const locate=(e)=>{const r=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal,x=(e.clientX-r.left)*(vb.width/r.width);return hits.find(h=>{const hx=Number(h.getAttribute("x")),hw=Number(h.getAttribute("width"));return x>=hx&&x<hx+hw;});};
+        svg.addEventListener("mousemove",e=>{const hit=locate(e);if(!hit){hideTooltip();return;}showChartTip(e,hit.dataset);});
+        svg.addEventListener("mouseleave",hideTooltip);
+      });
       container.querySelectorAll("[data-expand]").forEach(b=>b.addEventListener("click",()=>{expanded[b.dataset.expand]=!expanded[b.dataset.expand];render(container);}));
       container.querySelectorAll("tr[data-sku]").forEach(tr=>tr.addEventListener("click",()=>{filters.sku=tr.dataset.sku;filters.skuLabel=tr.dataset.skuLabel;refreshAll();}));
       container.querySelectorAll("[data-search]").forEach(input=>{const kind=input.dataset.search,box=container.querySelector(`[data-suggestions="${kind}"]`);input.addEventListener("focus",()=>{if(!input.value.startsWith("Todos"))searchOptions(kind,input.value,box);});input.addEventListener("input",()=>{clearTimeout(searchTimer);if(kind==="customer"){filters.customerId="";filters.customerLabel="";}else{filters.sku="";filters.skuLabel="";}searchTimer=setTimeout(()=>searchOptions(kind,input.value,box),300);});});
