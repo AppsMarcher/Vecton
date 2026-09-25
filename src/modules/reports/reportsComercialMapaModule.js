@@ -87,6 +87,9 @@
         .cvm-seg button.on { background:var(--theme-surface-raised, #222834); color:var(--theme-ink, #fff); }
         .cvm-seg.lay button.on[data-l="grao"] { background:rgba(99,179,255,.22); color:var(--theme-ink-blue, #bcd8ff); }
         .cvm-seg.lay button.on[data-l="pec"] { background:rgba(245,158,11,.20); color:var(--theme-ink-amber, #f6c67a); }
+        #cvm-seg { padding:2px; border-radius:8px; }
+        #cvm-seg button { padding:6px 12px; border-radius:6px; }
+        #cvm-seg button.on { background:#4f7cff; color:#fff; }
         .cvm-layout { display:grid; grid-template-columns:1fr 288px; gap:16px; }
         @media (max-width:1000px){ .cvm-layout{ grid-template-columns:1fr; } }
         .cvm-card { background:var(--panel); border:1px solid var(--line); border-radius:16px; }

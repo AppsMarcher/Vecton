@@ -128,6 +128,7 @@
         .vcr-field{display:grid;gap:6px;font-size:11px;color:var(--text-soft)}.vcr-field input,.vcr-field select,.vcr-field textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:9px;font:inherit}.vcr-field textarea{min-height:72px;resize:vertical}
         .vcr-field select option,.vcr-team-tools select option,.vcr-inline-field select option{background:var(--theme-surface, #1a1d26);color:var(--text)}
         .vcr-inline-field{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-soft);white-space:nowrap}.vcr-inline-field select{width:auto;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:8px 10px;font:inherit}
+        .vcr-period-seg{display:flex;gap:2px;background:var(--panel-alt);border-radius:8px;padding:2px}.vcr-period-seg button{border:none;background:transparent;color:var(--text-soft);font:inherit;font-size:12px;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer}.vcr-period-seg button.active{background:#4f7cff;color:#fff}
         .vcr-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.vcr-checks.compact{display:flex;flex-wrap:wrap}.vcr-checks.compact .vcr-check{flex:0 0 auto}.vcr-check{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:10.5px;color:var(--text-soft);line-height:1.25}
         .vcr-chips{display:flex;flex-wrap:wrap;gap:8px}.vcr-chip{display:flex;align-items:center;gap:7px;padding:9px 14px;border:1px solid var(--line);border-radius:99px;font-size:12px;color:var(--text-soft);cursor:pointer;user-select:none}.vcr-chip:has(input:checked){border-color:#14b8a6;color:var(--text);background:rgba(20,184,166,.12)}.vcr-chip input{accent-color:#14b8a6}
         .vcr-team-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
@@ -1387,7 +1388,10 @@
       const supportsModalidadeToggle = isTeamComparison || isSellerCultureComposition;
       const scenarioOptions = `<option value="" ${!scenarioId ? "selected" : ""}>Budget</option>` + scenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}" ${scenario.id === scenarioId ? "selected" : ""}>${escapeHtml(scenario.name)}</option>`).join("");
       const modalidadeToggleHtml = supportsModalidadeToggle
-        ? `<label class="vcr-inline-field">Período<select id="vcr-runtime-modalidade"><option value="monthly" ${payload.report?.mode !== "annual_ytd" ? "selected" : ""}>Mês</option><option value="annual_ytd" ${payload.report?.mode === "annual_ytd" ? "selected" : ""}>YTD</option></select></label>`
+        ? `<div class="vcr-inline-field"><span>Período</span><div class="vcr-period-seg" id="vcr-runtime-modalidade">
+          <button type="button" data-mode="monthly" class="${payload.report?.mode !== "annual_ytd" ? "active" : ""}">Mês</button>
+          <button type="button" data-mode="annual_ytd" class="${payload.report?.mode === "annual_ytd" ? "active" : ""}">YTD</button>
+        </div></div>`
         : "";
       container.innerHTML = `<div class="vcr-report">
         <header class="vcr-report-head"><div><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${formatDateBR(payload.period?.effective_start)} — ${formatDateBR(payload.period?.effective_end)}</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${modalidadeToggleHtml}<label class="vcr-inline-field">Cenário<select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
@@ -1403,9 +1407,11 @@
         scenarioSelections.set(payload.report.id, scenarioId);
         loadAndRenderRuntime(container, payload.report.id, scenarioId, modalidadeSelections.get(payload.report.id));
       });
-      container.querySelector("#vcr-runtime-modalidade")?.addEventListener("change", (event) => {
-        modalidadeSelections.set(payload.report.id, event.target.value);
-        loadAndRenderRuntime(container, payload.report.id, scenarioId, event.target.value);
+      container.querySelector("#vcr-runtime-modalidade")?.addEventListener("click", (event) => {
+        const btn = event.target.closest("button[data-mode]");
+        if (!btn) return;
+        modalidadeSelections.set(payload.report.id, btn.dataset.mode);
+        loadAndRenderRuntime(container, payload.report.id, scenarioId, btn.dataset.mode);
       });
       if (isBateuLevou || isComposition) bindRankingSorts(container, payload, scenarios, scenarioId);
       if (isTeamComparison) {

@@ -292,6 +292,9 @@
         .cmg-seg { display:flex; gap:2px; background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:3px; }
         .cmg-seg button { border:none; background:transparent; color:var(--soft); font:inherit; font-size:12.5px; font-weight:500; padding:7px 14px; border-radius:8px; cursor:pointer; white-space:nowrap; }
         .cmg-seg button.on { background:var(--accent); color:#fff; }
+        #cmg-period { border:none; border-radius:8px; padding:2px; }
+        #cmg-period button { font-size:12px; padding:6px 12px; border-radius:6px; }
+        #cmg-period button.on { background:#4f7cff; color:#fff; }
         .cmg-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:16px; }
         @media (max-width:1200px) { .cmg-kpis { grid-template-columns:repeat(3,1fr); } }
         @media (max-width:760px) { .cmg-kpis { grid-template-columns:repeat(2,1fr); } }
