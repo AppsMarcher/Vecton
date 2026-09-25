@@ -17,9 +17,9 @@
 .cockpit-management::after { content: ""; position: absolute; right: 12px; top: 50%; width: 6px; height: 6px; border-right: 1.5px solid var(--text-soft); border-bottom: 1.5px solid var(--text-soft); transform: translateY(-65%) rotate(45deg); pointer-events: none; }
 .cockpit-management:has(select:open)::after { transform: translateY(-35%) rotate(225deg); }
 .cockpit-management option:checked { background: var(--blue-strong); color: var(--text); }
-.cockpit-period-types { display: flex; align-items: stretch; height: 34px; box-sizing: border-box; gap: 2px; background: var(--panel-alt); border: none; border-radius: 8px; padding: 2px; }
+.cockpit-period-types { display: flex; align-items: stretch; height: 34px; box-sizing: border-box; gap: 2px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
 .cockpit-period-types .period-month-button { height: auto; padding: 0 12px; font-size: 12px; border: none; }
-.cockpit-period-types [aria-pressed="true"] { background: #4f7cff; color: var(--theme-ink, #fff); }
+.cockpit-period-types [aria-pressed="true"] { background: #4f7cff; color: #fff; }
 #cockpit-view :focus-visible, .cockpit-header-filters :focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 #cockpit-view .cockpit-heading { margin-bottom: 0; align-items: center; gap: 16px; flex-wrap: wrap; }
 .cockpit-heading h1 { margin: 0 0 6px; font-size: clamp(1.25rem, 2vw, 1.8rem); letter-spacing: -0.03em; }

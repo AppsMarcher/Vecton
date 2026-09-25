@@ -87,7 +87,7 @@
         .vmob-filters.is-open .vmob-filters-body { display:flex; }
         .vmob-segmented { display:flex; background:var(--vmob-bg); border:1px solid var(--vmob-line); border-radius:9px; padding:2px; gap:2px; }
         .vmob-segmented button { all:unset; box-sizing:border-box; padding:6px 11px; font-size:12.5px; font-weight:600; color:var(--vmob-soft); border-radius:7px; cursor:pointer; }
-        .vmob-segmented button.is-active { background:var(--vmob-accent); color:var(--theme-ink, #fff); }
+        .vmob-segmented button.is-active { background:var(--vmob-accent); color:#fff; }
         .vmob-cenario-list { display:none; flex-direction:column; margin-top:6px; border:1px solid var(--vmob-line); border-radius:10px; overflow:hidden; }
         .vmob-cenario-list.is-open { display:flex; }
         .vmob-cenario-item { all:unset; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; width:100%; padding:10px 12px; font-size:13px; color:var(--vmob-soft); cursor:pointer; background:var(--vmob-bg); }
