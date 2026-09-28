@@ -4376,11 +4376,13 @@ thead .col-frozen-3 {
 .comven-col-tipo { width: 92px; min-width: 92px; padding-left: 2px; padding-right: 2px; }
 .comven-col-produto { width: 120px; min-width: 120px; padding-left: 2px; padding-right: 2px; }
 .comven-col-cliente { width: 96px; min-width: 96px; padding-left: 2px; padding-right: 2px; }
-.comven-col-territorio { width: 108px; min-width: 108px; padding-left: 2px; padding-right: 2px; }
+.comven-col-documento { width: 132px; min-width: 132px; max-width: 132px; padding-left: 2px; padding-right: 2px; }
+.comven-col-serie { width: 56px; min-width: 56px; max-width: 56px; padding-left: 2px; padding-right: 2px; }
+.comven-col-territorio { width: 136px; min-width: 136px; padding-left: 2px; padding-right: 2px; }
 .comven-col-qtd { width: 60px; min-width: 60px; max-width: 60px; padding-left: 2px; padding-right: 2px; }
 .comven-col-valor { width: 120px; min-width: 120px; }
 .comven-col-mb { width: 62px; min-width: 62px; max-width: 62px; padding-left: 2px; padding-right: 2px; }
-.comven-col-vendedor { width: 68px; min-width: 68px; max-width: 68px; padding-left: 2px; padding-right: 2px; }
+.comven-col-vendedor { width: 88px; min-width: 88px; max-width: 88px; padding-left: 2px; padding-right: 2px; }
 .comven-table .actuals-col-row { width: 44px; min-width: 44px; }
 
 @keyframes vp-spin {
