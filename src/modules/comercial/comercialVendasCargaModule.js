@@ -143,7 +143,7 @@
 
             <datalist id="comven-tipo-list"><option value="Máquinas"></option><option value="Peças"></option><option value="Transgrain"></option><option value="Acessórios"></option></datalist>
             <div class="table-shell actuals-table-shell">
-              <table class="data-table actuals-table">
+              <table class="data-table actuals-table comven-table">
                 <thead><tr></tr></thead>
                 <tbody id="comven-rows-body"></tbody>
               </table>
@@ -360,7 +360,7 @@
         ${th("documento", "comven-col-documento", "NF / Documento")}
         ${th("serieDocumento", "comven-col-serie", "Série")}
         ${th("codTerritorio", "comven-col-territorio", "Território")}
-        ${th("codVendedor", "comven-col-vendedor", "Cód. vendedor")}
+        ${th("codVendedor", "comven-col-vendedor", "Vendedor")}
         ${th("quantidade", "comven-col-qtd", "Qtd")}
         ${th("valor", "comven-col-valor", "Valor")}
         ${th("mbPct", "comven-col-mb", "%MB")}

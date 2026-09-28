@@ -4380,6 +4380,8 @@ thead .col-frozen-3 {
 .comven-col-qtd { width: 60px; min-width: 60px; max-width: 60px; padding-left: 2px; padding-right: 2px; }
 .comven-col-valor { width: 120px; min-width: 120px; }
 .comven-col-mb { width: 62px; min-width: 62px; max-width: 62px; padding-left: 2px; padding-right: 2px; }
+.comven-col-vendedor { width: 68px; min-width: 68px; max-width: 68px; padding-left: 2px; padding-right: 2px; }
+.comven-table .actuals-col-row { width: 44px; min-width: 44px; }
 
 @keyframes vp-spin {
   to { transform: rotate(360deg); }
