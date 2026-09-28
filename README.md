@@ -251,7 +251,7 @@ Principais RPCs:
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `243` (246 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `245` (248 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -287,6 +287,8 @@ Resumo por fase:
 | `240–241` | evolução mensal de Peças (com meta) na Performance Geográfica comercial |
 | `242` | RPS Comercial — área Comercial Pecuária |
 | `243` | `comercial_painel_detalhe` passa a devolver `entry_date` — coluna Data no drill-down de transações do Painel de Vendas |
+| `244` | `comercial_painel_detalhe` passa a devolver `documento`/`serie_documento` — coluna Documento no mesmo drill-down |
+| `245` | `comercial_report_movements` passa a devolver `documento`/`serie_documento` — coluna Documento no popover de movimentos das campanhas Bateu/Levou e Final de Ano |
 
 ### Divergências conhecidas do schema
 
@@ -430,5 +432,5 @@ Também confira:
 | cadastros comerciais | `comercialCadastroModule.js`, configurações em `app.js`, migrations `032–037` |
 | cargas comerciais | `comercialVendasCargaModule.js`, `comercialPlanejadoCargaModule.js`, migrations `038–042` |
 | Ativações de Garantia | `garantiaAtivacoesCargaModule.js`, `reportsGarantiaAtivacoesModule.js`, migration `237` |
-| painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `090`, `112–126`, `240–241`, `243` |
-| campanhas e criador de relatórios comerciais | `src/modules/reports/comercialReportsModule.js`, migrations `064–069` |
+| painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `090`, `112–126`, `240–241`, `243–244` |
+| campanhas e criador de relatórios comerciais | `src/modules/reports/comercialReportsModule.js`, migrations `064–069`, `074–075`, `245` |

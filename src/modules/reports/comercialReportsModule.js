@@ -1458,7 +1458,7 @@
         });
         if (activeOverlay !== overlay) return;
         const columns = [
-          ["data", "Data"], ["origem", "Origem"], ["tipo_movimento", "Movimento"],
+          ["data", "Data"], ["documento", "Documento"], ["origem", "Origem"], ["tipo_movimento", "Movimento"],
           ["nome", "Nome"], ["cargo", "Cargo"], ["cod_cliente", "Cód. cliente"],
           ["cliente", "Cliente"], ["cod_produto", "Cód. produto"], ["produto", "Produto"],
           ["grupo_produto", "Grupo"], ["cultura", "Cultura"], ["quantidade", "Quantidade"],
@@ -1486,6 +1486,7 @@
               label,
               value: (movement) => {
                 const value = movement[key];
+                if (key === "documento") return [movement.documento, movement.serie_documento].filter(Boolean).join("/");
                 if (key === "margem_percentual" && value !== null && value !== undefined) return Number(value) * 100;
                 if (typeof value === "boolean") return value ? "Sim" : "Não";
                 return value ?? "";
@@ -1513,7 +1514,8 @@
           const sorted = sortedMovements();
           const body = sorted.map((movement) => `<tr>${columns.map(([key]) => {
             let value = movement[key];
-            if (key === "faturamento") value = Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            if (key === "documento") value = [movement.documento, movement.serie_documento].filter(Boolean).join("/");
+            else if (key === "faturamento") value = Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
             else if (key === "margem_percentual" && value !== null) value = `${(Number(value) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
             else if (typeof value === "boolean") value = value ? "Sim" : "Não";
             return `<td>${escapeHtml(value ?? "—")}</td>`;

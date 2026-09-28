@@ -694,14 +694,15 @@
           : d * String(a[k] || "").localeCompare(String(b[k] || ""), "pt-BR"));
       }
       const ordered = items.concat(resumos);
-      // colunas antes de Qtd/Valor: Tipo + Data + [Território] + [Vendedor] + Cód.Cli +
+      // colunas antes de Qtd/Valor: Tipo + Data + Documento + [Território] + [Vendedor] + Cód.Cli +
       // Cliente + Cidade/UF + Cult + Cód.Prod + Produto
-      const span = 8 + (showTerr ? 1 : 0) + (showVend ? 1 : 0);
+      const span = 9 + (showTerr ? 1 : 0) + (showVend ? 1 : 0);
       const sortTh = (key, label, cls) => {
         const active = popSort.key === key;
         const arrow = active ? (popSort.dir === 1 ? " ↑" : " ↓") : "";
         return `<th data-sort="${key}"${cls ? ` class="${cls}"` : ""} style="cursor:pointer;user-select:none${active ? ";color:var(--theme-ink-blue, #7aa2ff)" : ""}">${label}${arrow}</th>`;
       };
+      const documentoLabel = (r) => [r.documento, r.serie_documento].filter(Boolean).join("/");
       let totQ = 0, totV = 0;
       const body = ordered.map((r) => {
         if (r.resumo) {
@@ -713,6 +714,7 @@
         return `<tr>
           <td>${escapeHtml(r.tipo || "")}</td>
           <td class="mut">${escapeHtml(formatDisplayDate(r.entry_date))}</td>
+          <td class="mut">${escapeHtml(documentoLabel(r))}</td>
           ${showTerr ? `<td>${escapeHtml(r.territorio || "")}</td>` : ""}
           ${showVend ? `<td class="l">${escapeHtml(r.vendedor || "—")}</td>` : ""}
           <td class="mut">${escapeHtml(r.cod_cliente || "")}</td>
@@ -726,7 +728,7 @@
         </tr>`;
       }).join("");
       return `<table class="cvp-pop-tbl">
-        <thead><tr>${sortTh("tipo", "Tipo")}${sortTh("entry_date", "Data")}${showTerr ? sortTh("territorio", "Território") : ""}${showVend ? sortTh("vendedor", "Vendedor") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}</tr></thead>
+        <thead><tr>${sortTh("tipo", "Tipo")}${sortTh("entry_date", "Data")}${sortTh("documento", "Documento")}${showTerr ? sortTh("territorio", "Território") : ""}${showVend ? sortTh("vendedor", "Vendedor") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}</tr></thead>
         <tbody>${body}</tbody>
         <tfoot><tr><td colspan="${span}">Total · ${items.length} ${items.length === 1 ? "linha" : "linhas"}</td><td class="num${totQ < 0 ? " neg" : ""}">${nf(totQ)}</td><td class="num${totV < 0 ? " neg" : ""}">${fmtFullR$(totV)}</td></tr></tfoot>
       </table>`;
@@ -746,6 +748,7 @@
       const columns = [
         { label: "Tipo", value: (r) => r.tipo || "" },
         { label: "Data", value: (r) => formatDisplayDate(r.entry_date) },
+        { label: "Documento", value: (r) => [r.documento, r.serie_documento].filter(Boolean).join("/") },
         ...(popShowTerr ? [{ label: "Território", value: (r) => r.territorio || "" }] : []),
         ...(popShowVend ? [{ label: "Vendedor", value: (r) => r.vendedor || "" }] : []),
         { label: "Cód. Cli.", value: (r) => r.cod_cliente || "" },
