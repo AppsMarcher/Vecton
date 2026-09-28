@@ -16,7 +16,7 @@
       syncHeaderPeriod,
       appAlert
     } = deps;
-    const { exportRowsToExcel, exportButtonHtml } = window.VECTON_CORE_UTILS;
+    const { exportRowsToExcel, exportButtonHtml, formatDisplayDate } = window.VECTON_CORE_UTILS;
     // Modelo de dados (transform/consolidação) mora em comercialPainelDataModule.js
     // — compartilhado com a versão mobile. Nenhuma das duas telas pode ter sua
     // própria soma; ver comentário no topo daquele arquivo.
@@ -694,9 +694,9 @@
           : d * String(a[k] || "").localeCompare(String(b[k] || ""), "pt-BR"));
       }
       const ordered = items.concat(resumos);
-      // colunas antes de Qtd/Valor: Tipo + [Território] + [Vendedor] + Cód.Cli +
+      // colunas antes de Qtd/Valor: Tipo + Data + [Território] + [Vendedor] + Cód.Cli +
       // Cliente + Cidade/UF + Cult + Cód.Prod + Produto
-      const span = 7 + (showTerr ? 1 : 0) + (showVend ? 1 : 0);
+      const span = 8 + (showTerr ? 1 : 0) + (showVend ? 1 : 0);
       const sortTh = (key, label, cls) => {
         const active = popSort.key === key;
         const arrow = active ? (popSort.dir === 1 ? " ↑" : " ↓") : "";
@@ -712,6 +712,7 @@
         const cidadeUf = [r.cidade, r.uf].filter(Boolean).join("/");
         return `<tr>
           <td>${escapeHtml(r.tipo || "")}</td>
+          <td class="mut">${escapeHtml(formatDisplayDate(r.entry_date))}</td>
           ${showTerr ? `<td>${escapeHtml(r.territorio || "")}</td>` : ""}
           ${showVend ? `<td class="l">${escapeHtml(r.vendedor || "—")}</td>` : ""}
           <td class="mut">${escapeHtml(r.cod_cliente || "")}</td>
@@ -725,7 +726,7 @@
         </tr>`;
       }).join("");
       return `<table class="cvp-pop-tbl">
-        <thead><tr>${sortTh("tipo", "Tipo")}${showTerr ? sortTh("territorio", "Território") : ""}${showVend ? sortTh("vendedor", "Vendedor") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}</tr></thead>
+        <thead><tr>${sortTh("tipo", "Tipo")}${sortTh("entry_date", "Data")}${showTerr ? sortTh("territorio", "Território") : ""}${showVend ? sortTh("vendedor", "Vendedor") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}</tr></thead>
         <tbody>${body}</tbody>
         <tfoot><tr><td colspan="${span}">Total · ${items.length} ${items.length === 1 ? "linha" : "linhas"}</td><td class="num${totQ < 0 ? " neg" : ""}">${nf(totQ)}</td><td class="num${totV < 0 ? " neg" : ""}">${fmtFullR$(totV)}</td></tr></tfoot>
       </table>`;
@@ -744,6 +745,7 @@
       }
       const columns = [
         { label: "Tipo", value: (r) => r.tipo || "" },
+        { label: "Data", value: (r) => formatDisplayDate(r.entry_date) },
         ...(popShowTerr ? [{ label: "Território", value: (r) => r.territorio || "" }] : []),
         ...(popShowVend ? [{ label: "Vendedor", value: (r) => r.vendedor || "" }] : []),
         { label: "Cód. Cli.", value: (r) => r.cod_cliente || "" },

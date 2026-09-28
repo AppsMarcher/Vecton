@@ -251,7 +251,7 @@ Principais RPCs:
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `242` (245 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `243` (246 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -286,6 +286,7 @@ Resumo por fase:
 | `238–239` | Novidades (`product_announcements`, slides e dismissals) — pop-up de lançamentos e tela de administração |
 | `240–241` | evolução mensal de Peças (com meta) na Performance Geográfica comercial |
 | `242` | RPS Comercial — área Comercial Pecuária |
+| `243` | `comercial_painel_detalhe` passa a devolver `entry_date` — coluna Data no drill-down de transações do Painel de Vendas |
 
 ### Divergências conhecidas do schema
 
@@ -429,5 +430,5 @@ Também confira:
 | cadastros comerciais | `comercialCadastroModule.js`, configurações em `app.js`, migrations `032–037` |
 | cargas comerciais | `comercialVendasCargaModule.js`, `comercialPlanejadoCargaModule.js`, migrations `038–042` |
 | Ativações de Garantia | `garantiaAtivacoesCargaModule.js`, `reportsGarantiaAtivacoesModule.js`, migration `237` |
-| painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `112–126`, `240–241` |
+| painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `090`, `112–126`, `240–241`, `243` |
 | campanhas e criador de relatórios comerciais | `src/modules/reports/comercialReportsModule.js`, migrations `064–069` |
