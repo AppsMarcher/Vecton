@@ -170,6 +170,7 @@
       loadedWeekStart: null,
       entries: {},       // areaId -> rps_comercial_entries row
       attachments: {},   // entryId -> { [blockId]: rps_comercial_attachments[] }
+      editAreaIndex: 0,
       presentation: false,
       presentationAreaIndex: 0,
       presentationZoom: 0,
@@ -754,7 +755,11 @@
         .rpc-week-today { border:none; background:none; color:var(--rpc-blue); font-size:.68rem; cursor:pointer; padding:0; margin-left:4px; }
         .rpc-btn { border-radius:10px; padding:8px 14px; font-size:.78rem; font-weight:600; cursor:pointer; border:1px solid var(--rpc-line); background:transparent; color:var(--rpc-soft); }
         .rpc-btn:hover { background:var(--theme-surface-tint, rgba(255,255,255,.05)); color:var(--rpc-text); }
-        .rpc-grid { display:grid; grid-template-columns:1fr; gap:16px; }
+        .rpc-areas-row { display:flex; align-items:flex-start; justify-content:center; gap:10px; margin-bottom:16px; }
+        .rpc-areas-tabs { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:6px; }
+        .rpc-area-tab { display:inline-flex; align-items:center; min-height:32px; border-radius:9px; border:1px solid var(--rpc-line); background:transparent; color:var(--rpc-soft); font-size:.7rem; font-weight:600; padding:0 12px; cursor:pointer; }
+        .rpc-area-tab:hover:not(.is-active) { border-color:rgba(79,124,255,.4); color:var(--rpc-text); }
+        .rpc-area-tab.is-active { background:var(--rpc-blue); border-color:var(--rpc-blue); color:#fff; }
         .rpc-area-card { background:var(--theme-surface, rgba(12,14,18,.9)); border:1px solid var(--rpc-line); border-radius:16px; box-shadow:0 18px 48px var(--theme-shadow-color, rgba(0,0,0,.32)); padding:16px 18px; }
         .rpc-area-head { display:flex; align-items:center; gap:10px; margin:0 0 18px; }
         .rpc-area-title { margin:0; font-size:.95rem; letter-spacing:.03em; text-transform:uppercase; color:var(--rpc-text); }
@@ -1009,12 +1014,41 @@
 
       root.innerHTML = `
         ${renderHero()}
-        <div class="rpc-grid">
-          ${AREAS.map((area) => renderAreaCard(area)).join("")}
-        </div>
+        ${renderAreaNav()}
+        ${renderAreaCard(AREAS[state.editAreaIndex])}
       `;
       bindShellEvents();
+      bindAreaNavEvents();
       bindBlockInteractions(root);
+    }
+
+    // Navegação lado a lado das coordenações na tela de preenchimento (pedido
+    // do usuário: igual ao seletor de área do modo apresentação, em vez de
+    // empilhar as 7 coordenações uma abaixo da outra).
+    function renderAreaNav() {
+      return `
+        <div class="rpc-areas-row">
+          <button type="button" class="rps-action" data-action="area-prev" ${state.editAreaIndex === 0 ? "disabled" : ""} aria-label="Coordenação anterior">‹</button>
+          <div class="rpc-areas-tabs">
+            ${AREAS.map((a, i) => `<button type="button" class="rpc-area-tab${i === state.editAreaIndex ? " is-active" : ""}" data-action="area-goto" data-index="${i}">${escapeHtml(a.label)}</button>`).join("")}
+          </div>
+          <button type="button" class="rps-action" data-action="area-next" ${state.editAreaIndex === AREAS.length - 1 ? "disabled" : ""} aria-label="Próxima coordenação">›</button>
+        </div>
+      `;
+    }
+
+    function gotoEditArea(index) {
+      if (index < 0 || index >= AREAS.length) return;
+      state.editAreaIndex = index;
+      renderShell();
+    }
+
+    function bindAreaNavEvents() {
+      root.querySelector('[data-action="area-prev"]')?.addEventListener("click", () => gotoEditArea(state.editAreaIndex - 1));
+      root.querySelector('[data-action="area-next"]')?.addEventListener("click", () => gotoEditArea(state.editAreaIndex + 1));
+      root.querySelectorAll('[data-action="area-goto"]').forEach((btn) => {
+        btn.addEventListener("click", () => gotoEditArea(Number(btn.dataset.index)));
+      });
     }
 
     // Mesmo cabeçalho .rps-hero da tela normal, reaproveitado tal e qual no
@@ -1198,7 +1232,7 @@
     // seção deixava o carrossel invisível ao abrir durante a apresentação.
     function enterPresentation() {
       state.presentation = true;
-      state.presentationAreaIndex = 0;
+      state.presentationAreaIndex = state.editAreaIndex;
       state.presentationZoom = 0;
       applyPresentationZoom();
       renderShell();
@@ -1209,6 +1243,7 @@
 
     function exitPresentation() {
       state.presentation = false;
+      state.editAreaIndex = state.presentationAreaIndex;
       state.presentationZoom = 0;
       document.body.style.removeProperty("--rpc-presentation-zoom");
       closeVendasPopover();
@@ -1225,6 +1260,7 @@
     function handleFullscreenChange() {
       if (!document.fullscreenElement && state.presentation) {
         state.presentation = false;
+        state.editAreaIndex = state.presentationAreaIndex;
         state.presentationZoom = 0;
         document.body.style.removeProperty("--rpc-presentation-zoom");
         renderShell();
