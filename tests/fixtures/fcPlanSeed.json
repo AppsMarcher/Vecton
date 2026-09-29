@@ -523,7 +523,7 @@
   },
   {
     "seed_key": "linha-67",
-    "parent_key": "saidas",
+    "parent_key": "linha-56",
     "name": "RETENCAO 4,65%",
     "source_name": "RETENCAO 4,65%",
     "node_class": "Analitica",

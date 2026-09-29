@@ -15,7 +15,7 @@ const find = id => nodes.find(n => n.id === id);
 assert.equal(find('linha-31').parent_id, 'linha-30');
 assert.equal(find('linha-54').parent_id, 'linha-48');
 assert.equal(find('linha-66').parent_id, 'linha-56');
-assert.equal(find('linha-67').parent_id, 'saidas');
+assert.equal(find('linha-67').parent_id, 'linha-56');
 assert.equal(find('linha-71').parent_id, 'investimentos');
 assert.equal(find('linha-92').parent_id, 'financeiro');
 assert.throws(() => validateNode(nodes, { ...find('operacional'), parent_id: 'linha-30' }), /ciclo/);
