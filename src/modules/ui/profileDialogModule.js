@@ -13,6 +13,7 @@
       readFileAsDataUrl,
       persistAndRender,
       syncUserProfile,
+      syncUserAppearance,
       renderAccessTrees
     } = deps;
 
@@ -34,6 +35,7 @@
           }
           return;
         }
+        if (appearance && appearanceControl) syncUserAppearance?.(appearance.get());
         const formData = new FormData(profileForm);
         const draft = getEditableProfile();
         state.profile = {

@@ -79,6 +79,11 @@
     if (window.matchMedia("(display-mode: standalone)").matches) hideInstallButton();
   });
 
+  // Pede ao navegador que trate o armazenamento do app (sessão de login, tema)
+  // como persistente, fora do despejo por falta de espaço. Não vence uma
+  // política que limpa dados ao fechar — é só um pedido; ignora se recusado.
+  navigator.storage?.persist?.().catch(() => {});
+
   window.addEventListener("load", () => {
     // updateViaCache:"none" faz o navegador sempre buscar o sw.js na rede
     // ignorando o cache HTTP (GitHub Pages manda max-age=600) — sem isso o

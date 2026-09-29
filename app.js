@@ -309,6 +309,7 @@ const {
   readFileAsDataUrl,
   persistAndRender,
   syncUserProfile,
+  syncUserAppearance,
   renderAccessTrees
 });
 const branchTreeModule = createBranchTreeModule({
@@ -2132,6 +2133,8 @@ async function hydrateFromSupabase() {
       };
       profileDraft = { ...state.profile };
     }
+
+    await loadUserAppearance(organizationId);
 
     // Perfis sem acesso ao Dashboard não podem cair nele ao logar; manda
     // direto para a primeira tela que o perfil efetivamente enxerga —
@@ -6660,6 +6663,45 @@ async function callEdgeFunction(name, payload = {}) {
     throw new Error(data?.error || text || "Falha na função");
   }
   return data;
+}
+
+// Tema (dark/clear) por usuário: a coluna user_profiles.appearance é a fonte de
+// verdade e o localStorage só um cache — no app instalado o navegador pode
+// limpar o localStorage ao fechar. Consulta separada do select principal de
+// perfil, e tolerante a falha, para não quebrar o login se a migration
+// 247_user_profiles_appearance.sql ainda não tiver rodado.
+async function loadUserAppearance(organizationId) {
+  const appearance = window.VECTON_APPEARANCE;
+  if (!appearance || !currentUser?.id) return;
+  try {
+    const rows = await fetchSupabaseRows(
+      "user_profiles",
+      `organization_id=eq.${organizationId}&user_id=eq.${currentUser.id}&select=appearance&limit=1`
+    );
+    const remote = rows[0]?.appearance;
+    if (remote === "clear" || remote === "dark") {
+      appearance.save(remote);
+    } else if (appearance.get() === "clear") {
+      // Escolha feita antes desta coluna existir (só no localStorage): sobe pro BD.
+      await syncUserAppearance("clear");
+    }
+  } catch (error) {
+    console.debug("Aparência: leitura do BD indisponível", error);
+  }
+}
+
+async function syncUserAppearance(value) {
+  if (!isSupabaseConfigured() || !currentUser?.id) return;
+  try {
+    const organizationId = await resolveOrganizationId();
+    await updateSupabaseRows(
+      "user_profiles",
+      `organization_id=eq.${organizationId}&user_id=eq.${currentUser.id}`,
+      { appearance: value === "clear" ? "clear" : "dark" }
+    );
+  } catch (error) {
+    console.debug("Aparência: gravação no BD indisponível", error);
+  }
 }
 
 async function syncUserProfile() {
