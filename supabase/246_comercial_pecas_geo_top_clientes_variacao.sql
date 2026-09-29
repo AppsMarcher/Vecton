@@ -1,8 +1,9 @@
 begin;
 
 -- Top Clientes (Performance Geografica de Pecas): passa a retornar
--- previousRevenue (faturamento do proprio cliente no periodo anterior,
--- mesma regra de comparacao dos KPIs) para exibir a variacao no card.
+-- yoyRevenue (faturamento do proprio cliente no mesmo periodo do ano
+-- anterior: mes contra o mesmo mes, YTD/Ano contra o mesmo intervalo)
+-- para exibir a variacao YoY no card. Os KPIs seguem com a regra antiga.
 -- Demais logica identica a 189.
 create or replace function public.comercial_pecas_geo_performance(
   p_org uuid,
@@ -67,7 +68,10 @@ begin
 
   with src as materialized (
     select
-      case when le.reference_year = p_year and le.reference_month between v_lo and v_hi then 'cur' else 'prev' end bucket,
+      case when le.reference_year = p_year and le.reference_month between v_lo and v_hi then 'cur'
+        when le.reference_year = v_prev_year and le.reference_month between v_prev_lo and v_prev_hi then 'prev'
+        else 'yoy' end bucket,
+      (le.reference_year = p_year - 1 and le.reference_month between v_lo and v_hi) is_yoy,
       le.entry_date, le.cliente_id, le.produto_id, le.cod_cliente, le.cod_produto,
       le.quantidade, le.valor, le.documento, le.serie_documento, le.origem,
       coalesce(nullif(upper(trim(cl.uf)), ''), 'NI') territory,
@@ -89,7 +93,8 @@ begin
     where le.organization_id = p_org and le.linha_negocio_id = v_line
       and ((p_revenue_scope in ('nf','nf_cart') and le.origem = 'FAT') or (p_revenue_scope in ('cart','nf_cart') and le.origem = 'CART'))
       and ((le.reference_year = p_year and le.reference_month between v_lo and v_hi)
-        or (le.reference_year = v_prev_year and le.reference_month between v_prev_lo and v_prev_hi))
+        or (le.reference_year = v_prev_year and le.reference_month between v_prev_lo and v_prev_hi)
+        or (le.reference_year = p_year - 1 and le.reference_month between v_lo and v_hi))
       and (p_seller = 'all'
         or (p_seller = 'jenifer' and v_owner is not null and le.cod_vendedor = v_owner)
         or (p_seller = 'others' and (v_owner is null or le.cod_vendedor is distinct from v_owner)))
@@ -107,7 +112,7 @@ begin
     from cur group by cliente_id
   ),
   prv_customer as materialized (
-    select cliente_id, sum(valor) revenue from prv group by cliente_id
+    select cliente_id, sum(valor) revenue from src where is_yoy group by cliente_id
   ),
   cur_territory as materialized (
     select territory, sum(valor) revenue, count(distinct cliente_id) customers,
@@ -172,7 +177,7 @@ begin
     'topCustomers', coalesce((select jsonb_agg(x.obj order by x.revenue desc) from (
       select revenue, jsonb_build_object('id',cliente_id,'code',customer_code,'name',customer_name,
         'city',city,'territory',territory,'revenue',revenue,'invoices',purchases,'purchases',purchases,
-        'previousRevenue',(select pc.revenue from prv_customer pc where pc.cliente_id = cur_customer.cliente_id),
+        'yoyRevenue',(select pc.revenue from prv_customer pc where pc.cliente_id = cur_customer.cliente_id),
         'lastPurchase',last_purchase,'daysWithoutPurchase',v_period_end-last_purchase) obj
       from cur_customer order by revenue desc limit 50
     ) x), '[]'::jsonb),
@@ -205,6 +210,6 @@ $$;
 grant execute on function public.comercial_pecas_geo_performance(uuid,integer,integer,text,text,text,text,uuid,text,text) to authenticated;
 
 comment on function public.comercial_pecas_geo_performance(uuid,integer,integer,text,text,text,text,uuid,text,text)
-  is 'Performance geografica de Pecas nas visoes nf, cart ou nf_cart. Dias sem comprar usa least(fim do periodo, hoje). Top clientes inclui previousRevenue.';
+  is 'Performance geografica de Pecas nas visoes nf, cart ou nf_cart. Dias sem comprar usa least(fim do periodo, hoje). Top clientes inclui yoyRevenue.';
 
 commit;
