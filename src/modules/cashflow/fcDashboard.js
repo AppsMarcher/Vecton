@@ -283,7 +283,8 @@
         const visit = parent => report.structure.filter(n => n.parent_key === parent)
           .sort((a,b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, "pt-BR"))
           .forEach(n => {
-            const row = { name: n.name, key: n.seed_key, analytic: n.node_class === "Analitica" };
+            const row = { name: n.name, key: n.seed_key, parent: n.parent_key, analytic: n.node_class === "Analitica" };
+            row.group = !row.analytic && !["entradas", "saidas", ...M.PILLARS].includes(n.seed_key);
             const closing = M.PILLARS.includes(n.seed_key);
             if (!closing) ordered.push(row);
             visit(n.seed_key);
@@ -292,16 +293,18 @@
         visit(null);
         const fixed = [
           { order: 4, name: "Máquinas vendidas", values: report.quantities || Array(12).fill(0), quantity: true, key: "quantities" },
-          { order: 5, name: "Saldo inicial", values: [report.opening, ...report.values.balance.slice(0, 11)], position: true },
-          { order: 6, name: "Saldos bancários", key: "balance", position: true },
+          { order: 5, name: "Saldo inicial de caixa", values: [report.opening, ...report.values.balance.slice(0, 11)], position: true },
+          { order: 6, name: "Saldo final de caixa", key: "balance", position: true },
           { order: 8, name: "Geração líquida de caixa", key: "net" },
           ...ordered,
           { order: 94, name: "Fluxo de Caixa Líquido", key: "net" }
         ];
+        const groupKeys = new Set(ordered.filter(r => r.group).map(r => r.key));
+        const boldRows = new Set(["Máquinas vendidas", "Saldo final de caixa", "Fluxo de Caixa Líquido", ...ordered.filter(r => ["entradas", "saidas", ...M.PILLARS].includes(r.key)).map(r => r.name)]);
         rows = fixed.map(row => {
           const values = row.values || report.values[row.key];
           const total = row.position ? (row.order === 5 ? report.opening : values[11]) : values.reduce((a,b) => a+b, 0);
-          return `<tr class="${row.analytic ? "fc-detail-analytic" : "fc-total-row"}"><th scope="row">${esc(row.name)}</th>${[...values, total].map((v, i) => `<td class="${negative(v)} ${i === month - 1 ? "fc-reference-col" : ""}">${i<12 && editMode && ["Fcst","Bud"].includes(report.kinds[i]) && (row.analytic || row.quantity) ? `<input class="fc-simulation-input ${negative(v)}" data-fc-edit="${esc(row.key)}" data-month="${i}" data-original="${v.toLocaleString("pt-BR",{maximumFractionDigits:0})}" aria-label="${esc(row.name)} · ${MONTHS[i]} ${report.kinds[i]}" inputmode="decimal" value="${v.toLocaleString("pt-BR",{maximumFractionDigits:0})}" ${saving ? "disabled" : ""}>` : row.quantity ? v.toLocaleString("pt-BR") : fmt(num(v))}</td>`).join("")}</tr>`;
+          return `<tr class="${row.analytic || row.group ? "fc-detail-analytic" : "fc-total-row"}${groupKeys.has(row.parent) ? " fc-detail-nested" : ""}${!row.analytic && !row.group && !boldRows.has(row.name) ? " fc-regular-row" : ""}"><th scope="row">${esc(row.name)}</th>${[...values, total].map((v, i) => `<td class="${negative(v)} ${i === month - 1 ? "fc-reference-col" : ""}">${i<12 && editMode && ["Fcst","Bud"].includes(report.kinds[i]) && (row.analytic || row.quantity) ? `<input class="fc-simulation-input ${negative(v)}" data-fc-edit="${esc(row.key)}" data-month="${i}" data-original="${v.toLocaleString("pt-BR",{maximumFractionDigits:0})}" aria-label="${esc(row.name)} · ${MONTHS[i]} ${report.kinds[i]}" inputmode="decimal" value="${v.toLocaleString("pt-BR",{maximumFractionDigits:0})}" ${saving ? "disabled" : ""}>` : row.quantity ? v.toLocaleString("pt-BR") : fmt(num(v))}</td>`).join("")}</tr>`;
         }).join("");
       }
       const footerHint = editMode ? "Fcst/Bud: edite contas e quantidades · Real bloqueado · Subtotais e saldos calculados" : "Clique em “Editar” para habilitar a edição de Fcst/Bud · Real bloqueado";
@@ -343,7 +346,7 @@
     }
     function drawBridge(report, month) {
       const holder = q(".fc-bridge"), s = M.select(report, type, month), values = [s.opening, ...M.PILLARS.map(key => s.sum(key)), s.closing];
-      const labels = ["Saldo inicial", "Operacional", "Investimentos", "Financeiro", "Saldo final"], levels = [0, values[0], values[0]+values[1], values[0]+values[1]+values[2], 0];
+      const labels = ["Saldo inicial de caixa", "Operacional", "Investimentos", "Financeiro", "Saldo final de caixa"], levels = [0, values[0], values[0]+values[1], values[0]+values[1]+values[2], 0];
       const w = Math.max(300, holder.clientWidth), h = w < 520 ? 245 : 215, bottom = h - 52;
       const low = Math.min(0, ...levels, ...levels.map((v,i) => v + values[i])), high = Math.max(0, ...levels, ...levels.map((v,i) => v + values[i])), span = Math.max(1, high - low);
       const y = v => bottom - (v - low) / span * (bottom - 38), step = (w - 24) / 5, bw = Math.min(100, step * .6);

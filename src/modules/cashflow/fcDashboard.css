@@ -60,6 +60,7 @@
 .fc-dashboard th button { background: transparent; border: 0; color: inherit; font: inherit; text-align: left; padding: 0; cursor: pointer; }
 .fc-dashboard .fc-total-row { background: rgba(79,124,255,.07); }
 .fc-dashboard .fc-total-row th, .fc-dashboard .fc-total-row td { font-weight: 600; }
+.fc-dashboard .fc-total-row.fc-regular-row th, .fc-dashboard .fc-total-row.fc-regular-row td { font-weight: 500; }
 .fc-panel-footer { color: var(--text-faint); font-size: .68rem; margin-top: 14px; line-height: 1.5; }
 .fc-panel-footer > :last-child { white-space: nowrap; }
 .fc-detail-scroll { max-height: 65vh; }
@@ -74,6 +75,7 @@
 .fc-detail-scroll thead th.fc-reference-col { background: linear-gradient(rgba(139,92,246,.16), rgba(139,92,246,.16)), var(--panel); }
 .fc-detail-scroll thead small { display: block; margin-top: 4px; color: var(--text-faint); }
 .fc-detail-analytic th:first-child { padding-left: 26px; }
+.fc-detail-nested th:first-child { padding-left: 42px; }
 .fc-dashboard .fc-reference-col { background: rgba(139,92,246,.08); }
 @media (max-width: 1000px) { .fc-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } .fc-chart-grid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) {

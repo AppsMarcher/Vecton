@@ -10,9 +10,9 @@
     const rows=[];
     const add=(label,values,position=false,initial=false)=>rows.push([label,...indexes.map(i=>values[i]),position?(initial?values[indexes[0]]:values[indexes.at(-1)]):indexes.reduce((sum,i)=>sum+values[i],0)]);
     add('Máquinas vendidas',r.quantities);
-    add('Saldo inicial',[r.opening,...r.values.balance.slice(0,11)],true,true);
+    add('Saldo inicial de caixa',[r.opening,...r.values.balance.slice(0,11)],true,true);
     const visit=parent=>r.structure.filter(n=>n.parent_key===parent).sort((a,b)=>a.sort_order-b.sort_order||a.name.localeCompare(b.name,'pt-BR')).forEach(n=>{add(n.name,r.values[n.seed_key]);visit(n.seed_key);});
-    visit(null);add('Geração líquida de caixa',r.values.net);add('Saldo final',r.values.balance,true);
+    visit(null);add('Geração líquida de caixa',r.values.net);add('Saldo final de caixa',r.values.balance,true);
     return {header:['Atividade',...indexes.map(i=>`${months[i]}/${r.year} · ${r.kinds[i]}`),ctx.detail||ctx.type==='year'?String(r.year):'Período'],rows};
   }
   function bind(root,getContext,deps){
