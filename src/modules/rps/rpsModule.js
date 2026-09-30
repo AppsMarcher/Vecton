@@ -41,7 +41,7 @@
     industrial: [
       calculated("Estoque PA", "un", "={Estoque Embolsadoras}+{Estoque Extratoras}+{Estoque Acessórios}"),
       item("Estoque Embolsadoras", "un"), item("Estoque Extratoras", "un"), item("Estoque Acessórios", "un"), spacer(),
-      calculated("Produção Máquinas", "un", "={Produção Embolsadoras}+{Produção Extratoras}+{Produção Acessórios}"),
+      calculated("Produção Total", "un", "={Produção Embolsadoras}+{Produção Extratoras}+{Produção Acessórios}"),
       item("Produção Embolsadoras", "un"), item("Produção Extratoras", "un"), item("Produção Acessórios", "un"), spacer(),
       item("Entrega da Produção", "%"), item("OEE (performance x disp x 100)", "%"),
       item("Performance (hr realizado / hr planj)", "%"), item("Disponibilidade (hr disp - interrupções)", "%"),
@@ -81,6 +81,10 @@
     sac: ["Chamados abertos", "Tempo médio resposta", "NPS", "Garantias acionadas"],
     engenharia: ["Projetos em andamento", "Horas de projeto", "Homologações", "Desvios técnicos"]
   };
+
+  // Rótulos antigos de indicadores calculados, migrados para o nome atual em dados já salvos.
+  const RENAMED_CALCULATED_LABELS = { industrial: { "Produção Máquinas": "Produção Total" } };
+  const currentCalculatedLabel = (areaId, label) => RENAMED_CALCULATED_LABELS[areaId]?.[label] || label;
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const equal = (left, right) => JSON.stringify(left) === JSON.stringify(right);
@@ -150,7 +154,7 @@
       .map((definition) => ({ ...definition, normalizedLabel: slugify(definition.label) }));
     if (!required.length) return indicators;
     return indicators.map((indicator) => {
-      const label = cleanCalculatedLabel(indicator.label);
+      const label = currentCalculatedLabel(areaId, cleanCalculatedLabel(indicator.label));
       const definition = required.find((item) => item.normalizedLabel === slugify(label));
       if (!definition) return indicator;
       return {
@@ -168,7 +172,7 @@
     return Object.entries(DEFAULT_INDICATORS).some(([areaId, definitions]) => {
       const sourceList = Array.isArray(payload?.indicadores?.[areaId]) ? payload.indicadores[areaId] : [];
       return definitions.filter((definition) => definition.type === "calculated").some((definition) => {
-        const indicator = sourceList.find((item) => slugify(cleanCalculatedLabel(item?.label)) === slugify(definition.label));
+        const indicator = sourceList.find((item) => slugify(currentCalculatedLabel(areaId, cleanCalculatedLabel(item?.label))) === slugify(definition.label));
         if (!indicator) return false;
         return indicator.type !== "calculated"
           || indicator.formula !== definition.formula

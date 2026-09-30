@@ -87,7 +87,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
   assert.equal(calculated("comercial", "Total Faturamento Bruto").formula, "=({Nacional}+{Exportação}+{Graneleiro}+{Peças}+{Transgrain})");
   assert.equal(calculated("comercial", "Ticket Médio Máquinas").editableFields.semanas, false);
   assert.equal(calculated("industrial", "Estoque PA").formula, "={Estoque Embolsadoras}+{Estoque Extratoras}+{Estoque Acessórios}");
-  assert.equal(calculated("industrial", "Produção Máquinas").type, "calculated");
+  assert.equal(calculated("industrial", "Produção Total").type, "calculated");
   assert.equal(calculated("supply", "Estoque Marcher").type, "calculated");
   assert.equal(calculatedIndicatorsNeedRepair(restored), false);
 }
