@@ -32,15 +32,12 @@
     let clientesById = new Map();
     let vendasPorClienteModelo = new Map(); // "clienteId|nomeReduzido" -> quantidade (no periodo escolhido)
     let faturadoRows = []; // linhas cruas de comercial_faturado das revendas com ativacao
-    // Periodo das vendas no estoque estimado. As ativacoes do AltForce so existem
-    // a partir de jun/2025 (NF mais antiga); comparar com vendas desde 2023 infla o estoque.
-    const PERIODOS_ESTOQUE = [
-      { value: "2025-06-01", label: "Desde jun/2025" },
-      { value: "2026-01-01", label: "Desde jan/2026" },
-      { value: "2026-07-01", label: "Desde jul/2026 (período das ativações)" },
-      { value: "all", label: "Todo o período" }
-    ];
-    let estoquePeriodo = PERIODOS_ESTOQUE[0].value;
+    // Vendas do estoque estimado acumulam do 1o dia do mes escolhido ate hoje.
+    // Padrao jun/2025: mes da NF mais antiga das ativacoes do AltForce; comparar
+    // com vendas desde 2023 infla o estoque.
+    const MESES_ABREV = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    let estoqueDesde = { year: 2025, month: 6 }; // month 1-12
+    let estoqueCleanup = null;
     let popoverCleanup = null;
     let estoqueRevendas = [];
     let estoqueFiltro = "all";
@@ -97,8 +94,9 @@
 
     function recalcularVendas() {
       vendasPorClienteModelo = new Map();
+      const desde = `${estoqueDesde.year}-${String(estoqueDesde.month).padStart(2, "0")}-01`;
       faturadoRows.forEach((row) => {
-        if (estoquePeriodo !== "all" && String(row.entry_date || "") < estoquePeriodo) return;
+        if (String(row.entry_date || "") < desde) return;
         const nomeReduzido = produtosById.get(row.produto_id);
         if (!nomeReduzido) return;
         const key = `${row.cliente_id}|${nomeReduzido.toUpperCase()}`;
@@ -154,7 +152,7 @@
           <div class="content-card gar-card gar-card-wide">
             <p class="section-kicker">Cruzamento com vendas</p>
             <h4 class="inline-card-title">Estoque estimado por revenda</h4>
-            <p class="gar-hint">Estoque estimado = unidades vendidas pela Marcher à revenda (faturado, no período escolhido) − unidades com garantia já ativada por ela, por modelo.</p>
+            <p class="gar-hint">Estoque estimado = unidades vendidas pela Marcher à revenda (faturado, acumulado a partir do mês escolhido) − unidades com garantia já ativada por ela, por modelo.</p>
             ${renderEstoqueEstimado()}
           </div>
         </div>
@@ -344,6 +342,51 @@
       }).join("");
     }
 
+    function bindEstoquePeriodo(root) {
+      if (estoqueCleanup) { estoqueCleanup(); estoqueCleanup = null; }
+      const trigger = root.querySelector("#gar-est-period-trigger");
+      const pop = root.querySelector("#gar-est-period-popover");
+      if (!trigger || !pop) return;
+      const yearLabel = pop.querySelector("[data-year-label]");
+      const grid = pop.querySelector("[data-month-grid]");
+      let viewYear = estoqueDesde.year;
+
+      const close = () => { pop.hidden = true; trigger.setAttribute("aria-expanded", "false"); };
+      const drawMonths = () => {
+        yearLabel.textContent = String(viewYear);
+        grid.innerHTML = MESES_ABREV.map((nome, idx) => {
+          const active = viewYear === estoqueDesde.year && idx + 1 === estoqueDesde.month;
+          return `<button type="button" class="period-month-button${active ? " active" : ""}" data-month="${idx + 1}">${nome}</button>`;
+        }).join("");
+      };
+      drawMonths();
+
+      trigger.addEventListener("click", () => {
+        const opening = pop.hidden;
+        pop.hidden = !opening;
+        trigger.setAttribute("aria-expanded", String(opening));
+        if (opening) { viewYear = estoqueDesde.year; drawMonths(); }
+      });
+      pop.addEventListener("click", (event) => {
+        const nav = event.target.closest("[data-year-nav]");
+        if (nav) { viewYear += Number(nav.dataset.yearNav); drawMonths(); return; }
+        const btn = event.target.closest("[data-month]");
+        if (!btn) return;
+        estoqueDesde = { year: viewYear, month: Number(btn.dataset.month) };
+        recalcularVendas();
+        render(root);
+      });
+
+      const onDocPointer = (event) => { if (!pop.hidden && !event.target.closest(".gar-est-period")) close(); };
+      const onKey = (event) => { if (event.key === "Escape") close(); };
+      document.addEventListener("pointerdown", onDocPointer);
+      document.addEventListener("keydown", onKey);
+      estoqueCleanup = () => {
+        document.removeEventListener("pointerdown", onDocPointer);
+        document.removeEventListener("keydown", onKey);
+      };
+    }
+
     function bindEstoque(root) {
       const listEl = root.querySelector("#gar-est-list");
       if (!listEl) return;
@@ -356,11 +399,7 @@
         btn.setAttribute("aria-expanded", String(open));
         if (detail) detail.hidden = !open;
       });
-      root.querySelector("#gar-est-period")?.addEventListener("change", (event) => {
-        estoquePeriodo = event.target.value;
-        recalcularVendas();
-        render(root);
-      });
+      bindEstoquePeriodo(root);
       root.querySelector("#gar-est-search")?.addEventListener("input", (event) => {
         estoqueBusca = event.target.value;
         refresh();
@@ -423,11 +462,23 @@
             <div class="${tot.negativas ? "is-warn" : ""}"><span>Revendas com estoque negativo</span><strong>${tot.negativas}</strong></div>
           </div>
           <div class="gar-est-tools">
-            <label class="gar-est-period">Vendas
-              <select id="gar-est-period">
-                ${PERIODOS_ESTOQUE.map((o) => `<option value="${o.value}"${o.value === estoquePeriodo ? " selected" : ""}>${o.label}</option>`).join("")}
-              </select>
-            </label>
+            <div class="gar-est-period">
+              <span>Vendas a partir de</span>
+              <div class="period-picker">
+                <button id="gar-est-period-trigger" class="header-select header-select-small period-trigger" type="button" aria-haspopup="dialog" aria-expanded="false">
+                  <strong class="period-trigger-combined">${MESES_ABREV[estoqueDesde.month - 1]}/${estoqueDesde.year}</strong>
+                </button>
+                <div id="gar-est-period-popover" class="period-popover gar-est-period-popover" hidden>
+                  <div class="period-popover-header">
+                    <button data-year-nav="-1" class="period-nav-button" type="button" aria-label="Ano anterior">‹</button>
+                    <strong data-year-label>${estoqueDesde.year}</strong>
+                    <button data-year-nav="1" class="period-nav-button" type="button" aria-label="Próximo ano">›</button>
+                  </div>
+                  <p class="period-popover-caption">As vendas são acumuladas do início do mês escolhido até hoje.</p>
+                  <div class="period-month-grid" data-month-grid></div>
+                </div>
+              </div>
+            </div>
             <input id="gar-est-search" type="search" placeholder="Buscar revenda ou modelo..." value="${escapeHtml(estoqueBusca)}">
             <div class="gar-est-filters" id="gar-est-filters">
               <button type="button" data-filter="all"${estoqueFiltro === "all" ? ' class="active"' : ""}>Todas</button>
