@@ -32,6 +32,9 @@
     let clientesById = new Map();
     let vendasPorClienteModelo = new Map(); // "clienteId|nomeReduzido" -> quantidade
     let popoverCleanup = null;
+    let estoqueRevendas = [];
+    let estoqueFiltro = "all";
+    let estoqueBusca = "";
     let hostContainer = null;
 
     // -------------------------------------------------------------- dados
@@ -148,6 +151,7 @@
       `;
 
       bindUfPopover(root);
+      bindEstoque(root);
     }
 
     // -------------------------------------------------------------- seção A: heatmap
@@ -295,6 +299,65 @@
 
     // -------------------------------------------------------------- seção D: estoque estimado
 
+    function renderEstoqueLista() {
+      const termo = estoqueBusca.trim().toLowerCase();
+      const lista = estoqueRevendas.filter((r) => {
+        if (estoqueFiltro === "positivo" && r.estoque <= 0) return false;
+        if (estoqueFiltro === "negativo" && r.estoque >= 0) return false;
+        if (!termo) return true;
+        return r.revenda.toLowerCase().includes(termo) || r.modelos.some((m) => m.modelo.toLowerCase().includes(termo));
+      });
+      if (!lista.length) return `<div class="actuals-empty">Nenhuma revenda para este filtro.</div>`;
+      return lista.map((r, idx) => {
+        const pct = r.vendido > 0 ? Math.min(100, Math.round((r.ativado / r.vendido) * 100)) : (r.ativado ? 100 : 0);
+        const cls = r.estoque < 0 ? "is-neg" : r.estoque === 0 ? "is-zero" : "";
+        return `
+          <div class="gar-est-item">
+            <button type="button" class="gar-est-row" data-est-toggle="${idx}" aria-expanded="false">
+              <span class="gar-est-name" title="${escapeHtml(r.revenda)}">${escapeHtml(r.revenda)}</span>
+              <span class="gar-est-num"><small>Vendido</small>${r.vendido}</span>
+              <span class="gar-est-num"><small>Ativado</small>${r.ativado}</span>
+              <span class="gar-est-bar" title="${pct}% das máquinas vendidas já ativadas"><i style="width:${pct}%"></i></span>
+              <span class="gar-est-num gar-est-stock ${cls}"><small>Estoque</small>${r.estoque}</span>
+            </button>
+            <div class="gar-est-detail" hidden>
+              ${r.modelos.map((m) => `
+                <div class="gar-est-model">
+                  <span>${escapeHtml(m.modelo)}</span>
+                  <span>vendido ${m.vendido}</span>
+                  <span>ativado ${m.ativado}</span>
+                  <strong class="${m.estoque < 0 ? "is-neg" : ""}">${m.estoque}</strong>
+                </div>`).join("")}
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function bindEstoque(root) {
+      const listEl = root.querySelector("#gar-est-list");
+      if (!listEl) return;
+      const refresh = () => { listEl.innerHTML = renderEstoqueLista(); };
+      listEl.addEventListener("click", (event) => {
+        const btn = event.target.closest("[data-est-toggle]");
+        if (!btn) return;
+        const detail = btn.nextElementSibling;
+        const open = btn.getAttribute("aria-expanded") !== "true";
+        btn.setAttribute("aria-expanded", String(open));
+        if (detail) detail.hidden = !open;
+      });
+      root.querySelector("#gar-est-search")?.addEventListener("input", (event) => {
+        estoqueBusca = event.target.value;
+        refresh();
+      });
+      root.querySelector("#gar-est-filters")?.addEventListener("click", (event) => {
+        const btn = event.target.closest("button[data-filter]");
+        if (!btn) return;
+        estoqueFiltro = btn.dataset.filter;
+        root.querySelectorAll("#gar-est-filters button").forEach((b) => b.classList.toggle("active", b === btn));
+        refresh();
+      });
+    }
+
     function renderEstoqueEstimado() {
       const ativadoPorChave = new Map(); // "clienteId|modelo" -> count
       const semRevenda = [];
@@ -309,38 +372,49 @@
       });
 
       const chaves = new Set([...ativadoPorChave.keys(), ...vendasPorClienteModelo.keys()]);
-      const linhas = [...chaves].map((key) => {
+      const porRevenda = new Map(); // clienteId -> { revenda, vendido, ativado, modelos[] }
+      chaves.forEach((key) => {
         const [clienteId, modelo] = key.split("|");
         const vendido = vendasPorClienteModelo.get(key) || 0;
         const ativado = ativadoPorChave.get(key) || 0;
-        return {
-          revenda: clientesById.get(clienteId) || clienteId,
-          modelo,
-          vendido,
-          ativado,
-          estoque: vendido - ativado
-        };
-      }).sort((a, b) => a.revenda.localeCompare(b.revenda, "pt-BR") || a.modelo.localeCompare(b.modelo, "pt-BR"));
+        if (!porRevenda.has(clienteId)) {
+          porRevenda.set(clienteId, { revenda: clientesById.get(clienteId) || clienteId, vendido: 0, ativado: 0, modelos: [] });
+        }
+        const rev = porRevenda.get(clienteId);
+        rev.vendido += vendido;
+        rev.ativado += ativado;
+        rev.modelos.push({ modelo, vendido, ativado, estoque: vendido - ativado });
+      });
+      estoqueRevendas = [...porRevenda.values()].map((rev) => ({
+        ...rev,
+        estoque: rev.vendido - rev.ativado,
+        modelos: rev.modelos.sort((a, b) => b.estoque - a.estoque || a.modelo.localeCompare(b.modelo, "pt-BR"))
+      })).sort((a, b) => b.estoque - a.estoque || a.revenda.localeCompare(b.revenda, "pt-BR"));
 
-      const tabela = !linhas.length
+      const tot = estoqueRevendas.reduce((acc, r) => {
+        acc.vendido += r.vendido; acc.ativado += r.ativado; acc.estoque += r.estoque;
+        if (r.estoque < 0) acc.negativas += 1;
+        return acc;
+      }, { vendido: 0, ativado: 0, estoque: 0, negativas: 0 });
+
+      const tabela = !estoqueRevendas.length
         ? `<div class="actuals-empty">Sem revendas com cadastro casado a vendas Marcher.</div>`
         : `
-          <div class="table-shell gar-heat-table-shell">
-            <table class="data-table gar-heat-table">
-              <thead><tr><th>Revenda</th><th>Modelo</th><th>Vendido (Marcher)</th><th>Ativado (garantia)</th><th>Estoque estimado</th></tr></thead>
-              <tbody>
-                ${linhas.map((l) => `
-                  <tr>
-                    <td>${escapeHtml(l.revenda)}</td>
-                    <td>${escapeHtml(l.modelo)}</td>
-                    <td style="text-align:center">${l.vendido}</td>
-                    <td style="text-align:center">${l.ativado}</td>
-                    <td style="text-align:center;${l.estoque < 0 ? "color:var(--red,#ef4444);font-weight:600" : ""}">${l.estoque}</td>
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
+          <div class="gar-est-kpis">
+            <div><span>Vendido (Marcher)</span><strong>${tot.vendido}</strong></div>
+            <div><span>Ativado (garantia)</span><strong>${tot.ativado}</strong></div>
+            <div><span>Estoque estimado</span><strong>${tot.estoque}</strong></div>
+            <div class="${tot.negativas ? "is-warn" : ""}"><span>Revendas com estoque negativo</span><strong>${tot.negativas}</strong></div>
           </div>
+          <div class="gar-est-tools">
+            <input id="gar-est-search" type="search" placeholder="Buscar revenda ou modelo...">
+            <div class="gar-est-filters" id="gar-est-filters">
+              <button type="button" data-filter="all" class="active">Todas</button>
+              <button type="button" data-filter="positivo">Com estoque</button>
+              <button type="button" data-filter="negativo">Estoque negativo</button>
+            </div>
+          </div>
+          <div class="gar-est-list" id="gar-est-list">${renderEstoqueLista()}</div>
         `;
 
       const unresolved = (semRevenda.length || semProduto.length)
