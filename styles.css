@@ -12490,25 +12490,25 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .gar-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .gar-card-wide { grid-column: 1 / -1; }
 .gar-hint { font-size: .78rem; color: var(--text-faint); margin: -4px 0 10px; }
-.gar-toggle { display: inline-flex; gap: 4px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
-.gar-toggle button { border: 0; background: transparent; padding: 5px 10px; border-radius: 6px; font-size: .76rem; color: var(--text-faint); cursor: pointer; }
-.gar-toggle button.active { background: var(--panel-alt); color: var(--blue); }
 .gar-heatmap-body { display: grid; gap: 14px; }
-.gar-ufmap-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.gar-ufmap { width: 100%; max-width: 360px; height: auto; }
+.gar-ufmap-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.gar-ufmap { width: 100%; max-width: 560px; height: auto; }
+.gar-map-state { cursor: pointer; transition: opacity .12s; }
+.gar-map-state:hover { opacity: .8; }
 .gar-ufmap-legend { display: flex; align-items: center; gap: 6px; font-size: .68rem; color: var(--text-faint); }
 .gar-ufmap-legend-bar { display: flex; height: 10px; width: 90px; border-radius: 4px; overflow: hidden; border: 1px solid var(--theme-border-subtle, rgba(255,255,255,0.15)); }
 .gar-ufmap-legend-bar span { flex: 1 1 0; }
 .gar-ufmap-legend-caption { margin-left: 4px; }
 .gar-heat-table-shell { max-height: 420px; overflow: auto; }
 .gar-heat-table th, .gar-heat-table td { white-space: nowrap; padding: 6px 10px; }
-.gar-ranking { display: grid; gap: 8px; }
-.gar-ranking-row { display: grid; grid-template-columns: 20px minmax(0,1fr) minmax(60px,120px) 28px; align-items: center; gap: 8px; }
-.gar-ranking-pos { font-size: .74rem; color: var(--text-faint); text-align: right; }
-.gar-ranking-name { font-size: .82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gar-ranking-bar-wrap { background: var(--panel-alt); border-radius: 4px; height: 8px; overflow: hidden; }
-.gar-ranking-bar { background: linear-gradient(90deg, #1d4ed8, #3b82f6); height: 100%; border-radius: 4px; }
-.gar-ranking-count { font-size: .8rem; font-weight: 600; text-align: right; }
+.gar-popover { position: absolute; z-index: 20; width: 240px; max-height: 300px; display: flex; flex-direction: column; background: var(--panel, #fff); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,.28); font-size: .8rem; }
+.gar-popover-head { display: flex; align-items: baseline; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+.gar-popover-head span { color: var(--text-faint); font-size: .74rem; flex: 1; }
+.gar-popover-close { border: 0; background: transparent; color: var(--text-faint); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.gar-popover-list { overflow-y: auto; padding: 4px 0; }
+.gar-popover-row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 12px; }
+.gar-popover-row:hover { background: var(--panel-alt); }
+.gar-popover-empty { padding: 12px; color: var(--text-faint); }
 .gar-unresolved { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-alt); font-size: .78rem; color: var(--text-faint); }
 .gar-unresolved ul { margin: 6px 0 0; padding-left: 18px; }
 @media (max-width: 900px) {

@@ -1,16 +1,14 @@
 (function attachVectonReportsGarantiaAtivacoes(window) {
   // Relatorio "Ativacoes de Garantia" — fonte: tabela garantia_ativacoes
-  // (carga em garantiaAtivacoesCargaModule.js, planilha AltForce). Quatro
-  // cruzamentos pedidos pelo usuario: heatmap cidade x estado/revenda, preco
-  // medio por modelo x estado, ranking de vendedores de revenda (top 10) e
+  // (carga em garantiaAtivacoesCargaModule.js, planilha AltForce). Tres
+  // cruzamentos pedidos pelo usuario: mapa de calor por UF (clique no estado
+  // abre popover com cidades x maquinas), preco medio por modelo x estado e
   // estoque estimado de revenda (vendas Marcher via comercial_faturado menos
   // ativacoes de garantia, por revenda x modelo).
   function createReportsGarantiaAtivacoesModule(deps) {
     const { escapeHtml, resolveOrganizationId, fetchAllSupabaseRows, isSupabaseConfigured } = deps;
 
     const REPORT_ID = "garantiaAtivacoes";
-    const HEAT_STOPS = ["#131a28", "#183480", "#1d4ed8"];
-    const TOP_VENDEDORES_N = 10;
 
     const BR = window.VECTON_BR_GEO || { bbox: [-74, -34, -32, 6], states: [] };
     const [minx, miny, maxx, maxy] = BR.bbox;
@@ -21,17 +19,6 @@
 
     function statePath(rings) {
       return rings.map((r) => "M" + r.map(([lo, la]) => { const [x, y] = proj(lo, la); return x.toFixed(1) + "," + y.toFixed(1); }).join("L") + "Z").join(" ");
-    }
-    function lerp(a, b, t) {
-      const ah = a.match(/\w\w/g).map((h) => parseInt(h, 16));
-      const bh = b.match(/\w\w/g).map((h) => parseInt(h, 16));
-      return "#" + ah.map((v, i) => Math.round(v + (bh[i] - v) * t).toString(16).padStart(2, "0")).join("");
-    }
-    function heat(v, min, max) {
-      if (v == null || max <= min) return "#141922";
-      const t = Math.max(0, Math.min(1, (v - min) / (max - min)));
-      const s = t * (HEAT_STOPS.length - 1), i = Math.min(HEAT_STOPS.length - 2, Math.floor(s));
-      return lerp(HEAT_STOPS[i], HEAT_STOPS[i + 1], s - i);
     }
     function fmtMoney(v) {
       return v == null ? "—" : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -44,7 +31,7 @@
     let produtosById = new Map();
     let clientesById = new Map();
     let vendasPorClienteModelo = new Map(); // "clienteId|nomeReduzido" -> quantidade
-    let cidadeGroupBy = "uf"; // uf | revenda
+    let popoverCleanup = null;
     let hostContainer = null;
 
     // -------------------------------------------------------------- dados
@@ -132,21 +119,10 @@
           <div class="content-card gar-card gar-card-wide">
             <div class="card-toolbar">
               <div><p class="section-kicker">Distribuição geográfica</p><h4 class="inline-card-title">Mapa de calor de ativações por UF</h4></div>
-              <div class="gar-toggle" id="gar-heatmap-toggle">
-                <button type="button" data-group="uf" class="${cidadeGroupBy === "uf" ? "active" : ""}">Por estado</button>
-                <button type="button" data-group="revenda" class="${cidadeGroupBy === "revenda" ? "active" : ""}">Por revenda</button>
-              </div>
             </div>
             <div class="gar-heatmap-body">
               ${renderUfMap()}
-              ${renderCidadeHeatTable()}
             </div>
-          </div>
-
-          <div class="content-card gar-card">
-            <p class="section-kicker">Ranking</p>
-            <h4 class="inline-card-title">Top ${TOP_VENDEDORES_N} vendedores de revenda</h4>
-            ${renderRankingVendedores()}
           </div>
 
           <div class="content-card gar-card gar-card-wide">
@@ -164,12 +140,7 @@
         </div>
       `;
 
-      root.querySelector("#gar-heatmap-toggle")?.addEventListener("click", (event) => {
-        const btn = event.target.closest("button[data-group]");
-        if (!btn) return;
-        cidadeGroupBy = btn.dataset.group;
-        render(root);
-      });
+      bindUfPopover(root);
     }
 
     // -------------------------------------------------------------- seção A: heatmap
@@ -184,7 +155,7 @@
         if (!st.rings || !st.rings.length) return "";
         const count = counts.get(st.uf) || 0;
         const fill = window.VECTON_MAP_APPEARANCE.heat(count, max);
-        return `<path class="gar-map-state" d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} ativação(ões)</title></path>`;
+        return `<path class="gar-map-state" data-uf="${escapeHtml(st.uf)}" data-nome="${escapeHtml(st.nome)}" d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} máquina(s) — clique para ver as cidades</title></path>`;
       }).join("");
 
       const legend = max > 0 ? `
@@ -209,48 +180,64 @@
       `;
     }
 
-    function renderCidadeHeatTable() {
-      const secondKey = (r) => cidadeGroupBy === "uf" ? (r.uf || "—") : (r.revenda_raw || "—");
-      const map = new Map(); // cidade -> Map(secondKey -> count)
-      ativacoes.forEach((r) => {
-        const cidade = r.cidade || "—";
-        const key = secondKey(r);
-        if (!map.has(cidade)) map.set(cidade, new Map());
-        const inner = map.get(cidade);
-        inner.set(key, (inner.get(key) || 0) + 1);
+    // Popover do mapa: clique no estado lista cidades e quantidade de maquinas.
+    function bindUfPopover(root) {
+      if (popoverCleanup) { popoverCleanup(); popoverCleanup = null; }
+      const wrap = root.querySelector(".gar-ufmap-wrap");
+      if (!wrap) return;
+      let pop = null;
+      const close = () => { pop?.remove(); pop = null; };
+
+      const onDocPointer = (event) => {
+        if (pop && !pop.contains(event.target) && !event.target.closest(".gar-map-state")) close();
+      };
+      const onKey = (event) => { if (event.key === "Escape") close(); };
+      document.addEventListener("pointerdown", onDocPointer);
+      document.addEventListener("keydown", onKey);
+      popoverCleanup = () => {
+        close();
+        document.removeEventListener("pointerdown", onDocPointer);
+        document.removeEventListener("keydown", onKey);
+      };
+
+      wrap.addEventListener("click", (event) => {
+        const path = event.target.closest(".gar-map-state");
+        if (!path) return;
+        const uf = path.dataset.uf;
+        const cidades = new Map();
+        ativacoes.forEach((r) => {
+          if (r.uf !== uf) return;
+          const cidade = (r.cidade || "").trim() || "—";
+          cidades.set(cidade, (cidades.get(cidade) || 0) + 1);
+        });
+        const lista = [...cidades.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"));
+        const total = lista.reduce((acc, [, n]) => acc + n, 0);
+
+        close();
+        pop = document.createElement("div");
+        pop.className = "gar-popover";
+        pop.innerHTML = `
+          <div class="gar-popover-head">
+            <strong>${escapeHtml(path.dataset.nome)}</strong>
+            <span>${total} máquina(s)</span>
+            <button type="button" class="gar-popover-close" aria-label="Fechar">×</button>
+          </div>
+          ${lista.length ? `
+            <div class="gar-popover-list">
+              ${lista.map(([cidade, n]) => `<div class="gar-popover-row"><span>${escapeHtml(cidade)}</span><strong>${n}</strong></div>`).join("")}
+            </div>` : `<div class="gar-popover-empty">Nenhuma máquina ativada neste estado.</div>`}
+        `;
+        pop.querySelector(".gar-popover-close").addEventListener("click", close);
+        wrap.append(pop);
+
+        const box = wrap.getBoundingClientRect();
+        const left = Math.max(0, Math.min(event.clientX - box.left + 12, box.width - pop.offsetWidth));
+        const top = Math.max(0, Math.min(event.clientY - box.top + 12, box.height - pop.offsetHeight));
+        pop.style.left = `${left}px`;
+        pop.style.top = `${top}px`;
       });
-
-      const cidades = [...map.entries()]
-        .map(([cidade, inner]) => ({ cidade, total: [...inner.values()].reduce((a, b) => a + b, 0), inner }))
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 30);
-
-      const cols = [...new Set(cidades.flatMap((c) => [...c.inner.keys()]))].sort();
-      const max = Math.max(1, ...cidades.flatMap((c) => [...c.inner.values()]));
-
-      const header = `<th>Cidade</th>${cols.map((c) => `<th>${escapeHtml(c)}</th>`).join("")}<th>Total</th>`;
-      const body = cidades.map((c) => `
-        <tr>
-          <td>${escapeHtml(c.cidade)}</td>
-          ${cols.map((col) => {
-            const v = c.inner.get(col) || 0;
-            const bg = v ? heat(v, 0, max) : "transparent";
-            const fg = v ? "#fff" : "var(--text-faint)";
-            return `<td style="background:${bg};color:${fg};text-align:center">${v || "—"}</td>`;
-          }).join("")}
-          <td style="text-align:center"><strong>${c.total}</strong></td>
-        </tr>
-      `).join("");
-
-      return `
-        <div class="table-shell gar-heat-table-shell">
-          <table class="data-table gar-heat-table">
-            <thead><tr>${header}</tr></thead>
-            <tbody>${body || `<tr><td colspan="${cols.length + 2}" class="users-empty">Sem dados de cidade.</td></tr>`}</tbody>
-          </table>
-        </div>
-      `;
     }
+
 
     // -------------------------------------------------------------- seção B: preço x modelo x estado
 
@@ -295,42 +282,6 @@
             <thead><tr>${header}</tr></thead>
             <tbody>${body}</tbody>
           </table>
-        </div>
-      `;
-    }
-
-    // -------------------------------------------------------------- seção C: ranking vendedores
-
-    function renderRankingVendedores() {
-      const map = new Map();
-      ativacoes.forEach((r) => {
-        const nome = (r.vendedor_revenda || "").trim();
-        if (!nome) return;
-        const cur = map.get(nome) || { count: 0, valor: 0 };
-        cur.count += 1;
-        cur.valor += Number(r.nf_valor_total || 0);
-        map.set(nome, cur);
-      });
-      const ranking = [...map.entries()]
-        .map(([nome, v]) => ({ nome, ...v }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, TOP_VENDEDORES_N);
-
-      if (!ranking.length) return `<div class="actuals-empty">Nenhum vendedor de revenda identificado.</div>`;
-      const max = ranking[0].count || 1;
-
-      return `
-        <div class="gar-ranking">
-          ${ranking.map((v, i) => `
-            <div class="gar-ranking-row">
-              <span class="gar-ranking-pos">${i + 1}</span>
-              <span class="gar-ranking-name" title="${escapeHtml(v.nome)}">${escapeHtml(v.nome)}</span>
-              <div class="gar-ranking-bar-wrap">
-                <div class="gar-ranking-bar" style="width:${Math.max(4, (v.count / max) * 100)}%"></div>
-              </div>
-              <span class="gar-ranking-count">${v.count}</span>
-            </div>
-          `).join("")}
         </div>
       `;
     }
