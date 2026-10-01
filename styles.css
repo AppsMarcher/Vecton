@@ -12489,7 +12489,7 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .gar-summary-bar strong { color: var(--text); font-size: 1rem; }
 .gar-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .gar-card-wide { grid-column: 1 / -1; }
-.gar-hint { font-size: .78rem; color: var(--text-faint); margin: -4px 0 10px; }
+.gar-hint { font-size: .78rem; color: var(--text-faint); margin: 8px 0 14px; }
 .gar-heatmap-body { display: grid; gap: 14px; }
 .gar-ufmap-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .gar-ufmap { width: 100%; max-width: 560px; height: auto; }
