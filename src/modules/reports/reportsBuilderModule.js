@@ -649,7 +649,26 @@
           return;
         }
 
+        // Cores gravadas com hex de tema escuro (default do seletor, preto, branco) viram
+        // variáveis de tema para o relatório respeitar claro/escuro. Cores vivas ficam como estão.
+        const hexLum = (v) => {
+          const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(v || "").trim());
+          if (!m) return null;
+          let h = m[1];
+          if (h.length === 3) h = h.split("").map(ch => ch + ch).join("");
+          const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+          return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        };
+        const themeBg = (v) => { const l = hexLum(v); return l !== null && l < 0.16 ? "var(--panel-hover)" : v; };
+        const themeFg = (v) => {
+          const l = hexLum(v);
+          if (l === null) return v;
+          if (String(v).toLowerCase() === "#a1a7b3") return "var(--text-soft)";
+          return l > 0.85 || l < 0.12 ? "var(--text)" : v;
+        };
         const esc = (v) => v ? escapeHtml(String(v)) : "";
+        const escBg = (v) => esc(themeBg(v));
+        const escFg = (v) => esc(themeFg(v));
         let html = `<div class="reports-table-wrap" style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%"><thead><tr>`;
         const rlw = options?.rowLabelWidth || 200;
         html += `<th style="${H};text-align:left;font-weight:400;color:var(--text-faint);min-width:${rlw}px;width:${rlw}px"></th>`;
@@ -662,7 +681,7 @@
           html += `<th style="${H};border-left:1px solid var(--line);text-align:${hs.align||"right"};
             font-weight:${hs.bold?"600":"500"};font-style:${hs.italic?"italic":"normal"};
             font-size:${hFontSize}px;width:${colW}px;min-width:${colW}px;
-            color:${esc(hs.color)||"var(--text-soft)"};background:${esc(hs.bg)||"var(--panel-hover)"}">${esc(c.name)}</th>`;
+            color:${escFg(hs.color)||"var(--text-soft)"};background:${escBg(hs.bg)||"var(--panel-hover)"}">${esc(c.name)}</th>`;
         }
         html += `</tr></thead><tbody>`;
 
@@ -671,7 +690,7 @@
           if (r.type === "blank") {
             const h = { sm: "6", md: "14", lg: "22" }[r.style?.height] || "6";
             html += `<tr><td colspan="${visFinalCols.length + 1}"
-              style="padding:${h}px 0;border-bottom:1px solid var(--line);background:${esc(r.style?.bg)||"transparent"}"></td></tr>`;
+              style="padding:${h}px 0;border-bottom:1px solid var(--line);background:${escBg(r.style?.bg)||"transparent"}"></td></tr>`;
             continue;
           }
           const rs = r.style || {};
@@ -679,7 +698,7 @@
           const valign    = rs.verticalAlign || "middle";
           const rowFontSz = FONT_SIZES[rs.fontSize || "md"] || 13;
           html += `<tr style="${rowH}">`;
-          html += `<td style="${D};background:${esc(rs.bg)||"transparent"};color:${esc(rs.color)||"var(--text)"};
+          html += `<td style="${D};background:${escBg(rs.bg)||"transparent"};color:${escFg(rs.color)||"var(--text)"};
             font-weight:${rs.bold?"600":"400"};font-style:${rs.italic?"italic":"normal"};font-size:${rowFontSz}px;vertical-align:${valign};
             ${rs.underline?"text-decoration:underline;":""}padding-left:${rs.indent?`${(rs.indent||0)*16+12}px`:"12px"}">${esc(r.name)}</td>`;
           for (const ci of visFinalCols) {
@@ -690,8 +709,8 @@
             // Hierarchy: row style is base; column cellStyle overrides when explicitly set
             const cellBold     = cs.bold   || rs.bold;
             const cellItalic   = cs.italic || rs.italic;
-            const cellColor    = esc(cs.color) || esc(rs.color) || "var(--text)";
-            const cellBg       = esc(cs.bg)    || esc(rs.bg)    || "transparent";
+            const cellColor    = escFg(cs.color) || escFg(rs.color) || "var(--text)";
+            const cellBg       = escBg(cs.bg)    || escBg(rs.bg)    || "transparent";
             const cellAlign    = cs.align  || "right";
             const cellFontSize = FONT_SIZES[cs.fontSize || rs.fontSize || "md"] || 13;
             const v      = matrix[ri][ci] ?? 0;
