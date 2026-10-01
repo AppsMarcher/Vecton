@@ -37,7 +37,53 @@
       "SANTA CATARINA": "SC", "SAO PAULO": "SP", SERGIPE: "SE", TOCANTINS: "TO"
     };
     const UF_CODES = new Set(Object.values(UF_BY_NAME));
-    const MODEL_TOKEN_RE = /(TRANSGRAIN|INGRAIN|OUTGRAIN)\s*-?\s*(\d+\+?)/;
+    const UF_EXTERIOR = "EX";
+    const MODEL_TOKEN_RE = /(TRANSGRAIN|INGRAIN|OUTGRAIN|CARGOGRAIN)\s*-?\s*([\d.]+\+?)/;
+    // Valor unitario de NF abaixo disso nao e de maquina (peca/lancamento errado
+    // no AltForce): a linha fica fora da carga.
+    const MIN_VALOR_MAQUINA = 10000;
+    // Modelos sem nome_reduzido no cadastro: casam direto pelo codigo do produto.
+    const PRODUTO_CODIGO_POR_MODELO = {
+      TRANSGRAIN90: "09103075", // CJ. TRANSGRAIN PARA IN90
+      TRANSGRAIN91: "09103075",
+      TRANSGRAIN215: "08203065" // TRANSGRAIN 215 (inclui "Kit transgrain 215")
+    };
+    // comercial_clientes.descricao e truncada (~40 chars): acima disso, o nome do
+    // AltForce pode ser prefixo "cortado no meio da palavra".
+    const MIN_LEN_DESCRICAO_TRUNCADA = 36;
+    // Nome da revenda no AltForce -> inicio da descricao em comercial_clientes,
+    // quando os nomes nao coincidem (apelido, filial, razao social diferente).
+    const REVENDA_ALIASES = {
+      "TRATORMAX SINOP": "TRATORMAX COM DE MAQUINAS",
+      "TRATORMAX": "TRATORMAX COM DE MAQUINAS",
+      "TRATORMAX MAQUINAS AGRICOLAS": "TRATORMAX COM DE MAQUINAS",
+      "AGRISYS FSA": "AGRISYS MAQUINAS E PECAS AGRICOLAS",
+      "DATTA": "DATTA DISTRIBUIDORA",
+      "DATTA SIDROLANDIA": "DATTA DISTRIBUIDORA",
+      "GUIMAG MAQUINAS AGRICOLAS LTDA": "GUIMAG GUIMARAES MAQUINAS AGRICOLAS",
+      "COMIGO": "COOP AGRO DOS PROD RURAIS DO SUDO GOIANO",
+      "COOP AGRO PROD R S GOIANO COMIGO": "COOP AGRO DOS PROD RURAIS DO SUDO GOIANO",
+      "TRACTOR TERRA PECAS PARA TRATORES LTDA": "TRACTORTERRA PECAS",
+      "CAMPO VALE SOLUTIONS": "CAMPO VALE",
+      "COPLACANA": "COOPERATIVA DOS PLANTADORES DE CANA",
+      "COPLACANA BARRA BONITA": "COOPERATIVA DOS PLANTADORES DE CANA",
+      "COPLACANA IGARAPAVA": "COOPERATIVA DOS PLANTADORES DE CANA",
+      "COPLACANA SANTA CRUZ DO RIO": "COOPERATIVA DOS PLANTADORES DE CANA",
+      "COPLACANA UBERABA": "COOPERATIVA DOS PLANTADORES DE CANA",
+      "UNIPARTS UDI": "UNIPARTS COMERCIAL AGRICOLA",
+      "RODOMAQ MAQUINAS AGRICOLAS": "COLONHESI CIA",
+      "RIVEMA RIO VERDE": "RIVEMA MAQ",
+      "ARADO COMERCIO DE MAQUINAS LTDA": "ARADO IMPLEMENTOS AGRICOLAS",
+      "CASA PRODUTOR": "CASA DO PROD COM",
+      "CATALAO AGRICOLA": "MAQNELSON AGRICOLA",
+      "CVALE AGROINDUSTRIAL": "C VALE COOPERATIVA AGROINDUSTRIAL",
+      "IGARAPAVA TRATORES IBIA": "J G IMPLEMENTOS E PECAS AGRICOLAS",
+      "LM AGRICOLA MAQUINAS IMPLEMENTOS E SEMENTES": "LM FARMERS AGRICOLA",
+      "ORLANDIA TRATORES": "OIMASA ORLANDIA",
+      "SILVESTRE TRATORES": "SERRA DA MANTIQUEIRA TRATORES",
+      "TRATORES": "SHARK TRATORES E PECAS",
+      "VD ITABERAI": "VD COMERCIO DE VEICULOS LTDA ITABERAI"
+    };
 
     let rows = [];
     let loading = false;
@@ -175,6 +221,7 @@
       }
       [
         { label: "Linhas na planilha", value: String(lastSummary.total) },
+        { label: "Ignoradas (valor de NF suspeito)", value: String(lastSummary.ignoradas || 0) },
         { label: "Novas", value: String(lastSummary.novas) },
         { label: "Atualizadas", value: String(lastSummary.atualizadas) },
         { label: "Sem correspondência de revenda", value: String(lastSummary.semRevenda) },
@@ -277,7 +324,9 @@
           ? new Set((await fetchAllSupabaseRows("garantia_ativacoes", `organization_id=eq.${organizationId}&select=numero`)).map((r) => r.numero))
           : new Set();
 
-        const parsedRows = sheetRows.map((raw) => normalizeImportedRow(raw));
+        const allParsed = sheetRows.map((raw) => normalizeImportedRow(raw));
+        const parsedRows = allParsed.filter((row) => !isValorSuspeito(row));
+        const ignoradas = allParsed.length - parsedRows.length;
         const resolved = parsedRows.map((row) => resolveMatches(row, produtos, clientes));
 
         const payloadRows = resolved.map((row) => toPayload(organizationId, row));
@@ -295,6 +344,7 @@
 
         lastSummary = {
           total: resolved.length,
+          ignoradas,
           novas: resolved.filter((row) => !existing.has(row.numero)).length,
           atualizadas: resolved.filter((row) => existing.has(row.numero)).length,
           semRevenda: resolved.filter((row) => row.revendaRaw && !row.clienteId).length,
@@ -393,15 +443,22 @@
       const raw = String(value || "").trim();
       if (!raw) return "";
       const upper = raw.toUpperCase();
+      // AltForce informa "Outro" para maquinas destinadas a exportacao.
+      if (upper === "OUTRO" || upper === "EXTERIOR" || upper === UF_EXTERIOR) return UF_EXTERIOR;
       if (upper.length === 2 && UF_CODES.has(upper)) return upper;
       const byName = UF_BY_NAME[normalizeName(raw)];
       return byName || "";
     }
 
+    function isPaisExterior(pais) {
+      const norm = normalizeName(pais);
+      return Boolean(norm) && norm !== "BRASIL" && norm !== "BRAZIL";
+    }
+
     function extractModeloNormalizado(produtoRaw) {
       const upper = stripAccents(produtoRaw).toUpperCase();
       const match = upper.match(MODEL_TOKEN_RE);
-      return match ? `${match[1]}${match[2]}` : "";
+      return match ? `${match[1]}${match[2].replace(/\./g, "")}` : "";
     }
 
     function parseDateTime(value) {
@@ -425,6 +482,10 @@
       return Number.isFinite(num) ? num : null;
     }
 
+    function isValorSuspeito(row) {
+      return row.nfValorUnitario != null && row.nfValorUnitario < MIN_VALOR_MAQUINA;
+    }
+
     function normalizeImportedRow(raw) {
       const produtoRaw = String(raw.produtoRaw || "").trim();
       return {
@@ -440,7 +501,7 @@
         vendedorRevenda: String(raw.vendedorRevenda || "").trim(),
         dataLocalizacao: normalizeDateInput(raw.dataLocalizacao) || null,
         pais: String(raw.pais || "").trim(),
-        uf: normalizeUf(raw.uf),
+        uf: normalizeUf(raw.uf) || (isPaisExterior(raw.pais) ? UF_EXTERIOR : ""),
         cidade: String(raw.cidade || "").trim(),
         endereco: String(raw.endereco || "").trim(),
         nfNumero: String(raw.nfNumero || "").trim(),
@@ -462,19 +523,25 @@
       let produtoId = null;
       if (row.modeloNormalizado) {
         const alvo = row.modeloNormalizado.replace(/\s+/g, "");
-        const found = produtos.find((p) => String(p.nomeReduzido || p.nome_reduzido || "").toUpperCase().replace(/\s+/g, "") === alvo);
+        const codigo = PRODUTO_CODIGO_POR_MODELO[alvo];
+        const found = codigo
+          ? produtos.find((p) => String(p.codigo || "").trim() === codigo)
+          : produtos.find((p) => String(p.nomeReduzido || p.nome_reduzido || "").toUpperCase().replace(/\s+/g, "") === alvo);
         produtoId = found ? found.id : null;
       }
 
       let clienteId = null;
       if (row.revendaRaw) {
         const alvo = normalizeName(row.revendaRaw);
+        const alias = REVENDA_ALIASES[alvo];
         const candidatos = clientes.filter((c) => {
           const norm = normalizeName(c.descricao);
           if (!norm) return false;
+          if (alias) return norm === alias || norm.startsWith(`${alias} `);
           if (norm === alvo) return true;
           if (norm.length > alvo.length) return norm.startsWith(alvo) && norm[alvo.length] === " ";
-          return alvo.startsWith(norm) && alvo[norm.length] === " ";
+          if (alvo.startsWith(norm) && alvo[norm.length] === " ") return true;
+          return norm.length >= MIN_LEN_DESCRICAO_TRUNCADA && alvo.startsWith(norm);
         });
         if (candidatos.length) {
           const porUf = row.uf ? candidatos.find((c) => c.uf === row.uf) : null;
