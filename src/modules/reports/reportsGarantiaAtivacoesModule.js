@@ -141,12 +141,6 @@
             <p class="gar-hint">Estoque estimado = unidades vendidas pela Marcher à revenda (faturado) − unidades com garantia já ativada por ela, por modelo.</p>
             ${renderEstoqueEstimado()}
           </div>
-
-          <div class="content-card gar-card gar-card-wide">
-            <p class="section-kicker">Preço</p>
-            <h4 class="inline-card-title">Preço médio por modelo × estado</h4>
-            ${renderPrecoPorModeloEstado()}
-          </div>
         </div>
       `;
 
@@ -252,6 +246,7 @@
 
     // -------------------------------------------------------------- seção B: preço x modelo x estado
 
+    // Card removido do relatorio por enquanto; mantido para reativar depois.
     function renderPrecoPorModeloEstado() {
       const map = new Map(); // modelo -> Map(uf -> {soma, qtd})
       ativacoes.forEach((r) => {
