@@ -126,16 +126,16 @@
           </div>
 
           <div class="content-card gar-card gar-card-wide">
-            <p class="section-kicker">Preço</p>
-            <h4 class="inline-card-title">Preço médio por modelo × estado</h4>
-            ${renderPrecoPorModeloEstado()}
-          </div>
-
-          <div class="content-card gar-card gar-card-wide">
             <p class="section-kicker">Cruzamento com vendas</p>
             <h4 class="inline-card-title">Estoque estimado por revenda</h4>
             <p class="gar-hint">Estoque estimado = unidades vendidas pela Marcher à revenda (faturado) − unidades com garantia já ativada por ela, por modelo.</p>
             ${renderEstoqueEstimado()}
+          </div>
+
+          <div class="content-card gar-card gar-card-wide">
+            <p class="section-kicker">Preço</p>
+            <h4 class="inline-card-title">Preço médio por modelo × estado</h4>
+            ${renderPrecoPorModeloEstado()}
           </div>
         </div>
       `;
