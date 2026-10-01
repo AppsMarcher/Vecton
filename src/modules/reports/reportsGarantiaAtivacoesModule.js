@@ -36,8 +36,15 @@
 
     // -------------------------------------------------------------- dados
 
-    async function loadData() {
-      if (loading) return;
+    // Promise compartilhada: cada abertura do relatorio (novo container) espera a
+    // mesma carga em andamento, em vez de ficar presa em "Carregando...".
+    let loadPromise = null;
+    function loadData() {
+      if (!loadPromise) loadPromise = doLoadData().finally(() => { loadPromise = null; });
+      return loadPromise;
+    }
+
+    async function doLoadData() {
       loading = true;
       lastError = null;
       try {
@@ -88,9 +95,9 @@
       container.innerHTML = `<div id="gar-root" class="gar-root"></div>`;
       const root = container.querySelector("#gar-root");
       render(root);
-      if (!dataLoaded && !loading) {
-        void loadData().then(() => render(root));
-      }
+      // Sempre recarrega ao abrir (a carga pode ter mudado os dados); enquanto
+      // isso mostra o que ja estava em memoria.
+      void loadData().then(() => { if (root.isConnected !== false) render(root); });
       return true;
     }
 
