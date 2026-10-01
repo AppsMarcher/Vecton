@@ -39,6 +39,7 @@
     let estoqueDesde = { year: 2025, month: 6 }; // month 1-12
     let estoqueCleanup = null;
     let popoverCleanup = null;
+    let ufSelecionada = null;
     let estoqueRevendas = [];
     let estoqueFiltro = "all";
     let estoqueBusca = "";
@@ -64,7 +65,7 @@
         const [ativacoesRows, produtos, clientes] = await Promise.all([
           fetchAllSupabaseRows(
             "garantia_ativacoes",
-            `organization_id=eq.${org}&select=id,numero,status,produto_raw,modelo_normalizado,produto_id,revenda_raw,cliente_id,cliente_final,vendedor_revenda,uf,cidade,nf_valor_unitario,nf_valor_total,cadastrado_em`
+            `organization_id=eq.${org}&select=id,numero,status,produto_raw,modelo_normalizado,produto_id,revenda_raw,cliente_id,cliente_final,vendedor_revenda,uf,cidade,nf_valor_unitario,nf_valor_total,nf_emissao,cadastrado_em`
           ),
           fetchAllSupabaseRows("comercial_produtos", `organization_id=eq.${org}&select=id,nome_reduzido`),
           fetchAllSupabaseRows("comercial_clientes", `organization_id=eq.${org}&select=id,descricao,uf`)
@@ -158,7 +159,7 @@
         </div>
       `;
 
-      bindUfPopover(root);
+      bindUfExplorer(root);
       bindEstoque(root);
     }
 
@@ -174,7 +175,7 @@
         if (!st.rings || !st.rings.length) return "";
         const count = counts.get(st.uf) || 0;
         const fill = window.VECTON_MAP_APPEARANCE.heat(count, max);
-        return `<path class="gar-map-state" data-uf="${escapeHtml(st.uf)}" data-nome="${escapeHtml(st.nome)}" d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} máquina(s) — clique para ver as cidades</title></path>`;
+        return `<path class="gar-map-state${st.uf === ufSelecionada ? " is-selected" : ""}" data-uf="${escapeHtml(st.uf)}" data-nome="${escapeHtml(st.nome)}" d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} máquina(s) — clique para ver as cidades</title></path>`;
       }).join("");
 
       const legend = max > 0 ? `
@@ -192,71 +193,136 @@
       ` : "";
 
       return `
-        <div class="gar-ufmap-wrap">
-          <svg viewBox="0 0 ${VW} ${VH}" class="gar-ufmap">${paths}</svg>
-          ${legend}
+        <div class="gar-uf-layout">
+          <div class="gar-ufmap-wrap">
+            <svg viewBox="0 0 ${VW} ${VH}" class="gar-ufmap">${paths}</svg>
+            ${legend}
+          </div>
+          <aside class="gar-uf-side" id="gar-uf-side">${renderUfSide()}</aside>
         </div>
       `;
     }
 
-    // Popover do mapa: clique no estado lista cidades e quantidade de maquinas.
-    function bindUfPopover(root) {
+    function fmtDate(value) {
+      const iso = String(value || "").slice(0, 10);
+      const [y, m, d] = iso.split("-");
+      return y && m && d ? `${d}/${m}/${y}` : "—";
+    }
+
+    function cidadeKey(row) {
+      return (row.cidade || "").trim() || "—";
+    }
+
+    // Painel ao lado do mapa: cidades do estado clicado e quantidade de maquinas.
+    function renderUfSide() {
+      if (!ufSelecionada) {
+        return `<div class="gar-uf-empty">Clique em um estado do mapa para ver as cidades e a quantidade de máquinas.</div>`;
+      }
+      const nome = (BR.states || []).find((st) => st.uf === ufSelecionada)?.nome || ufSelecionada;
+      const cidades = new Map();
+      ativacoes.forEach((r) => {
+        if (r.uf !== ufSelecionada) return;
+        const key = cidadeKey(r);
+        cidades.set(key, (cidades.get(key) || 0) + 1);
+      });
+      const lista = [...cidades.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"));
+      const total = lista.reduce((acc, [, n]) => acc + n, 0);
+      return `
+        <div class="gar-uf-side-head">
+          <strong>${escapeHtml(nome)}</strong>
+          <span>${total} máquina(s)</span>
+        </div>
+        ${lista.length ? `
+          <div class="gar-uf-side-list">
+            ${lista.map(([cidade, n]) => `
+              <button type="button" class="gar-uf-city" data-city="${escapeHtml(cidade)}">
+                <span>${escapeHtml(cidade)}</span><strong>${n}</strong>
+              </button>`).join("")}
+          </div>` : `<div class="gar-uf-empty">Nenhuma máquina ativada neste estado.</div>`}
+      `;
+    }
+
+    function bindUfExplorer(root) {
       if (popoverCleanup) { popoverCleanup(); popoverCleanup = null; }
-      const wrap = root.querySelector(".gar-ufmap-wrap");
-      if (!wrap) return;
+      const layout = root.querySelector(".gar-uf-layout");
+      const side = root.querySelector("#gar-uf-side");
+      if (!layout || !side) return;
       let pop = null;
-      const close = () => { pop?.remove(); pop = null; };
+      const closePop = () => {
+        pop?.remove();
+        pop = null;
+        side.querySelectorAll(".gar-uf-city.is-open").forEach((el) => el.classList.remove("is-open"));
+      };
 
       const onDocPointer = (event) => {
-        if (pop && !pop.contains(event.target) && !event.target.closest(".gar-map-state")) close();
+        if (pop && !pop.contains(event.target) && !event.target.closest(".gar-uf-city, .gar-map-state")) closePop();
       };
-      const onKey = (event) => { if (event.key === "Escape") close(); };
+      const onKey = (event) => { if (event.key === "Escape") closePop(); };
       document.addEventListener("pointerdown", onDocPointer);
       document.addEventListener("keydown", onKey);
       popoverCleanup = () => {
-        close();
+        closePop();
         document.removeEventListener("pointerdown", onDocPointer);
         document.removeEventListener("keydown", onKey);
       };
 
-      wrap.addEventListener("click", (event) => {
+      layout.querySelector(".gar-ufmap")?.addEventListener("click", (event) => {
         const path = event.target.closest(".gar-map-state");
         if (!path) return;
-        const uf = path.dataset.uf;
-        const cidades = new Map();
-        ativacoes.forEach((r) => {
-          if (r.uf !== uf) return;
-          const cidade = (r.cidade || "").trim() || "—";
-          cidades.set(cidade, (cidades.get(cidade) || 0) + 1);
-        });
-        const lista = [...cidades.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"));
-        const total = lista.reduce((acc, [, n]) => acc + n, 0);
+        ufSelecionada = path.dataset.uf;
+        closePop();
+        layout.querySelectorAll(".gar-map-state").forEach((el) => el.classList.toggle("is-selected", el === path));
+        side.innerHTML = renderUfSide();
+      });
 
-        close();
+      side.addEventListener("click", (event) => {
+        const btn = event.target.closest(".gar-uf-city");
+        if (!btn) return;
+        const cidade = btn.dataset.city;
+        const itens = ativacoes
+          .filter((r) => r.uf === ufSelecionada && cidadeKey(r) === cidade)
+          .sort((a, b) => String(b.cadastrado_em || "").localeCompare(String(a.cadastrado_em || "")));
+
+        closePop();
+        btn.classList.add("is-open");
         pop = document.createElement("div");
-        pop.className = "gar-popover";
+        pop.className = "gar-city-pop";
         pop.innerHTML = `
           <div class="gar-popover-head">
-            <strong>${escapeHtml(path.dataset.nome)}</strong>
-            <span>${total} máquina(s)</span>
+            <strong>${escapeHtml(cidade)}</strong>
+            <span>${ufSelecionada} · ${itens.length} máquina(s)</span>
             <button type="button" class="gar-popover-close" aria-label="Fechar">×</button>
           </div>
-          ${lista.length ? `
-            <div class="gar-popover-list">
-              ${lista.map(([cidade, n]) => `<div class="gar-popover-row"><span>${escapeHtml(cidade)}</span><strong>${n}</strong></div>`).join("")}
-            </div>` : `<div class="gar-popover-empty">Nenhuma máquina ativada neste estado.</div>`}
+          <div class="gar-city-table-wrap">
+            <table class="data-table gar-city-table">
+              <thead><tr><th>Modelo</th><th>Revenda</th><th>Ativação</th><th>NF</th><th>Cliente final</th><th>Valor</th></tr></thead>
+              <tbody>
+                ${itens.map((r) => `
+                  <tr>
+                    <td>${escapeHtml(r.modelo_normalizado || r.produto_raw || "—")}</td>
+                    <td>${escapeHtml(r.revenda_raw || "—")}</td>
+                    <td>${fmtDate(r.cadastrado_em)}</td>
+                    <td>${fmtDate(r.nf_emissao)}</td>
+                    <td>${escapeHtml(r.cliente_final || "—")}</td>
+                    <td class="gar-city-valor">${fmtMoney(r.nf_valor_unitario)}</td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
         `;
-        pop.querySelector(".gar-popover-close").addEventListener("click", close);
-        wrap.append(pop);
+        pop.querySelector(".gar-popover-close").addEventListener("click", closePop);
+        layout.append(pop);
 
-        const box = wrap.getBoundingClientRect();
-        const left = Math.max(0, Math.min(event.clientX - box.left + 12, box.width - pop.offsetWidth));
-        const top = Math.max(0, Math.min(event.clientY - box.top + 12, box.height - pop.offsetHeight));
+        const box = layout.getBoundingClientRect();
+        const sideBox = side.getBoundingClientRect();
+        const btnBox = btn.getBoundingClientRect();
+        const width = Math.min(pop.offsetWidth, box.width);
+        const left = Math.max(0, sideBox.left - box.left - width - 12);
+        const top = Math.max(0, Math.min(btnBox.top - box.top - 8, box.height - pop.offsetHeight));
         pop.style.left = `${left}px`;
         pop.style.top = `${top}px`;
       });
     }
-
 
     // -------------------------------------------------------------- seção B: preço x modelo x estado
 
