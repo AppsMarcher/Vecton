@@ -30,7 +30,17 @@
     let ativacoes = [];
     let produtosById = new Map();
     let clientesById = new Map();
-    let vendasPorClienteModelo = new Map(); // "clienteId|nomeReduzido" -> quantidade
+    let vendasPorClienteModelo = new Map(); // "clienteId|nomeReduzido" -> quantidade (no periodo escolhido)
+    let faturadoRows = []; // linhas cruas de comercial_faturado das revendas com ativacao
+    // Periodo das vendas no estoque estimado. As ativacoes do AltForce so existem
+    // a partir de jun/2025 (NF mais antiga); comparar com vendas desde 2023 infla o estoque.
+    const PERIODOS_ESTOQUE = [
+      { value: "2025-06-01", label: "Desde jun/2025" },
+      { value: "2026-01-01", label: "Desde jan/2026" },
+      { value: "2026-07-01", label: "Desde jul/2026 (período das ativações)" },
+      { value: "all", label: "Todo o período" }
+    ];
+    let estoquePeriodo = PERIODOS_ESTOQUE[0].value;
     let popoverCleanup = null;
     let estoqueRevendas = [];
     let estoqueFiltro = "all";
@@ -68,19 +78,14 @@
         clientesById = new Map((clientes || []).map((c) => [c.id, c.descricao || ""]));
 
         const clienteIds = [...new Set(ativacoes.map((r) => r.cliente_id).filter(Boolean))];
-        vendasPorClienteModelo = new Map();
+        faturadoRows = [];
         if (clienteIds.length) {
-          const ledgerRows = await fetchAllSupabaseRows(
+          faturadoRows = (await fetchAllSupabaseRows(
             "comercial_faturado",
-            `organization_id=eq.${org}&cliente_id=in.(${clienteIds.join(",")})&select=id,cliente_id,produto_id,quantidade`
-          );
-          (ledgerRows || []).forEach((row) => {
-            const nomeReduzido = produtosById.get(row.produto_id);
-            if (!nomeReduzido) return;
-            const key = `${row.cliente_id}|${nomeReduzido.toUpperCase()}`;
-            vendasPorClienteModelo.set(key, (vendasPorClienteModelo.get(key) || 0) + Number(row.quantidade || 0));
-          });
+            `organization_id=eq.${org}&cliente_id=in.(${clienteIds.join(",")})&select=id,cliente_id,produto_id,quantidade,entry_date`
+          )) || [];
         }
+        recalcularVendas();
         dataLoaded = true;
       } catch (error) {
         console.error(error);
@@ -88,6 +93,17 @@
       } finally {
         loading = false;
       }
+    }
+
+    function recalcularVendas() {
+      vendasPorClienteModelo = new Map();
+      faturadoRows.forEach((row) => {
+        if (estoquePeriodo !== "all" && String(row.entry_date || "") < estoquePeriodo) return;
+        const nomeReduzido = produtosById.get(row.produto_id);
+        if (!nomeReduzido) return;
+        const key = `${row.cliente_id}|${nomeReduzido.toUpperCase()}`;
+        vendasPorClienteModelo.set(key, (vendasPorClienteModelo.get(key) || 0) + Number(row.quantidade || 0));
+      });
     }
 
     // -------------------------------------------------------------- shell
@@ -138,7 +154,7 @@
           <div class="content-card gar-card gar-card-wide">
             <p class="section-kicker">Cruzamento com vendas</p>
             <h4 class="inline-card-title">Estoque estimado por revenda</h4>
-            <p class="gar-hint">Estoque estimado = unidades vendidas pela Marcher à revenda (faturado) − unidades com garantia já ativada por ela, por modelo.</p>
+            <p class="gar-hint">Estoque estimado = unidades vendidas pela Marcher à revenda (faturado, no período escolhido) − unidades com garantia já ativada por ela, por modelo.</p>
             ${renderEstoqueEstimado()}
           </div>
         </div>
@@ -340,6 +356,11 @@
         btn.setAttribute("aria-expanded", String(open));
         if (detail) detail.hidden = !open;
       });
+      root.querySelector("#gar-est-period")?.addEventListener("change", (event) => {
+        estoquePeriodo = event.target.value;
+        recalcularVendas();
+        render(root);
+      });
       root.querySelector("#gar-est-search")?.addEventListener("input", (event) => {
         estoqueBusca = event.target.value;
         refresh();
@@ -402,11 +423,16 @@
             <div class="${tot.negativas ? "is-warn" : ""}"><span>Revendas com estoque negativo</span><strong>${tot.negativas}</strong></div>
           </div>
           <div class="gar-est-tools">
-            <input id="gar-est-search" type="search" placeholder="Buscar revenda ou modelo...">
+            <label class="gar-est-period">Vendas
+              <select id="gar-est-period">
+                ${PERIODOS_ESTOQUE.map((o) => `<option value="${o.value}"${o.value === estoquePeriodo ? " selected" : ""}>${o.label}</option>`).join("")}
+              </select>
+            </label>
+            <input id="gar-est-search" type="search" placeholder="Buscar revenda ou modelo..." value="${escapeHtml(estoqueBusca)}">
             <div class="gar-est-filters" id="gar-est-filters">
-              <button type="button" data-filter="all" class="active">Todas</button>
-              <button type="button" data-filter="positivo">Com estoque</button>
-              <button type="button" data-filter="negativo">Estoque negativo</button>
+              <button type="button" data-filter="all"${estoqueFiltro === "all" ? ' class="active"' : ""}>Todas</button>
+              <button type="button" data-filter="positivo"${estoqueFiltro === "positivo" ? ' class="active"' : ""}>Com estoque</button>
+              <button type="button" data-filter="negativo"${estoqueFiltro === "negativo" ? ' class="active"' : ""}>Estoque negativo</button>
             </div>
           </div>
           <div class="gar-est-list" id="gar-est-list">${renderEstoqueLista()}</div>

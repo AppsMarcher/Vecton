@@ -12507,6 +12507,8 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .gar-est-kpis strong { font-size: 1.25rem; }
 .gar-est-kpis .is-warn strong { color: var(--red, #ef4444); }
 .gar-est-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.gar-est-period { display: inline-flex; align-items: center; gap: 8px; font-size: .78rem; color: var(--text-faint); }
+.gar-est-period select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-alt); color: var(--text); font-size: .8rem; }
 .gar-est-tools input { flex: 1 1 220px; max-width: 320px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-alt); color: var(--text); font-size: .82rem; }
 .gar-est-filters { display: inline-flex; gap: 4px; border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
 .gar-est-filters button { border: 0; background: transparent; padding: 5px 10px; border-radius: 6px; font-size: .76rem; color: var(--text-faint); cursor: pointer; }
