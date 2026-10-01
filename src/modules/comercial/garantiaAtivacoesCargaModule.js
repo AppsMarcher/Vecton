@@ -324,7 +324,7 @@
           ? new Set((await fetchAllSupabaseRows("garantia_ativacoes", `organization_id=eq.${organizationId}&select=numero`)).map((r) => r.numero))
           : new Set();
 
-        const allParsed = sheetRows.map((raw) => normalizeImportedRow(raw));
+        const allParsed = garantirNumerosUnicos(sheetRows.map((raw) => normalizeImportedRow(raw)));
         const parsedRows = allParsed.filter((row) => !isValorSuspeito(row));
         const ignoradas = allParsed.length - parsedRows.length;
         const resolved = parsedRows.map((row) => resolveMatches(row, produtos, clientes));
@@ -480,6 +480,19 @@
       const raw = String(value).trim().replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
       const num = Number(raw);
       return Number.isFinite(num) ? num : null;
+    }
+
+    // "Numero" do AltForce e a chave do upsert, mas a exportacao traz numeros
+    // repetidos (uma ativacao com varias maquinas) e linhas sem numero. Nesses
+    // casos a chave vira "numero/serie" (ou "S/serie"), estavel entre cargas.
+    function garantirNumerosUnicos(rows) {
+      const contagem = new Map();
+      rows.forEach((row) => contagem.set(row.numero, (contagem.get(row.numero) || 0) + 1));
+      return rows.map((row) => {
+        if (row.numero && contagem.get(row.numero) === 1) return row;
+        const serie = row.numeroSerie || "";
+        return { ...row, numero: `${row.numero || "S"}/${serie}` };
+      });
     }
 
     function isValorSuspeito(row) {
