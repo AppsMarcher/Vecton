@@ -546,11 +546,10 @@
         layout.append(pop);
 
         const box = layout.getBoundingClientRect();
-        const sideBox = side.getBoundingClientRect();
-        const anchorBox = anchor.getBoundingClientRect();
         const width = Math.min(pop.offsetWidth, box.width);
-        const left = Math.max(0, sideBox.left - box.left - width - 12);
-        const top = Math.max(0, Math.min(anchorBox.top - box.top - 8, box.height - pop.offsetHeight));
+        // Canto inferior direito da area do mapa.
+        const left = Math.max(0, box.width - width);
+        const top = Math.max(0, box.height - pop.offsetHeight);
         pop.style.left = `${left}px`;
         pop.style.top = `${top}px`;
       };

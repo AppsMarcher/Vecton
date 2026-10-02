@@ -12571,6 +12571,11 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .gar-city-table th, .gar-city-table td, .gar-city-table th:not(:first-child), .gar-city-table td:not(:first-child) { text-align: left; }
 .gar-city-table th:last-child, .gar-city-table td:last-child { text-align: right; }
 .gar-city-valor { font-weight: 600; }
+.gar-city-pop { font-size: calc(.8rem - 1px); }
+.gar-city-pop .gar-popover-head span { font-size: calc(.74rem - 1px); }
+.gar-city-pop .gar-city-table th { font-size: calc(.64rem - 1px); }
+.gar-city-pop .gar-city-table td { font-size: calc(.78rem - 1px); }
+.gar-city-sub { font-size: calc(.68rem - 1px); }
 .gar-city-table th { background: transparent !important; }
 .gar-city-table td { border-bottom: 0; }
 @media (max-width: 900px) {
