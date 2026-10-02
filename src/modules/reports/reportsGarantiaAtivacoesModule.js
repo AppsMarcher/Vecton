@@ -428,7 +428,7 @@
       const limparLinks = () => {
         linksG.innerHTML = "";
         revsG.querySelectorAll(".gar-rev.is-hot").forEach((el) => el.classList.remove("is-hot"));
-        dotsG.querySelectorAll(".gar-dot.is-linked").forEach((el) => el.classList.remove("is-linked"));
+        dotsG.querySelectorAll(".gar-dot.is-linked, .gar-dot.is-focus").forEach((el) => el.classList.remove("is-linked", "is-focus"));
       };
       const desenharLinks = (clienteIds, cidadesAlvo) => {
         limparLinks();
@@ -447,6 +447,10 @@
           });
         });
         linksG.innerHTML = linhas.join("");
+        // A cidade em foco (mouse na bolinha ou na lista) ganha borda preta.
+        if (cidadesAlvo && cidadesAlvo.length === 1) {
+          [...dotsG.querySelectorAll(".gar-dot")].find((el) => el.dataset.city === cidadesAlvo[0])?.classList.add("is-focus");
+        }
       };
 
       const animateTo = (target, onDone) => {
@@ -569,6 +573,14 @@
         tipEl.style.left = Math.min(Math.max(8, x), Math.max(8, vw - w - 8)) + "px";
         tipEl.style.top = Math.min(Math.max(8, painel.top), Math.max(8, vh - h - 8)) + "px";
       };
+      const htmlTipCidade = (cidade, count) => {
+        let html = linhaTip("Cidade", cidade, true) + linhaTip("Máquinas", String(count));
+        [...(cityRevs.get(cidade)?.entries() || [])].slice(0, 3).forEach(([id, v]) => {
+          const info = revendaInfo.get(id);
+          html += linhaTip("Revenda", `${v.nome || revNomes.get(id) || "—"}${info ? ` · ${info.cidade}/${info.uf}` : ""}`);
+        });
+        return html;
+      };
       let hoverKey = "";
       svg.addEventListener("mousemove", (event) => {
         const dot = event.target.closest(".gar-dot");
@@ -586,11 +598,7 @@
 
         let html;
         if (dot) {
-          html = linhaTip("Cidade", dot.dataset.city, true) + linhaTip("Máquinas", dot.dataset.count);
-          [...(cityRevs.get(dot.dataset.city)?.entries() || [])].slice(0, 3).forEach(([id, v]) => {
-            const info = revendaInfo.get(id);
-            html += linhaTip("Revenda", `${v.nome || revNomes.get(id) || "—"}${info ? ` · ${info.cidade}/${info.uf}` : ""}`);
-          });
+          html = htmlTipCidade(dot.dataset.city, dot.dataset.count);
         } else if (rev) {
           const id = rev.dataset.rev;
           const info = revendaInfo.get(id);
@@ -604,6 +612,25 @@
         posicionarTip(event);
       });
       svg.addEventListener("mouseleave", () => { hideTip(); limparLinks(); hoverKey = ""; });
+
+      // Passar o mouse numa cidade da lista marca no mapa a bolinha, o losango da revenda e a linha.
+      side.addEventListener("mouseover", (event) => {
+        const btn = event.target.closest(".gar-uf-city");
+        if (!btn) return;
+        const cidade = btn.dataset.city;
+        const dot = [...dotsG.querySelectorAll(".gar-dot")].find((el) => el.dataset.city === cidade);
+        if (!dot) { limparLinks(); hideTip(); hoverKey = ""; return; }
+        hoverKey = `d:${cidade}`;
+        desenharLinks([...(cityRevs.get(cidade)?.keys() || [])], [cidade]);
+        tipEl.innerHTML = htmlTipCidade(cidade, dot.dataset.count);
+        tipEl.style.display = "block";
+        posicionarTip();
+      });
+      side.addEventListener("mouseout", (event) => {
+        const btn = event.target.closest(".gar-uf-city");
+        if (!btn || btn.contains(event.relatedTarget)) return;
+        limparLinks(); hideTip(); hoverKey = "";
+      });
 
       const onDocPointer = (event) => {
         if (pop && !pop.contains(event.target) && !event.target.closest(".gar-uf-city, .gar-dot")) closePop();

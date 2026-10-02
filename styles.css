@@ -12549,7 +12549,7 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .gar-link { stroke: #ef4444; stroke-width: 1.6px; stroke-dasharray: 6 4; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .9; }
 .gar-rev { fill: #f8fafc; fill-opacity: .8; stroke: #0f172a; cursor: pointer; transition: fill-opacity .12s; }
 .gar-rev:hover, .gar-rev.is-hot { fill-opacity: 1; fill: #fff; }
-.gar-dot.is-linked { stroke: #f8fafc; }
+.gar-dot.is-linked, .gar-dot.is-focus { stroke: #000; }
 .gar-city-sub { color: var(--text-faint); font-size: .68rem; margin-left: 4px; }
 .gar-dot { fill: #f59e0b; fill-opacity: .88; stroke: #fff; cursor: pointer; transition: fill-opacity .12s; }
 .gar-dot:hover, .gar-dot.is-open { fill-opacity: 1; fill: #fbbf24; }
