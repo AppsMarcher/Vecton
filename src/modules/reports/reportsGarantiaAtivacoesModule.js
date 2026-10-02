@@ -558,25 +558,16 @@
       const tipEl = getMapTip();
       const hideTip = () => { tipEl.style.display = "none"; };
       const linhaTip = (label, value, strong) => `<span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:var(--theme-ink-secondary, #a1a7b3)">${escapeHtml(label)}</span><span style="font-size:0.72rem;font-weight:${strong ? 700 : 600};color:${strong ? "var(--theme-ink, #fff)" : "var(--theme-ink-secondary, #a1a7b3)"}">${escapeHtml(value)}</span></span>`;
-      // Posicao fixa, fora do mapa: logo abaixo do painel de cidades quando cabe (sem cobrir o
-      // popover da cidade nem sair da janela); senao, na area livre a direita do painel, no topo.
+      // Posicao fixa: na altura do topo do painel de cidades, centralizado na largura do card.
       const posicionarTip = () => {
         const painel = side.getBoundingClientRect();
+        const card = (svg.closest(".content-card") || layout).getBoundingClientRect();
         const w = tipEl.offsetWidth, h = tipEl.offsetHeight;
         const vw = window.innerWidth, vh = window.innerHeight;
         tipEl.style.minWidth = `${Math.round(painel.width)}px`;
-        const limiteBaixo = pop ? pop.getBoundingClientRect().top - 8 : vh - 8;
-        let x, y;
-        if (painel.bottom + 10 + h <= limiteBaixo) {
-          x = painel.left;
-          y = painel.bottom + 10;
-        } else {
-          x = painel.right + 14;
-          y = painel.top;
-          if (x + w > vw - 8) x = Math.max(8, vw - w - 8);
-        }
+        const x = card.left + (card.width - w) / 2;
         tipEl.style.left = Math.min(Math.max(8, x), Math.max(8, vw - w - 8)) + "px";
-        tipEl.style.top = Math.min(Math.max(8, y), Math.max(8, vh - h - 8)) + "px";
+        tipEl.style.top = Math.min(Math.max(8, painel.top), Math.max(8, vh - h - 8)) + "px";
       };
       let hoverKey = "";
       svg.addEventListener("mousemove", (event) => {
