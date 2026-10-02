@@ -202,12 +202,18 @@
       ativacoes.forEach((r) => { if (r.uf) counts.set(r.uf, (counts.get(r.uf) || 0) + 1); });
       const values = [...counts.values()];
       const max = values.length ? Math.max(...values) : 0;
+      const cidadesPorUf = new Map();
+      ativacoes.forEach((r) => {
+        if (!r.uf) return;
+        if (!cidadesPorUf.has(r.uf)) cidadesPorUf.set(r.uf, new Set());
+        cidadesPorUf.get(r.uf).add(cidadeKey(r));
+      });
 
       const paths = (BR.states || []).map((st) => {
         if (!st.rings || !st.rings.length) return "";
         const count = counts.get(st.uf) || 0;
         const fill = window.VECTON_MAP_APPEARANCE.heat(count, max);
-        return `<path class="gar-map-state${st.uf === ufSelecionada ? " is-selected" : ""}" data-uf="${escapeHtml(st.uf)}" data-nome="${escapeHtml(st.nome)}" d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round" vector-effect="non-scaling-stroke"><title>${escapeHtml(st.nome)}: ${count} máquina(s) — clique para aproximar</title></path>`;
+        return `<path class="gar-map-state${st.uf === ufSelecionada ? " is-selected" : ""}" data-uf="${escapeHtml(st.uf)}" data-nome="${escapeHtml(st.nome)}" data-count="${count}" data-cidades="${cidadesPorUf.get(st.uf)?.size || 0}" d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round" vector-effect="non-scaling-stroke"></path>`;
       }).join("");
 
       const legend = max > 0 ? `
@@ -302,6 +308,18 @@
       return { x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - h / 2, w, h };
     }
 
+    function getMapTip() {
+      let el = document.getElementById("gar-map-tip");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "gar-map-tip";
+        el.style.cssText = "position:fixed;z-index:9999;display:none;pointer-events:none;" +
+          "background:var(--theme-surface, #13161c);border:0.5px solid var(--theme-border, #2a2d34);border-radius:5px;padding:5px 9px;line-height:1.5;white-space:nowrap";
+        document.body.appendChild(el);
+      }
+      return el;
+    }
+
     function bindUfExplorer(root) {
       if (popoverCleanup) { popoverCleanup(); popoverCleanup = null; }
       const layout = root.querySelector(".gar-uf-layout");
@@ -337,7 +355,7 @@
           if (!geo) return;
           const [cx, cy] = proj(geo.lng, geo.lat);
           const r = (5 + 3.2 * Math.sqrt(n)) / scale;
-          circles.push(`<circle class="gar-dot" data-city="${escapeHtml(cidade)}" cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" stroke-width="${(1.5 / scale).toFixed(3)}"><title>${escapeHtml(cidade)}: ${n} máquina(s)</title></circle>`);
+          circles.push(`<circle class="gar-dot" data-city="${escapeHtml(cidade)}" cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" data-count="${n}" stroke-width="${(1.5 / scale).toFixed(3)}"></circle>`);
         });
         dotsG.innerHTML = circles.join("");
         requestAnimationFrame(() => dotsG.classList.add("is-in"));
@@ -442,6 +460,23 @@
         pop.style.top = `${top}px`;
       };
 
+      // Tooltip no padrao visual do app (cartao com linhas rotulo/valor), no lugar do title nativo.
+      const tipEl = getMapTip();
+      const hideTip = () => { tipEl.style.display = "none"; };
+      const linhaTip = (label, value, strong) => `<span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:var(--theme-ink-secondary, #a1a7b3)">${escapeHtml(label)}</span><span style="font-size:0.72rem;font-weight:${strong ? 700 : 600};color:${strong ? "var(--theme-ink, #fff)" : "var(--theme-ink-secondary, #a1a7b3)"}">${escapeHtml(value)}</span></span>`;
+      svg.addEventListener("mousemove", (event) => {
+        const dot = event.target.closest(".gar-dot");
+        const path = dot ? null : event.target.closest(".gar-map-state");
+        if (!dot && !path) { hideTip(); return; }
+        tipEl.innerHTML = dot
+          ? linhaTip("Cidade", dot.dataset.city, true) + linhaTip("Máquinas", dot.dataset.count)
+          : linhaTip("Estado", path.dataset.nome, true) + linhaTip("Máquinas", path.dataset.count) + linhaTip("Cidades", path.dataset.cidades);
+        tipEl.style.display = "block";
+        tipEl.style.left = Math.max(4, event.clientX - tipEl.offsetWidth / 2) + "px";
+        tipEl.style.top = Math.max(4, event.clientY - tipEl.offsetHeight - 14) + "px";
+      });
+      svg.addEventListener("mouseleave", hideTip);
+
       const onDocPointer = (event) => {
         if (pop && !pop.contains(event.target) && !event.target.closest(".gar-uf-city, .gar-dot")) closePop();
       };
@@ -449,6 +484,7 @@
       document.addEventListener("pointerdown", onDocPointer);
       document.addEventListener("keydown", onKey);
       popoverCleanup = () => {
+        hideTip();
         cancelAnimationFrame(anim);
         closePop();
         document.removeEventListener("pointerdown", onDocPointer);
