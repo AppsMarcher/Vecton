@@ -12543,8 +12543,14 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .gar-ufmap.is-zoomed .gar-map-state:not(.is-selected) { opacity: .14; }
 .gar-ufmap.is-zoomed .gar-map-state:not(.is-selected):hover { opacity: .4; }
 .gar-ufmap.is-zoomed .gar-map-state.is-selected { opacity: 1; }
-.gar-dots { opacity: 0; transition: opacity .3s ease; }
-.gar-dots.is-in { opacity: 1; }
+.gar-dots, .gar-revs { opacity: 0; transition: opacity .3s ease; }
+.gar-dots.is-in, .gar-revs.is-in { opacity: 1; }
+.gar-links { pointer-events: none; }
+.gar-link { stroke: #f8fafc; stroke-width: 1.6px; stroke-dasharray: 6 4; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .9; }
+.gar-rev { fill: #f8fafc; fill-opacity: .8; stroke: #0f172a; cursor: pointer; transition: fill-opacity .12s; }
+.gar-rev:hover, .gar-rev.is-hot { fill-opacity: 1; fill: #fff; }
+.gar-dot.is-linked { stroke: #f8fafc; }
+.gar-city-sub { color: var(--text-faint); font-size: .68rem; margin-left: 4px; }
 .gar-dot { fill: #f59e0b; fill-opacity: .88; stroke: #fff; cursor: pointer; transition: fill-opacity .12s; }
 .gar-dot:hover, .gar-dot.is-open { fill-opacity: 1; fill: #fbbf24; }
 .gar-map-state.is-selected { stroke: var(--blue, #3b82f6); stroke-width: 2; }

@@ -43,6 +43,7 @@
     let mapView = null; // viewBox atual do mapa ({x,y,w,h}); null = Brasil inteiro
     const geoByKey = new Map(); // "UF|cidadenormalizada" -> {lat, lng} (comercial_municipios_geo)
     const geoUfsCarregadas = new Set();
+    let revendaInfo = new Map(); // cliente_id -> { lat, lng, cidade, uf } (cadastro da revenda + comercial_municipios_geo)
     let estoqueRevendas = [];
     let estoqueFiltro = "all";
     let estoqueBusca = "";
@@ -71,7 +72,7 @@
             `organization_id=eq.${org}&select=id,numero,status,produto_raw,modelo_normalizado,produto_id,revenda_raw,cliente_id,cliente_final,vendedor_revenda,uf,cidade,nf_valor_unitario,nf_valor_total,nf_emissao,cadastrado_em`
           ),
           fetchAllSupabaseRows("comercial_produtos", `organization_id=eq.${org}&select=id,nome_reduzido`),
-          fetchAllSupabaseRows("comercial_clientes", `organization_id=eq.${org}&select=id,descricao,uf`)
+          fetchAllSupabaseRows("comercial_clientes", `organization_id=eq.${org}&select=id,descricao,uf,codigo_ibge`)
         ]);
 
         ativacoes = ativacoesRows || [];
@@ -80,6 +81,7 @@
 
         const clienteIds = [...new Set(ativacoes.map((r) => r.cliente_id).filter(Boolean))];
         await carregarGeoMunicipios();
+        await carregarGeoRevendas(clientes || []);
         faturadoRows = [];
         if (clienteIds.length) {
           faturadoRows = (await fetchAllSupabaseRows(
@@ -115,6 +117,34 @@
           console.error("Falha ao carregar coordenadas dos municípios", uf, error);
         }
       }));
+    }
+
+    // Localizacao das revendas: comercial_clientes.codigo_ibge -> comercial_municipios_geo.
+    async function carregarGeoRevendas(clientes) {
+      revendaInfo = new Map();
+      if (typeof fetchSupabaseRows !== "function") return;
+      const ids = new Set(ativacoes.map((r) => r.cliente_id).filter(Boolean));
+      const porIbge = new Map(); // codigo_ibge -> [cliente_id]
+      clientes.forEach((c) => {
+        if (!ids.has(c.id) || !c.codigo_ibge) return;
+        if (!porIbge.has(c.codigo_ibge)) porIbge.set(c.codigo_ibge, []);
+        porIbge.get(c.codigo_ibge).push(c.id);
+      });
+      if (!porIbge.size) return;
+      try {
+        const rows = await fetchSupabaseRows(
+          "comercial_municipios_geo",
+          `codigo_ibge=in.(${[...porIbge.keys()].join(",")})&select=codigo_ibge,municipio,uf,lat,lng`
+        );
+        (rows || []).forEach((m) => {
+          if (m.lat == null || m.lng == null) return;
+          (porIbge.get(m.codigo_ibge) || []).forEach((id) => {
+            revendaInfo.set(id, { lat: Number(m.lat), lng: Number(m.lng), cidade: m.municipio, uf: m.uf });
+          });
+        });
+      } catch (error) {
+        console.error("Falha ao carregar localização das revendas", error);
+      }
     }
 
     function recalcularVendas() {
@@ -239,7 +269,7 @@
               <button type="button" data-z="reset" title="Início">⟳</button>
               <button type="button" data-z="out" title="Afastar">−</button>
             </div>
-            <svg viewBox="${viewBoxAttr(view)}" class="gar-ufmap${ufSelecionada ? " is-zoomed" : ""}">${paths}<g class="gar-dots"></g></svg>
+            <svg viewBox="${viewBoxAttr(view)}" class="gar-ufmap${ufSelecionada ? " is-zoomed" : ""}">${paths}<g class="gar-links"></g><g class="gar-revs"></g><g class="gar-dots"></g></svg>
             ${legend}
           </div>
           <aside class="gar-uf-side" id="gar-uf-side">${renderUfSide()}</aside>
@@ -326,7 +356,9 @@
       const side = root.querySelector("#gar-uf-side");
       const svg = layout?.querySelector(".gar-ufmap");
       const dotsG = svg?.querySelector(".gar-dots");
-      if (!layout || !side || !svg || !dotsG) return;
+      const revsG = svg?.querySelector(".gar-revs");
+      const linksG = svg?.querySelector(".gar-links");
+      if (!layout || !side || !svg || !dotsG || !revsG || !linksG) return;
 
       let pop = null;
       let anim = 0;
@@ -338,17 +370,37 @@
         layout.querySelectorAll(".gar-uf-city.is-open, .gar-dot.is-open").forEach((el) => el.classList.remove("is-open"));
       };
 
+      // cidade -> Map(cliente_id -> {nome, n}); cliente_id -> Map(cidade -> n)
+      let cityRevs = new Map();
+      let revCities = new Map();
+      let revNomes = new Map();
+
       const drawDots = () => {
         dotsG.innerHTML = "";
+        revsG.innerHTML = "";
+        linksG.innerHTML = "";
         if (!ufSelecionada) return;
         const view = mapView || fullView();
         const scale = svg.getBoundingClientRect().width / view.w || 1;
         const porCidade = new Map();
+        cityRevs = new Map();
+        revCities = new Map();
         ativacoes.forEach((r) => {
           if (r.uf !== ufSelecionada) return;
           const key = cidadeKey(r);
           porCidade.set(key, (porCidade.get(key) || 0) + 1);
+          if (!r.cliente_id) return;
+          if (!cityRevs.has(key)) cityRevs.set(key, new Map());
+          const cr = cityRevs.get(key);
+          const cur = cr.get(r.cliente_id) || { nome: r.revenda_raw || "", n: 0 };
+          cur.n += 1;
+          cr.set(r.cliente_id, cur);
+          if (!revCities.has(r.cliente_id)) revCities.set(r.cliente_id, new Map());
+          const rc = revCities.get(r.cliente_id);
+          rc.set(key, (rc.get(key) || 0) + 1);
+          if (!revNomes.has(r.cliente_id)) revNomes.set(r.cliente_id, r.revenda_raw || "");
         });
+
         const circles = [];
         [...porCidade.entries()].sort((a, b) => b[1] - a[1]).forEach(([cidade, n]) => {
           const geo = geoByKey.get(geoKey(ufSelecionada, cidade));
@@ -358,7 +410,43 @@
           circles.push(`<circle class="gar-dot" data-city="${escapeHtml(cidade)}" cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" data-count="${n}" stroke-width="${(1.5 / scale).toFixed(3)}"></circle>`);
         });
         dotsG.innerHTML = circles.join("");
-        requestAnimationFrame(() => dotsG.classList.add("is-in"));
+
+        // Marcador (losango) das revendas que venderam para clientes deste estado.
+        const losangos = [];
+        revCities.forEach((cidades, clienteId) => {
+          const info = revendaInfo.get(clienteId);
+          if (!info) return;
+          const [rx, ry] = proj(info.lng, info.lat);
+          const d = 8 / scale;
+          losangos.push(`<path class="gar-rev" data-rev="${escapeHtml(clienteId)}" d="M${rx.toFixed(2)} ${(ry - d).toFixed(2)} L${(rx + d).toFixed(2)} ${ry.toFixed(2)} L${rx.toFixed(2)} ${(ry + d).toFixed(2)} L${(rx - d).toFixed(2)} ${ry.toFixed(2)} Z" stroke-width="${(1.5 / scale).toFixed(3)}"></path>`);
+        });
+        revsG.innerHTML = losangos.join("");
+        requestAnimationFrame(() => { dotsG.classList.add("is-in"); revsG.classList.add("is-in"); });
+      };
+
+      // Linhas tracejadas revenda -> cidades do cliente final (so em foco).
+      const limparLinks = () => {
+        linksG.innerHTML = "";
+        revsG.querySelectorAll(".gar-rev.is-hot").forEach((el) => el.classList.remove("is-hot"));
+        dotsG.querySelectorAll(".gar-dot.is-linked").forEach((el) => el.classList.remove("is-linked"));
+      };
+      const desenharLinks = (clienteIds, cidadesAlvo) => {
+        limparLinks();
+        const linhas = [];
+        clienteIds.forEach((clienteId) => {
+          const info = revendaInfo.get(clienteId);
+          if (!info) return;
+          const [rx, ry] = proj(info.lng, info.lat);
+          revsG.querySelector(`.gar-rev[data-rev="${CSS.escape(clienteId)}"]`)?.classList.add("is-hot");
+          const alvos = cidadesAlvo || [...(revCities.get(clienteId)?.keys() || [])];
+          alvos.forEach((cidade) => {
+            const dot = [...dotsG.querySelectorAll(".gar-dot")].find((el) => el.dataset.city === cidade);
+            if (!dot) return;
+            dot.classList.add("is-linked");
+            linhas.push(`<line class="gar-link" x1="${rx.toFixed(2)}" y1="${ry.toFixed(2)}" x2="${dot.getAttribute("cx")}" y2="${dot.getAttribute("cy")}"></line>`);
+          });
+        });
+        linksG.innerHTML = linhas.join("");
       };
 
       const animateTo = (target, onDone) => {
@@ -386,7 +474,10 @@
         ufSelecionada = uf;
         closePop();
         dotsG.classList.remove("is-in");
+        revsG.classList.remove("is-in");
         dotsG.innerHTML = "";
+        revsG.innerHTML = "";
+        linksG.innerHTML = "";
         svg.classList.add("is-zoomed");
         layout.querySelectorAll(".gar-map-state").forEach((el) => el.classList.toggle("is-selected", el.dataset.uf === uf));
         side.innerHTML = renderUfSide();
@@ -397,7 +488,10 @@
         ufSelecionada = null;
         closePop();
         dotsG.classList.remove("is-in");
+        revsG.classList.remove("is-in");
         dotsG.innerHTML = "";
+        revsG.innerHTML = "";
+        linksG.innerHTML = "";
         svg.classList.remove("is-zoomed");
         layout.querySelectorAll(".gar-map-state").forEach((el) => el.classList.remove("is-selected"));
         side.innerHTML = renderUfSide();
@@ -411,6 +505,7 @@
         const alvo = { x: v.x + v.w / 2 - w / 2, y: v.y + v.h / 2 - h / 2, w, h };
         closePop();
         dotsG.classList.remove("is-in");
+        revsG.classList.remove("is-in");
         animateTo(alvo, drawDots);
       };
 
@@ -437,7 +532,7 @@
                 ${itens.map((r) => `
                   <tr>
                     <td>${escapeHtml(r.modelo_normalizado || r.produto_raw || "—")}</td>
-                    <td>${escapeHtml(r.revenda_raw || "—")}</td>
+                    <td>${escapeHtml(r.revenda_raw || "—")}${revendaInfo.get(r.cliente_id) ? ` <small class="gar-city-sub">${escapeHtml(revendaInfo.get(r.cliente_id).cidade)}/${escapeHtml(revendaInfo.get(r.cliente_id).uf)}</small>` : ""}</td>
                     <td>${fmtDate(r.cadastrado_em)}</td>
                     <td>${fmtDate(r.nf_emissao)}</td>
                     <td>${escapeHtml(r.cliente_final || "—")}</td>
@@ -464,18 +559,42 @@
       const tipEl = getMapTip();
       const hideTip = () => { tipEl.style.display = "none"; };
       const linhaTip = (label, value, strong) => `<span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:var(--theme-ink-secondary, #a1a7b3)">${escapeHtml(label)}</span><span style="font-size:0.72rem;font-weight:${strong ? 700 : 600};color:${strong ? "var(--theme-ink, #fff)" : "var(--theme-ink-secondary, #a1a7b3)"}">${escapeHtml(value)}</span></span>`;
+      let hoverKey = "";
       svg.addEventListener("mousemove", (event) => {
         const dot = event.target.closest(".gar-dot");
-        const path = dot ? null : event.target.closest(".gar-map-state");
-        if (!dot && !path) { hideTip(); return; }
-        tipEl.innerHTML = dot
-          ? linhaTip("Cidade", dot.dataset.city, true) + linhaTip("Máquinas", dot.dataset.count)
-          : linhaTip("Estado", path.dataset.nome, true) + linhaTip("Máquinas", path.dataset.count) + linhaTip("Cidades", path.dataset.cidades);
+        const rev = dot ? null : event.target.closest(".gar-rev");
+        const path = dot || rev ? null : event.target.closest(".gar-map-state");
+        if (!dot && !rev && !path) { hideTip(); if (hoverKey) { limparLinks(); hoverKey = ""; } return; }
+
+        const key = dot ? `d:${dot.dataset.city}` : rev ? `r:${rev.dataset.rev}` : "";
+        if (key !== hoverKey) {
+          hoverKey = key;
+          if (dot) desenharLinks([...(cityRevs.get(dot.dataset.city)?.keys() || [])], [dot.dataset.city]);
+          else if (rev) desenharLinks([rev.dataset.rev]);
+          else limparLinks();
+        }
+
+        let html;
+        if (dot) {
+          html = linhaTip("Cidade", dot.dataset.city, true) + linhaTip("Máquinas", dot.dataset.count);
+          [...(cityRevs.get(dot.dataset.city)?.entries() || [])].slice(0, 3).forEach(([id, v]) => {
+            const info = revendaInfo.get(id);
+            html += linhaTip("Revenda", `${v.nome || revNomes.get(id) || "—"}${info ? ` · ${info.cidade}/${info.uf}` : ""}`);
+          });
+        } else if (rev) {
+          const id = rev.dataset.rev;
+          const info = revendaInfo.get(id);
+          const total = [...(revCities.get(id)?.values() || [])].reduce((a, b) => a + b, 0);
+          html = linhaTip("Revenda", revNomes.get(id) || "—", true) + linhaTip("Local", info ? `${info.cidade}/${info.uf}` : "—") + linhaTip("Máquinas no estado", String(total));
+        } else {
+          html = linhaTip("Estado", path.dataset.nome, true) + linhaTip("Máquinas", path.dataset.count) + linhaTip("Cidades", path.dataset.cidades);
+        }
+        tipEl.innerHTML = html;
         tipEl.style.display = "block";
         tipEl.style.left = Math.max(4, event.clientX - tipEl.offsetWidth / 2) + "px";
         tipEl.style.top = Math.max(4, event.clientY - tipEl.offsetHeight - 14) + "px";
       });
-      svg.addEventListener("mouseleave", hideTip);
+      svg.addEventListener("mouseleave", () => { hideTip(); limparLinks(); hoverKey = ""; });
 
       const onDocPointer = (event) => {
         if (pop && !pop.contains(event.target) && !event.target.closest(".gar-uf-city, .gar-dot")) closePop();
@@ -532,7 +651,7 @@
         window.addEventListener("pointerup", up);
       });
 
-      if (ufSelecionada) { dotsG.classList.add("is-in"); drawDots(); }
+      if (ufSelecionada) { dotsG.classList.add("is-in"); revsG.classList.add("is-in"); drawDots(); }
     }
 
     // -------------------------------------------------------------- seção B: preço x modelo x estado
