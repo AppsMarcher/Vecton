@@ -1586,6 +1586,7 @@ const reportsGarantiaAtivacoesModule = createReportsGarantiaAtivacoesModule({
   escapeHtml,
   resolveOrganizationId,
   fetchAllSupabaseRows,
+  fetchSupabaseRows,
   isSupabaseConfigured,
 });
 const { createComercialPecasGeoModule } = window.VECTON_COMERCIAL_PECAS_GEO;

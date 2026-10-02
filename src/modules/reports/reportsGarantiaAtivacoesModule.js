@@ -6,7 +6,7 @@
   // estoque estimado de revenda (vendas Marcher via comercial_faturado menos
   // ativacoes de garantia, por revenda x modelo).
   function createReportsGarantiaAtivacoesModule(deps) {
-    const { escapeHtml, resolveOrganizationId, fetchAllSupabaseRows, isSupabaseConfigured } = deps;
+    const { escapeHtml, resolveOrganizationId, fetchAllSupabaseRows, fetchSupabaseRows, isSupabaseConfigured } = deps;
 
     const REPORT_ID = "garantiaAtivacoes";
 
@@ -40,6 +40,9 @@
     let estoqueCleanup = null;
     let popoverCleanup = null;
     let ufSelecionada = null;
+    let mapView = null; // viewBox atual do mapa ({x,y,w,h}); null = Brasil inteiro
+    const geoByKey = new Map(); // "UF|cidadenormalizada" -> {lat, lng} (comercial_municipios_geo)
+    const geoUfsCarregadas = new Set();
     let estoqueRevendas = [];
     let estoqueFiltro = "all";
     let estoqueBusca = "";
@@ -76,6 +79,7 @@
         clientesById = new Map((clientes || []).map((c) => [c.id, c.descricao || ""]));
 
         const clienteIds = [...new Set(ativacoes.map((r) => r.cliente_id).filter(Boolean))];
+        await carregarGeoMunicipios();
         faturadoRows = [];
         if (clienteIds.length) {
           faturadoRows = (await fetchAllSupabaseRows(
@@ -91,6 +95,26 @@
       } finally {
         loading = false;
       }
+    }
+
+    // Coordenadas so das UFs que aparecem nas ativacoes (<= 853 municipios por UF,
+    // abaixo do limite de 1000 linhas do PostgREST). Falha aqui nao derruba o relatorio.
+    async function carregarGeoMunicipios() {
+      if (typeof fetchSupabaseRows !== "function") return;
+      const ufs = [...new Set(ativacoes.map((r) => r.uf).filter((uf) => uf && uf !== "EX"))]
+        .filter((uf) => !geoUfsCarregadas.has(uf));
+      await Promise.all(ufs.map(async (uf) => {
+        try {
+          const rows = await fetchSupabaseRows("comercial_municipios_geo", `uf=eq.${uf}&select=municipio,uf,lat,lng&limit=1000`);
+          (rows || []).forEach((m) => {
+            if (m.lat == null || m.lng == null) return;
+            geoByKey.set(geoKey(m.uf, m.municipio), { lat: Number(m.lat), lng: Number(m.lng) });
+          });
+          geoUfsCarregadas.add(uf);
+        } catch (error) {
+          console.error("Falha ao carregar coordenadas dos municípios", uf, error);
+        }
+      }));
     }
 
     function recalcularVendas() {
@@ -165,6 +189,14 @@
 
     // -------------------------------------------------------------- seção A: heatmap
 
+    function fullView() {
+      return { x: 0, y: 0, w: VW, h: VH };
+    }
+
+    function viewBoxAttr(v) {
+      return `${v.x.toFixed(2)} ${v.y.toFixed(2)} ${v.w.toFixed(2)} ${v.h.toFixed(2)}`;
+    }
+
     function renderUfMap() {
       const counts = new Map();
       ativacoes.forEach((r) => { if (r.uf) counts.set(r.uf, (counts.get(r.uf) || 0) + 1); });
@@ -175,7 +207,7 @@
         if (!st.rings || !st.rings.length) return "";
         const count = counts.get(st.uf) || 0;
         const fill = window.VECTON_MAP_APPEARANCE.heat(count, max);
-        return `<path class="gar-map-state${st.uf === ufSelecionada ? " is-selected" : ""}" data-uf="${escapeHtml(st.uf)}" data-nome="${escapeHtml(st.nome)}" d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round"><title>${escapeHtml(st.nome)}: ${count} máquina(s) — clique para ver as cidades</title></path>`;
+        return `<path class="gar-map-state${st.uf === ufSelecionada ? " is-selected" : ""}" data-uf="${escapeHtml(st.uf)}" data-nome="${escapeHtml(st.nome)}" d="${statePath(st.rings)}" fill="${fill}" stroke="var(--theme-border, rgba(255,255,255,0.55))" stroke-width="0.9" stroke-linejoin="round" vector-effect="non-scaling-stroke"><title>${escapeHtml(st.nome)}: ${count} máquina(s) — clique para aproximar</title></path>`;
       }).join("");
 
       const legend = max > 0 ? `
@@ -192,10 +224,16 @@
         </div>
       ` : "";
 
+      const view = mapView || fullView();
       return `
         <div class="gar-uf-layout">
           <div class="gar-ufmap-wrap">
-            <svg viewBox="0 0 ${VW} ${VH}" class="gar-ufmap">${paths}</svg>
+            <div class="gar-zoom">
+              <button type="button" data-z="in" title="Aproximar">+</button>
+              <button type="button" data-z="reset" title="Início">⟳</button>
+              <button type="button" data-z="out" title="Afastar">−</button>
+            </div>
+            <svg viewBox="${viewBoxAttr(view)}" class="gar-ufmap${ufSelecionada ? " is-zoomed" : ""}">${paths}<g class="gar-dots"></g></svg>
             ${legend}
           </div>
           <aside class="gar-uf-side" id="gar-uf-side">${renderUfSide()}</aside>
@@ -213,10 +251,16 @@
       return (row.cidade || "").trim() || "—";
     }
 
+    function geoKey(uf, cidade) {
+      const nome = String(cidade || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+        .replace(/sant ana/g, "santana").replace(/[^a-z0-9]+/g, "");
+      return `${uf}|${nome}`;
+    }
+
     // Painel ao lado do mapa: cidades do estado clicado e quantidade de maquinas.
     function renderUfSide() {
       if (!ufSelecionada) {
-        return `<div class="gar-uf-empty">Clique em um estado do mapa para ver as cidades e a quantidade de máquinas.</div>`;
+        return `<div class="gar-uf-empty">Clique em um estado do mapa para aproximar e ver as cidades e a quantidade de máquinas.</div>`;
       }
       const nome = (BR.states || []).find((st) => st.uf === ufSelecionada)?.nome || ufSelecionada;
       const cidades = new Map();
@@ -242,49 +286,124 @@
       `;
     }
 
+    // Janela (viewBox) que enquadra o estado com folga, mantendo a proporcao do mapa.
+    function viewParaEstado(uf) {
+      const st = (BR.states || []).find((s) => s.uf === uf);
+      if (!st || !st.rings || !st.rings.length) return fullView();
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      st.rings.forEach((ring) => ring.forEach(([lo, la]) => {
+        const [x, y] = proj(lo, la);
+        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      }));
+      const ratio = VW / VH;
+      let w = Math.max((x1 - x0) * 1.35, (y1 - y0) * 1.35 * ratio, VW * 0.14);
+      w = Math.min(w, VW);
+      const h = w / ratio;
+      return { x: (x0 + x1) / 2 - w / 2, y: (y0 + y1) / 2 - h / 2, w, h };
+    }
+
     function bindUfExplorer(root) {
       if (popoverCleanup) { popoverCleanup(); popoverCleanup = null; }
       const layout = root.querySelector(".gar-uf-layout");
       const side = root.querySelector("#gar-uf-side");
-      if (!layout || !side) return;
+      const svg = layout?.querySelector(".gar-ufmap");
+      const dotsG = svg?.querySelector(".gar-dots");
+      if (!layout || !side || !svg || !dotsG) return;
+
       let pop = null;
+      let anim = 0;
+      let dragMoved = false;
+
       const closePop = () => {
         pop?.remove();
         pop = null;
-        side.querySelectorAll(".gar-uf-city.is-open").forEach((el) => el.classList.remove("is-open"));
+        layout.querySelectorAll(".gar-uf-city.is-open, .gar-dot.is-open").forEach((el) => el.classList.remove("is-open"));
       };
 
-      const onDocPointer = (event) => {
-        if (pop && !pop.contains(event.target) && !event.target.closest(".gar-uf-city, .gar-map-state")) closePop();
-      };
-      const onKey = (event) => { if (event.key === "Escape") closePop(); };
-      document.addEventListener("pointerdown", onDocPointer);
-      document.addEventListener("keydown", onKey);
-      popoverCleanup = () => {
-        closePop();
-        document.removeEventListener("pointerdown", onDocPointer);
-        document.removeEventListener("keydown", onKey);
+      const drawDots = () => {
+        dotsG.innerHTML = "";
+        if (!ufSelecionada) return;
+        const view = mapView || fullView();
+        const scale = svg.getBoundingClientRect().width / view.w || 1;
+        const porCidade = new Map();
+        ativacoes.forEach((r) => {
+          if (r.uf !== ufSelecionada) return;
+          const key = cidadeKey(r);
+          porCidade.set(key, (porCidade.get(key) || 0) + 1);
+        });
+        const circles = [];
+        [...porCidade.entries()].sort((a, b) => b[1] - a[1]).forEach(([cidade, n]) => {
+          const geo = geoByKey.get(geoKey(ufSelecionada, cidade));
+          if (!geo) return;
+          const [cx, cy] = proj(geo.lng, geo.lat);
+          const r = (5 + 3.2 * Math.sqrt(n)) / scale;
+          circles.push(`<circle class="gar-dot" data-city="${escapeHtml(cidade)}" cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${r.toFixed(2)}" stroke-width="${(1.5 / scale).toFixed(3)}"><title>${escapeHtml(cidade)}: ${n} máquina(s)</title></circle>`);
+        });
+        dotsG.innerHTML = circles.join("");
+        requestAnimationFrame(() => dotsG.classList.add("is-in"));
       };
 
-      layout.querySelector(".gar-ufmap")?.addEventListener("click", (event) => {
-        const path = event.target.closest(".gar-map-state");
-        if (!path) return;
-        ufSelecionada = path.dataset.uf;
+      const animateTo = (target, onDone) => {
+        cancelAnimationFrame(anim);
+        const from = mapView || fullView();
+        const t0 = performance.now();
+        const dur = 420;
+        const step = (now) => {
+          const p = Math.min(1, (now - t0) / dur);
+          const e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+          const v = {
+            x: from.x + (target.x - from.x) * e,
+            y: from.y + (target.y - from.y) * e,
+            w: from.w + (target.w - from.w) * e,
+            h: from.h + (target.h - from.h) * e
+          };
+          svg.setAttribute("viewBox", viewBoxAttr(v));
+          if (p < 1) anim = requestAnimationFrame(step);
+          else { mapView = target; onDone?.(); }
+        };
+        anim = requestAnimationFrame(step);
+      };
+
+      const selecionarUf = (uf) => {
+        ufSelecionada = uf;
         closePop();
-        layout.querySelectorAll(".gar-map-state").forEach((el) => el.classList.toggle("is-selected", el === path));
+        dotsG.classList.remove("is-in");
+        dotsG.innerHTML = "";
+        svg.classList.add("is-zoomed");
+        layout.querySelectorAll(".gar-map-state").forEach((el) => el.classList.toggle("is-selected", el.dataset.uf === uf));
         side.innerHTML = renderUfSide();
-      });
+        animateTo(viewParaEstado(uf), drawDots);
+      };
 
-      side.addEventListener("click", (event) => {
-        const btn = event.target.closest(".gar-uf-city");
-        if (!btn) return;
-        const cidade = btn.dataset.city;
+      const resetar = () => {
+        ufSelecionada = null;
+        closePop();
+        dotsG.classList.remove("is-in");
+        dotsG.innerHTML = "";
+        svg.classList.remove("is-zoomed");
+        layout.querySelectorAll(".gar-map-state").forEach((el) => el.classList.remove("is-selected"));
+        side.innerHTML = renderUfSide();
+        animateTo(fullView(), () => { mapView = null; });
+      };
+
+      const zoomManual = (fator) => {
+        const v = mapView || fullView();
+        const w = Math.min(VW, Math.max(VW * 0.05, v.w * fator));
+        const h = w * VH / VW;
+        const alvo = { x: v.x + v.w / 2 - w / 2, y: v.y + v.h / 2 - h / 2, w, h };
+        closePop();
+        dotsG.classList.remove("is-in");
+        animateTo(alvo, drawDots);
+      };
+
+      const abrirCidade = (cidade, anchor) => {
         const itens = ativacoes
           .filter((r) => r.uf === ufSelecionada && cidadeKey(r) === cidade)
           .sort((a, b) => String(b.cadastrado_em || "").localeCompare(String(a.cadastrado_em || "")));
 
         closePop();
-        btn.classList.add("is-open");
+        anchor.classList.add("is-open");
+        side.querySelectorAll(".gar-uf-city").forEach((el) => el.classList.toggle("is-open", el.dataset.city === cidade));
         pop = document.createElement("div");
         pop.className = "gar-city-pop";
         pop.innerHTML = `
@@ -315,13 +434,69 @@
 
         const box = layout.getBoundingClientRect();
         const sideBox = side.getBoundingClientRect();
-        const btnBox = btn.getBoundingClientRect();
+        const anchorBox = anchor.getBoundingClientRect();
         const width = Math.min(pop.offsetWidth, box.width);
         const left = Math.max(0, sideBox.left - box.left - width - 12);
-        const top = Math.max(0, Math.min(btnBox.top - box.top - 8, box.height - pop.offsetHeight));
+        const top = Math.max(0, Math.min(anchorBox.top - box.top - 8, box.height - pop.offsetHeight));
         pop.style.left = `${left}px`;
         pop.style.top = `${top}px`;
+      };
+
+      const onDocPointer = (event) => {
+        if (pop && !pop.contains(event.target) && !event.target.closest(".gar-uf-city, .gar-dot")) closePop();
+      };
+      const onKey = (event) => { if (event.key === "Escape") closePop(); };
+      document.addEventListener("pointerdown", onDocPointer);
+      document.addEventListener("keydown", onKey);
+      popoverCleanup = () => {
+        cancelAnimationFrame(anim);
+        closePop();
+        document.removeEventListener("pointerdown", onDocPointer);
+        document.removeEventListener("keydown", onKey);
+      };
+
+      svg.addEventListener("click", (event) => {
+        if (dragMoved) { dragMoved = false; return; }
+        const dot = event.target.closest(".gar-dot");
+        if (dot) { abrirCidade(dot.dataset.city, dot); return; }
+        const path = event.target.closest(".gar-map-state");
+        if (path && path.dataset.uf !== ufSelecionada) selecionarUf(path.dataset.uf);
       });
+      layout.querySelector(".gar-zoom")?.addEventListener("click", (event) => {
+        const btn = event.target.closest("button[data-z]");
+        if (!btn) return;
+        if (btn.dataset.z === "in") zoomManual(0.8);
+        else if (btn.dataset.z === "out") zoomManual(1.25);
+        else resetar();
+      });
+      side.addEventListener("click", (event) => {
+        const btn = event.target.closest(".gar-uf-city");
+        if (btn) abrirCidade(btn.dataset.city, btn);
+      });
+
+      // Arrastar para mover o mapa quando aproximado.
+      svg.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0 || !mapView || mapView.w >= VW - 0.5) return;
+        const start = { x: event.clientX, y: event.clientY, view: { ...mapView } };
+        const pxW = svg.getBoundingClientRect().width || 1;
+        const move = (ev) => {
+          const dx = ev.clientX - start.x, dy = ev.clientY - start.y;
+          if (Math.abs(dx) + Math.abs(dy) > 4) dragMoved = true;
+          if (!dragMoved) return;
+          const k = start.view.w / pxW;
+          mapView = { ...start.view, x: start.view.x - dx * k, y: start.view.y - dy * k };
+          svg.setAttribute("viewBox", viewBoxAttr(mapView));
+        };
+        const up = () => {
+          window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", up);
+          setTimeout(() => { dragMoved = false; }, 0);
+        };
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", up);
+      });
+
+      if (ufSelecionada) { dotsG.classList.add("is-in"); drawDots(); }
     }
 
     // -------------------------------------------------------------- seção B: preço x modelo x estado

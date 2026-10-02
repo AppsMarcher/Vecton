@@ -12535,6 +12535,18 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 }
 .gar-uf-layout { position: relative; display: grid; grid-template-columns: minmax(0, 560px) minmax(240px, 340px); gap: 28px; justify-content: start; align-items: start; }
 .gar-uf-layout .gar-ufmap-wrap { align-items: flex-start; }
+.gar-ufmap-wrap .gar-zoom { position: absolute; top: 12px; left: 12px; z-index: 5; display: flex; flex-direction: column; gap: 5px; background: var(--theme-surface, var(--panel)); border: 1px solid var(--line); border-radius: 10px; padding: 5px; }
+.gar-zoom button { width: 26px; height: 26px; border: none; border-radius: 7px; background: var(--theme-surface-raised, var(--panel-alt)); color: var(--text); font-size: 14px; cursor: pointer; }
+.gar-zoom button:hover { background: var(--panel-alt); }
+.gar-ufmap { touch-action: none; }
+.gar-ufmap .gar-map-state { transition: opacity .35s ease; }
+.gar-ufmap.is-zoomed .gar-map-state:not(.is-selected) { opacity: .14; }
+.gar-ufmap.is-zoomed .gar-map-state:not(.is-selected):hover { opacity: .4; }
+.gar-ufmap.is-zoomed .gar-map-state.is-selected { opacity: 1; }
+.gar-dots { opacity: 0; transition: opacity .3s ease; }
+.gar-dots.is-in { opacity: 1; }
+.gar-dot { fill: #f59e0b; fill-opacity: .88; stroke: #fff; cursor: pointer; transition: fill-opacity .12s; }
+.gar-dot:hover, .gar-dot.is-open { fill-opacity: 1; fill: #fbbf24; }
 .gar-map-state.is-selected { stroke: var(--blue, #3b82f6); stroke-width: 2; }
 .gar-uf-side { border: 1px solid var(--line); border-radius: 12px; background: var(--panel-alt); min-height: 120px; max-height: 520px; display: flex; flex-direction: column; overflow: hidden; }
 .gar-uf-side-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 11px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -12553,6 +12565,8 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .gar-city-table th, .gar-city-table td, .gar-city-table th:not(:first-child), .gar-city-table td:not(:first-child) { text-align: left; }
 .gar-city-table th:last-child, .gar-city-table td:last-child { text-align: right; }
 .gar-city-valor { font-weight: 600; }
+.gar-city-table th { background: transparent !important; }
+.gar-city-table td { border-bottom: 0; }
 @media (max-width: 900px) {
   .gar-uf-layout { grid-template-columns: minmax(0, 1fr); }
 }
