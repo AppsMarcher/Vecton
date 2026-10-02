@@ -558,6 +558,26 @@
       const tipEl = getMapTip();
       const hideTip = () => { tipEl.style.display = "none"; };
       const linhaTip = (label, value, strong) => `<span style="display:flex;justify-content:space-between;gap:16px"><span style="font-size:0.62rem;color:var(--theme-ink-secondary, #a1a7b3)">${escapeHtml(label)}</span><span style="font-size:0.72rem;font-weight:${strong ? 700 : 600};color:${strong ? "var(--theme-ink, #fff)" : "var(--theme-ink-secondary, #a1a7b3)"}">${escapeHtml(value)}</span></span>`;
+      // O tooltip nunca cobre o mapa: fica ao lado direito da area do mapa (alinhado a altura
+      // do mouse); sem espaco a direita vai para a esquerda e, por fim, para baixo.
+      const posicionarTip = (event) => {
+        const area = svg.getBoundingClientRect();
+        const w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+        const vw = window.innerWidth, vh = window.innerHeight;
+        const folga = 14;
+        let x, y;
+        if (area.right + folga + w <= vw - 8) x = area.right + folga;
+        else if (area.left - folga - w >= 8) x = area.left - folga - w;
+        else x = Math.min(Math.max(8, event.clientX - w / 2), vw - w - 8);
+        if (x === area.right + folga || x === area.left - folga - w) {
+          y = Math.min(Math.max(event.clientY - h / 2, area.top), Math.max(area.top, area.bottom - h));
+        } else {
+          y = area.bottom + 8;
+        }
+        y = Math.min(Math.max(8, y), vh - h - 8);
+        tipEl.style.left = x + "px";
+        tipEl.style.top = y + "px";
+      };
       let hoverKey = "";
       svg.addEventListener("mousemove", (event) => {
         const dot = event.target.closest(".gar-dot");
@@ -590,8 +610,7 @@
         }
         tipEl.innerHTML = html;
         tipEl.style.display = "block";
-        tipEl.style.left = Math.max(4, event.clientX - tipEl.offsetWidth / 2) + "px";
-        tipEl.style.top = Math.max(4, event.clientY - tipEl.offsetHeight - 14) + "px";
+        posicionarTip(event);
       });
       svg.addEventListener("mouseleave", () => { hideTip(); limparLinks(); hoverKey = ""; });
 
