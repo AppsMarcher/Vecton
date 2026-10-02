@@ -30,6 +30,8 @@
     let ativacoes = [];
     let produtosById = new Map();
     let clientesById = new Map();
+    let grupoPorCliente = new Map(); // cliente_id -> grupo da revenda (cadastros duplicados/filiais juntos)
+    const grupoNome = new Map(); // grupo -> nome exibido
     let vendasPorClienteModelo = new Map(); // "clienteId|nomeReduzido" -> quantidade (no periodo escolhido)
     let faturadoRows = []; // linhas cruas de comercial_faturado das revendas com ativacao
     // Vendas do estoque estimado acumulam do 1o dia do mes escolhido ate hoje.
@@ -69,7 +71,7 @@
         const [ativacoesRows, produtos, clientes] = await Promise.all([
           fetchAllSupabaseRows(
             "garantia_ativacoes",
-            `organization_id=eq.${org}&select=id,numero,status,produto_raw,modelo_normalizado,produto_id,revenda_raw,cliente_id,cliente_final,vendedor_revenda,uf,cidade,nf_valor_unitario,nf_valor_total,nf_emissao,cadastrado_em`
+            `organization_id=eq.${org}&select=id,numero,status,produto_raw,modelo_normalizado,produto_id,revenda_raw,cliente_id,cliente_final,vendedor_revenda,uf,cidade,nf_valor_unitario,nf_valor_total,nf_quantidade,nf_emissao,cadastrado_em`
           ),
           fetchAllSupabaseRows("comercial_produtos", `organization_id=eq.${org}&select=id,nome_reduzido`),
           fetchAllSupabaseRows("comercial_clientes", `organization_id=eq.${org}&select=id,descricao,uf,codigo_ibge`)
@@ -79,15 +81,22 @@
         produtosById = new Map((produtos || []).map((p) => [p.id, p.nome_reduzido || ""]));
         clientesById = new Map((clientes || []).map((c) => [c.id, c.descricao || ""]));
 
+        grupoPorCliente = new Map((clientes || []).map((c) => [c.id, grupoDaRevenda(c.descricao) || c.id]));
         const clienteIds = [...new Set(ativacoes.map((r) => r.cliente_id).filter(Boolean))];
+        const gruposUsados = new Set(clienteIds.map((id) => grupoPorCliente.get(id)));
+        clienteIds.forEach((id) => { if (!grupoNome.has(grupoPorCliente.get(id))) grupoNome.set(grupoPorCliente.get(id), clientesById.get(id) || ""); });
+        // Todos os cadastros dos grupos usados (nao so o ligado a ativacao), em blocos para nao estourar a URL.
+        const idsVendas = [...grupoPorCliente.entries()].filter(([, g]) => gruposUsados.has(g)).map(([id]) => id);
         await carregarGeoMunicipios();
         await carregarGeoRevendas(clientes || []);
         faturadoRows = [];
-        if (clienteIds.length) {
-          faturadoRows = (await fetchAllSupabaseRows(
+        for (let i = 0; i < idsVendas.length; i += 40) {
+          const bloco = idsVendas.slice(i, i + 40);
+          const parte = await fetchAllSupabaseRows(
             "comercial_faturado",
-            `organization_id=eq.${org}&cliente_id=in.(${clienteIds.join(",")})&select=id,cliente_id,produto_id,quantidade,entry_date`
-          )) || [];
+            `organization_id=eq.${org}&cliente_id=in.(${bloco.join(",")})&select=id,cliente_id,produto_id,quantidade,entry_date`
+          );
+          faturadoRows.push(...(parte || []));
         }
         recalcularVendas();
         dataLoaded = true;
@@ -147,6 +156,14 @@
       }
     }
 
+    // A mesma revenda pode ter varios cadastros (filiais, codigos duplicados): as vendas ficam
+    // num e a ativacao e ligada a outro. Agrupa pelo inicio do nome normalizado (18 caracteres).
+    function grupoDaRevenda(descricao) {
+      const nome = String(descricao || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase()
+        .replace(/[^A-Z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+      return nome.slice(0, 18).trim();
+    }
+
     function recalcularVendas() {
       vendasPorClienteModelo = new Map();
       const desde = `${estoqueDesde.year}-${String(estoqueDesde.month).padStart(2, "0")}-01`;
@@ -154,7 +171,7 @@
         if (String(row.entry_date || "") < desde) return;
         const nomeReduzido = produtosById.get(row.produto_id);
         if (!nomeReduzido) return;
-        const key = `${row.cliente_id}|${nomeReduzido.toUpperCase()}`;
+        const key = `${grupoPorCliente.get(row.cliente_id) || row.cliente_id}|${nomeReduzido.toUpperCase()}`;
         vendasPorClienteModelo.set(key, (vendasPorClienteModelo.get(key) || 0) + Number(row.quantidade || 0));
       });
     }
@@ -190,7 +207,7 @@
 
       root.innerHTML = `
         <div class="gar-summary-bar">
-          <span><strong>${ativacoes.length}</strong> ativações carregadas</span>
+          <span><strong>${fmtQtd(ativacoes.reduce((acc, r) => acc + qtd(r), 0))}</strong> ativações carregadas</span>
           <span><strong>${new Set(ativacoes.map((r) => r.revenda_raw).filter(Boolean)).size}</strong> revendas distintas</span>
           <span><strong>${new Set(ativacoes.map((r) => r.uf).filter(Boolean)).size}</strong> estados</span>
         </div>
@@ -219,6 +236,16 @@
 
     // -------------------------------------------------------------- seção A: heatmap
 
+    // Quantidade de ativacoes = "Detalhes - Nota fiscal - Quantidade" (nf_quantidade); sem valor conta 0.
+    function qtd(row) {
+      const n = Number(row?.nf_quantidade);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function fmtQtd(n) {
+      return Number(n).toLocaleString("pt-BR", { maximumFractionDigits: 3 });
+    }
+
     function fullView() {
       return { x: 0, y: 0, w: VW, h: VH };
     }
@@ -229,7 +256,7 @@
 
     function renderUfMap() {
       const counts = new Map();
-      ativacoes.forEach((r) => { if (r.uf) counts.set(r.uf, (counts.get(r.uf) || 0) + 1); });
+      ativacoes.forEach((r) => { if (r.uf) counts.set(r.uf, (counts.get(r.uf) || 0) + qtd(r)); });
       const values = [...counts.values()];
       const max = values.length ? Math.max(...values) : 0;
       const cidadesPorUf = new Map();
@@ -303,7 +330,7 @@
       ativacoes.forEach((r) => {
         if (r.uf !== ufSelecionada) return;
         const key = cidadeKey(r);
-        cidades.set(key, (cidades.get(key) || 0) + 1);
+        cidades.set(key, (cidades.get(key) || 0) + qtd(r));
       });
       const lista = [...cidades.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"));
       const total = lista.reduce((acc, [, n]) => acc + n, 0);
@@ -388,16 +415,16 @@
         ativacoes.forEach((r) => {
           if (r.uf !== ufSelecionada) return;
           const key = cidadeKey(r);
-          porCidade.set(key, (porCidade.get(key) || 0) + 1);
+          porCidade.set(key, (porCidade.get(key) || 0) + qtd(r));
           if (!r.cliente_id) return;
           if (!cityRevs.has(key)) cityRevs.set(key, new Map());
           const cr = cityRevs.get(key);
           const cur = cr.get(r.cliente_id) || { nome: r.revenda_raw || "", n: 0 };
-          cur.n += 1;
+          cur.n += qtd(r);
           cr.set(r.cliente_id, cur);
           if (!revCities.has(r.cliente_id)) revCities.set(r.cliente_id, new Map());
           const rc = revCities.get(r.cliente_id);
-          rc.set(key, (rc.get(key) || 0) + 1);
+          rc.set(key, (rc.get(key) || 0) + qtd(r));
           if (!revNomes.has(r.cliente_id)) revNomes.set(r.cliente_id, r.revenda_raw || "");
         });
 
@@ -526,7 +553,7 @@
         pop.innerHTML = `
           <div class="gar-popover-head">
             <strong>${escapeHtml(cidade)}</strong>
-            <span>${ufSelecionada} · ${itens.length} máquina(s)</span>
+            <span>${ufSelecionada} · ${fmtQtd(itens.reduce((acc, r) => acc + qtd(r), 0))} máquina(s)</span>
             <button type="button" class="gar-popover-close" aria-label="Fechar">×</button>
           </div>
           <div class="gar-city-table-wrap">
@@ -854,8 +881,8 @@
         if (r.revenda_raw && !r.cliente_id) semRevenda.push(r);
         if (r.produto_raw && !r.modelo_normalizado) semProduto.push(r);
         if (!r.cliente_id || !r.modelo_normalizado) return;
-        const key = `${r.cliente_id}|${r.modelo_normalizado.toUpperCase()}`;
-        ativadoPorChave.set(key, (ativadoPorChave.get(key) || 0) + 1);
+        const key = `${grupoPorCliente.get(r.cliente_id) || r.cliente_id}|${r.modelo_normalizado.toUpperCase()}`;
+        ativadoPorChave.set(key, (ativadoPorChave.get(key) || 0) + qtd(r));
       });
 
       const chaves = new Set([...ativadoPorChave.keys(), ...vendasPorClienteModelo.keys()]);
@@ -865,7 +892,7 @@
         const vendido = vendasPorClienteModelo.get(key) || 0;
         const ativado = ativadoPorChave.get(key) || 0;
         if (!porRevenda.has(clienteId)) {
-          porRevenda.set(clienteId, { revenda: clientesById.get(clienteId) || clienteId, vendido: 0, ativado: 0, modelos: [] });
+          porRevenda.set(clienteId, { revenda: grupoNome.get(clienteId) || clientesById.get(clienteId) || clienteId, vendido: 0, ativado: 0, modelos: [] });
         }
         const rev = porRevenda.get(clienteId);
         rev.vendido += vendido;
