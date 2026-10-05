@@ -12485,7 +12485,6 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 #fc-plan-status[role="alert"] { color: var(--theme-ink-red, #f87171); }
 
 /* Relatório "Ativações de Garantia" (reportsGarantiaAtivacoesModule.js) — CSS próprio, prefixo gar-. */
-.gar-loading-space { min-height: 320px; }
 .gar-summary-bar { display: flex; flex-wrap: wrap; gap: 18px; margin-bottom: 14px; font-size: .82rem; color: var(--text-faint); }
 .gar-summary-bar strong { color: var(--text); font-size: 1rem; }
 .gar-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

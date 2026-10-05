@@ -213,22 +213,20 @@
       hostContainer = container;
       container.innerHTML = `<div id="gar-root" class="gar-root"></div>`;
       const root = container.querySelector("#gar-root");
+      // Sempre recarrega ao abrir (a carga pode ter mudado os dados); enquanto isso mostra o que
+      // ja estava em memoria. A carga inicia antes do 1o render para ele ja cair no skeleton.
+      const carga = loadData();
       render(root);
-      // Sempre recarrega ao abrir (a carga pode ter mudado os dados); enquanto
-      // isso mostra o que ja estava em memoria.
-      // Primeira carga: mesmo overlay de carregamento do Dashboard (showAppLoading, em app.js).
-      const mostrarOverlay = !dataLoaded && typeof window.showAppLoading === "function";
-      if (mostrarOverlay) window.showAppLoading();
-      void loadData().then(() => { if (root.isConnected !== false) render(root); })
-        .finally(() => { if (mostrarOverlay && typeof window.hideAppLoading === "function") window.hideAppLoading(); });
+      void carga.then(() => { if (root.isConnected !== false) render(root); });
       return true;
     }
 
     function render(root) {
       if (!root) return;
       if (loading && !dataLoaded) {
-        // O aviso de carregamento e o overlay do app (blur + spinner), o mesmo do Dashboard.
-        root.innerHTML = `<div class="gar-loading-space" aria-busy="true"></div>`;
+        // Mesmo efeito de carregamento do DRE: skeleton com barras pulsantes, restrito a area do relatorio.
+        const skeleton = typeof window.vpSkeletonTable === "function" ? window.vpSkeletonTable(10, 6) : "";
+        root.innerHTML = `<div class="content-card gar-card gar-card-wide" aria-busy="true"><div class="reports-table-wrap">${skeleton}</div></div>`;
         return;
       }
       if (lastError) {
