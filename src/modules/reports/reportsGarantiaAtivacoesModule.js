@@ -47,6 +47,8 @@
     const geoUfsCarregadas = new Set();
     let revendaInfo = new Map(); // cliente_id -> { lat, lng, cidade, uf } (cadastro da revenda + comercial_municipios_geo)
     let estoqueRevendas = [];
+    let localPorGrupo = new Map(); // grupo da revenda -> "UF - Cidade"
+    let clientesLoc = new Map(); // cliente_id -> { uf, cidade } do cadastro
     let estoqueFiltro = "all";
     let estoqueBusca = "";
     let hostContainer = null;
@@ -74,13 +76,14 @@
             `organization_id=eq.${org}&select=id,numero,status,produto_raw,modelo_normalizado,produto_id,revenda_raw,cliente_id,cliente_final,vendedor_revenda,uf,cidade,nf_valor_unitario,nf_valor_total,nf_quantidade,nf_emissao,cadastrado_em`
           ),
           fetchAllSupabaseRows("comercial_produtos", `organization_id=eq.${org}&select=id,nome_reduzido`),
-          fetchAllSupabaseRows("comercial_clientes", `organization_id=eq.${org}&select=id,descricao,uf,codigo_ibge`)
+          fetchAllSupabaseRows("comercial_clientes", `organization_id=eq.${org}&select=id,descricao,uf,cidade,codigo_ibge`)
         ]);
 
         ativacoes = ativacoesRows || [];
         produtosById = new Map((produtos || []).map((p) => [p.id, p.nome_reduzido || ""]));
         clientesById = new Map((clientes || []).map((c) => [c.id, c.descricao || ""]));
 
+        clientesLoc = new Map((clientes || []).map((c) => [c.id, { uf: c.uf || "", cidade: c.cidade || "" }]));
         grupoPorCliente = new Map((clientes || []).map((c) => [c.id, grupoDaRevenda(c.descricao) || c.id]));
         const clienteIds = [...new Set(ativacoes.map((r) => r.cliente_id).filter(Boolean))];
         const gruposUsados = new Set(clienteIds.map((id) => grupoPorCliente.get(id)));
@@ -88,7 +91,7 @@
         // Todos os cadastros dos grupos usados (nao so o ligado a ativacao), em blocos para nao estourar a URL.
         const idsVendas = [...grupoPorCliente.entries()].filter(([, g]) => gruposUsados.has(g)).map(([id]) => id);
         await carregarGeoMunicipios();
-        await carregarGeoRevendas(clientes || []);
+        await carregarGeoRevendas(clientes || [], idsVendas);
         faturadoRows = [];
         for (let i = 0; i < idsVendas.length; i += 40) {
           const bloco = idsVendas.slice(i, i + 40);
@@ -98,6 +101,7 @@
           );
           faturadoRows.push(...(parte || []));
         }
+        calcularLocalPorGrupo(clienteIds, gruposUsados);
         recalcularVendas();
         dataLoaded = true;
       } catch (error) {
@@ -129,10 +133,10 @@
     }
 
     // Localizacao das revendas: comercial_clientes.codigo_ibge -> comercial_municipios_geo.
-    async function carregarGeoRevendas(clientes) {
+    async function carregarGeoRevendas(clientes, idsExtra = []) {
       revendaInfo = new Map();
       if (typeof fetchSupabaseRows !== "function") return;
-      const ids = new Set(ativacoes.map((r) => r.cliente_id).filter(Boolean));
+      const ids = new Set([...ativacoes.map((r) => r.cliente_id).filter(Boolean), ...idsExtra]);
       const porIbge = new Map(); // codigo_ibge -> [cliente_id]
       clientes.forEach((c) => {
         if (!ids.has(c.id) || !c.codigo_ibge) return;
@@ -162,6 +166,32 @@
       const nome = String(descricao || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase()
         .replace(/[^A-Z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
       return nome.slice(0, 18).trim();
+    }
+
+    function tituloCidade(texto) {
+      return String(texto || "").toLowerCase().replace(/(^|[\s-])([a-zà-ú])/g, (m, sep, ch) => sep + ch.toUpperCase());
+    }
+
+    function localDoCliente(id) {
+      const geo = revendaInfo.get(id);
+      if (geo) return `${geo.uf} - ${geo.cidade}`;
+      const loc = clientesLoc.get(id);
+      if (!loc || (!loc.uf && !loc.cidade)) return "";
+      return [loc.uf, tituloCidade(loc.cidade)].filter(Boolean).join(" - ");
+    }
+
+    // Local exibido da revenda: o cadastro do grupo com mais faturamento (a matriz que vende);
+    // sem faturamento, o cadastro ligado as ativacoes.
+    function calcularLocalPorGrupo(clienteIds, gruposUsados) {
+      localPorGrupo = new Map();
+      const vendidoPorCliente = new Map();
+      faturadoRows.forEach((row) => vendidoPorCliente.set(row.cliente_id, (vendidoPorCliente.get(row.cliente_id) || 0) + Number(row.quantidade || 0)));
+      gruposUsados.forEach((grupo) => {
+        const membros = [...grupoPorCliente.entries()].filter(([, g]) => g === grupo).map(([id]) => id);
+        const melhor = membros.sort((a, b) => (vendidoPorCliente.get(b) || 0) - (vendidoPorCliente.get(a) || 0))[0];
+        const ligado = clienteIds.find((id) => grupoPorCliente.get(id) === grupo);
+        localPorGrupo.set(grupo, localDoCliente((vendidoPorCliente.get(melhor) || 0) > 0 ? melhor : ligado));
+      });
     }
 
     function recalcularVendas() {
@@ -783,6 +813,7 @@
           <div class="gar-est-item">
             <button type="button" class="gar-est-row" data-est-toggle="${idx}" aria-expanded="false">
               <span class="gar-est-name" title="${escapeHtml(r.revenda)}">${escapeHtml(r.revenda)}</span>
+              <span class="gar-est-local" title="${escapeHtml(r.local)}"><small>UF - Cidade</small>${escapeHtml(r.local || "—")}</span>
               <span class="gar-est-num"><small>Vendido</small>${r.vendido}</span>
               <span class="gar-est-num"><small>Ativado</small>${r.ativado}</span>
               <span class="gar-est-bar" title="${pct}% das máquinas vendidas já ativadas"><i style="width:${pct}%"></i></span>
@@ -892,7 +923,7 @@
         const vendido = vendasPorClienteModelo.get(key) || 0;
         const ativado = ativadoPorChave.get(key) || 0;
         if (!porRevenda.has(clienteId)) {
-          porRevenda.set(clienteId, { revenda: grupoNome.get(clienteId) || clientesById.get(clienteId) || clienteId, vendido: 0, ativado: 0, modelos: [] });
+          porRevenda.set(clienteId, { revenda: grupoNome.get(clienteId) || clientesById.get(clienteId) || clienteId, local: localPorGrupo.get(clienteId) || "", vendido: 0, ativado: 0, modelos: [] });
         }
         const rev = porRevenda.get(clienteId);
         rev.vendido += vendido;

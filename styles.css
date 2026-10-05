@@ -12515,8 +12515,10 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .gar-est-filters button.active { background: var(--panel-alt); color: var(--blue); }
 .gar-est-list { max-height: 520px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; }
 .gar-est-item + .gar-est-item { border-top: 1px solid var(--line); }
-.gar-est-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 70px 70px 120px 70px; align-items: center; gap: 14px; padding: 9px 14px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; font: inherit; }
+.gar-est-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 190px 70px 70px 120px 70px; align-items: center; gap: 14px; padding: 9px 14px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; font: inherit; }
 .gar-est-row:hover { background: var(--panel-alt); }
+.gar-est-local { display: grid; font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gar-est-local small { font-size: .62rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; }
 .gar-est-name { font-size: .84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gar-est-num { display: grid; justify-items: end; font-weight: 600; font-size: .9rem; }
 .gar-est-num small { font-size: .62rem; font-weight: 500; color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em; }
@@ -12531,6 +12533,7 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 @media (max-width: 760px) {
   .gar-est-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .gar-est-row { grid-template-columns: minmax(0, 1fr) 56px 56px 56px; }
+  .gar-est-local { display: none; }
   .gar-est-bar { display: none; }
 }
 .gar-uf-layout { position: relative; display: grid; grid-template-columns: minmax(0, 560px) minmax(240px, 340px); gap: 28px; justify-content: start; align-items: start; }
