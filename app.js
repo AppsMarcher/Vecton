@@ -2296,6 +2296,8 @@ function showAppLoading() {
 function hideAppLoading() {
   document.querySelector("#app-loading-overlay")?.classList.remove("visible");
 }
+window.showAppLoading = showAppLoading;
+window.hideAppLoading = hideAppLoading;
 
 function setupDreResizer() {
   setupWorkspaceResizer(dreWorkspace, dreResizer, "--dre-left-width");

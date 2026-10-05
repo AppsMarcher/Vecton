@@ -216,14 +216,19 @@
       render(root);
       // Sempre recarrega ao abrir (a carga pode ter mudado os dados); enquanto
       // isso mostra o que ja estava em memoria.
-      void loadData().then(() => { if (root.isConnected !== false) render(root); });
+      // Primeira carga: mesmo overlay de carregamento do Dashboard (showAppLoading, em app.js).
+      const mostrarOverlay = !dataLoaded && typeof window.showAppLoading === "function";
+      if (mostrarOverlay) window.showAppLoading();
+      void loadData().then(() => { if (root.isConnected !== false) render(root); })
+        .finally(() => { if (mostrarOverlay && typeof window.hideAppLoading === "function") window.hideAppLoading(); });
       return true;
     }
 
     function render(root) {
       if (!root) return;
       if (loading && !dataLoaded) {
-        root.innerHTML = `<div class="actuals-empty">Carregando ativações de garantia...</div>`;
+        // O aviso de carregamento e o overlay do app (blur + spinner), o mesmo do Dashboard.
+        root.innerHTML = `<div class="gar-loading-space" aria-busy="true"></div>`;
         return;
       }
       if (lastError) {
