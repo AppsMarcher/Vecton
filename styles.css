@@ -8585,9 +8585,21 @@ table th,
   text-align: left;
 }
 
-.rps-indicator-row:hover td,
-.rps-indicator-row:hover > th {
+.rps-indicator-row:hover td {
   background-color: rgba(79,124,255,.035);
+}
+
+/* A th é sticky: o realce do hover não pode trocar o fundo opaco por um
+   translúcido (deixava o texto da semana rolando vazar por baixo). Fica como
+   camada por cima da cor sólida. */
+.rps-indicator-row:hover > th {
+  background-image: linear-gradient(rgba(79,124,255,.035), rgba(79,124,255,.035));
+}
+
+.rps-indicator-row.is-calculated:hover > th {
+  background-image:
+    linear-gradient(rgba(79,124,255,.035), rgba(79,124,255,.035)),
+    linear-gradient(90deg, rgba(79,124,255,.075), var(--theme-surface, #0d0f13) 58%);
 }
 
 .rps-table td.is-focused,
