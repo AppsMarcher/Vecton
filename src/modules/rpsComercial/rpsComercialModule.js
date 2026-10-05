@@ -771,6 +771,8 @@
         .rpc-block-label { font-size:.68rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--rpc-faint); }
         .rpc-block-text { width:100%; min-height:70px; resize:vertical; padding:8px 10px; border-radius:8px; border:1px solid var(--rpc-line); background:var(--rpc-panel); color:var(--rpc-text); font-size:.82rem; line-height:1.4; }
         .rpc-block-text:focus { outline:none; border-color:var(--rpc-blue); }
+        .rpc-block-text[readonly] { resize:none; cursor:default; }
+        .rpc-block-text[readonly]:focus { border-color:var(--rpc-line); }
         .rpc-attachments { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-bottom:8px; }
         .rpc-attachments-list { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
         .rpc-attachment-item { padding:8px; border-radius:8px; border:1px solid var(--rpc-line); background:var(--theme-surface-tint, rgba(255,255,255,.03)); }
@@ -855,7 +857,7 @@
         <div class="rpc-block" data-area="${area.id}" data-block="${block.id}">
           <div class="rpc-block-head"><span class="rpc-block-label">${escapeHtml(block.label)}</span></div>
           ${readOnlyAttachments ? renderAttachmentsViewer(area, block, attachments) : renderAttachmentsStrip(area, block, attachments)}
-          <textarea class="rpc-block-text" data-area="${area.id}" data-block="${block.id}" placeholder="${escapeHtml(block.placeholder)}" rows="3">${escapeHtml(value)}</textarea>
+          <textarea class="rpc-block-text" data-area="${area.id}" data-block="${block.id}" placeholder="${readOnlyAttachments ? "" : escapeHtml(block.placeholder)}" rows="3"${readOnlyAttachments ? " readonly tabindex=\"-1\"" : ""}>${escapeHtml(value)}</textarea>
         </div>
       `;
     }
@@ -1144,6 +1146,7 @@
     // markup de bloco (.rpc-block-text + tiras de anexo) nas duas.
     function bindBlockInteractions(container) {
       container.querySelectorAll(".rpc-block-text").forEach((textarea) => {
+        if (state.presentation) return; // apresentação é somente leitura
         textarea.addEventListener("blur", async () => {
           const area = AREAS.find((a) => a.id === textarea.dataset.area);
           const block = BLOCKS.find((b) => b.id === textarea.dataset.block);
