@@ -1006,7 +1006,13 @@
         const atomicCards = [];
         Object.entries(r.terrs).forEach(([terr, t]) => {
           const g = (t.grao && !t.grao.orfao) ? t.grao : null;
-          const p = (t.pecuaria && !t.pecuaria.orfao) ? t.pecuaria : null;
+          // A RPC (251) nao trata como orfa a Pecuaria da coord Pecuaria, pra o
+          // detalhe ao vivo mostrar o card do gestor. O One Page Report nao tem
+          // slot pra esse card: segue a regra antiga (gestor = orfao, consolida
+          // no card da coordenacao e nao vira card de territorio).
+          const gestorPec = (l) => !!(l && l.coord === "Pecuária" && l.gestor && l.resp &&
+            l.resp.trim().toLowerCase() === l.gestor.trim().toLowerCase());
+          const p = (t.pecuaria && !t.pecuaria.orfao && !gestorPec(t.pecuaria)) ? t.pecuaria : null;
           if (!g && !p) return;
           if (g && p && g.resp !== p.resp) {
             atomicCards.push({ terr, resp: g.resp || "A definir", grao: g, pec: null, linhas: ["Grão"] });
