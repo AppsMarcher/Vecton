@@ -9508,7 +9508,11 @@ body.rps-carousel-open { overflow: hidden; }
 }
 
 .rps-indicator-row.is-calculated > th {
-  background: linear-gradient(90deg, rgba(79,124,255,.075), var(--theme-surface, #0d0f13) 58%);
+  /* O gradiente começa translúcido (rgba .075); sem uma cor sólida por baixo,
+     a coluna sticky deixava o texto da 1ª semana vazar por ela ao rolar. */
+  background:
+    linear-gradient(90deg, rgba(79,124,255,.075), var(--theme-surface, #0d0f13) 58%),
+    var(--theme-surface, #0d0f13);
 }
 
 .rps-spacer-row td {
