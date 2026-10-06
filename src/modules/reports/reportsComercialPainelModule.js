@@ -1010,8 +1010,11 @@
           // detalhe ao vivo mostrar o card do gestor. O One Page Report nao tem
           // slot pra esse card: segue a regra antiga (gestor = orfao, consolida
           // no card da coordenacao e nao vira card de territorio).
+          // Igualdade exata (sem acento/caixa): nao casa por primeiro nome, senao
+          // duas pessoas distintas com o mesmo primeiro nome se confundiriam.
+          const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
           const gestorPec = (l) => !!(l && l.coord === "Pecuária" && l.gestor && l.resp &&
-            l.resp.trim().toLowerCase() === l.gestor.trim().toLowerCase());
+            norm(l.resp) === norm(l.gestor));
           const p = (t.pecuaria && !t.pecuaria.orfao && !gestorPec(t.pecuaria)) ? t.pecuaria : null;
           if (!g && !p) return;
           if (g && p && g.resp !== p.resp) {
