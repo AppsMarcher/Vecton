@@ -3853,6 +3853,12 @@ thead .col-frozen-3 {
   color: var(--text-soft);
 }
 .reports-opex-table tr.opex-row-account:hover td { background: var(--theme-surface-tint, rgba(255,255,255,0.03)); }
+/* Colunas congeladas precisam de fundo opaco também no hover: a regra acima
+   (mesma especificidade do .col-frozen:hover) as deixava translúcidas e os
+   valores das colunas roladas vazavam por trás de Conta/Descritivo. */
+.reports-opex-table tbody tr.opex-row-account:hover td.col-frozen {
+  background: var(--theme-surface, #12192a);
+}
 .soc-drillable { cursor: pointer; }
 .soc-drillable:hover { background: rgba(79,124,255,0.08) !important; color: var(--blue) !important; }
 .opex-code { font-size: 10.5px; color: var(--text-faint); }

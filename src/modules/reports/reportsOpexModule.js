@@ -144,6 +144,17 @@
         }
       }
 
+      detailPanel.classList.add("dre-cmp-shell");
+      detailPanel.innerHTML = `
+        <div class="vp-source-bar dre-cmp-bar">
+          <div id="opex-bar-filter-slot"></div>
+          <span class="vp-source-label">Comparar com</span>
+          <select class="vp-source-sel" id="opex-real-cmp-sel"><option value="budget">Budget</option></select>
+        </div>
+        <div class="opex-report-wrap reports-table-wrap"><div id="opex-table-inner">${window.vpSkeletonTable()}</div></div>
+      `;
+      const tableInner = detailPanel.querySelector("#opex-table-inner");
+
       renderHeaderSlot({
         detailPanel,
         year,
@@ -153,16 +164,6 @@
         locked: mgmtLocked,
         partialMgmts
       });
-
-      detailPanel.classList.add("dre-cmp-shell");
-      detailPanel.innerHTML = `
-        <div class="vp-source-bar dre-cmp-bar">
-          <span class="vp-source-label">Comparar com</span>
-          <select class="vp-source-sel" id="opex-real-cmp-sel"><option value="budget">Budget</option></select>
-        </div>
-        <div class="opex-report-wrap reports-table-wrap"><div id="opex-table-inner">${window.vpSkeletonTable()}</div></div>
-      `;
-      const tableInner = detailPanel.querySelector("#opex-table-inner");
 
       populateOpexCompareSel(detailPanel, year).then(() => {
         const sel = detailPanel.querySelector("#opex-real-cmp-sel");
@@ -255,10 +256,17 @@
     }
 
     function renderHeaderSlot({ detailPanel, year, allOption, selectedMgmt, mgmtOptions, locked = false, partialMgmts }) {
-      const opexSlot = document.querySelector("#opex-gestao-slot");
+      // Gestão + Ocultar zeros ficam na barra "Comparar com" do painel (à
+      // esquerda dela), não mais no cabeçalho — o slot do header (compartilhado
+      // com Headcount) é escondido aqui.
+      const headerSlot = document.querySelector("#opex-gestao-slot");
+      if (headerSlot) {
+        headerSlot.hidden = true;
+        headerSlot.innerHTML = "";
+      }
+      const opexSlot = detailPanel.querySelector("#opex-bar-filter-slot");
       if (!opexSlot) return;
 
-      opexSlot.hidden = false;
       opexSlot.innerHTML = `
         <div class="opex-header-filter" style="display:flex;align-items:center;gap:10px">
           <select class="opex-filter-select" id="opex-mgmt-select-header" ${locked ? "disabled" : ""}>
