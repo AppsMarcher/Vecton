@@ -2438,19 +2438,25 @@ function isConsolidatedReport(reportId) {
 }
 
 const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo", "garantiaAtivacoes"];
+// Relatórios comerciais fixos que o perfil Comercial NÃO enxerga (Gestor/Admin continuam vendo).
+const COMERCIAL_EXCLUDED_REPORT_IDS = ["garantiaAtivacoes"];
 
 // Visibilidade do card no catálogo — modelo POR PAPEL (conforme tela Perfis de Acesso):
 //  • admin/super_admin: tudo
 //  • manager (Gestor): tudo, incluindo os relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS)
 //  • analyst (Analista): somente OPEX e Headcount por gestão/CC
-//  • comercial: allowlist fixa dos relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS)
+//  • comercial: allowlist fixa dos relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS),
+//    exceto Ativações de Garantia (COMERCIAL_EXCLUDED_REPORT_IDS)
 //  • extra_report_ids: concessão ADICIONAL, exceto para os relatórios
 //    comerciais fixos, que exigem um perfil que os autorize explicitamente
 // Com perfis combináveis, o resultado é a UNIÃO do que cada perfil marcado
 // libera (basta UM dos perfis da pessoa liberar o relatório).
 function roleCanSeeReport(role, reportId) {
   if (role === "super_admin" || role === "admin") return true;
-  if (role === "comercial") return String(reportId).startsWith("comercialRelatorio_") || CORE_COMMERCIAL_REPORT_IDS.includes(reportId);
+  if (role === "comercial") {
+    if (COMERCIAL_EXCLUDED_REPORT_IDS.includes(reportId)) return false;
+    return String(reportId).startsWith("comercialRelatorio_") || CORE_COMMERCIAL_REPORT_IDS.includes(reportId);
+  }
   if (role === "manager") return true;
   if (role === "analyst") return ["opexReal", "opexBudget", "headcountReal", "headcountBudget"].includes(reportId);
   return false; // rps_gestao e outros perfis sem tela de Relatórios própria
