@@ -87,7 +87,7 @@
       if (id === "comercial") {
         drillFlag = document.createElement("span");
         drillFlag.className = "ue-drill-flag";
-        drillFlag.style.cssText = "display:inline-flex;align-items:center;gap:6px;margin-left:auto;cursor:pointer";
+        drillFlag.style.cssText = "display:inline-flex;align-items:center;gap:6px;margin-left:14px;cursor:pointer";
         drillFlag.title = "Painel de Vendas: permite abrir o detalhe de NFs e Pedidos";
         const dcb = document.createElement("span");
         dcb.className = "access-checkbox" + (drillOn ? " access-checkbox-on" : "");
