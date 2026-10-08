@@ -68,29 +68,52 @@
       });
     }
 
-    function buildRoleRow(id, label, checked, onToggle) {
+    const CHECK_SVG = `<svg viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>`;
+
+    function buildRoleRow(id, label, checked, onToggle, drillOn = true) {
       const row = document.createElement("div");
       row.className = "access-row";
       const cb = document.createElement("span");
       cb.className = "access-checkbox" + (checked ? " access-checkbox-on" : "");
-      cb.innerHTML = checked
-        ? `<svg viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>`
-        : "";
+      cb.innerHTML = checked ? CHECK_SVG : "";
       cb.dataset.checked = checked ? "1" : "0";
       cb.style.cursor = "pointer";
-      cb.addEventListener("click", () => {
-        const on = cb.dataset.checked !== "1";
-        cb.dataset.checked = on ? "1" : "0";
-        cb.className = "access-checkbox" + (on ? " access-checkbox-on" : "");
-        cb.innerHTML = on
-          ? `<svg viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>`
-          : "";
-        onToggle?.();
-      });
       const lbl = document.createElement("span");
       lbl.className = "access-row-label";
       lbl.textContent = label;
       row.append(cb, lbl);
+      // Perfil Comercial: flag "Drilldown" (NFs e Pedidos do Painel de Vendas) ao lado.
+      let drillFlag = null;
+      if (id === "comercial") {
+        drillFlag = document.createElement("span");
+        drillFlag.className = "ue-drill-flag";
+        drillFlag.style.cssText = "display:inline-flex;align-items:center;gap:6px;margin-left:auto;cursor:pointer";
+        drillFlag.title = "Painel de Vendas: permite abrir o detalhe de NFs e Pedidos";
+        const dcb = document.createElement("span");
+        dcb.className = "access-checkbox" + (drillOn ? " access-checkbox-on" : "");
+        dcb.innerHTML = drillOn ? CHECK_SVG : "";
+        dcb.dataset.checked = drillOn ? "1" : "0";
+        const dlbl = document.createElement("span");
+        dlbl.className = "access-row-label";
+        dlbl.textContent = "Drilldown";
+        drillFlag.append(dcb, dlbl);
+        drillFlag.addEventListener("click", () => {
+          const on = dcb.dataset.checked !== "1";
+          dcb.dataset.checked = on ? "1" : "0";
+          dcb.className = "access-checkbox" + (on ? " access-checkbox-on" : "");
+          dcb.innerHTML = on ? CHECK_SVG : "";
+        });
+        drillFlag.style.display = checked ? "inline-flex" : "none";
+        row.append(drillFlag);
+      }
+      cb.addEventListener("click", () => {
+        const on = cb.dataset.checked !== "1";
+        cb.dataset.checked = on ? "1" : "0";
+        cb.className = "access-checkbox" + (on ? " access-checkbox-on" : "");
+        cb.innerHTML = on ? CHECK_SVG : "";
+        if (drillFlag) drillFlag.style.display = on ? "inline-flex" : "none";
+        onToggle?.();
+      });
       row.dataset.rowId = id;
       row.dataset.tree = "profileRole";
       return row;
@@ -100,11 +123,11 @@
     // Gestões etc. — ver makeTree/buildAccessRow abaixo), mas aqui toda linha
     // é clicável (sem conceito de linha "padrão"/travada) e o painel abre já
     // expandido, por ser o campo mais importante do formulário.
-    function buildProfileRolePicker(selectedRoles, onToggle) {
+    function buildProfileRolePicker(selectedRoles, onToggle, drillOn = true) {
       const selected = new Set(selectedRoles);
       const icon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>`;
       const section = makeTree("profileRole", icon, "Perfil de acesso", () =>
-        allowedRoleEntries().map(([val, label]) => buildRoleRow(val, label, selected.has(val), onToggle))
+        allowedRoleEntries().map(([val, label]) => buildRoleRow(val, label, selected.has(val), onToggle, drillOn))
       );
       section.classList.add("open"); // CSS já cuida do corpo/caret via .access-tree.open
       return section;
@@ -376,13 +399,6 @@
         <div class="ue-section" id="ue-role-section">
           <label class="ue-label">Perfil de acesso <span class="ue-label-hint">(pode marcar mais de um)</span></label>
         </div>
-        <div class="ue-section" id="ue-painel-drill-section">
-          <label class="ue-label">Painel de Vendas — detalhe de NFs e Pedidos <span class="ue-label-hint">(perfil Comercial)</span></label>
-          <select class="ue-select" id="ue-painel-drill">
-            <option value="com" ${(user.extra_report_ids || []).includes(PAINEL_SEM_DRILL_TOKEN) ? "" : "selected"}>Com drilldown</option>
-            <option value="sem" ${(user.extra_report_ids || []).includes(PAINEL_SEM_DRILL_TOKEN) ? "selected" : ""}>Sem drilldown</option>
-          </select>
-        </div>
         <div class="ue-section" id="ue-mgmt-section">
           <label class="ue-label">Gestão <span class="ue-label-hint">(Gestor / Analista)</span></label>
           <select class="ue-select" id="ue-mgmt">${mgmtOptions}</select>
@@ -416,10 +432,10 @@
         const roles = getSelectedRoles(panel);
         mgmtSection.style.display = roles.some((r) => ["manager", "analyst"].includes(r)) ? "" : "none";
         strategicModeSection.style.display = roles.includes("gestao_estrategica") ? "" : "none";
-        panel.querySelector("#ue-painel-drill-section").style.display = roles.includes("comercial") ? "" : "none";
         rebuildTrees(panel, user, pickPrimaryRole(roles), panel.querySelector("#ue-mgmt").value, roles);
       };
-      panel.querySelector("#ue-role-section").append(buildProfileRolePicker(currentRoles, updateFromRoles));
+      const drillOn = !(user.extra_report_ids || []).includes(PAINEL_SEM_DRILL_TOKEN);
+      panel.querySelector("#ue-role-section").append(buildProfileRolePicker(currentRoles, updateFromRoles, drillOn));
       panel.querySelector("#ue-mgmt").addEventListener("change", updateFromRoles);
       // append árvores como DOM
       const treeSection = panel.querySelector(".ue-section:last-child");
@@ -755,7 +771,7 @@
         const extraReportIds    = getExtras("report");
         // Flag (não é id de relatório): Comercial sem drilldown de NFs/Pedidos no
         // Painel de Vendas. Só vale com o perfil Comercial marcado.
-        if (selectedRoles.includes("comercial") && panel.querySelector("#ue-painel-drill")?.value === "sem") {
+        if (selectedRoles.includes("comercial") && panel.querySelector(".ue-drill-flag .access-checkbox")?.dataset.checked === "0") {
           extraReportIds.push(PAINEL_SEM_DRILL_TOKEN);
         }
         const extraStrategicA3Ids = getExtras("strategic");
