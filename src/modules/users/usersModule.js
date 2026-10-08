@@ -17,6 +17,9 @@
       getCurrentUserId
     } = deps;
 
+    // Flag guardada em extra_report_ids (sem migration); mesmo valor em app.js.
+    const PAINEL_SEM_DRILL_TOKEN = "comercialPainel:sem_drill";
+
     const ROLE_LABELS = {
       super_admin: "Super Admin",
       admin:       "Admin",
@@ -373,6 +376,13 @@
         <div class="ue-section" id="ue-role-section">
           <label class="ue-label">Perfil de acesso <span class="ue-label-hint">(pode marcar mais de um)</span></label>
         </div>
+        <div class="ue-section" id="ue-painel-drill-section">
+          <label class="ue-label">Painel de Vendas — detalhe de NFs e Pedidos <span class="ue-label-hint">(perfil Comercial)</span></label>
+          <select class="ue-select" id="ue-painel-drill">
+            <option value="com" ${(user.extra_report_ids || []).includes(PAINEL_SEM_DRILL_TOKEN) ? "" : "selected"}>Com drilldown</option>
+            <option value="sem" ${(user.extra_report_ids || []).includes(PAINEL_SEM_DRILL_TOKEN) ? "selected" : ""}>Sem drilldown</option>
+          </select>
+        </div>
         <div class="ue-section" id="ue-mgmt-section">
           <label class="ue-label">Gestão <span class="ue-label-hint">(Gestor / Analista)</span></label>
           <select class="ue-select" id="ue-mgmt">${mgmtOptions}</select>
@@ -406,6 +416,7 @@
         const roles = getSelectedRoles(panel);
         mgmtSection.style.display = roles.some((r) => ["manager", "analyst"].includes(r)) ? "" : "none";
         strategicModeSection.style.display = roles.includes("gestao_estrategica") ? "" : "none";
+        panel.querySelector("#ue-painel-drill-section").style.display = roles.includes("comercial") ? "" : "none";
         rebuildTrees(panel, user, pickPrimaryRole(roles), panel.querySelector("#ue-mgmt").value, roles);
       };
       panel.querySelector("#ue-role-section").append(buildProfileRolePicker(currentRoles, updateFromRoles));
@@ -742,6 +753,11 @@
         const extraCcIds        = getExtras("cc");
         const extraAccountCodes = getExtras("account");
         const extraReportIds    = getExtras("report");
+        // Flag (não é id de relatório): Comercial sem drilldown de NFs/Pedidos no
+        // Painel de Vendas. Só vale com o perfil Comercial marcado.
+        if (selectedRoles.includes("comercial") && panel.querySelector("#ue-painel-drill")?.value === "sem") {
+          extraReportIds.push(PAINEL_SEM_DRILL_TOKEN);
+        }
         const extraStrategicA3Ids = getExtras("strategic");
         const strategicMode = panel.querySelector("#ue-strategic-mode")?.value || "write";
 

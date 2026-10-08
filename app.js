@@ -1513,6 +1513,7 @@ const comercialPainelModule = createComercialPainelModule({
   callEdgeFunction,
   isSupabaseConfigured,
   appAlert,
+  canDrill: () => canDrillPainelVendas(),
   // Toggle de período do cabeçalho (topo do site) nunca pode ficar descasado
   // do mês que o Painel está mostrando — ver renderSelectedPainel no módulo.
   syncHeaderPeriod: (year, month) => {
@@ -2440,6 +2441,13 @@ function isConsolidatedReport(reportId) {
 const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo", "garantiaAtivacoes"];
 // Relatórios comerciais fixos que o perfil Comercial NÃO enxerga (Gestor/Admin continuam vendo).
 const COMERCIAL_EXCLUDED_REPORT_IDS = ["garantiaAtivacoes"];
+// Flag em extra_report_ids (mesmo valor em usersModule.js): perfil Comercial sem o
+// drilldown de NFs/Pedidos do Painel de Vendas. Admin/Gestor sempre têm drilldown.
+const PAINEL_SEM_DRILL_TOKEN = "comercialPainel:sem_drill";
+function canDrillPainelVendas() {
+  if (getAllAccessRoles().some((role) => ["super_admin", "admin", "manager"].includes(role))) return true;
+  return !getExtraReportIds().includes(PAINEL_SEM_DRILL_TOKEN);
+}
 
 // Visibilidade do card no catálogo — modelo POR PAPEL (conforme tela Perfis de Acesso):
 //  • admin/super_admin: tudo

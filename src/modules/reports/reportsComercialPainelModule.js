@@ -14,7 +14,8 @@
       callEdgeFunction,
       isSupabaseConfigured,
       syncHeaderPeriod,
-      appAlert
+      appAlert,
+      canDrill = () => true
     } = deps;
     const { exportRowsToExcel, exportButtonHtml, formatDisplayDate } = window.VECTON_CORE_UTILS;
     // Modelo de dados (transform/consolidação) mora em comercialPainelDataModule.js
@@ -599,6 +600,11 @@
     }
 
     function bindDrill(root) {
+      // Perfil sem drilldown (NFs/Pedidos): cabeçalhos viram texto comum, sem clique.
+      if (!canDrill()) {
+        root.querySelectorAll(".cvp-drill").forEach((th) => th.classList.remove("cvp-drill"));
+        return;
+      }
       root.querySelectorAll(".cvp-drill").forEach((th) => th.addEventListener("click", (e) => {
         e.stopPropagation();
         const origens = (th.dataset.origens || "").split(",").filter(Boolean);
