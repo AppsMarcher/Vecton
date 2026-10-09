@@ -212,6 +212,8 @@ Essa regra é usada nos percentuais do DRE Gerencial e nas linhas `%RL` do DRE D
 - O drill-down deve usar o mesmo recorte da tabela principal.
 - O dashboard pode mostrar visão consolidada, mas o drill-down respeita as concessões do usuário.
 - Budget e Forecast usam seletores de fonte nos relatórios aplicáveis.
+- A lista de contas do Headcount (`HC_PESSOAL_ACCOUNTS`, `app.js`) é fixa no código: 105 contas, incluindo `4220100003033` (COM_PRO-LABORE).
+- A mesma conta `4220100003033` está no OPEX, grupo "DESPESAS COM PESSOAL - COM", via `report_account_assignments` (banco), sem duplicar. Atribuições feitas em Parâmetros > Plano de Contas são aplicadas por cima das listas fixas (`applyReportAccountAssignments`).
 
 ### Report Builder
 
