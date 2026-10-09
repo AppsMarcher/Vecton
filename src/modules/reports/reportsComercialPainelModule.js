@@ -734,7 +734,7 @@
         </tr>`;
       }).join("");
       return `<table class="cvp-pop-tbl">
-        <thead><tr>${sortTh("tipo", "Tipo")}${sortTh("entry_date", "Data")}${sortTh("documento", "Documento")}${showTerr ? sortTh("territorio", "Território") : ""}${showVend ? sortTh("vendedor", "Vendedor") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "Valor", "num")}</tr></thead>
+        <thead><tr>${sortTh("tipo", "Tipo")}${sortTh("entry_date", "Data")}${sortTh("documento", "Documento")}${showTerr ? sortTh("territorio", "Território") : ""}${showVend ? sortTh("vendedor", "Vendedor") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "FAT", "num")}</tr></thead>
         <tbody>${body}</tbody>
         <tfoot><tr><td colspan="${span}">Total · ${items.length} ${items.length === 1 ? "linha" : "linhas"}</td><td class="num${totQ < 0 ? " neg" : ""}">${nf(totQ)}</td><td class="num${totV < 0 ? " neg" : ""}">${fmtFullR$(totV)}</td></tr></tfoot>
       </table>`;
@@ -764,7 +764,7 @@
         { label: "Cód. Prod.", value: (r) => r.cod_produto || "" },
         { label: "Produto", value: (r) => r.produto || "" },
         { label: "Qtd", value: (r) => Number(r.quantidade) || 0 },
-        { label: "Valor", value: (r) => Number(r.valor) || 0 },
+        { label: "FAT", value: (r) => Number(r.valor) || 0 },
       ];
       exportRowsToExcel(items, columns, `Detalhamento_${titulo}`);
     }
