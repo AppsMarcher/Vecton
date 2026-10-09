@@ -44,7 +44,7 @@
     const TEMPLATE_URL = "templates/modelo-carga-vendas-vendedor.xlsx";
     const CHUNK = UPSERT_CHUNK_SIZE || 500;
     const ROWS_PER_PAGE = 200;
-    const COL_COUNT = 13;
+    const COL_COUNT = 15;
 
     if (!Array.isArray(state.comercialRealizadoBatches)) state.comercialRealizadoBatches = [];
     if (!state.comercialRealizadoRowsByBatch || typeof state.comercialRealizadoRowsByBatch !== "object") {
@@ -362,7 +362,9 @@
         ${th("codTerritorio", "comven-col-territorio", "Território")}
         ${th("codVendedor", "comven-col-vendedor", "Vendedor")}
         ${th("quantidade", "comven-col-qtd", "Qtd")}
-        ${th("valor", "comven-col-valor", "Valor")}
+        ${th("valor", "comven-col-valor", "FAT")}
+        ${th("rl", "comven-col-rl", "RL")}
+        ${th("mp", "comven-col-mp", "MP")}
         ${th("mbPct", "comven-col-mb", "%MB")}
         ${th("validationStatus", "actuals-col-status", "Status")}
         <th class="actuals-col-action">Acao</th>
@@ -413,6 +415,8 @@
         if (sortKey === "rowNumber") return sortDir * (a.rowNumber - b.rowNumber);
         if (sortKey === "valor") return sortDir * ((a.valor ?? 0) - (b.valor ?? 0));
         if (sortKey === "quantidade") return sortDir * ((a.quantidade ?? 0) - (b.quantidade ?? 0));
+        if (sortKey === "rl") return sortDir * ((a.rl ?? 0) - (b.rl ?? 0));
+        if (sortKey === "mp") return sortDir * ((a.mp ?? 0) - (b.mp ?? 0));
         if (sortKey === "mbPct") return sortDir * ((a.mbPct ?? 0) - (b.mbPct ?? 0));
         return sortDir * String(a[sortKey] || "").toLowerCase().localeCompare(String(b[sortKey] || "").toLowerCase());
       });
@@ -446,7 +450,9 @@
           <td class="comven-col-vendedor"><input class="actuals-field" data-field="codVendedor" type="text" inputmode="numeric" maxlength="20" value="${escapeHtml(row.codVendedor || "")}"></td>
           <td class="comven-col-qtd"><input class="actuals-field actuals-field-amount" data-field="quantidade" type="text" maxlength="15" value="${escapeHtml(row.quantidade == null ? "" : String(row.quantidade))}"></td>
           <td class="comven-col-valor"><input class="actuals-field actuals-field-amount" data-field="valor" type="text" maxlength="18" value="${escapeHtml(formatAmountInput(row.valor))}"></td>
-          <td class="comven-col-mb"><input class="actuals-field" data-field="mbPct" type="text" maxlength="8" value="${escapeHtml(formatMbPct(row.mbPct))}"></td>
+          <td class="comven-col-rl"><input class="actuals-field actuals-field-amount" data-field="rl" type="text" maxlength="18" value="${escapeHtml(formatAmountInput(row.rl))}"></td>
+          <td class="comven-col-mp"><input class="actuals-field actuals-field-amount" data-field="mp" type="text" maxlength="18" value="${escapeHtml(formatAmountInput(row.mp))}"></td>
+          <td class="comven-col-mb"><input class="actuals-field" data-field="mbPct" type="text" readonly tabindex="-1" title="Calculada: MP / RL" value="${escapeHtml(formatMbPct(row.mbPct))}"></td>
           <td class="actuals-col-status">${statusCell}</td>
           <td class="actuals-col-action">
             <button class="table-icon-button table-icon-button-only" type="button" data-refresh-row="${row.id}" aria-label="Revalidar linha"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
@@ -567,6 +573,8 @@
           codVendedor: "",
           quantidade: "",
           valor: "",
+          rl: "",
+          mp: "",
           mbPct: ""
         }, nextRowNumber);
         await saveRows(selectedBatchId, [newRow]);
@@ -690,7 +698,9 @@
         codVendedor: rowElement.querySelector('[data-field="codVendedor"]').value,
         quantidade: rowElement.querySelector('[data-field="quantidade"]').value,
         valor: rowElement.querySelector('[data-field="valor"]').value,
-        mbPct: rowElement.querySelector('[data-field="mbPct"]').value
+        rl: rowElement.querySelector('[data-field="rl"]').value,
+        mp: rowElement.querySelector('[data-field="mp"]').value,
+        mbPct: currentRow.mbPct
       }, currentRow.rowNumber);
       try {
         rowElement.classList.add("row-saving");
@@ -719,7 +729,7 @@
         if (isSupabaseConfigured()) {
           const [fresh] = await fetchSupabaseRowsSafe(
             "comercial_realizado_import_rows",
-            `id=eq.${encodeURIComponent(rowId)}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,documento,serie_documento,cod_territorio,cod_vendedor,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&limit=1`
+            `id=eq.${encodeURIComponent(rowId)}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,documento,serie_documento,cod_territorio,cod_vendedor,quantidade,valor,rl,mp,mb_pct,validation_status,validation_errors,raw_payload&limit=1`
           );
           if (fresh) {
             const normalized = normalizeRow(fresh);
@@ -807,6 +817,8 @@
         cod_vendedor: row.codVendedor || null,
         quantidade: row.quantidade == null || Number.isNaN(Number(row.quantidade)) ? null : Number(row.quantidade),
         valor: row.valor == null || Number.isNaN(Number(row.valor)) ? null : Number(row.valor),
+        rl: row.rl == null || Number.isNaN(Number(row.rl)) ? null : Number(row.rl),
+        mp: row.mp == null || Number.isNaN(Number(row.mp)) ? null : Number(row.mp),
         mb_pct: row.mbPct == null || Number.isNaN(Number(row.mbPct)) ? null : Number(row.mbPct),
         raw_payload: row.rawPayload || {}
       };
@@ -867,7 +879,7 @@
       while (true) {
         const page = await fetchSupabaseRowsSafe(
           "comercial_realizado_import_rows",
-          `batch_id=eq.${batchId}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,documento,serie_documento,cod_territorio,cod_vendedor,quantidade,valor,mb_pct,validation_status,validation_errors,raw_payload&order=row_number.asc&limit=${pageSize}&offset=${offset}`
+          `batch_id=eq.${batchId}&select=id,row_number,origem,tipo_informado,entry_date,cod_produto,cod_cliente,documento,serie_documento,cod_territorio,cod_vendedor,quantidade,valor,rl,mp,mb_pct,validation_status,validation_errors,raw_payload&order=row_number.asc&limit=${pageSize}&offset=${offset}`
         );
         if (!page || page.length === 0) break;
         allRows = allRows.concat(page);
@@ -968,10 +980,10 @@
     function parseSheetRows(rows) {
       if (!Array.isArray(rows) || !rows.length) throw new Error("Arquivo sem linhas para importacao.");
       const headerMap = mapHeaders(Object.keys(rows[0]));
-      const required = ["origem", "tipo", "entryDate", "codProduto", "codCliente", "quantidade", "valor"];
+      const required = ["origem", "tipo", "entryDate", "codProduto", "codCliente", "codVendedor", "quantidade", "valor", "rl", "mp"];
       const missing = required.filter((key) => !headerMap[key]);
       if (missing.length) {
-        const labels = { origem: "origem", tipo: "tipo", entryDate: "data", codProduto: "cod_produto", codCliente: "cod_cliente", quantidade: "quantidade", valor: "valor" };
+        const labels = { origem: "origem", tipo: "tipo", entryDate: "data", codProduto: "cod_produto", codCliente: "cod_cliente", codVendedor: "cod_vendedor", quantidade: "qtd", valor: "FAT", rl: "RL", mp: "MP" };
         throw new Error(`Colunas obrigatorias ausentes: ${missing.map((k) => labels[k]).join(", ")}`);
       }
       return rows.map((sourceRow) => ({
@@ -983,10 +995,11 @@
         documento: headerMap.documento ? sourceRow[headerMap.documento] : "",
         serieDocumento: headerMap.serieDocumento ? sourceRow[headerMap.serieDocumento] : "",
         codTerritorio: headerMap.codTerritorio ? sourceRow[headerMap.codTerritorio] : "",
-        codVendedor: headerMap.codVendedor ? sourceRow[headerMap.codVendedor] : "",
+        codVendedor: sourceRow[headerMap.codVendedor],
         quantidade: sourceRow[headerMap.quantidade],
         valor: sourceRow[headerMap.valor],
-        mbPct: headerMap.mbPct ? sourceRow[headerMap.mbPct] : "",
+        rl: sourceRow[headerMap.rl],
+        mp: sourceRow[headerMap.mp],
         rawPayload: sourceRow
       }));
     }
@@ -1003,8 +1016,9 @@
         codTerritorio: ["territorio", "regional", "regionalmarcher"],
         codVendedor: ["codvendedor", "codigovendedor", "vendedorcodigo", "codvend"],
         quantidade: ["quantidade", "qtd", "qtde", "qtdpedido"],
-        valor: ["valor", "valorpedido"],
-        mbPct: ["mb", "mbpct", "margembruta", "margem", "percentmb"]
+        valor: ["fat", "faturamento"],
+        rl: ["rl", "receitaliquida"],
+        mp: ["mp", "margem", "margemproduto"]
       };
       const result = {};
       headers.forEach((header) => {
@@ -1037,6 +1051,8 @@
       const qtd = row.quantidade ?? null;
       const val = row.valor ?? null;
       const mb = row.mbPct ?? row.mb_pct ?? null;
+      const rl = row.rl ?? null;
+      const mp = row.mp ?? null;
       return {
         id: row.id || crypto.randomUUID(),
         batchId: row.batchId ?? row.batch_id,
@@ -1052,6 +1068,8 @@
         codVendedor: String(row.codVendedor ?? row.cod_vendedor ?? "").trim(),
         quantidade: qtd == null || qtd === "" ? null : Number(qtd),
         valor: val == null || val === "" ? null : Number(val),
+        rl: rl == null || rl === "" ? null : Number(rl),
+        mp: mp == null || mp === "" ? null : Number(mp),
         mbPct: mb == null || mb === "" ? null : Number(mb),
         validationStatus: row.validationStatus ?? row.validation_status ?? "pending",
         validationErrors: Array.isArray(row.validationErrors ?? row.validation_errors) ? (row.validationErrors ?? row.validation_errors) : [],
@@ -1062,7 +1080,9 @@
     function normalizeImportedRow(batchId, row, rowNumber) {
       const qtd = parseLocalizedAmount(row.quantidade);
       const val = parseLocalizedAmount(row.valor);
-      const mb = parseMbInput(row.mbPct);
+      const rl = parseLocalizedAmount(row.rl);
+      const mp = parseLocalizedAmount(row.mp);
+      const mb = calcMbPct(rl, mp, row.mbPct);
       return normalizeRow({
         id: row.id || crypto.randomUUID(),
         batchId,
@@ -1078,6 +1098,8 @@
         codVendedor: String(row.codVendedor ?? "").trim(),
         quantidade: Number.isNaN(qtd) ? null : qtd,
         valor: Number.isNaN(val) ? null : val,
+        rl: Number.isNaN(rl) ? null : rl,
+        mp: Number.isNaN(mp) ? null : mp,
         mbPct: mb,
         validationStatus: "pending",
         validationErrors: [],
@@ -1086,6 +1108,15 @@
     }
 
     // ------------------------------------------------------ helpers
+
+    // MB = MP / RL (fracao: 0,10 = 10,0%). Sem RL/MP (linha antiga), preserva a MB ja gravada.
+    function calcMbPct(rl, mp, fallbackMb) {
+      const hasRl = rl != null && !Number.isNaN(rl);
+      const hasMp = mp != null && !Number.isNaN(mp);
+      if (!hasRl && !hasMp) return parseMbInput(fallbackMb);
+      if (!hasRl || !hasMp || rl === 0) return null;
+      return mp / rl;
+    }
 
     function parseMbInput(value) {
       if (value == null || value === "") return null;

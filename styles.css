@@ -4387,7 +4387,9 @@ thead .col-frozen-3 {
 .comven-col-territorio { width: 136px; min-width: 136px; padding-left: 2px; padding-right: 2px; }
 .comven-col-qtd { width: 60px; min-width: 60px; max-width: 60px; padding-left: 2px; padding-right: 2px; }
 .comven-col-valor { width: 120px; min-width: 120px; }
+.comven-col-rl, .comven-col-mp { width: 110px; min-width: 110px; }
 .comven-col-mb { width: 62px; min-width: 62px; max-width: 62px; padding-left: 2px; padding-right: 2px; }
+.comven-col-mb .actuals-field[readonly] { background: transparent; border-color: transparent; color: var(--muted, #667); cursor: default; text-align: right; }
 .comven-col-vendedor { width: 88px; min-width: 88px; max-width: 88px; padding-left: 2px; padding-right: 2px; }
 .comven-table .actuals-col-row { width: 44px; min-width: 44px; }
 
