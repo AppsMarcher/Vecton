@@ -1429,6 +1429,15 @@
       });
     }
 
+    // O cabeçalho da área gruda logo abaixo do cabeçalho das colunas; a altura
+    // real deste (bordas, fonte, zoom) é medida em vez de assumida em CSS.
+    function syncHeadHeight() {
+      const scrollEl = root?.querySelector(".rps-table-scroll");
+      const headCell = scrollEl?.querySelector(".rps-table thead th");
+      if (!scrollEl || !headCell) return;
+      scrollEl.style.setProperty("--rps-head-h", `${headCell.getBoundingClientRect().height}px`);
+    }
+
     function renderShell() {
       if (!root) return;
       // Última barreira contra perda visual: qualquer reconstrução inesperada
@@ -1502,6 +1511,7 @@
       document.body.style.setProperty("--rps-presentation-zoom", `${state.presentationZoom}px`);
       if (fillable) initAllReportTableResizers?.();
       const tableScroll = root.querySelector(".rps-table-scroll");
+      syncHeadHeight();
       if (tableScroll) {
         tableScroll.scrollLeft = Math.min(state.tableScrollLeft, Math.max(0, tableScroll.scrollWidth - tableScroll.clientWidth));
         tableScroll.scrollTop = Math.min(state.tableScrollTop, Math.max(0, tableScroll.scrollHeight - tableScroll.clientHeight));
@@ -2099,6 +2109,7 @@
       });
       document.addEventListener("fullscreenchange", handleFullscreenChange);
       window.addEventListener("resize", updatePresentationScrollBounds);
+      window.addEventListener("resize", syncHeadHeight);
     }
 
     async function switchPeriod(nextPeriod) {

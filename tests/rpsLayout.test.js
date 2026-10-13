@@ -28,13 +28,13 @@ assert.match(
 );
 assert.match(
   styles,
-  /\.rps-area-row th\s*\{[^}]*position:\s*sticky;[^}]*top:\s*38px;/s,
-  "o cabeçalho da área deve ficar fixo abaixo do cabeçalho das colunas"
+  /\.rps-area-row th\s*\{[^}]*position:\s*sticky;[^}]*top:\s*var\(--rps-head-h,\s*38px\);/s,
+  "o cabeçalho da área deve ficar fixo abaixo do cabeçalho das colunas, na altura medida"
 );
 assert.match(
-  styles,
-  /body\.rps-presentation-mode \.rps-area-row th\s*\{[^}]*top:\s*calc\(38px/s,
-  "no modo apresentação o cabeçalho da área acompanha o zoom"
+  moduleSource,
+  /setProperty\("--rps-head-h"/,
+  "a altura real do cabeçalho das colunas deve ser medida em JS"
 );
 assert.match(
   moduleSource,
