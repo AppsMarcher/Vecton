@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const styles = fs.readFileSync(path.join(__dirname, "..", "styles.css"), "utf8");
+const moduleSource = fs.readFileSync(path.join(__dirname, "..", "src", "modules", "rps", "rpsModule.js"), "utf8");
 const index = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 assert.match(
@@ -24,6 +25,21 @@ assert.match(
   styles,
   /\.rps-table thead th\s*\{[^}]*position:\s*sticky;[^}]*top:\s*0;/s,
   "os cabeçalhos das colunas devem permanecer visíveis"
+);
+assert.match(
+  styles,
+  /\.rps-area-row th\s*\{[^}]*position:\s*sticky;[^}]*top:\s*38px;/s,
+  "o cabeçalho da área deve ficar fixo abaixo do cabeçalho das colunas"
+);
+assert.match(
+  styles,
+  /body\.rps-presentation-mode \.rps-area-row th\s*\{[^}]*top:\s*calc\(38px/s,
+  "no modo apresentação o cabeçalho da área acompanha o zoom"
+);
+assert.match(
+  moduleSource,
+  /<tbody class="rps-area-group">/,
+  "cada área deve ser um tbody próprio para o sticky trocar de área"
 );
 assert.match(
   styles,

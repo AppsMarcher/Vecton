@@ -8617,6 +8617,11 @@ table th,
 }
 
 .rps-area-row th {
+  /* Fixo logo abaixo do cabeçalho das colunas (38px); limitado ao <tbody> da
+     área, então sai quando as linhas dela sobem e a próxima área assume. */
+  position: sticky;
+  top: 38px;
+  z-index: 3;
   height: 37px;
   padding: 0;
   background: color-mix(in srgb, var(--rps-area-color) 7%, var(--theme-surface, #0c0e12));
@@ -9674,6 +9679,10 @@ body.rps-presentation-mode .rps-week-focus {
 body.rps-presentation-mode .rps-area-row th,
 body.rps-presentation-mode .rps-area-toggle {
   height: calc(37px + var(--rps-presentation-zoom, 0px));
+}
+
+body.rps-presentation-mode .rps-area-row th {
+  top: calc(38px + var(--rps-presentation-zoom, 0px));
 }
 
 body.rps-presentation-mode .rps-area-toggle {

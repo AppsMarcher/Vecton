@@ -1284,7 +1284,9 @@
               </button>
             </th>
           </tr>`;
-        if (collapsed) return areaHeader;
+        // Cada área é um <tbody>: o cabeçalho sticky da área fica contido nele
+        // e só sai quando as linhas da área terminam de subir.
+        if (collapsed) return `<tbody class="rps-area-group">${areaHeader}</tbody>`;
         const rows = indicators.map((indicator) => {
           if (indicator.type === "spacer") {
             return `<tr class="rps-spacer-row" aria-hidden="true"><td colspan="10"></td></tr>`;
@@ -1351,7 +1353,7 @@
             <td class="rps-variation ${trendClass}" data-rps-variation-percent>${percent === null ? "—" : `${percent > 0 ? "+" : ""}${formatNumber(percent)}%`}</td>
           </tr>`;
         }).join("");
-        return areaHeader + rows;
+        return `<tbody class="rps-area-group">${areaHeader}${rows}</tbody>`;
       }).join("");
     }
 
@@ -1488,7 +1490,7 @@
             <div class="rps-table-scroll ${state.loading ? "is-loading" : ""}">
               <table class="rps-table" ${fillable ? "data-resizable-cols" : ""}>
                 <thead><tr><th class="rps-col-indicator">Área / indicador${columnResizer}</th>${WEEKS.map((week) => `<th class="rps-col-primary rps-col-week ${week === focusWeek ? "is-focused" : ""}"><button type="button" class="rps-week-focus" data-rps-focus-week="${week}" aria-pressed="${week === focusWeek}" title="Destacar ${week}">${week}</button>${columnResizer}</th>`).join("")}<th class="rps-col-primary rps-col-month">Mês${columnResizer}</th><th class="rps-col-target">Meta${columnResizer}</th><th class="rps-col-variation">Var.${columnResizer}</th><th class="rps-col-variation-percent">Var. %${columnResizer}</th></tr></thead>
-                <tbody>${renderRows()}</tbody>
+                ${renderRows()}
               </table>
               ${state.loading ? `<div class="rps-loading"><span></span><p>Carregando o período...</p></div>` : ""}
             </div>
