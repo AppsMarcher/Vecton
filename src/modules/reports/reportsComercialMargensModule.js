@@ -389,7 +389,7 @@
           r += `<td>${mcell(c, prev, k)}</td>`;
         }
         let tri = null;
-        if (n > 3) { tri = zero(); for (let m = n - 3; m < n; m++) add(tri, cellsOf(obj, year)[m]); ["q", "fat", "rl", "mp"].forEach((f) => { tri[f] *= n / 3; }); }
+        if (n > 3 && k !== "vol") { tri = zero(); for (let m = n - 3; m < n; m++) add(tri, cellsOf(obj, year)[m]); ["q", "fat", "rl", "mp"].forEach((f) => { tri[f] *= n / 3; }); }
         return `${r}<td class="cmg-ano">${mcell(yearTotals(obj), tri, k)}</td></tr>`;
       };
       const nz = (c) => Math.abs(c.q) > 1e-9 || Math.abs(c.fat) > 0.005 || Math.abs(c.rl) > 0.005 || Math.abs(c.mp) > 0.005;
@@ -451,7 +451,7 @@
         <div class="cmg-card"><div class="cmg-hd"><div><h2>Margens por máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
           <div class="cmg-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
           ${tableHtml()}
-          <div class="cmg-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano</span></div></div>
+          <div class="cmg-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano (não se aplica ao VOL)</span></div></div>
         ${pop ? popHtml() : ""}</div>`;
       bind(container);
     }
@@ -499,9 +499,9 @@
       .cmg-tbl th{position:sticky;top:0;z-index:2;background:var(--cmg-panel);color:var(--cmg-muted);font-weight:650;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
       .cmg-tbl th:first-child,.cmg-tbl td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--cmg-panel);width:230px;max-width:230px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--cmg-line)}.cmg-tbl th:first-child{z-index:3}.cmg-tbl th:nth-child(2),.cmg-tbl td:nth-child(2){width:60px}.cmg-tbl th.cmg-ano,.cmg-tbl td.cmg-ano{width:78px}
       .cmg-pt{table-layout:auto}.cmg-pt th:first-child,.cmg-pt td:first-child{width:320px;max-width:320px}.cmg-pt th:nth-child(2),.cmg-pt td:nth-child(2),.cmg-pt th.cmg-ano,.cmg-pt td.cmg-ano{width:auto}
-      .cmg-q4{background:var(--cmg-panel);color:var(--cmg-muted);border-right:1px solid var(--cmg-line)}th.cmg-ano,td.cmg-ano{background:rgba(79,124,255,.12);font-weight:700;border-left:1px solid var(--cmg-line)}
+      .cmg-q4{background:var(--cmg-panel);color:var(--cmg-muted);border-right:1px solid var(--cmg-line)}th.cmg-ano,td.cmg-ano{background:linear-gradient(rgba(79,124,255,.12),rgba(79,124,255,.12)),var(--cmg-panel);font-weight:700;border-left:1px solid var(--cmg-line)}
       .cmg-grp td{background:var(--cmg-panel);font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:10.5px!important;text-align:left!important}
-      .cmg-sub td,.cmg-sub td:first-child{background:var(--theme-surface-tint,rgba(255,255,255,.04));font-weight:700}.cmg-tot td,.cmg-tot td:first-child{background:var(--theme-surface-muted,rgba(255,255,255,.07));font-weight:750}.cmg-tot td.cmg-ano,.cmg-sub td.cmg-ano{background:rgba(79,124,255,.12)}
+      .cmg-sub td,.cmg-sub td:first-child{background:linear-gradient(var(--theme-surface-tint,rgba(255,255,255,.04)),var(--theme-surface-tint,rgba(255,255,255,.04))),var(--cmg-panel);font-weight:700}.cmg-tot td,.cmg-tot td:first-child{background:linear-gradient(var(--theme-surface-muted,rgba(255,255,255,.07)),var(--theme-surface-muted,rgba(255,255,255,.07))),var(--cmg-panel);font-weight:750}.cmg-tot td.cmg-ano,.cmg-sub td.cmg-ano{background:linear-gradient(rgba(79,124,255,.12),rgba(79,124,255,.12)),var(--cmg-panel)}
       .cmg-mq{cursor:pointer}.cmg-mq:hover td{background:var(--theme-surface-tint,rgba(255,255,255,.05))}.cmg-mq:hover td:first-child{background:var(--cmg-panel)}.cmg-car{display:inline-block;width:14px;color:var(--cmg-faint);font-size:10px}
       .cmg-prod td,.cmg-prod td:first-child{color:var(--cmg-muted);font-size:11.5px}.cmg-prod td:first-child{padding-left:24px}.cmg-cd{display:inline-block;min-width:7ch;color:var(--cmg-faint);margin-right:6px;font-variant-numeric:tabular-nums}
       .cmg-future{color:var(--cmg-faint)}.cmg-dl{display:block;font-size:9.5px;font-weight:600;line-height:1;margin-top:2px}.cmg-dl.pos,.cmg-dl.neg{opacity:.95}
