@@ -1436,6 +1436,9 @@
       const headCell = scrollEl?.querySelector(".rps-table thead th");
       if (!scrollEl || !headCell) return;
       scrollEl.style.setProperty("--rps-head-h", `${headCell.getBoundingClientRect().height}px`);
+      // Largura visível: o botão da área fica sticky à esquerda com esta largura,
+      // mantendo rótulo e chevron na tela durante a rolagem lateral.
+      scrollEl.style.setProperty("--rps-scroll-w", `${scrollEl.clientWidth}px`);
     }
 
     function renderShell() {
