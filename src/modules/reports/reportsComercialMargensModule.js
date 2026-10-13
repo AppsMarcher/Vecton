@@ -11,7 +11,7 @@
     const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, isSupabaseConfigured } = deps;
     const REPORT_ID = "comercialMargens";
     const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-    const GROUP_ORDER = ["Grãos", "Pecuária"];
+    const GROUP_ORDER = ["Grãos", "Pecuária", "Cargograin"];
     const COMP_GROUP = "Linhas complementares";
     const TOP_ITEMS = 30; // linhas abertas listam os maiores itens; o resto vira "Demais itens"
     const COMP_ORDER = ["Peças", "Transgrain", "Acessórios"];
@@ -87,7 +87,7 @@
         if (mach && !it.nr) semNome += 1;
         if (mach && !it.cult) semCultura += 1;
         const label = mach ? it.nr || "(sem nome reduzido)" : it.tipo;
-        const group = mach ? it.cult || "(sem cultura)" : COMP_GROUP;
+        const group = mach ? (/^CARGOGRAIN/i.test(it.nr || "") ? "Cargograin" : it.cult || "(sem cultura)") : COMP_GROUP;
         const key = `${mach ? "M" : "C"}|${group}|${label}`;
         let p = parents.get(key);
         if (!p) { p = { key, label, kind: mach ? "M" : "C", group, fam: mach ? "M" : it.tipo, items: [], cells: {} }; parents.set(key, p); }
@@ -102,6 +102,10 @@
       list.forEach((p) => p.items.sort((a, b) => String(a.cod).localeCompare(String(b.cod))));
       return { items: [...items.values()], parents: list, semNome, semCultura };
     }
+    // Ordem das máquinas: família (INGRAIN, OUTGRAIN, demais) e depois o número crescente
+    // dentro do nome (INGRAIN85 < INGRAIN100 < INGRAIN100+ < INGRAIN101).
+    const familyRank = (label) => (/^IN/i.test(label) ? 0 : /^OUT/i.test(label) ? 1 : 2);
+    const byMachineName = (a, b) => familyRank(a.label) - familyRank(b.label) || a.label.localeCompare(b.label, "pt-BR", { numeric: true });
     const machines = () => model.parents.filter((p) => p.kind === "M");
     const groupRank = (g) => { const i = GROUP_ORDER.indexOf(g); return i >= 0 ? i : g === "(sem cultura)" ? 99 : 50; };
 
@@ -216,7 +220,7 @@
       });
       s += `<text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">Volume (un)</text>`;
       return `<svg class="cmg-svg" viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>
-        <div class="cmg-legend"><span><i style="background:var(--cmg-cyan)"></i>Grãos</span><span><i style="background:var(--cmg-violet)"></i>Pecuária</span><span>Linhas tracejadas = média do portfólio</span></div>`;
+        <div class="cmg-legend"><span><i style="background:var(--cmg-cyan)"></i>Grãos</span><span><i style="background:var(--cmg-violet)"></i>Pecuária</span><span><i style="background:var(--cmg-amber)"></i>Cargograin</span><span>Linhas tracejadas = média do portfólio</span></div>`;
     }
 
     // ── Ponte da margem (mês do filtro vs mês anterior; toda a empresa) ──
@@ -308,7 +312,7 @@
       const eff = (e) => (Math.abs(e) < 0.5 ? `<strong>–</strong>` : `<strong class="${e >= 0 ? "pos" : "neg"}">${sgn(e)}${brl(Math.abs(e))}</strong>`);
       const line = (label, ag, cls, att, cod) => `<tr class="${cls}" ${att || ""}><td>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmg-ano">${eff(ag.e)}</td></tr>`;
       const tot = agg(B.rows);
-      let h = `<table class="cmg-tbl cmg-pt"><thead><tr><th>Nome reduzido</th>${heads.map((t) => `<th>${escapeHtml(t)}</th>`).join("")}<th class="cmg-ano">Efeito em R$</th></tr></thead><tbody>`;
+      let h = `<table class="cmg-tbl cmg-pt"><thead><tr><th>Nome</th>${heads.map((t) => `<th>${escapeHtml(t)}</th>`).join("")}<th class="cmg-ano">Efeito em R$</th></tr></thead><tbody>`;
       h += `<tr class="cmg-tot"><td>Total</td>${heads.map(() => "<td></td>").join("")}<td class="cmg-ano">${eff(tot.e)}</td></tr>`;
       const groups = [...new Set(model.parents.map((p) => p.group))].sort((x, y) => groupRank(x) - groupRank(y) || x.localeCompare(y, "pt-BR"));
       groups.forEach((g) => {
@@ -370,8 +374,7 @@
         return `${r}<td class="cmg-ano">${mcell(yearTotals(obj), tri, k)}</td></tr>`;
       };
       const wrapObj = (list) => { const cells = {}; [year - 1, year].forEach((y) => { cells[y] = Array.from({ length: 12 }, zero); list.forEach((p) => cellsOf(p, y).forEach((c, i) => add(cells[y][i], c))); }); return { cells }; };
-      const rank = (p) => -Math.abs(sumRange(p, year, 1, n).rl);
-      let h = `<thead><tr><th>Nome reduzido · ${unit}</th><th class="cmg-q4" title="Média ponderada do 4º trimestre de ${year - 1}">${year - 1}</th>${MESES.map((m) => `<th>${m}</th>`).join("")}<th class="cmg-ano">${year}</th></tr></thead><tbody>`;
+            let h = `<thead><tr><th>Nome · ${unit}</th><th class="cmg-q4" title="Média ponderada do 4º trimestre de ${year - 1}">${year - 1}</th>${MESES.map((m) => `<th>${m}</th>`).join("")}<th class="cmg-ano">${year}</th></tr></thead><tbody>`;
       const mach = machines();
       h += row("Total Máquinas", wrapObj(mach), "cmg-tot");
       const groups = [...new Set(mach.map((p) => p.group))].sort((a, b) => groupRank(a) - groupRank(b) || a.localeCompare(b, "pt-BR"));
@@ -385,7 +388,7 @@
         if (act.length > TOP_ITEMS) h += row(`Demais itens (${act.length - TOP_ITEMS})`, wrapObj(act.slice(TOP_ITEMS)), "cmg-prod");
       };
       groups.forEach((g) => {
-        const list = mach.filter((p) => p.group === g).sort((a, b) => rank(a) - rank(b));
+        const list = mach.filter((p) => p.group === g).sort(byMachineName);
         h += `<tr class="cmg-grp"><td colspan="15">${escapeHtml(g)}</td></tr>`;
         list.forEach(addParent);
         h += row(`Total ${escapeHtml(g)}`, wrapObj(list), "cmg-sub");
@@ -422,7 +425,7 @@
           <div class="cmg-card"><div class="cmg-hd"><h2>Mapa do portfólio de máquinas</h2><p>Volume × MB% · tamanho = margem em R$ (RL − MP)</p></div>${bubblesHtml()}</div>
           <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da margem</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
-        <div class="cmg-card"><div class="cmg-hd"><div><h2>Margens por máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome reduzido para abrir os códigos</p></div>
+        <div class="cmg-card"><div class="cmg-hd"><div><h2>Margens por máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
           <div class="cmg-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
           ${tableHtml()}
           <div class="cmg-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano</span></div></div>
