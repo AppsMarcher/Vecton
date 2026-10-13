@@ -310,7 +310,7 @@
         return { a, b, e, dM, vol, pr, co };
       };
       const eff = (e) => (Math.abs(e) < 0.5 ? `<strong>–</strong>` : `<strong class="${e >= 0 ? "pos" : "neg"}">${sgn(e)}${brl(Math.abs(e))}</strong>`);
-      const line = (label, ag, cls, att, cod) => `<tr class="${cls}" ${att || ""}><td>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmg-ano">${eff(ag.e)}</td></tr>`;
+      const line = (label, ag, cls, att, cod, full) => `<tr class="${cls}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmg-ano">${eff(ag.e)}</td></tr>`;
       const tot = agg(B.rows);
       let h = `<table class="cmg-tbl cmg-pt"><thead><tr><th>Nome</th>${heads.map((t) => `<th>${escapeHtml(t)}</th>`).join("")}<th class="cmg-ano">Efeito em R$</th></tr></thead><tbody>`;
       h += `<tr class="cmg-tot"><td>Total</td>${heads.map(() => "<td></td>").join("")}<td class="cmg-ano">${eff(tot.e)}</td></tr>`;
@@ -323,10 +323,10 @@
         gr.forEach((r) => { if (!byParent.has(r.parent)) byParent.set(r.parent, []); byParent.get(r.parent).push(r); });
         [...byParent.entries()].map(([p, rs]) => [p, rs, agg(rs)]).filter(([, , ag]) => ag.a.q || ag.b.q || ag.e).sort((x, y) => Math.abs(y[2].e) - Math.abs(x[2].e)).forEach(([p, rs, ag]) => {
           const open = pop.open.has(p.key);
-          h += line(`<span class="cmg-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, ag, "cmg-mq", `data-pp="${escapeHtml(p.key)}"`);
+          h += line(`<span class="cmg-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, ag, "cmg-mq", `data-pp="${escapeHtml(p.key)}"`, "", p.label);
           if (!open) return;
           const act = rs.filter((r) => r.a.q || r.b.q || r[k]).sort((x, y) => Math.abs(y[k]) - Math.abs(x[k]));
-          act.slice(0, TOP_ITEMS).forEach((r) => { h += line(escapeHtml(r.it.desc), agg([r]), "cmg-prod", "", r.it.cod); });
+          act.slice(0, TOP_ITEMS).forEach((r) => { h += line(escapeHtml(r.it.desc), agg([r]), "cmg-prod", "", r.it.cod, r.it.desc); });
           if (act.length > TOP_ITEMS) h += line(`Demais itens (${act.length - TOP_ITEMS})`, agg(act.slice(TOP_ITEMS)), "cmg-prod");
         });
       });
@@ -361,8 +361,8 @@
         ["q", "fat", "rl", "mp"].forEach((f) => { o[f] /= 3; });
         return o;
       };
-      const row = (label, obj, cls, att, cod) => {
-        let r = `<tr class="${cls || ""}" ${att || ""}><td>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td><td class="cmg-q4">${k === "vol" ? fmt(q4obj(obj).q, 1) : showVal(val(q4obj(obj), k), k)}</td>`;
+      const row = (label, obj, cls, att, cod, full) => {
+        let r = `<tr class="${cls || ""}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td><td class="cmg-q4">${k === "vol" ? fmt(q4obj(obj).q, 1) : showVal(val(q4obj(obj), k), k)}</td>`;
         for (let m = 0; m < 12; m++) {
           if (m >= n) { r += `<td class="cmg-future"></td>`; continue; }
           const c = cellsOf(obj, year)[m];
@@ -380,11 +380,11 @@
       const groups = [...new Set(mach.map((p) => p.group))].sort((a, b) => groupRank(a) - groupRank(b) || a.localeCompare(b, "pt-BR"));
       const addParent = (p) => {
         const open = openRows.has(p.key);
-        h += row(`<span class="cmg-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, p, "cmg-mq", `data-row="${escapeHtml(p.key)}"`);
+        h += row(`<span class="cmg-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, p, "cmg-mq", `data-row="${escapeHtml(p.key)}"`, "", p.label);
         if (!open) return;
         const act = p.items.filter((it) => cellsOf(it, year).some((c) => c.q || c.fat) || cellsOf(it, year - 1).some((c) => c.q || c.fat));
         act.sort((a, b) => Math.abs(sumRange(b, year, 1, n).rl) - Math.abs(sumRange(a, year, 1, n).rl));
-        act.slice(0, TOP_ITEMS).forEach((it) => { h += row(escapeHtml(it.desc), it, "cmg-prod", "", it.cod); });
+        act.slice(0, TOP_ITEMS).forEach((it) => { h += row(escapeHtml(it.desc), it, "cmg-prod", "", it.cod, it.desc); });
         if (act.length > TOP_ITEMS) h += row(`Demais itens (${act.length - TOP_ITEMS})`, wrapObj(act.slice(TOP_ITEMS)), "cmg-prod");
       };
       groups.forEach((g) => {
@@ -471,19 +471,20 @@
       .cmg-svg text{fill:var(--cmg-muted);font-family:inherit;font-size:10.5px}.cmg-svg .cmg-bl{fill:var(--cmg-text);font-weight:600}.cmg-svg .cmg-quad{font-weight:700}.cmg-grid{stroke:var(--theme-border-subtle,#ffffff10)}.cmg-axis{stroke:var(--cmg-line)}.cmg-ref{stroke:var(--cmg-faint);stroke-dasharray:4 4}
       .cmg-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--cmg-muted);margin-top:8px}.cmg-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
       .cmg-empty{padding:40px 15px;text-align:center;color:var(--cmg-muted);border:1px dashed var(--cmg-line);border-radius:12px}
-      .cmg-tw{overflow:auto;border:1px solid var(--cmg-line);border-radius:10px;max-height:70vh}
-      .cmg-tbl{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px;font-variant-numeric:tabular-nums}.cmg-tbl th,.cmg-tbl td{padding:6px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--theme-border-subtle,#ffffff0d);font-size:12px}
+      .cmg-tw{border:1px solid var(--cmg-line);border-radius:10px}
+      .cmg-tbl{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}.cmg-tbl th,.cmg-tbl td{padding:5px 6px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--theme-border-subtle,#ffffff0d);font-size:11.5px}
       .cmg-tbl th{position:sticky;top:0;z-index:2;background:var(--cmg-panel);color:var(--cmg-muted);font-weight:650;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
-      .cmg-tbl th:first-child,.cmg-tbl td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--cmg-panel);min-width:300px;border-right:1px solid var(--cmg-line)}.cmg-tbl th:first-child{z-index:3}
-      .cmg-pt{min-width:0}.cmg-pt th:first-child,.cmg-pt td:first-child{min-width:240px}
+      .cmg-tbl th:first-child,.cmg-tbl td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--cmg-panel);width:190px;max-width:190px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--cmg-line)}.cmg-tbl th:first-child{z-index:3}.cmg-tbl th:nth-child(2),.cmg-tbl td:nth-child(2){width:60px}.cmg-tbl th.cmg-ano,.cmg-tbl td.cmg-ano{width:78px}
+      .cmg-pt{table-layout:auto}.cmg-pt th:first-child,.cmg-pt td:first-child{width:320px;max-width:320px}.cmg-pt th:nth-child(2),.cmg-pt td:nth-child(2),.cmg-pt th.cmg-ano,.cmg-pt td.cmg-ano{width:auto}
       .cmg-q4{background:var(--cmg-panel);color:var(--cmg-muted);border-right:1px solid var(--cmg-line)}th.cmg-ano,td.cmg-ano{background:rgba(79,124,255,.12);font-weight:700;border-left:1px solid var(--cmg-line)}
       .cmg-grp td{background:var(--cmg-panel);font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:10.5px!important;text-align:left!important}
       .cmg-sub td,.cmg-sub td:first-child{background:var(--theme-surface-tint,rgba(255,255,255,.04));font-weight:700}.cmg-tot td,.cmg-tot td:first-child{background:var(--theme-surface-muted,rgba(255,255,255,.07));font-weight:750}.cmg-tot td.cmg-ano,.cmg-sub td.cmg-ano{background:rgba(79,124,255,.12)}
       .cmg-mq{cursor:pointer}.cmg-mq:hover td{background:var(--theme-surface-tint,rgba(255,255,255,.05))}.cmg-mq:hover td:first-child{background:var(--cmg-panel)}.cmg-car{display:inline-block;width:14px;color:var(--cmg-faint);font-size:10px}
-      .cmg-prod td,.cmg-prod td:first-child{color:var(--cmg-muted);font-size:11.5px}.cmg-prod td:first-child{padding-left:30px;overflow:hidden;text-overflow:ellipsis;max-width:380px}.cmg-cd{display:inline-block;min-width:7ch;color:var(--cmg-faint);margin-right:6px;font-variant-numeric:tabular-nums}
+      .cmg-prod td,.cmg-prod td:first-child{color:var(--cmg-muted);font-size:11.5px}.cmg-prod td:first-child{padding-left:24px}.cmg-cd{display:inline-block;min-width:7ch;color:var(--cmg-faint);margin-right:6px;font-variant-numeric:tabular-nums}
       .cmg-future{color:var(--cmg-faint)}.cmg-dl{display:block;font-size:9.5px;font-weight:600;line-height:1;margin-top:2px}.cmg-dl.pos,.cmg-dl.neg{opacity:.95}
       .cmg-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center}.cmg-pop{width:85vw;height:85vh;background:var(--cmg-panel);border:1px solid var(--cmg-line);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden;color:var(--cmg-text)}
       .cmg-pop-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--cmg-line)}.cmg-pop-t{font-size:15px;font-weight:700}.cmg-pop-t span{color:var(--cmg-muted);font-weight:500;font-size:12px}.cmg-pop-s{margin-top:4px}.cmg-pop-s span{color:var(--cmg-faint);font-size:11px;margin-left:6px}.cmg-pop-b{overflow:auto;flex:1;padding:0 18px 14px}
+      @media(max-width:1180px){.cmg-tw{overflow-x:auto}.cmg-tbl{min-width:1000px}.cmg-pt{min-width:0}}
       @media(max-width:1150px){.cmg-kpis{grid-template-columns:repeat(3,1fr)}.cmg-two{grid-template-columns:1fr}}
       @media(max-width:768px){.cmg-kpis{grid-template-columns:repeat(2,1fr)}.cmg-pop{width:100vw;height:100vh;border-radius:0}}
       `;
