@@ -143,22 +143,38 @@
     }
 
     // ── Indicadores ─────────────────────────────────────────────────────
-    function delta(a, b, inv, pp) {
-      if (b == null || a == null || (!pp && !b)) return `<div class="cmg-d cmg-muted">sem base em ${year - 1}</div>`;
+    function delta(a, b, inv, pp, base) {
+      if (b == null || a == null || (!pp && !b)) return `<div class="cmg-d cmg-muted">sem base em ${escapeHtml(base)}</div>`;
       const d = pp ? (a - b) * 100 : (a / b - 1) * 100;
       const good = inv ? d < 0 : d > 0;
-      return `<div class="cmg-d ${good ? "pos" : "neg"}">${d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(d), 1)}${pp ? " p.p." : "%"}<span>vs ${year - 1}</span></div>`;
+      return `<div class="cmg-d ${good ? "pos" : "neg"}">${d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(d), 1)}${pp ? " p.p." : "%"}<span>vs ${escapeHtml(base)}</span></div>`;
     }
+    // Indicadores comparam com o mês anterior: Mês → mês anterior; YTD/Ano → acumulado
+    // até o mês anterior (Ano usa o último mês com dado como referência).
     function kpisHtml() {
       const [lo, hi] = range();
+      const ref = period === "fy" ? lastDataMonth() || 12 : month;
+      const yy = (y) => String(y).slice(2);
+      let pLo = 0, pHi = 0, pYear = year, base = "";
+      if (period === "mes") {
+        pYear = month === 1 ? year - 1 : year;
+        pLo = pHi = month === 1 ? 12 : month - 1;
+        base = `${MESES[pLo - 1]}/${yy(pYear)}`;
+      } else {
+        pLo = 1; pHi = ref - 1;
+        base = pHi >= 1 ? `acum. até ${MESES[pHi - 1]}/${yy(year)}` : `${MESES[0]}/${yy(year - 1)}`;
+      }
       const cur = zero(); const prev = zero();
-      machines().forEach((p) => { add(cur, sumRange(p, year, lo, hi)); add(prev, sumRange(p, year - 1, lo, hi)); });
+      machines().forEach((p) => {
+        add(cur, sumRange(p, year, lo, hi));
+        if (pHi >= pLo) add(prev, sumRange(p, pYear, pLo, pHi));
+      });
       const cards = [
-        ["Volume de máquinas", fmtQty(cur.q), "<small>un</small>", delta(cur.q, prev.q)],
-        ["Faturamento", brl(cur.fat), "", delta(cur.fat, prev.fat)],
-        ["Receita líquida", brl(cur.rl), "", delta(cur.rl, prev.rl)],
-        ["MP", brl(cur.mp), "", delta(cur.mp, prev.mp, true)],
-        ["MC1%", mbOf(cur) == null ? "–" : `${fmt(mbOf(cur) * 100, 1)}%`, "", delta(mbOf(cur), mbOf(prev), false, true)]
+        ["Volume de máquinas", fmtQty(cur.q), "<small>un</small>", delta(cur.q, prev.q, false, false, base)],
+        ["Faturamento", brl(cur.fat), "", delta(cur.fat, prev.fat, false, false, base)],
+        ["Receita líquida", brl(cur.rl), "", delta(cur.rl, prev.rl, false, false, base)],
+        ["MP", brl(cur.mp), "", delta(cur.mp, prev.mp, true, false, base)],
+        ["MC1%", mbOf(cur) == null ? "–" : `${fmt(mbOf(cur) * 100, 1)}%`, "", delta(mbOf(cur), mbOf(prev), false, true, base)]
       ];
       return `<div class="cmg-kpis">${cards.map((c) => `<div class="cmg-kpi"><div class="cmg-kl">${c[0]}</div><div class="cmg-kv">${c[1]}${c[2]}</div>${c[3]}</div>`).join("")}</div>`;
     }
