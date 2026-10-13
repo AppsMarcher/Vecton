@@ -652,6 +652,16 @@
                 <span class="rrc-edit-btn" role="button" data-edit-card="comercialPecasGeo" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
               </button>
 
+              <button class="reports-report-card" type="button" data-report-id="comercialMargens">
+                <div class="rrc-top">
+                  <span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>
+                  <span class="rrc-fav" role="button" data-fav-id="comercialMargens" aria-label="Favoritar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                </div>
+                <strong class="rrc-label">Margens por Máquinas</strong>
+                <span class="rrc-subtitle">Comercial · MB%, RL e MP por nome reduzido</span>
+                <span class="rrc-edit-btn" role="button" data-edit-card="comercialMargens" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+              </button>
+
               <button class="reports-report-card" type="button" data-report-id="garantiaAtivacoes">
                 <div class="rrc-top">
                   <span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
@@ -1286,6 +1296,7 @@
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--yes">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">Todos os relatórios e drill-down</li>
+                <li class="ap-perm ap-perm--yes">Margens por Máquinas (somente Super Admin, Admin e Gestor)</li>
                 <li class="ap-perm ap-perm--yes">A3 Estratégicos — visão e edição de todas as áreas</li>
                 <li class="ap-perm ap-perm--yes">Parâmetros e carga de dados</li>
                 <li class="ap-perm ap-perm--yes">Gerenciar usuários e perfis</li>
@@ -1309,6 +1320,7 @@
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--yes">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">Todos os relatórios e drill-down</li>
+                <li class="ap-perm ap-perm--yes">Margens por Máquinas (somente Super Admin, Admin e Gestor)</li>
                 <li class="ap-perm ap-perm--yes">A3 Estratégicos — visão e edição de todas as áreas</li>
                 <li class="ap-perm ap-perm--yes">Parâmetros e carga de dados</li>
                 <li class="ap-perm ap-perm--yes">Gerenciar usuários e perfis</li>
@@ -1334,6 +1346,7 @@
                 <li class="ap-perm ap-perm--yes">DRE consolidado (somente leitura)</li>
                 <li class="ap-perm ap-perm--yes">Fluxo de Caixa (consolidado + cenários próprios)</li>
                 <li class="ap-perm ap-perm--yes">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças (consolidado + drill-down)</li>
+                <li class="ap-perm ap-perm--yes">Margens por Máquinas (consolidado + drill-down por código)</li>
                 <li class="ap-perm ap-perm--partial">OPEX e Headcount — restrito à gestão própria</li>
                 <li class="ap-perm ap-perm--partial">A3 Estratégicos — vê todas as áreas, edita só a da própria gestão (+ extras configuráveis)</li>
                 <li class="ap-perm ap-perm--partial">Gestões e CCs adicionais configuráveis</li>
@@ -1361,6 +1374,7 @@
                 <li class="ap-perm ap-perm--no">DRE consolidado da empresa</li>
                 <li class="ap-perm ap-perm--no">Fluxo de Caixa</li>
                 <li class="ap-perm ap-perm--no">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças</li>
+                <li class="ap-perm ap-perm--no">Margens por Máquinas</li>
                 <li class="ap-perm ap-perm--partial">OPEX e Headcount — restrito à gestão própria</li>
                 <li class="ap-perm ap-perm--partial">Gestões e CCs adicionais configuráveis</li>
                 <li class="ap-perm ap-perm--partial">Contas matriciais configuráveis</li>
@@ -1413,6 +1427,7 @@
                 <li class="ap-perm ap-perm--partial">Painel de Vendas — drilldown de NFs e Pedidos configurável por usuário (com ou sem)</li>
                 <li class="ap-perm ap-perm--yes">RPS Comercial — registrar e conduzir a reunião de todas as áreas</li>
                 <li class="ap-perm ap-perm--no">Ativações de Garantia</li>
+                <li class="ap-perm ap-perm--no">Margens por Máquinas</li>
                 <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Fluxo de Caixa, OPEX, Headcount)</li>
                 <li class="ap-perm ap-perm--no">Planejamento</li>
                 <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
@@ -1617,6 +1632,7 @@
   <script src="src/modules/reports/reportsComercialMapaModule.js?v=20260925toggle1"></script>
   <script src="src/modules/reports/reportsComercialMapaGeograficoModule.js?v=20260925toggle1"></script>
   <script src="src/modules/reports/reportsComercialPecasGeoModule.js?v=20260925toggle6"></script>
+  <script src="src/modules/reports/reportsComercialMargensModule.js?v=20261013mg1"></script>
   <script src="src/modules/reports/reportsGarantiaAtivacoesModule.js?v=20261005gar21"></script>
   <script src="src/modules/reports/comercialReportsModule.js?v=20260928data1"></script>
   <script src="src/modules/cockpit/cockpitAggregate.js?v=20260910g"></script>

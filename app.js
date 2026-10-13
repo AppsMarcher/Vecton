@@ -1598,6 +1598,14 @@ const comercialPecasGeoModule = createComercialPecasGeoModule({
   callSupabaseRpc,
   isSupabaseConfigured,
 });
+const { createComercialMargensModule } = window.VECTON_COMERCIAL_MARGENS;
+const comercialMargensModule = createComercialMargensModule({
+  escapeHtml,
+  state,
+  resolveOrganizationId,
+  callSupabaseRpc,
+  isSupabaseConfigured,
+});
 const headcountRenderModule = createHeadcountRenderModule({
   escapeHtml,
   formatMonthLabel,
@@ -2438,9 +2446,10 @@ function isConsolidatedReport(reportId) {
   return String(reportId).startsWith("dre") || reportId === "cashFlow";
 }
 
-const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo", "garantiaAtivacoes"];
+const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo", "garantiaAtivacoes", "comercialMargens"];
 // Relatórios comerciais fixos que o perfil Comercial NÃO enxerga (Gestor/Admin continuam vendo).
-const COMERCIAL_EXCLUDED_REPORT_IDS = ["garantiaAtivacoes"];
+// Margens por Máquinas: dado sensível, só Gestor, Admin e Super Admin (o RPC também valida).
+const COMERCIAL_EXCLUDED_REPORT_IDS = ["garantiaAtivacoes", "comercialMargens"];
 // Flag em extra_report_ids (mesmo valor em usersModule.js): perfil Comercial sem o
 // drilldown de NFs/Pedidos do Painel de Vendas. Admin/Gestor sempre têm drilldown.
 const PAINEL_SEM_DRILL_TOKEN = "comercialPainel:sem_drill";
@@ -3187,6 +3196,7 @@ const REPORT_TITLES = {
   comercialMapa: "Mapa de Vendas",
   comercialMapaGeografico: "Ranking Geográfico",
   comercialPecasGeo: "Performance de Peças",
+  comercialMargens: "Margens por Máquinas",
   garantiaAtivacoes: "Ativações de Garantia"
 };
 
@@ -3420,6 +3430,7 @@ function renderReportsView() {
     comercialMapaModule.renderSelectedMapa(detailPanel, selectedReportId) ||
     comercialMapaGeograficoModule.renderSelectedMapaGeografico(detailPanel, selectedReportId) ||
     comercialPecasGeoModule.renderSelectedPecasGeo(detailPanel, selectedReportId) ||
+    comercialMargensModule.renderSelectedMargens(detailPanel, selectedReportId) ||
     reportsGarantiaAtivacoesModule.renderSelectedGarantiaAtivacoes(detailPanel, selectedReportId) ||
     reportsDreModule.renderSelectedDreReport(detailPanel, selectedReportId) ||
     reportsOpexModule.renderSelectedOpexReport(detailPanel, selectedReportId) ||
