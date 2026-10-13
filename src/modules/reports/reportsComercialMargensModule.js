@@ -4,7 +4,7 @@
   // devolução, para o ano do período e o anterior. Tudo o mais (KPIs, mapa do
   // portfólio, ponte, tabela e pop-over) é calculado aqui, sem novas idas ao banco.
   //
-  // Definições: MP = custo de matéria-prima; MB% = (RL − MP) ÷ RL. Na tabela os
+  // Definições: MP = custo de matéria-prima; MC1% = (RL − MP) ÷ RL. Na tabela os
   // valores são UNITÁRIOS (÷ volume); linhas-pai = total ÷ volume total (média
   // ponderada pelo volume), nunca média de unitários.
   function createComercialMargensModule(deps) {
@@ -15,7 +15,7 @@
     const COMP_GROUP = "Linhas complementares";
     const TOP_ITEMS = 30; // linhas abertas listam os maiores itens; o resto vira "Demais itens"
     const COMP_ORDER = ["Peças", "Transgrain", "Acessórios"];
-    const METRICS = [["vol", "VOL"], ["fat", "FAT"], ["rl", "RL"], ["mp", "MP"], ["mb", "MB%"]];
+    const METRICS = [["vol", "VOL"], ["fat", "FAT"], ["rl", "RL"], ["mp", "MP"], ["mb", "MC1%"]];
     const EFFECTS = {
       vol: { name: "Volume", sub: "Variação de quantidade × preço (RL/un) do mês anterior" },
       pr: { name: "Preço", sub: "RL por unidade" },
@@ -158,7 +158,7 @@
         ["Faturamento", brl(cur.fat), "", delta(cur.fat, prev.fat)],
         ["Receita líquida", brl(cur.rl), "", delta(cur.rl, prev.rl)],
         ["MP", brl(cur.mp), "", delta(cur.mp, prev.mp, true)],
-        ["MB%", mbOf(cur) == null ? "–" : `${fmt(mbOf(cur) * 100, 1)}%`, "", delta(mbOf(cur), mbOf(prev), false, true)]
+        ["MC1%", mbOf(cur) == null ? "–" : `${fmt(mbOf(cur) * 100, 1)}%`, "", delta(mbOf(cur), mbOf(prev), false, true)]
       ];
       return `<div class="cmg-kpis">${cards.map((c) => `<div class="cmg-kpi"><div class="cmg-kl">${c[0]}</div><div class="cmg-kv">${c[1]}${c[2]}</div>${c[3]}</div>`).join("")}</div>`;
     }
@@ -216,7 +216,7 @@
       pts.forEach((p) => {
         const r = 7 + Math.sqrt(Math.abs(p.m) / mx) * 20;
         const col = p.g === "Grãos" ? "var(--cmg-cyan)" : p.g === "Pecuária" ? "var(--cmg-violet)" : "var(--cmg-amber)";
-        s += `<g><circle ${tipAttr([{ label: "Máquina", value: p.n }, { label: "VOL", value: `${fmtQty(p.q)} un` }, { label: "MB%", value: `${fmt(p.mb * 100, 1)}%` }, { label: "Margem", value: brl(p.m) }])} cx="${X(p.q)}" cy="${Y(p.mb)}" r="${r}" fill="${col}" fill-opacity=".38" stroke="${col}" stroke-width="1.5"/><text class="cmg-bl" x="${X(p.q)}" y="${Y(p.mb) - r - 3}" text-anchor="middle">${escapeHtml(p.n)}</text></g>`;
+        s += `<g><circle ${tipAttr([{ label: "Máquina", value: p.n }, { label: "VOL", value: `${fmtQty(p.q)} un` }, { label: "MC1%", value: `${fmt(p.mb * 100, 1)}%` }, { label: "Margem", value: brl(p.m) }])} cx="${X(p.q)}" cy="${Y(p.mb)}" r="${r}" fill="${col}" fill-opacity=".38" stroke="${col}" stroke-width="1.5"/><text class="cmg-bl" x="${X(p.q)}" y="${Y(p.mb) - r - 3}" text-anchor="middle">${escapeHtml(p.n)}</text></g>`;
       });
       s += `<text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">Volume (un)</text>`;
       return `<svg class="cmg-svg" viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>
@@ -338,17 +338,20 @@
     // ── Tabela corrida ──────────────────────────────────────────────────
     function mcell(c, prev, k) {
       const v = val(c, k);
-      if (v == null) return "–";
+      const SLOT = `<span class="cmg-dl" style="visibility:hidden">&nbsp;</span>`;
+      if (v == null) return `–${SLOT}`;
       let t = showVal(v, k);
+      let hasDelta = false;
       if (prev) {
         const p = val(prev, k);
         if (p != null && p !== 0) {
           const d = k === "mb" ? (v - p) * 100 : (v / p - 1) * 100;
           const good = k === "mp" ? d < 0 : d > 0;
           t += `<span class="cmg-dl ${good ? "pos" : "neg"}">${d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(d), k === "vol" ? 0 : 1)}${k === "mb" ? " pp" : "%"}</span>`;
+          hasDelta = true;
         }
       }
-      return t;
+      return hasDelta ? t : t + SLOT;
     }
     function tableHtml() {
       const k = metric;
@@ -373,6 +376,9 @@
         if (n > 3) { tri = zero(); for (let m = n - 3; m < n; m++) add(tri, cellsOf(obj, year)[m]); ["q", "fat", "rl", "mp"].forEach((f) => { tri[f] *= n / 3; }); }
         return `${r}<td class="cmg-ano">${mcell(yearTotals(obj), tri, k)}</td></tr>`;
       };
+      const nz = (c) => Math.abs(c.q) > 1e-9 || Math.abs(c.fat) > 0.005 || Math.abs(c.rl) > 0.005 || Math.abs(c.mp) > 0.005;
+      // Linha 100% zerada (ano do filtro até o mês exibido e 4º tri do ano anterior) não aparece.
+      const active = (obj) => cellsOf(obj, year).slice(0, n).some(nz) || nz(q4obj(obj));
       const wrapObj = (list) => { const cells = {}; [year - 1, year].forEach((y) => { cells[y] = Array.from({ length: 12 }, zero); list.forEach((p) => cellsOf(p, y).forEach((c, i) => add(cells[y][i], c))); }); return { cells }; };
             let h = `<thead><tr><th>Nome · ${unit}</th><th class="cmg-q4" title="Média ponderada do 4º trimestre de ${year - 1}">${year - 1}</th>${MESES.map((m) => `<th>${m}</th>`).join("")}<th class="cmg-ano">${year}</th></tr></thead><tbody>`;
       const mach = machines();
@@ -382,18 +388,19 @@
         const open = openRows.has(p.key);
         h += row(`<span class="cmg-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, p, "cmg-mq", `data-row="${escapeHtml(p.key)}"`, "", p.label);
         if (!open) return;
-        const act = p.items.filter((it) => cellsOf(it, year).some((c) => c.q || c.fat) || cellsOf(it, year - 1).some((c) => c.q || c.fat));
+        const act = p.items.filter(active);
         act.sort((a, b) => Math.abs(sumRange(b, year, 1, n).rl) - Math.abs(sumRange(a, year, 1, n).rl));
         act.slice(0, TOP_ITEMS).forEach((it) => { h += row(escapeHtml(it.desc), it, "cmg-prod", "", it.cod, it.desc); });
         if (act.length > TOP_ITEMS) h += row(`Demais itens (${act.length - TOP_ITEMS})`, wrapObj(act.slice(TOP_ITEMS)), "cmg-prod");
       };
       groups.forEach((g) => {
-        const list = mach.filter((p) => p.group === g).sort(byMachineName);
+        const list = mach.filter((p) => p.group === g && active(p)).sort(byMachineName);
+        if (!list.length) return;
         h += `<tr class="cmg-grp"><td colspan="15">${escapeHtml(g)}</td></tr>`;
         list.forEach(addParent);
         h += row(`Total ${escapeHtml(g)}`, wrapObj(list), "cmg-sub");
       });
-      const comp = model.parents.filter((p) => p.kind === "C").sort((a, b) => (COMP_ORDER.indexOf(a.label) + 1 || 99) - (COMP_ORDER.indexOf(b.label) + 1 || 99) || a.label.localeCompare(b.label, "pt-BR"));
+      const comp = model.parents.filter((p) => p.kind === "C" && active(p)).sort((a, b) => (COMP_ORDER.indexOf(a.label) + 1 || 99) - (COMP_ORDER.indexOf(b.label) + 1 || 99) || a.label.localeCompare(b.label, "pt-BR"));
       if (comp.length) {
         h += `<tr class="cmg-grp"><td colspan="15">${COMP_GROUP}</td></tr>`;
         comp.forEach(addParent);
@@ -417,12 +424,12 @@
       const br = bridgeHtml();
       const periodTxt = period === "mes" ? MESES[month - 1] : period === "ytd" ? `Jan–${MESES[month - 1]}` : "Jan–Dez";
       container.innerHTML = `<div class="cmg ${loading ? "cmg-loading" : ""}">
-        <div class="cmg-header"><div><h1>MARGENS POR MÁQUINAS</h1><p>Comercial · ${periodTxt}/${year} · líquido de devoluções · MB% = (RL − MP) ÷ RL</p></div>
+        <div class="cmg-header"><div><h1>MARGENS POR MÁQUINAS</h1><p>Comercial · ${periodTxt}/${year} · líquido de devoluções · MC1% = (RL − MP) ÷ RL</p></div>
           <div class="cmg-period">${[["mes", "Mês"], ["ytd", "YTD"], ["fy", "Ano"]].map(([v, l]) => `<button data-period="${v}" class="${period === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
         ${notes.length ? `<div class="cmg-note">${notes.map(escapeHtml).join(" · ")}</div>` : ""}
         ${kpisHtml()}
         <div class="cmg-two">
-          <div class="cmg-card"><div class="cmg-hd"><h2>Mapa do portfólio de máquinas</h2><p>Volume × MB% · tamanho = margem em R$ (RL − MP)</p></div>${bubblesHtml()}</div>
+          <div class="cmg-card"><div class="cmg-hd"><h2>Mapa do portfólio de máquinas</h2><p>Volume × MC1% · tamanho = margem em R$ (RL − MP)</p></div>${bubblesHtml()}</div>
           <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da margem</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
         <div class="cmg-card"><div class="cmg-hd"><div><h2>Margens por máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
@@ -472,9 +479,9 @@
       .cmg-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--cmg-muted);margin-top:8px}.cmg-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
       .cmg-empty{padding:40px 15px;text-align:center;color:var(--cmg-muted);border:1px dashed var(--cmg-line);border-radius:12px}
       .cmg-tw{border:1px solid var(--cmg-line);border-radius:10px}
-      .cmg-tbl{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}.cmg-tbl th,.cmg-tbl td{padding:5px 6px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--theme-border-subtle,#ffffff0d);font-size:11.5px}
+      .cmg-tbl{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}.cmg-tbl th,.cmg-tbl td{padding:4px 6px;vertical-align:middle;text-align:right;white-space:nowrap;border-bottom:1px solid var(--theme-border-subtle,#ffffff0d);font-size:11.5px}
       .cmg-tbl th{position:sticky;top:0;z-index:2;background:var(--cmg-panel);color:var(--cmg-muted);font-weight:650;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
-      .cmg-tbl th:first-child,.cmg-tbl td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--cmg-panel);width:190px;max-width:190px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--cmg-line)}.cmg-tbl th:first-child{z-index:3}.cmg-tbl th:nth-child(2),.cmg-tbl td:nth-child(2){width:60px}.cmg-tbl th.cmg-ano,.cmg-tbl td.cmg-ano{width:78px}
+      .cmg-tbl th:first-child,.cmg-tbl td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--cmg-panel);width:230px;max-width:230px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--cmg-line)}.cmg-tbl th:first-child{z-index:3}.cmg-tbl th:nth-child(2),.cmg-tbl td:nth-child(2){width:60px}.cmg-tbl th.cmg-ano,.cmg-tbl td.cmg-ano{width:78px}
       .cmg-pt{table-layout:auto}.cmg-pt th:first-child,.cmg-pt td:first-child{width:320px;max-width:320px}.cmg-pt th:nth-child(2),.cmg-pt td:nth-child(2),.cmg-pt th.cmg-ano,.cmg-pt td.cmg-ano{width:auto}
       .cmg-q4{background:var(--cmg-panel);color:var(--cmg-muted);border-right:1px solid var(--cmg-line)}th.cmg-ano,td.cmg-ano{background:rgba(79,124,255,.12);font-weight:700;border-left:1px solid var(--cmg-line)}
       .cmg-grp td{background:var(--cmg-panel);font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:10.5px!important;text-align:left!important}
