@@ -17,10 +17,10 @@
     const COMP_ORDER = ["Peças", "Transgrain", "Acessórios"];
     const METRICS = [["vol", "VOL"], ["fat", "FAT"], ["rl", "RL"], ["mp", "MP"], ["mb", "MB%"]];
     const EFFECTS = {
-      vol: { name: "Volume", sub: "Se cada item acompanhasse o volume da linha" },
+      vol: { name: "Volume", sub: "Variação de quantidade × preço (RL/un) do mês anterior" },
       pr: { name: "Preço", sub: "RL por unidade" },
       co: { name: "Custo", sub: "MP por unidade" },
-      mix: { name: "Mix", sub: "Venda real do item vs. o esperado pela linha" }
+      mix: { name: "Mix", sub: "O que sobra da variação da margem após volume, preço e custo" }
     };
 
     let host = null;
@@ -224,27 +224,17 @@
       const cm = nMonths();
       const py = cm === 1 ? year - 1 : year;
       const pm = cm === 1 ? 12 : cm - 1;
-      const fam = {};
-      const rows = model.items.map((it) => {
-        const a = cellsOf(it, py)[pm - 1];
-        const b = cellsOf(it, year)[cm - 1];
-        const f = fam[it.parent.fam] || (fam[it.parent.fam] = { q0: 0, q1: 0 });
-        f.q0 += a.q; f.q1 += b.q;
-        return { it, parent: it.parent, a, b };
-      });
+      const rows = model.items.map((it) => ({ it, parent: it.parent, a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] }));
       rows.forEach((r) => {
-        const f = fam[r.parent.fam];
         const { a, b } = r;
-        r.s0 = f.q0 ? a.q / f.q0 : 0;
-        r.s1 = f.q1 ? b.q / f.q1 : 0;
         r.M0 = a.rl - a.mp;
         r.M1 = b.rl - b.mp;
-        r.exp = f.q0 ? (a.q * f.q1) / f.q0 : 0;
-        r.vol = f.q0 ? (f.q1 / f.q0 - 1) * r.M0 : 0;
+        r.dM = r.M1 - r.M0;
+        r.vol = a.q > 0 ? (b.q - a.q) * (a.rl / a.q) : 0; // Δ quantidade real × preço (RL/un) do mês anterior
         const both = a.q > 0 && b.q > 0;
         r.pr = both ? b.rl - (b.q * a.rl) / a.q : 0;
         r.co = both ? -(b.mp - (b.q * a.mp) / a.q) : 0;
-        r.mix = r.M1 - r.M0 - r.vol - r.pr - r.co; // resíduo
+        r.mix = r.dM - r.vol - r.pr - r.co; // resíduo: o que sobra
       });
       const sum = (k) => rows.reduce((t, r) => t + r[k], 0);
       return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix") };
@@ -286,11 +276,14 @@
     };
     function popCols(k, ag) {
       const a = ag.a, b = ag.b;
-      if (k === "vol" || k === "mix") {
-        const d = k === "vol" ? ag.exp - a.q : b.q - ag.exp;
-        const mu = d !== 0 ? ag.e / d : a.q ? (a.rl - a.mp) / a.q : null;
-        const c = k === "vol" ? [fmtQty(a.q), fmt(ag.exp, 1)] : [fmt(ag.exp, 1), fmtQty(b.q)];
-        return [...c, dlt(d, 1, true), mu == null ? "–" : fmt(mu, 0)];
+      if (k === "vol") {
+        const d = b.q - a.q;
+        const pu = d !== 0 ? ag.e / d : a.q ? a.rl / a.q : null;
+        return [fmtQty(a.q), fmtQty(b.q), dlt(d, 0, true), pu == null ? "–" : fmt(pu, 0)];
+      }
+      if (k === "mix") {
+        const sg2 = (v) => `<span class="${Math.abs(v) < 0.5 ? "" : v >= 0 ? "pos" : "neg"}">${sgn(v)}${brl(Math.abs(v))}</span>`;
+        return [sg2(ag.dM), sg2(-ag.vol), sg2(-ag.pr), sg2(-ag.co)];
       }
       const f = k === "pr" ? "rl" : "mp";
       const ua = a.q ? a[f] / a.q : null;
@@ -301,18 +294,18 @@
       const B = bridgeData();
       const k = pop.eff;
       const heads = {
-        vol: [`Qtd ${B.lab0}`, `Qtd esperada ${B.lab1}`, "Δ un", `× Margem/un ${B.lab0}`],
+        vol: [`Qtd ${B.lab0}`, `Qtd ${B.lab1}`, "Δ un", `× RL/un ${B.lab0}`],
         pr: [`RL/un ${B.lab0}`, `RL/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
         co: [`MP/un ${B.lab0}`, `MP/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
-        mix: [`Qtd esperada ${B.lab1}`, `Qtd real ${B.lab1}`, "Δ un", `× Margem/un ${B.lab0}`]
+        mix: [`Δ Margem ${B.lab1} vs ${B.lab0}`, "− Volume", "− Preço", "− Custo"]
       }[k];
       const agg = (rs) => {
         const a = zero(), b = zero();
-        let e = 0, exp = 0;
-        rs.forEach((r) => { add(a, r.a); add(b, r.b); e += r[k]; exp += r.exp; });
-        return { a, b, e, exp };
+        let e = 0, dM = 0, vol = 0, pr = 0, co = 0;
+        rs.forEach((r) => { add(a, r.a); add(b, r.b); e += r[k]; dM += r.dM; vol += r.vol; pr += r.pr; co += r.co; });
+        return { a, b, e, dM, vol, pr, co };
       };
-      const eff = (e) => `<strong class="${e >= 0 ? "pos" : "neg"}">${sgn(e)}${brl(Math.abs(e))}</strong>`;
+      const eff = (e) => (Math.abs(e) < 0.5 ? `<strong>–</strong>` : `<strong class="${e >= 0 ? "pos" : "neg"}">${sgn(e)}${brl(Math.abs(e))}</strong>`);
       const line = (label, ag, cls, att, cod) => `<tr class="${cls}" ${att || ""}><td>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmg-ano">${eff(ag.e)}</td></tr>`;
       const tot = agg(B.rows);
       let h = `<table class="cmg-tbl cmg-pt"><thead><tr><th>Nome reduzido</th>${heads.map((t) => `<th>${escapeHtml(t)}</th>`).join("")}<th class="cmg-ano">Efeito em R$</th></tr></thead><tbody>`;
@@ -335,7 +328,7 @@
       });
       h += "</tbody></table>";
       const e = EFFECTS[k];
-      return `<div class="cmg-ov" data-ov><div class="cmg-pop"><div class="cmg-pop-h"><div><div class="cmg-pop-t">${e.name} <span>· ${e.sub} · ${B.lab1} vs ${B.lab0}</span></div><div class="cmg-pop-s">${eff(tot.e)} <span>${k === "mix" ? "resíduo: o que sobra da variação da margem após volume, preço e custo" : "soma dos itens = valor da barra"}</span></div></div><button class="cmg-btn" data-pop-close>✕ Fechar</button></div><div class="cmg-pop-b">${h}</div></div></div>`;
+      return `<div class="cmg-ov" data-ov><div class="cmg-pop"><div class="cmg-pop-h"><div><div class="cmg-pop-t">${e.name} <span>· ${e.sub} · ${B.lab1} vs ${B.lab0}</span></div><div class="cmg-pop-s">${eff(tot.e)} <span>${k === "mix" ? "Δ margem − volume − preço − custo (o que sobra) · soma dos itens = valor da barra" : "soma dos itens = valor da barra"}</span></div></div><button class="cmg-btn" data-pop-close>✕ Fechar</button></div><div class="cmg-pop-b">${h}</div></div></div>`;
     }
 
     // ── Tabela corrida ──────────────────────────────────────────────────
