@@ -180,10 +180,10 @@
 
     // ── Indicadores ─────────────────────────────────────────────────────
     function delta(a, b, inv, pp, base) {
-      if (b == null || a == null || (!pp && !b)) return `<div class="cmg-d cmg-muted">sem base em ${escapeHtml(base)}</div>`;
+      if (b == null || a == null || (!pp && !b)) return `<div class="cmm-d cmm-muted">sem base em ${escapeHtml(base)}</div>`;
       const d = pp ? (a - b) * 100 : (a / b - 1) * 100;
       const good = inv ? d < 0 : d > 0;
-      return `<div class="cmg-d ${good ? "pos" : "neg"}">${d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(d), 1)}${pp ? " p.p." : "%"}<span>vs ${escapeHtml(base)}</span></div>`;
+      return `<div class="cmm-d ${good ? "pos" : "neg"}">${d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(d), 1)}${pp ? " p.p." : "%"}<span>vs ${escapeHtml(base)}</span></div>`;
     }
     // Indicadores comparam com o mês anterior: Mês → mês anterior; YTD/Ano → acumulado
     // até o mês anterior (Ano usa o último mês com dado como referência).
@@ -218,7 +218,7 @@
         ["MP", brl(cur.mp), "", delta(cur.mp, prev.mp, true, false, base)],
         ["MC1%", mbOf(cur) == null ? "–" : `${fmt(mbOf(cur) * 100, 1)}%`, "", delta(mbOf(cur), mbOf(prev), false, true, base)]
       ];
-      return `<div class="cmg-kpis">${cards.map((c) => `<div class="cmg-kpi"><div class="cmg-kl">${c[0]}</div><div class="cmg-kv">${c[1]}${c[2]}</div>${c[3]}</div>`).join("")}</div>`;
+      return `<div class="cmm-kpis">${cards.map((c) => `<div class="cmm-kpi"><div class="cmm-kl">${c[0]}</div><div class="cmm-kv">${c[1]}${c[2]}</div>${c[3]}</div>`).join("")}</div>`;
     }
 
     // ── Tooltip padrão do Cockpit (.cockpit-tip) ────────────────────────
@@ -255,7 +255,7 @@
         const c = sumRange(p, year, lo, hi);
         return { n: p.label, g: p.group, q: c.q, rl: c.rl, x: xKey === "rl" ? c.rl : c.q, mb: mbOf(c), m: c.rl - c.mp };
       }).filter((p) => p.q > 0 && p.mb != null && p.x > 0);
-      if (!pts.length) return `<div class="cmg-empty">Sem vendas de máquinas no período.</div>`;
+      if (!pts.length) return `<div class="cmm-empty">Sem vendas de máquinas no período.</div>`;
       const tot = zero();
       machines().forEach((p) => add(tot, sumRange(p, year, lo, hi)));
       const avgMb = mbOf(tot);
@@ -269,16 +269,16 @@
       const rad = (p) => 4 + Math.sqrt(Math.abs(p.m) / mx) * 13;
       const xFmt = (v) => (xKey === "rl" ? brl(v) : fmt(v));
       let s = "";
-      for (let i = 0; i <= 4; i++) { const v = ymin + ((ymax - ymin) * i) / 4; s += `<line class="cmg-grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${fmt(v * 100, 0)}%</text>`; }
+      for (let i = 0; i <= 4; i++) { const v = ymin + ((ymax - ymin) * i) / 4; s += `<line class="cmm-grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${fmt(v * 100, 0)}%</text>`; }
       for (let i = 0; i <= 5; i++) { const v = (xmax * i) / 5; s += `<text x="${X(v)}" y="${H - 20}" text-anchor="middle">${xFmt(v)}</text>`; }
-      s += `<line class="cmg-axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/><line class="cmg-axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"/>`;
-      s += `<line class="cmg-ref" x1="${X(avgX)}" x2="${X(avgX)}" y1="${T}" y2="${H - B}"/><line class="cmg-ref" x1="${L}" x2="${W - R}" y1="${Y(avgMb)}" y2="${Y(avgMb)}"/>`;
-      s += `<text class="cmg-quad" x="${W - R - 4}" y="${T + 10}" text-anchor="end">ESTRELAS</text><text class="cmg-quad" x="${L + 6}" y="${T + 10}">NICHOS</text><text class="cmg-quad" x="${W - R - 4}" y="${H - B - 6}" text-anchor="end">VOLUME, POUCA MARGEM</text><text class="cmg-quad" x="${L + 6}" y="${H - B - 6}">A REVISAR</text>`;
+      s += `<line class="cmm-axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/><line class="cmm-axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"/>`;
+      s += `<line class="cmm-ref" x1="${X(avgX)}" x2="${X(avgX)}" y1="${T}" y2="${H - B}"/><line class="cmm-ref" x1="${L}" x2="${W - R}" y1="${Y(avgMb)}" y2="${Y(avgMb)}"/>`;
+      s += `<text class="cmm-quad" x="${W - R - 4}" y="${T + 10}" text-anchor="end">ESTRELAS</text><text class="cmm-quad" x="${L + 6}" y="${T + 10}">NICHOS</text><text class="cmm-quad" x="${W - R - 4}" y="${H - B - 6}" text-anchor="end">VOLUME, POUCA MARGEM</text><text class="cmm-quad" x="${L + 6}" y="${H - B - 6}">A REVISAR</text>`;
       // maiores primeiro: as menores desenham por cima e não ficam escondidas
       const ordered = pts.slice().sort((a, b) => Math.abs(b.m) - Math.abs(a.m));
       let bubbles = "";
       ordered.forEach((p) => {
-        const col = p.g === "Grãos" ? "var(--cmg-cyan)" : p.g === "Pecuária" ? "var(--cmg-violet)" : "var(--cmg-amber)";
+        const col = p.g === "Grãos" ? "var(--cmm-cyan)" : p.g === "Pecuária" ? "var(--cmm-violet)" : "var(--cmm-amber)";
         bubbles += `<circle ${tipAttr([{ label: "Máquina", value: p.n }, { label: "VOL", value: `${fmtQty(p.q)} un` }, { label: "RL", value: brl(p.rl) }, { label: "MC1%", value: `${fmt(p.mb * 100, 1)}%` }, { label: "Margem", value: brl(p.m) }])} cx="${X(p.x)}" cy="${Y(p.mb)}" r="${rad(p)}" fill="${col}" fill-opacity=".32" stroke="${col}" stroke-width="1.4"/>`;
       });
       // rótulos: só as 8 maiores; cada um tenta acima, abaixo, direita e esquerda sem encostar em outro rótulo
@@ -296,12 +296,12 @@
         const pick = cands.find((b) => b.x >= L && b.x + w <= W - R && b.y >= T - 4 && b.y + h <= H - B + 14 && !hit({ x: b.x, y: b.y, w, h }));
         if (!pick) return;
         boxes.push({ x: pick.x, y: pick.y, w, h });
-        labels += `<text class="cmg-bl" x="${pick.tx}" y="${pick.y + h - 3}" text-anchor="${pick.a}">${escapeHtml(p.n)}</text>`;
+        labels += `<text class="cmm-bl" x="${pick.tx}" y="${pick.y + h - 3}" text-anchor="${pick.a}">${escapeHtml(p.n)}</text>`;
       });
-      s += `<g class="cmg-bubs">${bubbles}</g>${labels}`;
+      s += `<g class="cmm-bubs">${bubbles}</g>${labels}`;
       s += `<text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${xKey === "rl" ? "Receita líquida (R$)" : "Volume (un)"}</text>`;
-      return `<svg class="cmg-svg" viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>
-        <div class="cmg-legend"><span><i style="background:var(--cmg-cyan)"></i>Grãos</span><span><i style="background:var(--cmg-violet)"></i>Pecuária</span><span><i style="background:var(--cmg-amber)"></i>Cargograin</span><span>Linhas tracejadas = média do portfólio</span><span>Nome só nas 8 maiores · passe o mouse para ver as demais</span></div>`;
+      return `<svg class="cmm-svg" viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>
+        <div class="cmm-legend"><span><i style="background:var(--cmm-cyan)"></i>Grãos</span><span><i style="background:var(--cmm-violet)"></i>Pecuária</span><span><i style="background:var(--cmm-amber)"></i>Cargograin</span><span>Linhas tracejadas = média do portfólio</span><span>Nome só nas 8 maiores · passe o mouse para ver as demais</span></div>`;
     }
 
     // ── Ponte da margem (mês do filtro vs mês anterior; toda a empresa) ──
@@ -333,8 +333,8 @@
       const mx = Math.max(...all, 1) * 1.08;
       const mn = Math.min(0, ...all);
       const Y = (v) => T + (1 - (v - mn) / (mx - mn)) * (H - T - Bt);
-      const gid = (c) => `cmg-br-${c}`;
-      let s = `<defs>${[["blue", "--cmg-blue"], ["pos", "--cmg-pos"], ["neg", "--cmg-neg"]].map(([k, v]) => `<linearGradient id="${gid(k)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="color-mix(in srgb, var(${v}) 78%, #fff)"/><stop offset="22%" stop-color="var(${v})"/><stop offset="100%" stop-color="color-mix(in srgb, var(${v}) 72%, #000)"/></linearGradient>`).join("")}</defs><line class="cmg-axis" x1="${L}" x2="${W - L}" y1="${Y(0)}" y2="${Y(0)}"/>`;
+      const gid = (c) => `cmm-br-${c}`;
+      let s = `<defs>${[["blue", "--cmm-blue"], ["pos", "--cmm-pos"], ["neg", "--cmm-neg"]].map(([k, v]) => `<linearGradient id="${gid(k)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="color-mix(in srgb, var(${v}) 78%, #fff)"/><stop offset="22%" stop-color="var(${v})"/><stop offset="100%" stop-color="color-mix(in srgb, var(${v}) 72%, #000)"/></linearGradient>`).join("")}</defs><line class="cmm-axis" x1="${L}" x2="${W - L}" y1="${Y(0)}" y2="${Y(0)}"/>`;
       steps.forEach((st, i) => {
         const x = L + i * (bw + gap);
         const [a, b] = pos[i];
@@ -350,12 +350,12 @@
           const rl = i === 0 ? B.rl0 : B.rl1;
           s += `<text x="${x + bw / 2}" y="${top + h / 2 + 4}" text-anchor="middle" style="fill:#fff;font-weight:700;font-size:12px;pointer-events:none">${rl ? fmt((st[1] / rl) * 100, 1) + "%" : "–"}</text>`;
         }
-        s += `<text class="cmg-bl" x="${x + bw / 2}" y="${top - 6}" text-anchor="middle">${st[2] ? brl(st[1]) : sgn(st[1]) + brl(Math.abs(st[1]))}</text>`;
+        s += `<text class="cmm-bl" x="${x + bw / 2}" y="${top - 6}" text-anchor="middle">${st[2] ? brl(st[1]) : sgn(st[1]) + brl(Math.abs(st[1]))}</text>`;
         s += `<text x="${x + bw / 2}" y="${H - 30}" text-anchor="middle">${escapeHtml(name)}</text>`;
         if (st[0].includes("(")) s += `<text x="${x + bw / 2}" y="${H - 18}" text-anchor="middle" style="font-size:9.5px">(${escapeHtml(st[0].split(" (")[1])}</text>`;
-        if (i < n - 1) s += `<line class="cmg-ref" x1="${x + bw}" x2="${L + (i + 1) * (bw + gap)}" y1="${Y(pos[i][1])}" y2="${Y(pos[i][1])}"/>`;
+        if (i < n - 1) s += `<line class="cmm-ref" x1="${x + bw}" x2="${L + (i + 1) * (bw + gap)}" y1="${Y(pos[i][1])}" y2="${Y(pos[i][1])}"/>`;
       });
-      return { svg: `<svg class="cmg-svg" viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>`, sub: `MC1 R$ (RL − MP) · ${B.lab1} vs mês anterior (${B.lab0})` };
+      return { svg: `<svg class="cmm-svg" viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>`, sub: `MC1 R$ (RL − MP) · ${B.lab1} vs mês anterior (${B.lab0})` };
     }
 
     // ── Pop-over de detalhamento da ponte ───────────────────────────────
@@ -395,36 +395,36 @@
         return { a, b, e, dM, vol, pr, co, volumeUnits, mu };
       };
       const eff = (e) => (Math.abs(e) < 0.5 ? `<strong>–</strong>` : `<strong class="${e >= 0 ? "pos" : "neg"}">${sgn(e)}${brl(Math.abs(e))}</strong>`);
-      const line = (label, ag, cls, att, cod, full) => `<tr class="${cls}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmg-ano">${eff(ag.e)}</td></tr>`;
+      const line = (label, ag, cls, att, cod, full) => `<tr class="${cls}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmm-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmm-ano">${eff(ag.e)}</td></tr>`;
       const tot = agg(B.rows);
-      let h = `<table class="cmg-tbl cmg-pt"><thead><tr><th>Nome</th>${heads.map((t) => `<th>${escapeHtml(t)}</th>`).join("")}<th class="cmg-ano">Efeito em R$</th></tr></thead><tbody>`;
-      h += `<tr class="cmg-tot"><td>Total</td>${heads.map(() => "<td></td>").join("")}<td class="cmg-ano">${eff(tot.e)}</td></tr>`;
+      let h = `<table class="cmm-tbl cmm-pt"><thead><tr><th>Nome</th>${heads.map((t) => `<th>${escapeHtml(t)}</th>`).join("")}<th class="cmm-ano">Efeito em R$</th></tr></thead><tbody>`;
+      h += `<tr class="cmm-tot"><td>Total</td>${heads.map(() => "<td></td>").join("")}<td class="cmm-ano">${eff(tot.e)}</td></tr>`;
       const groups = [...new Set(model.parents.map((p) => p.group))].sort((x, y) => groupRank(x) - groupRank(y) || x.localeCompare(y, "pt-BR"));
       groups.forEach((g) => {
         const gr = B.rows.filter((r) => r.parent.group === g);
         if (!gr.length) return;
-        h += `<tr class="cmg-grp"><td colspan="${heads.length + 2}">${escapeHtml(g)}</td></tr>`;
+        h += `<tr class="cmm-grp"><td colspan="${heads.length + 2}">${escapeHtml(g)}</td></tr>`;
         const byParent = new Map();
         gr.forEach((r) => { if (!byParent.has(r.parent)) byParent.set(r.parent, []); byParent.get(r.parent).push(r); });
         [...byParent.entries()].map(([p, rs]) => [p, rs, agg(rs)]).filter(([, , ag]) => ag.a.q || ag.b.q || ag.e).sort((x, y) => Math.abs(y[2].e) - Math.abs(x[2].e)).forEach(([p, rs, ag]) => {
-          if (rs[0].block) { h += line(escapeHtml(p.label), ag, "cmg-mq", "", "", p.label); return; } // bloco: sem abertura por código
+          if (rs[0].block) { h += line(escapeHtml(p.label), ag, "cmm-mq", "", "", p.label); return; } // bloco: sem abertura por código
           const open = pop.open.has(p.key);
-          h += line(`<span class="cmg-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, ag, "cmg-mq", `data-pp="${escapeHtml(p.key)}"`, "", p.label);
+          h += line(`<span class="cmm-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, ag, "cmm-mq", `data-pp="${escapeHtml(p.key)}"`, "", p.label);
           if (!open) return;
           const act = rs.filter((r) => r.a.q || r.b.q || r[k]).sort((x, y) => Math.abs(y[k]) - Math.abs(x[k]));
-          act.slice(0, TOP_ITEMS).forEach((r) => { h += line(escapeHtml(r.it.desc), agg([r]), "cmg-prod", "", r.it.cod, r.it.desc); });
-          if (act.length > TOP_ITEMS) h += line(`Demais itens (${act.length - TOP_ITEMS})`, agg(act.slice(TOP_ITEMS)), "cmg-prod");
+          act.slice(0, TOP_ITEMS).forEach((r) => { h += line(escapeHtml(r.it.desc), agg([r]), "cmm-prod", "", r.it.cod, r.it.desc); });
+          if (act.length > TOP_ITEMS) h += line(`Demais itens (${act.length - TOP_ITEMS})`, agg(act.slice(TOP_ITEMS)), "cmm-prod");
         });
       });
       h += "</tbody></table>";
       const e = EFFECTS[k];
-      return `<div class="cmg-ov" data-ov><div class="cmg-pop"><div class="cmg-pop-h"><div><div class="cmg-pop-t">${e.name} <span>· ${e.sub} · ${B.lab1} vs ${B.lab0}</span></div><div class="cmg-pop-s">${eff(tot.e)} <span>soma dos itens = valor da barra</span></div></div><button class="cmg-btn" data-pop-close>✕ Fechar</button></div><div class="cmg-pop-b">${h}</div></div></div>`;
+      return `<div class="cmm-ov" data-ov><div class="cmm-pop"><div class="cmm-pop-h"><div><div class="cmm-pop-t">${e.name} <span>· ${e.sub} · ${B.lab1} vs ${B.lab0}</span></div><div class="cmm-pop-s">${eff(tot.e)} <span>soma dos itens = valor da barra</span></div></div><button class="cmm-btn" data-pop-close>✕ Fechar</button></div><div class="cmm-pop-b">${h}</div></div></div>`;
     }
 
     // ── Tabela corrida ──────────────────────────────────────────────────
     function mcell(c, prev, k) {
       const v = val(c, k);
-      const SLOT = `<span class="cmg-dl" style="visibility:hidden">&nbsp;</span>`;
+      const SLOT = `<span class="cmm-dl" style="visibility:hidden">&nbsp;</span>`;
       if (v == null) return `–${SLOT}`;
       let t = showVal(v, k);
       let hasDelta = false;
@@ -433,7 +433,7 @@
         if (p != null && p !== 0) {
           const d = k === "mb" ? (v - p) * 100 : (v / p - 1) * 100;
           const good = k === "mp" ? d < 0 : d > 0;
-          t += `<span class="cmg-dl ${good ? "pos" : "neg"}">${d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(d), k === "vol" ? 0 : 1)}${k === "mb" ? " pp" : "%"}</span>`;
+          t += `<span class="cmm-dl ${good ? "pos" : "neg"}">${d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(d), k === "vol" ? 0 : 1)}${k === "mb" ? " pp" : "%"}</span>`;
           hasDelta = true;
         }
       }
@@ -450,47 +450,47 @@
         return o;
       };
       const row = (label, obj, cls, att, cod, full) => {
-        let r = `<tr class="${cls || ""}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td><td class="cmg-q4">${k === "vol" ? fmt(q4obj(obj).q, 1) : showVal(val(q4obj(obj), k), k)}</td>`;
+        let r = `<tr class="${cls || ""}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmm-cd">${escapeHtml(cod)}</span>` : ""}${label}</td><td class="cmm-q4">${k === "vol" ? fmt(q4obj(obj).q, 1) : showVal(val(q4obj(obj), k), k)}</td>`;
         for (let m = 0; m < 12; m++) {
-          if (m >= n) { r += `<td class="cmg-future"></td>`; continue; }
+          if (m >= n) { r += `<td class="cmm-future"></td>`; continue; }
           const c = cellsOf(obj, year)[m];
           const prev = m > 0 ? cellsOf(obj, year)[m - 1] : q4obj(obj);
           r += `<td>${mcell(c, prev, k)}</td>`;
         }
         let tri = null;
         if (n > 3 && k !== "vol") { tri = zero(); for (let m = n - 3; m < n; m++) add(tri, cellsOf(obj, year)[m]); ["q", "fat", "rl", "mp"].forEach((f) => { tri[f] *= n / 3; }); }
-        return `${r}<td class="cmg-ano">${mcell(yearTotals(obj), tri, k)}</td></tr>`;
+        return `${r}<td class="cmm-ano">${mcell(yearTotals(obj), tri, k)}</td></tr>`;
       };
       const nz = (c) => Math.abs(c.q) > 1e-9 || Math.abs(c.fat) > 0.005 || Math.abs(c.rl) > 0.005 || Math.abs(c.mp) > 0.005;
       // Linha 100% zerada (ano do filtro até o mês exibido e 4º tri do ano anterior) não aparece.
       const active = (obj) => cellsOf(obj, year).slice(0, n).some(nz) || nz(q4obj(obj));
       const wrapObj = (list) => { const cells = {}; [year - 1, year].forEach((y) => { cells[y] = Array.from({ length: 12 }, zero); list.forEach((p) => cellsOf(p, y).forEach((c, i) => add(cells[y][i], c))); }); return { cells }; };
-            let h = `<thead><tr><th></th><th class="cmg-q4" title="Média ponderada do 4º trimestre de ${year - 1}">${year - 1}</th>${MESES.map((m) => `<th>${m}</th>`).join("")}<th class="cmg-ano">${year}</th></tr></thead><tbody>`;
+            let h = `<thead><tr><th></th><th class="cmm-q4" title="Média ponderada do 4º trimestre de ${year - 1}">${year - 1}</th>${MESES.map((m) => `<th>${m}</th>`).join("")}<th class="cmm-ano">${year}</th></tr></thead><tbody>`;
       const mach = machines();
-      h += row("Total Máquinas", wrapObj(mach), "cmg-tot");
+      h += row("Total Máquinas", wrapObj(mach), "cmm-tot");
       const groups = [...new Set(mach.map((p) => p.group))].sort((a, b) => groupRank(a) - groupRank(b) || a.localeCompare(b, "pt-BR"));
       const addParent = (p) => {
         const open = openRows.has(p.key);
-        h += row(`<span class="cmg-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, p, "cmg-mq", `data-row="${escapeHtml(p.key)}"`, "", p.label);
+        h += row(`<span class="cmm-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, p, "cmm-mq", `data-row="${escapeHtml(p.key)}"`, "", p.label);
         if (!open) return;
         const act = p.items.filter(active);
         act.sort((a, b) => Math.abs(sumRange(b, year, 1, n).rl) - Math.abs(sumRange(a, year, 1, n).rl));
-        act.slice(0, TOP_ITEMS).forEach((it) => { h += row(escapeHtml(it.desc), it, "cmg-prod", "", it.cod, it.desc); });
-        if (act.length > TOP_ITEMS) h += row(`Demais itens (${act.length - TOP_ITEMS})`, wrapObj(act.slice(TOP_ITEMS)), "cmg-prod");
+        act.slice(0, TOP_ITEMS).forEach((it) => { h += row(escapeHtml(it.desc), it, "cmm-prod", "", it.cod, it.desc); });
+        if (act.length > TOP_ITEMS) h += row(`Demais itens (${act.length - TOP_ITEMS})`, wrapObj(act.slice(TOP_ITEMS)), "cmm-prod");
       };
       groups.forEach((g) => {
         const list = mach.filter((p) => p.group === g && active(p)).sort(byMachineName);
         if (!list.length) return;
-        h += `<tr class="cmg-grp"><td colspan="15">${escapeHtml(g)}</td></tr>`;
+        h += `<tr class="cmm-grp"><td colspan="15">${escapeHtml(g)}</td></tr>`;
         list.forEach(addParent);
-        h += row(`Total ${escapeHtml(g)}`, wrapObj(list), "cmg-sub");
+        h += row(`Total ${escapeHtml(g)}`, wrapObj(list), "cmm-sub");
       });
       const comp = model.parents.filter((p) => p.kind === "C" && active(p)).sort((a, b) => (COMP_ORDER.indexOf(a.label) + 1 || 99) - (COMP_ORDER.indexOf(b.label) + 1 || 99) || a.label.localeCompare(b.label, "pt-BR"));
       if (comp.length) {
-        h += `<tr class="cmg-grp"><td colspan="15">${COMP_GROUP}</td></tr>`;
+        h += `<tr class="cmm-grp"><td colspan="15">${COMP_GROUP}</td></tr>`;
         comp.forEach(addParent);
       }
-      return `<div class="cmg-tw"><table class="cmg-tbl">${h}</tbody></table></div>`;
+      return `<div class="cmm-tw"><table class="cmm-tbl">${h}</tbody></table></div>`;
     }
 
     // ── Página ──────────────────────────────────────────────────────────
@@ -498,9 +498,9 @@
       if (!container) return;
       ensureStyle();
       host = container;
-      if (!isSupabaseConfigured()) { container.innerHTML = `<div class="cmg-empty">Configuração do Supabase ausente.</div>`; return; }
-      if (error && !model) { container.innerHTML = `<div class="cmg-empty">${escapeHtml(error)}<br><button class="cmg-btn" data-retry>Tentar novamente</button></div>`; return; }
-      if (!model) { container.innerHTML = `<div class="cmg-empty">Carregando margens…</div>`; return; }
+      if (!isSupabaseConfigured()) { container.innerHTML = `<div class="cmm-empty">Configuração do Supabase ausente.</div>`; return; }
+      if (error && !model) { container.innerHTML = `<div class="cmm-empty">${escapeHtml(error)}<br><button class="cmm-btn" data-retry>Tentar novamente</button></div>`; return; }
+      if (!model) { container.innerHTML = `<div class="cmm-empty">Carregando margens…</div>`; return; }
       const last = lastDataMonth();
       const notes = [];
       if (period === "fy" && last && last < 12) notes.push(`ANO ${year} · dados realizados até ${MESES[last - 1].toLowerCase()} (parcial)`);
@@ -508,19 +508,19 @@
       if (model.semCultura) notes.push(`${model.semCultura} máquina(s) sem cultura no cadastro de Produtos`);
       const br = bridgeHtml();
       const periodTxt = period === "mes" ? MESES[month - 1] : period === "ytd" ? `Jan–${MESES[month - 1]}` : "Jan–Dez";
-      container.innerHTML = `<div class="cmg ${loading ? "cmg-loading" : ""}">
-        <div class="cmg-header"><div><h1>MARGENS POR MÁQUINAS</h1><p>Comercial · ${periodTxt}/${year} · líquido de devoluções · MC1% = (RL − MP) ÷ RL</p></div>
-          <div class="cmg-period">${[["mes", "Mês"], ["ytd", "YTD"], ["fy", "Ano"]].map(([v, l]) => `<button data-period="${v}" class="${period === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
-        ${notes.length ? `<div class="cmg-note">${notes.map(escapeHtml).join(" · ")}</div>` : ""}
+      container.innerHTML = `<div class="cmm ${loading ? "cmm-loading" : ""}">
+        <div class="cmm-header"><div><h1>MARGENS POR MÁQUINAS</h1><p>Comercial · ${periodTxt}/${year} · líquido de devoluções · MC1% = (RL − MP) ÷ RL</p></div>
+          <div class="cmm-period">${[["mes", "Mês"], ["ytd", "YTD"], ["fy", "Ano"]].map(([v, l]) => `<button data-period="${v}" class="${period === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
+        ${notes.length ? `<div class="cmm-note">${notes.map(escapeHtml).join(" · ")}</div>` : ""}
         ${kpisHtml()}
-        <div class="cmg-two">
-          <div class="cmg-card"><div class="cmg-hd"><div><h2>Posicionamento de Portfólio · Máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmg-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
-          <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da MC1 · Marcher</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
+        <div class="cmm-two">
+          <div class="cmm-card"><div class="cmm-hd"><div><h2>Posicionamento de Portfólio · Máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmm-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
+          <div class="cmm-card"><div class="cmm-hd"><h2>Ponte da MC1 · Marcher</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
-        <div class="cmg-card"><div class="cmg-hd"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
-          <div class="cmg-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
+        <div class="cmm-card"><div class="cmm-hd"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
+          <div class="cmm-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
           ${tableHtml()}
-          <div class="cmg-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano (não se aplica ao VOL)</span></div></div>
+          <div class="cmm-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano (não se aplica ao VOL)</span></div></div>
         ${pop ? popHtml() : ""}</div>`;
       bind(container);
     }
@@ -547,40 +547,40 @@
     }
 
     function ensureStyle() {
-      if (document.getElementById("cmg-style")) return;
+      if (document.getElementById("cmm-style")) return;
       const s = document.createElement("style");
-      s.id = "cmg-style";
+      s.id = "cmm-style";
       s.textContent = `
-      .cmg{--cmg-panel:var(--theme-surface,#121826);--cmg-panel2:var(--theme-surface-raised,var(--theme-surface,#171f30));--cmg-line:var(--theme-border,#232c40);--cmg-text:var(--theme-ink,#eef1f6);--cmg-muted:var(--theme-ink-secondary,#9aa4b8);--cmg-faint:var(--theme-ink-muted,#6b7280);--cmg-blue:#4f7cff;--cmg-pos:var(--theme-ink-green,#3fd49a);--cmg-neg:var(--theme-ink-red,#ff6b7a);--cmg-cyan:var(--theme-ink-teal,#14b8a6);--cmg-violet:var(--theme-ink-violet,#8b5cf6);--cmg-amber:var(--theme-ink-amber,#f59e0b);color:var(--cmg-text);font-size:12px;min-width:0}
-      .cmg *{box-sizing:border-box}.cmg button{font:inherit}
-      .cmg-header{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;padding:2px 6px 14px;flex-wrap:wrap}.cmg-header h1{font-size:18px;letter-spacing:.01em;margin:0 0 4px}.cmg-header p{margin:0;color:var(--cmg-muted)}
-      .cmg-period,.cmg-tabs{display:inline-flex;align-items:center;gap:2px;background:var(--cmg-panel2);border:1px solid var(--cmg-line);border-radius:8px;padding:2px}.cmg-period button,.cmg-tabs button{border:0;background:transparent;color:var(--cmg-muted);font-size:12px;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer}.cmg-period button.active,.cmg-tabs button.active{background:#4f7cff;color:#fff}
-      .cmg-btn{border:1px solid var(--cmg-line);border-radius:8px;background:var(--cmg-panel);color:var(--cmg-text);padding:7px 12px;cursor:pointer}
-      .cmg-note{margin:0 6px 12px;padding:7px 10px;border:1px dashed var(--cmg-amber);border-radius:8px;color:var(--cmg-amber);font-size:11px}
-      .cmg-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0 0 10px}.cmg-kpi{min-width:0;border:1px solid var(--cmg-line);border-radius:12px;background:var(--cmg-panel2);padding:12px 14px}.cmg-kl{font-size:10px;color:var(--cmg-muted);text-transform:uppercase;letter-spacing:.04em}.cmg-kv{font-size:20px;font-weight:700;margin:6px 0 3px;white-space:nowrap;font-variant-numeric:tabular-nums}.cmg-kv small{font-size:11px;color:var(--cmg-muted);font-weight:500;margin-left:4px}.cmg-d{font-size:10.5px;font-weight:600}.cmg-d span{color:var(--cmg-faint);font-weight:500;margin-left:4px}.cmg-muted{color:var(--cmg-faint)!important;font-weight:500}
-      .cmg .pos{color:var(--cmg-pos)}.cmg .neg{color:var(--cmg-neg)}
-      .cmg-two{display:grid;grid-template-columns:1.15fr 1fr;gap:10px;margin-bottom:10px}.cmg-card{border:1px solid var(--cmg-line);border-radius:12px;background:var(--cmg-panel2);padding:14px 16px;min-width:0}.cmg-two .cmg-card{margin-bottom:0}.cmg>.cmg-card{margin-bottom:10px}
-      .cmg-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}.cmg-hd h2{margin:0;font-size:13px;font-weight:650}.cmg-hd p{margin:2px 0 0;color:var(--cmg-muted);font-size:11px}
-      .cmg-svg text{fill:var(--cmg-muted);font-family:inherit;font-size:10.5px}.cmg-svg .cmg-bl{fill:var(--cmg-text);font-weight:600}.cmg-svg .cmg-quad{font-weight:700}.cmg-grid{stroke:var(--theme-border-subtle,#ffffff10)}.cmg-axis{stroke:var(--cmg-line)}.cmg-ref{stroke:var(--cmg-faint);stroke-dasharray:4 4}
-      .cmg-bubs circle{transition:fill-opacity .12s,stroke-opacity .12s}.cmg-bubs:hover circle{fill-opacity:.12;stroke-opacity:.3}.cmg-bubs circle:hover{fill-opacity:.65;stroke-opacity:1}
-      .cmg-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--cmg-muted);margin-top:8px}.cmg-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
-      .cmg-empty{padding:40px 15px;text-align:center;color:var(--cmg-muted);border:1px dashed var(--cmg-line);border-radius:12px}
-      .cmg-tw{border:1px solid var(--cmg-line);border-radius:10px}
-      .cmg-tbl{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}.cmg-tbl th,.cmg-tbl td{padding:4px 6px;vertical-align:middle;text-align:right;white-space:nowrap;border-bottom:1px solid var(--theme-border-subtle,#ffffff0d);font-size:11.5px}
-      .cmg-tbl th{position:sticky;top:0;z-index:2;background:var(--cmg-panel);color:var(--cmg-muted);font-weight:650;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
-      .cmg-tbl th:first-child,.cmg-tbl td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--cmg-panel);width:230px;max-width:230px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--cmg-line)}.cmg-tbl th:first-child{z-index:3}.cmg-tbl th:nth-child(2),.cmg-tbl td:nth-child(2){width:60px}.cmg-tbl th.cmg-ano,.cmg-tbl td.cmg-ano{width:78px}
-      .cmg-pt{table-layout:auto}.cmg-pt th:first-child,.cmg-pt td:first-child{width:320px;max-width:320px}.cmg-pt th:nth-child(2),.cmg-pt td:nth-child(2),.cmg-pt th.cmg-ano,.cmg-pt td.cmg-ano{width:auto}
-      .cmg-q4{border-right:1px solid var(--cmg-line)}th.cmg-q4,td.cmg-q4,th.cmg-ano,td.cmg-ano{background:linear-gradient(rgba(79,124,255,.12),rgba(79,124,255,.12)),var(--cmg-panel);font-weight:700;border-left:1px solid var(--cmg-line)}
-      .cmg-grp td{background:var(--cmg-panel);font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:10.5px!important;text-align:left!important}
-      .cmg-sub td,.cmg-sub td:first-child{background:linear-gradient(var(--theme-surface-tint,rgba(255,255,255,.04)),var(--theme-surface-tint,rgba(255,255,255,.04))),var(--cmg-panel);font-weight:700}.cmg-tot td,.cmg-tot td:first-child{background:linear-gradient(var(--theme-surface-muted,rgba(255,255,255,.07)),var(--theme-surface-muted,rgba(255,255,255,.07))),var(--cmg-panel);font-weight:750}.cmg-tot td.cmg-ano,.cmg-sub td.cmg-ano{background:linear-gradient(rgba(79,124,255,.12),rgba(79,124,255,.12)),var(--cmg-panel)}
-      .cmg-mq{cursor:pointer}.cmg-mq:hover td{background:var(--theme-surface-tint,rgba(255,255,255,.05))}.cmg-mq:hover td:first-child{background:var(--cmg-panel)}.cmg-car{display:inline-block;width:14px;color:var(--cmg-faint);font-size:10px}
-      .cmg-prod td,.cmg-prod td:first-child{color:var(--cmg-muted);font-size:11.5px}.cmg-prod td:first-child{padding-left:24px}.cmg-cd{display:inline-block;min-width:7ch;color:var(--cmg-faint);margin-right:6px;font-variant-numeric:tabular-nums}
-      .cmg-future{color:var(--cmg-faint)}.cmg-dl{display:block;font-size:9.5px;font-weight:600;line-height:1;margin-top:2px}.cmg-dl.pos,.cmg-dl.neg{opacity:.95}
-      .cmg-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center}.cmg-pop{width:85vw;height:85vh;background:var(--cmg-panel);border:1px solid var(--cmg-line);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden;color:var(--cmg-text)}
-      .cmg-pop-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--cmg-line)}.cmg-pop-t{font-size:15px;font-weight:700}.cmg-pop-t span{color:var(--cmg-muted);font-weight:500;font-size:12px}.cmg-pop-s{margin-top:4px}.cmg-pop-s span{color:var(--cmg-faint);font-size:11px;margin-left:6px}.cmg-pop-b{overflow:auto;flex:1;padding:0 18px 14px}
-      @media(max-width:1180px){.cmg-tw{overflow-x:auto}.cmg-tbl{min-width:1000px}.cmg-pt{min-width:0}}
-      @media(max-width:1150px){.cmg-kpis{grid-template-columns:repeat(3,1fr)}.cmg-two{grid-template-columns:1fr}}
-      @media(max-width:768px){.cmg-kpis{grid-template-columns:repeat(2,1fr)}.cmg-pop{width:100vw;height:100vh;border-radius:0}}
+      .cmm{--cmm-panel:var(--theme-surface,#121826);--cmm-panel2:var(--theme-surface-raised,var(--theme-surface,#171f30));--cmm-line:var(--theme-border,#232c40);--cmm-text:var(--theme-ink,#eef1f6);--cmm-muted:var(--theme-ink-secondary,#9aa4b8);--cmm-faint:var(--theme-ink-muted,#6b7280);--cmm-blue:#4f7cff;--cmm-pos:var(--theme-ink-green,#3fd49a);--cmm-neg:var(--theme-ink-red,#ff6b7a);--cmm-cyan:var(--theme-ink-teal,#14b8a6);--cmm-violet:var(--theme-ink-violet,#8b5cf6);--cmm-amber:var(--theme-ink-amber,#f59e0b);color:var(--cmm-text);font-size:12px;min-width:0}
+      .cmm *{box-sizing:border-box}.cmm button{font:inherit}
+      .cmm-header{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;padding:2px 6px 14px;flex-wrap:wrap}.cmm-header h1{font-size:18px;letter-spacing:.01em;margin:0 0 4px}.cmm-header p{margin:0;color:var(--cmm-muted)}
+      .cmm-period,.cmm-tabs{display:inline-flex;align-items:center;gap:2px;background:var(--cmm-panel2);border:1px solid var(--cmm-line);border-radius:8px;padding:2px}.cmm-period button,.cmm-tabs button{border:0;background:transparent;color:var(--cmm-muted);font-size:12px;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer}.cmm-period button.active,.cmm-tabs button.active{background:#4f7cff;color:#fff}
+      .cmm-btn{border:1px solid var(--cmm-line);border-radius:8px;background:var(--cmm-panel);color:var(--cmm-text);padding:7px 12px;cursor:pointer}
+      .cmm-note{margin:0 6px 12px;padding:7px 10px;border:1px dashed var(--cmm-amber);border-radius:8px;color:var(--cmm-amber);font-size:11px}
+      .cmm-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0 0 10px}.cmm-kpi{min-width:0;border:1px solid var(--cmm-line);border-radius:12px;background:var(--cmm-panel2);padding:12px 14px}.cmm-kl{font-size:10px;color:var(--cmm-muted);text-transform:uppercase;letter-spacing:.04em}.cmm-kv{font-size:20px;font-weight:700;margin:6px 0 3px;white-space:nowrap;font-variant-numeric:tabular-nums}.cmm-kv small{font-size:11px;color:var(--cmm-muted);font-weight:500;margin-left:4px}.cmm-d{font-size:10.5px;font-weight:600}.cmm-d span{color:var(--cmm-faint);font-weight:500;margin-left:4px}.cmm-muted{color:var(--cmm-faint)!important;font-weight:500}
+      .cmm .pos{color:var(--cmm-pos)}.cmm .neg{color:var(--cmm-neg)}
+      .cmm-two{display:grid;grid-template-columns:1.15fr 1fr;gap:10px;margin-bottom:10px}.cmm-card{border:1px solid var(--cmm-line);border-radius:12px;background:var(--cmm-panel2);padding:14px 16px;min-width:0}.cmm-two .cmm-card{margin-bottom:0}.cmm>.cmm-card{margin-bottom:10px}
+      .cmm-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}.cmm-hd h2{margin:0;font-size:13px;font-weight:650}.cmm-hd p{margin:2px 0 0;color:var(--cmm-muted);font-size:11px}
+      .cmm-svg text{fill:var(--cmm-muted);font-family:inherit;font-size:10.5px}.cmm-svg .cmm-bl{fill:var(--cmm-text);font-weight:600}.cmm-svg .cmm-quad{font-weight:700}.cmm-grid{stroke:var(--theme-border-subtle,#ffffff10)}.cmm-axis{stroke:var(--cmm-line)}.cmm-ref{stroke:var(--cmm-faint);stroke-dasharray:4 4}
+      .cmm-bubs circle{transition:fill-opacity .12s,stroke-opacity .12s}.cmm-bubs:hover circle{fill-opacity:.12;stroke-opacity:.3}.cmm-bubs circle:hover{fill-opacity:.65;stroke-opacity:1}
+      .cmm-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--cmm-muted);margin-top:8px}.cmm-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+      .cmm-empty{padding:40px 15px;text-align:center;color:var(--cmm-muted);border:1px dashed var(--cmm-line);border-radius:12px}
+      .cmm-tw{border:1px solid var(--cmm-line);border-radius:10px}
+      .cmm-tbl{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}.cmm-tbl th,.cmm-tbl td{padding:4px 6px;vertical-align:middle;text-align:right;white-space:nowrap;border-bottom:1px solid var(--theme-border-subtle,#ffffff0d);font-size:11.5px}
+      .cmm-tbl th{position:sticky;top:0;z-index:2;background:var(--cmm-panel);color:var(--cmm-muted);font-weight:650;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
+      .cmm-tbl th:first-child,.cmm-tbl td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--cmm-panel);width:230px;max-width:230px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--cmm-line)}.cmm-tbl th:first-child{z-index:3}.cmm-tbl th:nth-child(2),.cmm-tbl td:nth-child(2){width:60px}.cmm-tbl th.cmm-ano,.cmm-tbl td.cmm-ano{width:78px}
+      .cmm-pt{table-layout:auto}.cmm-pt th:first-child,.cmm-pt td:first-child{width:320px;max-width:320px}.cmm-pt th:nth-child(2),.cmm-pt td:nth-child(2),.cmm-pt th.cmm-ano,.cmm-pt td.cmm-ano{width:auto}
+      .cmm-q4{border-right:1px solid var(--cmm-line)}th.cmm-q4,td.cmm-q4,th.cmm-ano,td.cmm-ano{background:linear-gradient(rgba(79,124,255,.12),rgba(79,124,255,.12)),var(--cmm-panel);font-weight:700;border-left:1px solid var(--cmm-line)}
+      .cmm-grp td{background:var(--cmm-panel);font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:10.5px!important;text-align:left!important}
+      .cmm-sub td,.cmm-sub td:first-child{background:linear-gradient(var(--theme-surface-tint,rgba(255,255,255,.04)),var(--theme-surface-tint,rgba(255,255,255,.04))),var(--cmm-panel);font-weight:700}.cmm-tot td,.cmm-tot td:first-child{background:linear-gradient(var(--theme-surface-muted,rgba(255,255,255,.07)),var(--theme-surface-muted,rgba(255,255,255,.07))),var(--cmm-panel);font-weight:750}.cmm-tot td.cmm-ano,.cmm-sub td.cmm-ano{background:linear-gradient(rgba(79,124,255,.12),rgba(79,124,255,.12)),var(--cmm-panel)}
+      .cmm-mq{cursor:pointer}.cmm-mq:hover td{background:var(--theme-surface-tint,rgba(255,255,255,.05))}.cmm-mq:hover td:first-child{background:var(--cmm-panel)}.cmm-car{display:inline-block;width:14px;color:var(--cmm-faint);font-size:10px}
+      .cmm-prod td,.cmm-prod td:first-child{color:var(--cmm-muted);font-size:11.5px}.cmm-prod td:first-child{padding-left:24px}.cmm-cd{display:inline-block;min-width:7ch;color:var(--cmm-faint);margin-right:6px;font-variant-numeric:tabular-nums}
+      .cmm-future{color:var(--cmm-faint)}.cmm-dl{display:block;font-size:9.5px;font-weight:600;line-height:1;margin-top:2px}.cmm-dl.pos,.cmm-dl.neg{opacity:.95}
+      .cmm-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center}.cmm-pop{width:85vw;height:85vh;background:var(--cmm-panel);border:1px solid var(--cmm-line);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden;color:var(--cmm-text)}
+      .cmm-pop-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--cmm-line)}.cmm-pop-t{font-size:15px;font-weight:700}.cmm-pop-t span{color:var(--cmm-muted);font-weight:500;font-size:12px}.cmm-pop-s{margin-top:4px}.cmm-pop-s span{color:var(--cmm-faint);font-size:11px;margin-left:6px}.cmm-pop-b{overflow:auto;flex:1;padding:0 18px 14px}
+      @media(max-width:1180px){.cmm-tw{overflow-x:auto}.cmm-tbl{min-width:1000px}.cmm-pt{min-width:0}}
+      @media(max-width:1150px){.cmm-kpis{grid-template-columns:repeat(3,1fr)}.cmm-two{grid-template-columns:1fr}}
+      @media(max-width:768px){.cmm-kpis{grid-template-columns:repeat(2,1fr)}.cmm-pop{width:100vw;height:100vh;border-radius:0}}
       `;
       document.head.appendChild(s);
     }
