@@ -7,21 +7,47 @@
   // Definições: MP = custo de matéria-prima; MC1% = (RL − MP) ÷ RL. Na tabela os
   // valores são UNITÁRIOS (÷ volume); linhas-pai = total ÷ volume total (média
   // ponderada pelo volume), nunca média de unitários.
+  // Ponte da MC1 (R$ = RL − MP) entre dois meses. Cada linha traz a (mês anterior),
+  // b (mês atual) e kind: "M" máquina (padrão), "B" peças (tratadas como UM bloco) ou
+  // "O" demais itens complementares (calculados item a item).
+  //  • Máquinas (unidades): Volume = Δun × margem/un média anterior do portfólio de
+  //    máquinas com base; Mix = Δun × (margem/un do produto − média), ou seja, a mudança
+  //    de composição; Preço e MP por produto. Máquinas novas (sem venda anterior) e
+  //    movimentos não comparáveis caem inteiros no Mix (resíduo).
+  //  • Peças (bloco): o "volume" é o faturamento (RL), com preço fixo em 1. Volume =
+  //    ΔRL × MC1% anterior do bloco; Preço = 0; MP = variação do MP/RL × RL atual.
   function calculateMarginBridge(rows) {
+    const kindOf = (r) => r.kind || "M";
+    const base = rows.filter((r) => kindOf(r) === "M" && r.a.q > 0);
+    const q0 = base.reduce((t, r) => t + r.a.q, 0);
+    const avgUnit = q0 > 0 ? base.reduce((t, r) => t + r.a.rl - r.a.mp, 0) / q0 : 0;
+    const blk = rows.filter((r) => kindOf(r) === "B");
+    const blkRl = blk.reduce((t, r) => t + r.a.rl, 0);
+    const blkMp = blk.reduce((t, r) => t + r.a.mp, 0);
     return rows.map((r) => {
       const { a, b } = r;
-      const marginUnit = a.q > 0 ? (a.rl - a.mp) / a.q : 0;
-      // Não somar unidades de famílias distintas para construir um mix global.
-      const volumeUnits = a.q > 0 && b.q >= 0 ? b.q - a.q : 0;
+      const kind = kindOf(r);
       const M0 = a.rl - a.mp, M1 = b.rl - b.mp;
-      const vol = volumeUnits * marginUnit;
-      const both = a.q > 0 && b.q > 0;
-      const pr = both ? b.rl - b.q * a.rl / a.q : 0;
-      const co = both ? -(b.mp - b.q * a.mp / a.q) : 0;
+      let vol = 0, pr = 0, co = 0, volumeUnits = 0, mu = 0;
+      if (kind === "B") {
+        if (blkRl > 0) {
+          mu = (blkRl - blkMp) / blkRl;
+          volumeUnits = b.rl - a.rl;
+          vol = volumeUnits * mu;
+          co = -(b.mp - b.rl * blkMp / blkRl);
+        }
+      } else {
+        mu = kind === "M" ? avgUnit : a.q > 0 ? M0 / a.q : 0;
+        if (a.q > 0 && (kind === "M" || b.q >= 0)) { volumeUnits = b.q - a.q; vol = volumeUnits * mu; }
+        if (a.q > 0 && b.q > 0) {
+          pr = b.rl - b.q * a.rl / a.q;
+          co = -(b.mp - b.q * a.mp / a.q);
+        }
+      }
       const dM = M1 - M0;
-      // Resíduo explícito, sem apresentar como efeito puro de composição.
+      // Mix = composição das máquinas + resíduo (novos produtos e ajustes sem base).
       const mix = dM - vol - pr - co;
-      return { ...r, M0, M1, dM, vol, mix, pr, co, volumeUnits };
+      return { ...r, kind, M0, M1, dM, vol, mix, pr, co, volumeUnits, mu };
     });
   }
   function createComercialMargensModule(deps) {
@@ -34,10 +60,10 @@
     const COMP_ORDER = ["Peças", "Transgrain", "Acessórios"];
     const METRICS = [["vol", "VOL"], ["fat", "FAT"], ["rl", "RL"], ["mp", "MP"], ["mb", "MC1%"]];
     const EFFECTS = {
-      vol: { name: "Volume", sub: "Variação da quantidade de cada produto × sua margem unitária anterior" },
+      vol: { name: "Volume", sub: "Δ unidades das máquinas × margem/un média anterior; peças como bloco: Δ RL × MC1% anterior" },
       pr: { name: "Preço", sub: "RL por unidade" },
-      co: { name: "Custo", sub: "MP por unidade" },
-      mix: { name: "Sem base/ajustes", sub: "Produtos sem volume anterior positivo e movimentos não comparáveis; resíduo da variação" }
+      co: { name: "MP", sub: "MP por unidade; peças como bloco: variação do MP/RL" },
+      mix: { name: "Mix", sub: "Composição das máquinas (Δ un × margem/un acima ou abaixo da média) + máquinas novas e ajustes sem base" }
     };
 
     let host = null;
@@ -285,13 +311,13 @@
       const cm = nMonths();
       const py = cm === 1 ? year - 1 : year;
       const pm = cm === 1 ? 12 : cm - 1;
-      const rows = calculateMarginBridge(model.items.map((it) => ({ it, parent: it.parent, a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] })));
+      const rows = calculateMarginBridge(model.items.map((it) => ({ it, parent: it.parent, kind: it.parent.kind === "M" ? "M" : it.parent.label === "Peças" ? "B" : "O", a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] })));
       const sum = (k) => rows.reduce((t, r) => t + r[k], 0);
       return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix") };
     }
     function bridgeHtml() {
       const B = bridgeData();
-      const steps = [[`Margem ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["Preço (RL/un)", B.pr, false, "pr"], ["Custo (MP/un)", B.co, false, "co"], ["Sem base/ajustes", B.mix, false, "mix"], [`Margem ${B.lab1}`, B.M1, true]];
+      const steps = [[`MC1 ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["Preço (RL/un)", B.pr, false, "pr"], ["MP (custo/un)", B.co, false, "co"], ["Mix", B.mix, false, "mix"], [`MC1 ${B.lab1}`, B.M1, true]];
       const W = 640, H = 330, L = 12, T = 30, Bt = 52, n = steps.length, bw = 56, gap = (W - L * 2 - bw * n) / (n - 1);
       let run = 0;
       const pos = steps.map((s) => { if (s[2]) { run = s[1]; return [0, s[1]]; } const r = [run, run + s[1]]; run += s[1]; return r; });
@@ -299,24 +325,25 @@
       const mx = Math.max(...all, 1) * 1.08;
       const mn = Math.min(0, ...all);
       const Y = (v) => T + (1 - (v - mn) / (mx - mn)) * (H - T - Bt);
-      let s = `<line class="cmg-axis" x1="${L}" x2="${W - L}" y1="${Y(0)}" y2="${Y(0)}"/>`;
+      const gid = (c) => `cmg-br-${c}`;
+      let s = `<defs>${[["blue", "--cmg-blue"], ["pos", "--cmg-pos"], ["neg", "--cmg-neg"]].map(([k, v]) => `<linearGradient id="${gid(k)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="color-mix(in srgb, var(${v}) 78%, #fff)"/><stop offset="22%" stop-color="var(${v})"/><stop offset="100%" stop-color="color-mix(in srgb, var(${v}) 72%, #000)"/></linearGradient>`).join("")}</defs><line class="cmg-axis" x1="${L}" x2="${W - L}" y1="${Y(0)}" y2="${Y(0)}"/>`;
       steps.forEach((st, i) => {
         const x = L + i * (bw + gap);
         const [a, b] = pos[i];
         const top = Y(Math.max(a, b));
         const h = Math.max(2, Math.abs(Y(a) - Y(b)));
-        const col = st[2] ? "var(--cmg-blue)" : st[1] >= 0 ? "var(--cmg-pos)" : "var(--cmg-neg)";
+        const col = `url(#${gid(st[2] ? "blue" : st[1] >= 0 ? "pos" : "neg")})`;
         const name = st[0].split(" (")[0];
         const tone = st[1] >= 0 ? "positive" : "negative";
         const tip = st[2] ? [{ label: name, value: brl(st[1]) }]
           : [{ label: "Efeito", value: name }, { label: "Valor", value: `${sgn(st[1])}${brl(Math.abs(st[1]))}`, tone }, { label: "% da margem anterior", value: B.M0 ? `${sgn(st[1])}${fmt(Math.abs(st[1] / B.M0) * 100, 1)}%` : "–", tone }, { label: "", value: "clique para detalhar" }];
-        s += `<rect ${tipAttr(tip)} ${st[3] ? `data-eff="${st[3]}" style="cursor:pointer"` : ""} x="${x}" y="${top}" width="${bw}" height="${h}" rx="4" fill="${col}" fill-opacity="${st[2] ? 0.9 : 0.75}"/>`;
+        s += `<rect ${tipAttr(tip)} ${st[3] ? `data-eff="${st[3]}" style="cursor:pointer"` : ""} x="${x}" y="${top}" width="${bw}" height="${h}" rx="4" fill="${col}"/>`;
         s += `<text class="cmg-bl" x="${x + bw / 2}" y="${top - 6}" text-anchor="middle">${st[2] ? brl(st[1]) : sgn(st[1]) + brl(Math.abs(st[1]))}</text>`;
         s += `<text x="${x + bw / 2}" y="${H - 30}" text-anchor="middle">${escapeHtml(name)}</text>`;
         if (st[0].includes("(")) s += `<text x="${x + bw / 2}" y="${H - 18}" text-anchor="middle" style="font-size:9.5px">(${escapeHtml(st[0].split(" (")[1])}</text>`;
         if (i < n - 1) s += `<line class="cmg-ref" x1="${x + bw}" x2="${L + (i + 1) * (bw + gap)}" y1="${Y(pos[i][1])}" y2="${Y(pos[i][1])}"/>`;
       });
-      return { svg: `<svg class="cmg-svg" viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>`, sub: `Margem R$ (RL − MP) · ${B.lab1} vs mês anterior (${B.lab0}) · clique nas barras` };
+      return { svg: `<svg class="cmg-svg" viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>`, sub: `MC1 R$ (RL − MP) · ${B.lab1} vs mês anterior (${B.lab0})` };
     }
 
     // ── Pop-over de detalhamento da ponte ───────────────────────────────
@@ -326,6 +353,13 @@
     };
     function popCols(k, ag) {
       const a = ag.a, b = ag.b;
+      if (ag.blk && k !== "mix") {
+        // Peças em bloco: o "volume" é o RL (R$) e o preço é fixo em 1.
+        if (k === "vol") return [brl(a.rl), brl(b.rl), `<span class="${b.rl - a.rl >= 0 ? "pos" : "neg"}">${sgn(b.rl - a.rl)}${brl(Math.abs(b.rl - a.rl))}</span>`, a.rl ? `${fmt((a.rl - a.mp) / a.rl * 100, 1)}%` : "–"];
+        if (k === "pr") return ["–", "–", "–", "–"];
+        const ra = a.rl ? a.mp / a.rl * 100 : null, rb = b.rl ? b.mp / b.rl * 100 : null;
+        return [ra == null ? "–" : `${fmt(ra, 1)}%`, rb == null ? "–" : `${fmt(rb, 1)}%`, ra == null || rb == null ? "–" : dlt(rb - ra, 1, false, " pp"), brl(b.rl)];
+      }
       if (k === "vol") {
         const d = ag.volumeUnits;
         const pu = d !== 0 ? ag.e / d : a.q > 0 ? (a.rl - a.mp) / a.q : null;
@@ -344,16 +378,17 @@
       const B = bridgeData();
       const k = pop.eff;
       const heads = {
-        vol: [`Qtd ${B.lab0}`, `Qtd ${B.lab1}`, "Δ un comparáveis", `× Margem/un ${B.lab0}`],
+        vol: [`Qtd ${B.lab0}`, `Qtd ${B.lab1}`, "Δ un", `× Margem/un média ${B.lab0}`],
         pr: [`RL/un ${B.lab0}`, `RL/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
         co: [`MP/un ${B.lab0}`, `MP/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
-        mix: [`Δ Margem ${B.lab1} vs ${B.lab0}`, "− Volume", "− Preço", "− Custo"]
+        mix: [`Δ MC1 ${B.lab1} vs ${B.lab0}`, "− Volume", "− Preço", "− MP"]
       }[k];
       const agg = (rs) => {
         const a = zero(), b = zero();
         let e = 0, dM = 0, vol = 0, pr = 0, co = 0, volumeUnits = 0;
+        const blk = rs.length > 0 && rs.every((r) => r.kind === "B");
         rs.forEach((r) => { add(a, r.a); add(b, r.b); e += r[k]; dM += r.dM; vol += r.vol; pr += r.pr; co += r.co; volumeUnits += r.volumeUnits; });
-        return { a, b, e, dM, vol, pr, co, volumeUnits };
+        return { a, b, e, dM, vol, pr, co, volumeUnits, blk };
       };
       const eff = (e) => (Math.abs(e) < 0.5 ? `<strong>–</strong>` : `<strong class="${e >= 0 ? "pos" : "neg"}">${sgn(e)}${brl(Math.abs(e))}</strong>`);
       const line = (label, ag, cls, att, cod, full) => `<tr class="${cls}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmg-ano">${eff(ag.e)}</td></tr>`;
@@ -476,7 +511,7 @@
         ${kpisHtml()}
         <div class="cmg-two">
           <div class="cmg-card"><div class="cmg-hd"><div><h2>Mapa do portfólio de máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmg-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
-          <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da margem</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
+          <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da MC1</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
         <div class="cmg-card"><div class="cmg-hd"><div><h2>Margens por máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
           <div class="cmg-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
