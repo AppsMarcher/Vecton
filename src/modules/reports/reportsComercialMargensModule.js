@@ -7,47 +7,27 @@
   // Definições: MP = custo de matéria-prima; MC1% = (RL − MP) ÷ RL. Na tabela os
   // valores são UNITÁRIOS (÷ volume); linhas-pai = total ÷ volume total (média
   // ponderada pelo volume), nunca média de unitários.
-  // Ponte da MC1 (R$ = RL − MP) entre dois meses. Cada linha traz a (mês anterior),
-  // b (mês atual) e kind: "M" máquina (padrão), "B" peças (tratadas como UM bloco) ou
-  // "O" demais itens complementares (calculados item a item).
-  //  • Máquinas (unidades): Volume = Δun × margem/un média anterior do portfólio de
-  //    máquinas com base; Mix = Δun × (margem/un do produto − média), ou seja, a mudança
-  //    de composição; Preço e MP por produto. Máquinas novas (sem venda anterior) e
-  //    movimentos não comparáveis caem inteiros no Mix (resíduo).
-  //  • Peças (bloco): o "volume" é o faturamento (RL), com preço fixo em 1. Volume =
-  //    ΔRL × MC1% anterior do bloco; Preço = 0; MP = variação do MP/RL × RL atual.
+  // Ponte da MC1 (R$ = RL − MP) das MÁQUINAS entre dois meses, em unidades. Cada linha
+  // traz a (mês anterior) e b (mês atual):
+  //  • Volume = Δun × margem/un média anterior das máquinas com base;
+  //  • Mix = Δun × (margem/un da máquina − média), a mudança de composição, somada a
+  //    máquinas novas (sem venda anterior) e ajustes sem base, que entram inteiros;
+  //  • Preço (RL/un) e MP (MP/un) por máquina.
   function calculateMarginBridge(rows) {
-    const kindOf = (r) => r.kind || "M";
-    const base = rows.filter((r) => kindOf(r) === "M" && r.a.q > 0);
+    const base = rows.filter((r) => r.a.q > 0);
     const q0 = base.reduce((t, r) => t + r.a.q, 0);
     const avgUnit = q0 > 0 ? base.reduce((t, r) => t + r.a.rl - r.a.mp, 0) / q0 : 0;
-    const blk = rows.filter((r) => kindOf(r) === "B");
-    const blkRl = blk.reduce((t, r) => t + r.a.rl, 0);
-    const blkMp = blk.reduce((t, r) => t + r.a.mp, 0);
     return rows.map((r) => {
       const { a, b } = r;
-      const kind = kindOf(r);
       const M0 = a.rl - a.mp, M1 = b.rl - b.mp;
-      let vol = 0, pr = 0, co = 0, volumeUnits = 0, mu = 0;
-      if (kind === "B") {
-        if (blkRl > 0) {
-          mu = (blkRl - blkMp) / blkRl;
-          volumeUnits = b.rl - a.rl;
-          vol = volumeUnits * mu;
-          co = -(b.mp - b.rl * blkMp / blkRl);
-        }
-      } else {
-        mu = kind === "M" ? avgUnit : a.q > 0 ? M0 / a.q : 0;
-        if (a.q > 0 && (kind === "M" || b.q >= 0)) { volumeUnits = b.q - a.q; vol = volumeUnits * mu; }
-        if (a.q > 0 && b.q > 0) {
-          pr = b.rl - b.q * a.rl / a.q;
-          co = -(b.mp - b.q * a.mp / a.q);
-        }
-      }
+      const volumeUnits = a.q > 0 ? b.q - a.q : 0;
+      const vol = volumeUnits * avgUnit;
+      const both = a.q > 0 && b.q > 0;
+      const pr = both ? b.rl - b.q * a.rl / a.q : 0;
+      const co = both ? -(b.mp - b.q * a.mp / a.q) : 0;
       const dM = M1 - M0;
-      // Mix = composição das máquinas + resíduo (novos produtos e ajustes sem base).
       const mix = dM - vol - pr - co;
-      return { ...r, kind, M0, M1, dM, vol, mix, pr, co, volumeUnits, mu };
+      return { ...r, M0, M1, dM, vol, mix, pr, co, volumeUnits, mu: avgUnit };
     });
   }
   function createComercialMargensModule(deps) {
@@ -60,10 +40,10 @@
     const COMP_ORDER = ["Peças", "Transgrain", "Acessórios"];
     const METRICS = [["vol", "VOL"], ["fat", "FAT"], ["rl", "RL"], ["mp", "MP"], ["mb", "MC1%"]];
     const EFFECTS = {
-      vol: { name: "Volume", sub: "Δ unidades das máquinas × margem/un média anterior; peças como bloco: Δ RL × MC1% anterior" },
+      vol: { name: "Volume", sub: "Δ unidades × margem/un média anterior das máquinas" },
       pr: { name: "Preço", sub: "RL por unidade" },
-      co: { name: "MP", sub: "MP por unidade; peças como bloco: variação do MP/RL" },
-      mix: { name: "Mix", sub: "Composição das máquinas (Δ un × margem/un acima ou abaixo da média) + máquinas novas e ajustes sem base" }
+      co: { name: "MP", sub: "MP por unidade" },
+      mix: { name: "Mix", sub: "Composição (Δ un × margem/un acima ou abaixo da média) + máquinas novas e ajustes sem base" }
     };
 
     let host = null;
@@ -311,7 +291,7 @@
       const cm = nMonths();
       const py = cm === 1 ? year - 1 : year;
       const pm = cm === 1 ? 12 : cm - 1;
-      const rows = calculateMarginBridge(model.items.map((it) => ({ it, parent: it.parent, kind: it.parent.kind === "M" ? "M" : it.parent.label === "Peças" ? "B" : "O", a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] })));
+      const rows = calculateMarginBridge(model.items.filter((it) => it.parent.kind === "M").map((it) => ({ it, parent: it.parent, a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] })));
       const sum = (k) => rows.reduce((t, r) => t + r[k], 0);
       return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix") };
     }
@@ -353,16 +333,9 @@
     };
     function popCols(k, ag) {
       const a = ag.a, b = ag.b;
-      if (ag.blk && k !== "mix") {
-        // Peças em bloco: o "volume" é o RL (R$) e o preço é fixo em 1.
-        if (k === "vol") return [brl(a.rl), brl(b.rl), `<span class="${b.rl - a.rl >= 0 ? "pos" : "neg"}">${sgn(b.rl - a.rl)}${brl(Math.abs(b.rl - a.rl))}</span>`, a.rl ? `${fmt((a.rl - a.mp) / a.rl * 100, 1)}%` : "–"];
-        if (k === "pr") return ["–", "–", "–", "–"];
-        const ra = a.rl ? a.mp / a.rl * 100 : null, rb = b.rl ? b.mp / b.rl * 100 : null;
-        return [ra == null ? "–" : `${fmt(ra, 1)}%`, rb == null ? "–" : `${fmt(rb, 1)}%`, ra == null || rb == null ? "–" : dlt(rb - ra, 1, false, " pp"), brl(b.rl)];
-      }
       if (k === "vol") {
         const d = ag.volumeUnits;
-        const pu = d !== 0 ? ag.e / d : a.q > 0 ? (a.rl - a.mp) / a.q : null;
+        const pu = ag.mu || null;
         return [fmtQty(a.q), fmtQty(b.q), dlt(d, 1, true), pu == null ? "–" : fmt(pu, 0)];
       }
       if (k === "mix") {
@@ -385,10 +358,9 @@
       }[k];
       const agg = (rs) => {
         const a = zero(), b = zero();
-        let e = 0, dM = 0, vol = 0, pr = 0, co = 0, volumeUnits = 0;
-        const blk = rs.length > 0 && rs.every((r) => r.kind === "B");
-        rs.forEach((r) => { add(a, r.a); add(b, r.b); e += r[k]; dM += r.dM; vol += r.vol; pr += r.pr; co += r.co; volumeUnits += r.volumeUnits; });
-        return { a, b, e, dM, vol, pr, co, volumeUnits, blk };
+        let e = 0, dM = 0, vol = 0, pr = 0, co = 0, volumeUnits = 0, mu = 0;
+        rs.forEach((r) => { add(a, r.a); add(b, r.b); e += r[k]; dM += r.dM; vol += r.vol; pr += r.pr; co += r.co; volumeUnits += r.volumeUnits; mu = r.mu; });
+        return { a, b, e, dM, vol, pr, co, volumeUnits, mu };
       };
       const eff = (e) => (Math.abs(e) < 0.5 ? `<strong>–</strong>` : `<strong class="${e >= 0 ? "pos" : "neg"}">${sgn(e)}${brl(Math.abs(e))}</strong>`);
       const line = (label, ag, cls, att, cod, full) => `<tr class="${cls}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmg-ano">${eff(ag.e)}</td></tr>`;
@@ -511,7 +483,7 @@
         ${kpisHtml()}
         <div class="cmg-two">
           <div class="cmg-card"><div class="cmg-hd"><div><h2>Mapa do portfólio de máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmg-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
-          <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da MC1</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
+          <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da MC1 · Máquinas</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
         <div class="cmg-card"><div class="cmg-hd"><div><h2>Margens por máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
           <div class="cmg-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
