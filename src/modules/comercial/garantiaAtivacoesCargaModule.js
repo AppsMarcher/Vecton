@@ -48,46 +48,6 @@
       TRANSGRAIN91: "09103075",
       TRANSGRAIN215: "08203065" // TRANSGRAIN 215 (inclui "Kit transgrain 215")
     };
-    // comercial_clientes.descricao e truncada (~40 chars): acima disso, o nome do
-    // AltForce pode ser prefixo "cortado no meio da palavra".
-    const MIN_LEN_DESCRICAO_TRUNCADA = 36;
-    // Nome da revenda no AltForce -> inicio da descricao em comercial_clientes,
-    // quando os nomes nao coincidem (apelido, filial, razao social diferente).
-    const REVENDA_ALIASES = {
-      "TRATORMAX SINOP": "TRATORMAX COM DE MAQUINAS",
-      "TRATORMAX": "TRATORMAX COM DE MAQUINAS",
-      "TRATORMAX MAQUINAS AGRICOLAS": "TRATORMAX COM DE MAQUINAS",
-      "AGRISYS FSA": "AGRISYS MAQUINAS E PECAS AGRICOLAS",
-      "DATTA": "DATTA DISTRIBUIDORA",
-      "DATTA SIDROLAND": "DATTA DISTRIBUIDORA",
-      "GUIMAG MAQUINAS AGRICOLAS LTDA": "GUIMAG GUIMARAES MAQUINAS AGRICOLAS",
-      "COMIGO": "COOP AGRO DOS PROD RURAIS DO SUDO GOIANO",
-      "COOP AGRO PROD R S GOIANO COMIGO": "COOP AGRO DOS PROD RURAIS DO SUDO GOIANO",
-      "TRACTOR TERRA PECAS PARA TRATORES LTDA": "TRACTORTERRA PECAS",
-      "TRACTOR TERRA": "TRACTORTERRA PECAS",
-      "CAMPO VALE SOLUTIONS": "CAMPO VALE",
-      "COPLACANA": "COOPERATIVA DOS PLANTADORES DE CANA",
-      "COPLACANA BARRA BONITA": "COOPERATIVA DOS PLANTADORES DE CANA",
-      "COPLACANA IGARAPAVA": "COOPERATIVA DOS PLANTADORES DE CANA",
-      "COPLACANA SANTA CRUZ DO RIO": "COOPERATIVA DOS PLANTADORES DE CANA",
-      "COPLACANA UBERABA": "COOPERATIVA DOS PLANTADORES DE CANA",
-      "UNIPARTS UDI": "UNIPARTS COMERCIAL AGRICOLA",
-      "RODOMAQ MAQUINAS AGRICOLAS": "COLONHESI CIA",
-      "RIVEMA RIO VERDE": "RIVEMA MAQ",
-      "ARADO COMERCIO DE MAQUINAS LTDA": "ARADO IMPLEMENTOS AGRICOLAS",
-      "ARADO COMERCIO": "ARADO IMPLEMENTOS AGRICOLAS",
-      "CASA PRODUTOR": "CASA DO PROD COM",
-      "CATALAO AGRICOLA": "MAQNELSON AGRICOLA",
-      "CVALE AGROINDUSTRIAL": "C VALE COOPERATIVA AGROINDUSTRIAL",
-      "IGARAPAVA TRATORES IBIA": "J G IMPLEMENTOS E PECAS AGRICOLAS",
-      "LM AGRICOLA MAQUINAS IMPLEMENTOS E SEMENTES": "LM FARMERS AGRICOLA",
-      "LM AGRICOLA": "LM FARMERS AGRICOLA",
-      "ORLANDIA TRATORES": "OIMASA ORLANDIA",
-      "SILVESTRE TRATORES": "SERRA DA MANTIQUEIRA TRATORES",
-      "TRATORES": "SHARK TRATORES E PECAS",
-      "VD ITABERAI": "VD COMERCIO DE VEICULOS LTDA ITABERAI"
-    };
-
     let rows = [];
     let loading = false;
     let lastSummary = null;
@@ -350,7 +310,7 @@
           ignoradas,
           novas: resolved.filter((row) => !existing.has(row.numero)).length,
           atualizadas: resolved.filter((row) => existing.has(row.numero)).length,
-          semRevenda: resolved.filter((row) => row.revendaRaw && !row.clienteId).length,
+          semRevenda: resolved.filter((row) => (row.codCliente || row.revendaRaw) && !row.clienteId).length,
           semProduto: resolved.filter((row) => row.produtoRaw && !row.produtoId).length
         };
         lastError = null;
@@ -370,7 +330,7 @@
       if (!isSupabaseConfigured()) return { produtos: [], clientes: [] };
       const [produtos, clientes] = await Promise.all([
         fetchAllSupabaseRows("comercial_produtos", `organization_id=eq.${organizationId}&select=id,nome_reduzido,codigo`),
-        fetchAllSupabaseRows("comercial_clientes", `organization_id=eq.${organizationId}&select=id,descricao,uf`)
+        fetchAllSupabaseRows("comercial_clientes", `organization_id=eq.${organizationId}&select=id,codigo,descricao,uf`)
       ]);
       return { produtos: produtos || [], clientes: clientes || [] };
     }
@@ -409,6 +369,8 @@
         produtoRaw: ["geralproduto"],
         clienteFinal: ["geralcliente"],
         revendaRaw: ["geralrevenda"],
+        codCliente: ["codcliente"],
+        nomeCliente: ["nomecliente"],
         vendedorRevenda: ["geralvendedordarevenda"],
         dataLocalizacao: ["detalheslocalizacaodata"],
         pais: ["detalheslocalizacaoenderecopais"],
@@ -503,6 +465,17 @@
       return row.nfValorUnitario != null && row.nfValorUnitario < MIN_VALOR_MAQUINA;
     }
 
+    // Cod_Cliente/Nome_Cliente vem de PROCV: "#N/A" (ou vazio) = sem cadastro.
+    function cleanCodigo(value) {
+      const text = String(value ?? "").trim();
+      return !text || text.startsWith("#") ? "" : text;
+    }
+
+    // Codigo comparavel: sem zeros a esquerda ("002691" = "2691").
+    function chaveCodigo(value) {
+      return String(value ?? "").trim().replace(/^0+(?=.)/, "");
+    }
+
     function normalizeImportedRow(raw) {
       const produtoRaw = String(raw.produtoRaw || "").trim();
       return {
@@ -515,6 +488,8 @@
         modeloNormalizado: extractModeloNormalizado(produtoRaw),
         clienteFinal: String(raw.clienteFinal || "").trim(),
         revendaRaw: String(raw.revendaRaw || "").trim(),
+        codCliente: cleanCodigo(raw.codCliente),
+        nomeCliente: cleanCodigo(raw.nomeCliente),
         vendedorRevenda: String(raw.vendedorRevenda || "").trim(),
         dataLocalizacao: normalizeDateInput(raw.dataLocalizacao) || null,
         pais: String(raw.pais || "").trim(),
@@ -535,8 +510,8 @@
     }
 
     // Casamento por normalizacao + igualdade/prefixo (sem fuzzy probabilistico):
-    // produto por token de modelo (nome_reduzido), revenda por nome normalizado
-    // contra comercial_clientes.descricao, desempatando por UF quando ha varios.
+    // produto por token de modelo (nome_reduzido), revenda pelo codigo do cliente
+    // (Cod_Cliente da planilha = comercial_clientes.codigo).
     function resolveMatches(row, produtos, clientes) {
       let produtoId = null;
       if (row.modeloNormalizado) {
@@ -548,25 +523,14 @@
         produtoId = found ? found.id : null;
       }
 
+      // Chave principal: codigo do cliente da planilha = comercial_clientes.codigo (mesma chave das vendas).
       let clienteId = null;
-      if (row.revendaRaw) {
-        const alvo = normalizeName(row.revendaRaw);
-        const alias = REVENDA_ALIASES[alvo];
-        const candidatos = clientes.filter((c) => {
-          const norm = normalizeName(c.descricao);
-          if (!norm) return false;
-          if (alias) return norm === alias || norm.startsWith(`${alias} `);
-          if (norm === alvo) return true;
-          if (norm.length > alvo.length) return norm.startsWith(alvo) && norm[alvo.length] === " ";
-          if (alvo.startsWith(norm) && alvo[norm.length] === " ") return true;
-          return norm.length >= MIN_LEN_DESCRICAO_TRUNCADA && alvo.startsWith(norm);
-        });
-        if (candidatos.length) {
-          const porUf = row.uf ? candidatos.find((c) => c.uf === row.uf) : null;
-          clienteId = (porUf || candidatos[0]).id;
-        }
+      if (row.codCliente) {
+        const alvoCodigo = chaveCodigo(row.codCliente);
+        clienteId = clientes.find((c) => chaveCodigo(c.codigo) === alvoCodigo)?.id || null;
       }
-
+      // Sem casamento por codigo nao ha fallback por nome: a linha fica sem cliente_id e e listada
+      // como inconsistencia no relatorio.
       return { ...row, produtoId, clienteId };
     }
 
@@ -584,6 +548,8 @@
         cliente_final: row.clienteFinal || null,
         revenda_raw: row.revendaRaw || null,
         cliente_id: row.clienteId,
+        cod_cliente: row.codCliente || null,
+        nome_cliente: row.nomeCliente || null,
         vendedor_revenda: row.vendedorRevenda || null,
         data_localizacao: row.dataLocalizacao,
         pais: row.pais || null,

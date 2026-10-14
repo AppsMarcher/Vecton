@@ -73,7 +73,7 @@
         const [ativacoesRows, produtos, clientes] = await Promise.all([
           fetchAllSupabaseRows(
             "garantia_ativacoes",
-            `organization_id=eq.${org}&select=id,numero,status,produto_raw,modelo_normalizado,produto_id,revenda_raw,cliente_id,cliente_final,vendedor_revenda,uf,cidade,nf_valor_unitario,nf_valor_total,nf_quantidade,nf_emissao,cadastrado_em`
+            `organization_id=eq.${org}&select=id,numero,status,produto_raw,modelo_normalizado,produto_id,revenda_raw,cliente_id,cod_cliente,nome_cliente,cliente_final,vendedor_revenda,uf,cidade,nf_valor_unitario,nf_valor_total,nf_quantidade,nf_emissao,cadastrado_em`
           ),
           fetchAllSupabaseRows("comercial_produtos", `organization_id=eq.${org}&select=id,nome_reduzido`),
           fetchAllSupabaseRows("comercial_clientes", `organization_id=eq.${org}&select=id,descricao,uf,cidade,codigo_ibge`)
@@ -84,7 +84,9 @@
         clientesById = new Map((clientes || []).map((c) => [c.id, c.descricao || ""]));
 
         clientesLoc = new Map((clientes || []).map((c) => [c.id, { uf: c.uf || "", cidade: c.cidade || "" }]));
-        grupoPorCliente = new Map((clientes || []).map((c) => [c.id, grupoDaRevenda(c.descricao) || c.id]));
+        // Chave do cruzamento = cadastro do cliente (codigo da planilha -> comercial_clientes.codigo),
+        // o mesmo codigo das vendas faturadas; sem agrupar por prefixo de nome.
+        grupoPorCliente = new Map((clientes || []).map((c) => [c.id, c.id]));
         const clienteIds = [...new Set(ativacoes.map((r) => r.cliente_id).filter(Boolean))];
         const gruposUsados = new Set(clienteIds.map((id) => grupoPorCliente.get(id)));
         clienteIds.forEach((id) => { if (!grupoNome.has(grupoPorCliente.get(id))) grupoNome.set(grupoPorCliente.get(id), clientesById.get(id) || ""); });
@@ -158,14 +160,6 @@
       } catch (error) {
         console.error("Falha ao carregar localização das revendas", error);
       }
-    }
-
-    // A mesma revenda pode ter varios cadastros (filiais, codigos duplicados): as vendas ficam
-    // num e a ativacao e ligada a outro. Agrupa pelo inicio do nome normalizado (18 caracteres).
-    function grupoDaRevenda(descricao) {
-      const nome = String(descricao || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase()
-        .replace(/[^A-Z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
-      return nome.slice(0, 18).trim();
     }
 
     function tituloCidade(texto) {
@@ -912,7 +906,7 @@
       const semProduto = [];
 
       ativacoes.forEach((r) => {
-        if (r.revenda_raw && !r.cliente_id) semRevenda.push(r);
+        if ((r.cod_cliente || r.revenda_raw) && !r.cliente_id) semRevenda.push(r);
         if (r.produto_raw && !r.modelo_normalizado) semProduto.push(r);
         if (!r.cliente_id || !r.modelo_normalizado) return;
         const key = `${grupoPorCliente.get(r.cliente_id) || r.cliente_id}|${r.modelo_normalizado.toUpperCase()}`;
@@ -987,7 +981,7 @@
           <div class="gar-unresolved">
             <strong>Sem correspondência de cadastro (revise revenda/produto na carga):</strong>
             <ul>
-              ${semRevenda.length ? `<li>${semRevenda.length} ativação(ões) com revenda sem correspondência em Clientes: ${[...new Set(semRevenda.map((r) => r.revenda_raw))].slice(0, 8).map(escapeHtml).join(", ")}${semRevenda.length > 8 ? "…" : ""}</li>` : ""}
+              ${semRevenda.length ? `<li>${semRevenda.length} ativação(ões) com código de cliente sem cadastro em Clientes: ${[...new Set(semRevenda.map((r) => r.cod_cliente ? `${r.cod_cliente} - ${r.nome_cliente || r.revenda_raw || ""}` : `(sem código) ${r.revenda_raw}`))].slice(0, 8).map(escapeHtml).join(", ")}${new Set(semRevenda.map((r) => r.cod_cliente || r.revenda_raw)).size > 8 ? "…" : ""}</li>` : ""}
               ${semProduto.length ? `<li>${semProduto.length} ativação(ões) com produto sem modelo reconhecido: ${[...new Set(semProduto.map((r) => r.produto_raw))].slice(0, 8).map(escapeHtml).join(", ")}${semProduto.length > 8 ? "…" : ""}</li>` : ""}
             </ul>
           </div>
