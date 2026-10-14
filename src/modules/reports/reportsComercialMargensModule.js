@@ -69,6 +69,7 @@
     let COORDENACOES = [];
     let VENDEDORES = []; // {codigo, nome}
     let eqCloseBound = false;
+    let resizeBound = false;
     let pop = null; // { eff, open:Set }
     let tipEl = null;
     let keyBound = false;
@@ -601,12 +602,31 @@
           <div class="cmm-card"><div class="cmm-hd"><div><h2>Posicionamento de Portfólio · Máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmm-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
           <div class="cmm-card"><div class="cmm-hd"><h2>Ponte da MC1 · Marcher</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
-        <div class="cmm-card"><div class="cmm-hd"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume)</p></div>
+        <div class="cmm-card"><div class="cmm-hd cmm-hd-stk"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume)</p></div>
           <div class="cmm-ctrls"><div class="cmm-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div>${equipeControlHtml()}</div></div>
           <div class="${tLoading ? "cmm-tdim" : ""}">${tableHtml()}</div>
           <div class="cmm-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano (não se aplica ao VOL)</span></div></div>
         ${pop ? popHtml() : ""}</div>`;
       bind(container);
+      syncStickyOffset(container);
+    }
+
+    // O bloco fixo do card (título, subtítulo e filtros) tem altura variável: o cabeçalho da
+    // tabela congela logo abaixo dele.
+    function syncStickyOffset(container) {
+      const hd = container.querySelector(".cmm-hd-stk");
+      const tw = container.querySelector(".cmm-tw");
+      if (!hd || !tw) return;
+      // O contêiner que rola (.main-panel) tem espaçamento no topo; o bloco fixo sobe sobre
+      // essa faixa para as linhas não aparecerem atrás do título.
+      let pad = 0;
+      for (let e = container.parentElement; e; e = e.parentElement) {
+        const cs = getComputedStyle(e);
+        if (/(auto|scroll)/.test(cs.overflowY)) { pad = parseFloat(cs.paddingTop) || 0; break; }
+      }
+      const root = container.querySelector(".cmm");
+      if (root) root.style.setProperty("--cmm-pad", `${pad}px`);
+      tw.style.setProperty("--cmm-hd-h", `${Math.max(0, hd.offsetHeight - pad)}px`);
     }
 
     function bind(container) {
@@ -627,6 +647,10 @@
         openEq = false;
         loadTable();
       }));
+      if (!resizeBound) {
+        resizeBound = true;
+        window.addEventListener("resize", () => { if (host?.isConnected) syncStickyOffset(host); });
+      }
       if (!eqCloseBound) {
         eqCloseBound = true;
         document.addEventListener("click", (e) => { if (!openEq || !host?.isConnected || e.target.closest("#cmm-eq")) return; openEq = false; render(host); });
@@ -666,7 +690,7 @@
       .cmm-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px}.cmm-hd h2{margin:0;font-size:13px;font-weight:650}.cmm-hd p{margin:2px 0 0;color:var(--cmm-muted);font-size:11px}
       .cmm-svg text{fill:var(--cmm-muted);font-family:inherit;font-size:10.5px}.cmm-svg .cmm-bl{fill:var(--cmm-text);font-weight:600}.cmm-svg .cmm-quad{font-weight:700}.cmm-grid{stroke:var(--theme-border-subtle,#ffffff10)}.cmm-axis{stroke:var(--cmm-line)}.cmm-ref{stroke:var(--cmm-faint);stroke-dasharray:4 4}
       .cmm-bubs circle{transition:fill-opacity .12s,stroke-opacity .12s}.cmm-bubs:hover circle{fill-opacity:.12;stroke-opacity:.3}.cmm-bubs circle:hover{fill-opacity:.65;stroke-opacity:1}
-      .cmm-ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.cmm-tdim{opacity:.45;pointer-events:none;transition:opacity .15s}
+      .cmm-hd-stk{position:sticky;top:calc(-1 * var(--cmm-pad,0px));z-index:6;background:var(--cmm-panel2);margin:calc(-1 * var(--cmm-pad,0px)) 0 0;padding:var(--cmm-pad,0px) 0 10px}.cmm-ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.cmm-tdim{opacity:.45;pointer-events:none;transition:opacity .15s}
       .cmm-eqwrap{position:relative}.cmm-eqbtn{min-height:35px;display:flex;align-items:center;background:var(--cmm-panel2);border:1px solid var(--cmm-line);border-radius:10px;padding:3px;font:inherit;font-size:12.5px;color:var(--cmm-text);cursor:pointer;transition:border-color .14s,box-shadow .14s,background .14s}
       .cmm-eqbtn:hover{background:var(--theme-surface-raised,var(--cmm-panel2))}.cmm-eqbtn.is-open{border-color:#4f7cff;box-shadow:0 0 0 2px rgba(79,124,255,.16)}.cmm-eqbtn:focus-visible{outline:2px solid #4f7cff;outline-offset:2px}
       .cmm-eqbtn .ico{color:var(--cmm-faint);display:flex;padding:0 6px 0 7px}.cmm-eqbtn .lbl{color:var(--cmm-muted);white-space:nowrap;padding-right:8px}
@@ -681,7 +705,7 @@
       .cmm-empty{padding:40px 15px;text-align:center;color:var(--cmm-muted);border:1px dashed var(--cmm-line);border-radius:12px}
       .cmm-tw{border:1px solid var(--cmm-line);border-radius:10px}
       .cmm-tbl{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-variant-numeric:tabular-nums}.cmm-tbl th,.cmm-tbl td{padding:4px 6px;vertical-align:middle;text-align:right;white-space:nowrap;border-bottom:1px solid var(--theme-border-subtle,#ffffff0d);font-size:11.5px}
-      .cmm-tbl th{position:sticky;top:0;z-index:2;background:var(--cmm-panel);color:var(--cmm-muted);font-weight:650;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
+      .cmm-tbl th{position:sticky;top:var(--cmm-hd-h,0px);z-index:2;background:var(--cmm-panel);color:var(--cmm-muted);font-weight:650;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
       .cmm-tbl th:first-child,.cmm-tbl td:first-child{text-align:left;position:sticky;left:0;z-index:1;background:var(--cmm-panel);width:230px;max-width:230px;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--cmm-line)}.cmm-tbl th:first-child{z-index:3}.cmm-tbl th:nth-child(2),.cmm-tbl td:nth-child(2){width:60px}.cmm-tbl th.cmm-ano,.cmm-tbl td.cmm-ano{width:78px}
       .cmm-pt{table-layout:auto}.cmm-pt th:first-child,.cmm-pt td:first-child{width:320px;max-width:320px}.cmm-pt th:nth-child(2),.cmm-pt td:nth-child(2),.cmm-pt th.cmm-ano,.cmm-pt td.cmm-ano{width:auto}
       .cmm-q4{border-right:1px solid var(--cmm-line)}th.cmm-q4,td.cmm-q4,th.cmm-ano,td.cmm-ano{background:linear-gradient(rgba(79,124,255,.12),rgba(79,124,255,.12)),var(--cmm-panel);font-weight:700;border-left:1px solid var(--cmm-line)}
