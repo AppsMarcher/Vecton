@@ -1,5 +1,5 @@
 (function attachVectonComercialMargens(window) {
-  // Relatório "Margens por Máquinas" (Comercial). Dados: RPC comercial_margens_itens
+  // Relatório "Evolutivo de Margens" (Comercial). Dados: RPC comercial_margens_itens
   // (migration 255), que devolve o FAT realizado por produto e mês, líquido de
   // devolução, para o ano do período e o anterior. Tudo o mais (KPIs, mapa do
   // portfólio, ponte, tabela e pop-over) é calculado aqui, sem novas idas ao banco.
@@ -594,7 +594,7 @@
       const br = bridgeHtml();
       const periodTxt = period === "mes" ? MESES[month - 1] : period === "ytd" ? `Jan–${MESES[month - 1]}` : "Jan–Dez";
       container.innerHTML = `<div class="cmm ${loading ? "cmm-loading" : ""}">
-        <div class="cmm-header"><div><h1>MARGENS POR MÁQUINAS</h1><p>Comercial · ${periodTxt}/${year} · líquido de devoluções · MC1% = (RL − MP) ÷ RL</p></div>
+        <div class="cmm-header"><div><h1>EVOLUTIVO DE MARGENS</h1><p>Comercial · ${periodTxt}/${year} · líquido de devoluções · MC1% = (RL − MP) ÷ RL</p></div>
           <div class="cmm-period">${[["mes", "Mês"], ["ytd", "YTD"], ["fy", "Ano"]].map(([v, l]) => `<button data-period="${v}" class="${period === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
         ${notes.length ? `<div class="cmm-note">${notes.map(escapeHtml).join(" · ")}</div>` : ""}
         ${kpisHtml()}
@@ -602,7 +602,7 @@
           <div class="cmm-card"><div class="cmm-hd"><div><h2>Posicionamento de Portfólio · Máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmm-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
           <div class="cmm-card"><div class="cmm-hd"><h2>Ponte da MC1 · Marcher</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
-        <div class="cmm-card"><div class="cmm-hd cmm-hd-stk"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume)</p></div>
+        <div class="cmm-card"><div class="cmm-hd cmm-hd-stk"><div><h2>Evolutivo de Margens · Marcher</h2><p>Valores unitários (÷ volume)</p></div>
           <div class="cmm-ctrls"><div class="cmm-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div>${equipeControlHtml()}</div></div>
           <div class="${tLoading ? "cmm-tdim" : ""}">${tableHtml()}</div>
           <div class="cmm-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano (não se aplica ao VOL)</span></div></div>

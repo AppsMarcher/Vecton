@@ -2464,7 +2464,7 @@ function isConsolidatedReport(reportId) {
 
 const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo", "garantiaAtivacoes", "comercialMargens"];
 // Relatórios comerciais fixos que o perfil Comercial NÃO enxerga (Gestor/Admin continuam vendo).
-// Margens por Máquinas: dado sensível, só Gestor, Admin e Super Admin (o RPC também valida).
+// Evolutivo de Margens: dado sensível, só Gestor, Admin e Super Admin (o RPC também valida).
 const COMERCIAL_EXCLUDED_REPORT_IDS = ["garantiaAtivacoes", "comercialMargens"];
 // Flag em extra_report_ids (mesmo valor em usersModule.js): perfil Comercial sem o
 // drilldown de NFs/Pedidos do Painel de Vendas. Admin/Gestor sempre têm drilldown.
@@ -3212,7 +3212,7 @@ const REPORT_TITLES = {
   comercialMapa: "Mapa de Vendas",
   comercialMapaGeografico: "Ranking Geográfico",
   comercialPecasGeo: "Performance de Peças",
-  comercialMargens: "Margens por Máquinas",
+  comercialMargens: "Evolutivo de Margens",
   garantiaAtivacoes: "Ativações de Garantia"
 };
 

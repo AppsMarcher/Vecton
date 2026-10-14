@@ -52,7 +52,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
    - Report Builder com relatórios personalizados;
    - Painel de Vendas, Mapa de Vendas e Vendas – Distribuição Geográfica (mapa por UF, donut/heatmap, ranking de estados);
    - Ativações de Garantia (heatmap cidade×estado/revenda, preço médio por modelo, ranking de vendedores, estoque estimado de revenda);
-   - Margens por Máquinas (MC1%, RL, MP e volume por nome reduzido, com mapa do portfólio, ponte da margem e tabela corrida; restrito a Gestor, Admin e Super Admin).
+   - Evolutivo de Margens (MC1%, RL, MP e volume por nome reduzido, com mapa do portfólio, ponte da margem e tabela corrida; restrito a Gestor, Admin e Super Admin).
 
 9. **Parâmetros e cargas financeiras**
    - empresas e filiais;
@@ -165,9 +165,9 @@ Papéis em `user_profiles.access_role`:
 |---|---|
 | `super_admin` | acesso total; pode administrar outros Super Admins |
 | `admin` | parâmetros, cargas, usuários, planejamento, dashboard e relatórios |
-| `manager` | dashboard e relatórios (inclui Margens por Máquinas); OPEX/Headcount filtrados por gestão e concessões |
+| `manager` | dashboard e relatórios (inclui Evolutivo de Margens); OPEX/Headcount filtrados por gestão e concessões |
 | `analyst` | sem dashboard e DRE consolidado; acesso restrito a relatórios por CC |
-| `comercial` | entrada em Relatórios; Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças. Não vê Ativações de Garantia nem Margens por Máquinas |
+| `comercial` | entrada em Relatórios; Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças. Não vê Ativações de Garantia nem Evolutivo de Margens |
 
 Concessões adicionais disponíveis no perfil:
 
@@ -190,7 +190,7 @@ A policy atual de `user_profiles` também permite escrita do próprio perfil sem
 
 Antes de considerar Gestor, Analista e Comercial fronteiras de segurança completas, as policies/RPCs devem reproduzir essas regras no PostgreSQL.
 
-Exceção já aplicada: o RPC `comercial_margens_itens` (Margens por Máquinas) valida o papel (`super_admin`, `admin` ou `manager`, inclusive `additional_access_roles`) no próprio banco, além de o card ficar oculto no frontend.
+Exceção já aplicada: o RPC `comercial_margens_itens` (Evolutivo de Margens) valida o papel (`super_admin`, `admin` ou `manager`, inclusive `additional_access_roles`) no próprio banco, além de o card ficar oculto no frontend.
 
 ## Relatórios financeiros
 
@@ -253,9 +253,9 @@ Principais RPCs:
 - `comercial_painel_detalhe`
 - `comercial_mapa_vendas`
 - `comercial_mapa_geografico_vendas`
-- `comercial_margens_itens` (Margens por Máquinas)
+- `comercial_margens_itens` (Evolutivo de Margens)
 
-### Margens por Máquinas
+### Evolutivo de Margens
 
 Relatório `comercialMargens` (`src/modules/reports/reportsComercialMargensModule.js`, migration `255`), no grupo Comercial do catálogo, logo após "Meta de Final de Ano". Restrito a Super Admin, Admin e Gestor (`CORE_COMMERCIAL_REPORT_IDS` e `COMERCIAL_EXCLUDED_REPORT_IDS` em `app.js`; também validado no RPC).
 
@@ -271,7 +271,7 @@ Estrutura da página (três cards após os indicadores):
 - **Indicadores** (volume de máquinas, FAT, RL, MP e MC1%), comparados com o mês anterior (YTD e Ano comparam com o acumulado até o mês anterior). O relatório abre em **Mês**, com o seletor do cabeçalho no mês anterior ao atual.
 - **Posicionamento de Portfólio · Máquinas**: bolhas por nome reduzido (eixo X VOL ou RL; tamanho = margem em R$; rótulo só nas 8 maiores).
 - **Ponte da MC1 · Marcher**: mês do filtro contra o mês anterior, com pop-over por barra (Volume, RL, MP e Mix). Máquinas e Transgrain entram item a item; Peças, Acessórios e demais complementares entram em bloco, com volume 1 nos dois meses (sem efeito de Volume nem de Mix; a variação de RL e de MP do bloco cai inteira em RL e MP), de modo que a ponte fecha com o DRE. **Volume = Δ unidades × margem/un média anterior** do grupo; **Mix** = mudança de composição (Δ un × margem/un da máquina menos a média) somada às máquinas novas e aos ajustes sem base; **RL** e **MP** = variação unitária × quantidade atual.
-- **Evolutivo de Margens · Máquinas**: tabela corrida com toggle VOL/FAT/RL/MP/MC1% e botão **Equipe Comercial** (Território, Coordenação ou Vendedor; mesmo componente do Mapa de Vendas), que filtra **só a tabela** via os parâmetros `p_territorio`, `p_coordenacao` e `p_vendedor` do RPC (migration `256`). Linhas 100% zeradas não aparecem.
+- **Evolutivo de Margens · Marcher**: tabela corrida com toggle VOL/FAT/RL/MP/MC1% e botão **Equipe Comercial** (Território, Coordenação ou Vendedor; mesmo componente do Mapa de Vendas), que filtra **só a tabela** via os parâmetros `p_territorio`, `p_coordenacao` e `p_vendedor` do RPC (migration `256`). Linhas 100% zeradas não aparecem.
 
 O CSS do relatório usa o prefixo `cmm-` (isolado do Ranking Geográfico, que usa `cmg-`).
 
@@ -324,7 +324,7 @@ Resumo por fase:
 | `251–252` | Ativações de Garantia: UF exterior e quantidade |
 | `253` | `rl` e `mp` no staging e no ledger de vendas realizadas (novo layout FAT/RL/MP) |
 | `254` | carteira (CART) entra só pelo mês de referência no Painel e Peças |
-| `255` | RPC `comercial_margens_itens` e posição do card Margens por Máquinas no catálogo |
+| `255` | RPC `comercial_margens_itens` e posição do card Evolutivo de Margens no catálogo |
 | `256` | `comercial_margens_itens` ganha o filtro Equipe Comercial (`p_territorio`, `p_coordenacao`, `p_vendedor`), usado só pela tabela Evolutivo de Margens |
 
 ### Divergências conhecidas do schema
@@ -470,5 +470,5 @@ Também confira:
 | cargas comerciais | `comercialVendasCargaModule.js`, `comercialPlanejadoCargaModule.js`, migrations `038–042` |
 | Ativações de Garantia | `garantiaAtivacoesCargaModule.js`, `reportsGarantiaAtivacoesModule.js`, migration `237` |
 | painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `090`, `112–126`, `240–241`, `243–244` |
-| Margens por Máquinas | `reportsComercialMargensModule.js`, card e perfis em `index.html`, regras de acesso em `app.js`, migrations `253`, `255` e `256` |
+| Evolutivo de Margens | `reportsComercialMargensModule.js`, card e perfis em `index.html`, regras de acesso em `app.js`, migrations `253`, `255` e `256` |
 | campanhas e criador de relatórios comerciais | `src/modules/reports/comercialReportsModule.js`, migrations `064–069`, `074–075`, `245` |
