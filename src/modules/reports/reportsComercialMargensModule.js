@@ -53,7 +53,8 @@
     let loadedYear = null;
     let loading = false;
     let error = "";
-    let period = "ytd"; // mes | ytd | fy
+    let period = "mes"; // mes | ytd | fy (pré-set de abertura: Mês)
+    let presetKey = null; // período global visto na abertura; null = pré-set ainda não aplicado
     let metric = "vol";
     let bubbleX = "vol"; // eixo X do mapa: vol | rl
     let openRows = new Set();
@@ -135,8 +136,19 @@
 
     // ── Carga ───────────────────────────────────────────────────────────
     function syncPeriod() {
-      year = Number(state.currentPeriod?.year || year);
-      month = Number(state.currentPeriod?.month || month);
+      const cy = Number(state.currentPeriod?.year || year);
+      const cm = Number(state.currentPeriod?.month || month);
+      const key = `${cy}-${cm}`;
+      if (presetKey === null) {
+        // Pré-set de abertura: mês anterior ao período corrente (jan → dez do ano anterior)
+        year = cm === 1 ? cy - 1 : cy;
+        month = cm === 1 ? 12 : cm - 1;
+      } else if (key !== presetKey) {
+        // Usuário trocou o período globalmente: segue a seleção
+        year = cy;
+        month = cm;
+      }
+      presetKey = key;
     }
     async function load(force = false) {
       if (!force && model && loadedYear === year) return;
