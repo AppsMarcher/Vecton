@@ -60,10 +60,11 @@
         .cvp-h1 { font-size:20px; font-weight:600; margin:0; }
         .cvp-kicker { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--cvp-faint); margin:0 0 4px; }
         .cvp-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-        .cvp-period { display:flex; align-items:center; gap:8px; background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:12px; padding:6px; }
-        .cvp-period select { background:transparent; border:none; color:var(--cvp-text); font-size:13px; font-family:inherit; padding:6px 8px; outline:none; }
+        .cvp-period { display:flex; align-items:center; gap:8px; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:8px; padding:2px; box-sizing:border-box; height:34px; }
+        .cvp-period select { background:transparent; border:none; color:var(--cvp-text); font-size:13px; font-family:inherit; padding:0 8px; height:100%; outline:none; }
         .cvp-period select option { background:var(--theme-surface, #121317); color:var(--theme-ink, #fff); }
-        .cvp-seg { display:flex; gap:2px; background:var(--cvp-bg-soft); border-radius:8px; padding:2px; }
+        .cvp-period.cvp-period-seg { background:none; border:none; border-radius:0; padding:0; }
+        .cvp-seg { display:flex; box-sizing:border-box; height:34px; gap:2px; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:8px; padding:2px; }
         .cvp-seg button { border:none; background:transparent; color:var(--cvp-soft); font-size:12px; font-family:inherit; font-weight:500; padding:6px 12px; border-radius:6px; cursor:pointer; }
         .cvp-seg button.active { background:#4f7cff; color:#fff; }
         .cvp-tabs { display:flex; gap:6px; margin-bottom:16px; }
@@ -155,7 +156,7 @@
         .cvp-blockbar-track .blk.on { background:var(--accent); }
         .cvp-blockbar-pct { font-size:11px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums; color:var(--cvp-text); }
         .cvp-print-wrap { position:relative; }
-        .cvp-print { display:flex; align-items:center; gap:6px; background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:12px; color:var(--cvp-soft); font-size:12.5px; font-family:inherit; font-weight:500; padding:9px 14px; cursor:pointer; }
+        .cvp-print { display:flex; align-items:center; gap:6px; background:var(--cvp-panel); border:1px solid var(--cvp-line); border-radius:12px; color:var(--cvp-soft); font-size:12.5px; font-family:inherit; font-weight:500; padding:0 14px; box-sizing:border-box; height:34px; cursor:pointer; }
         .cvp-print:hover { color:var(--cvp-text); border-color:#4f7cff; }
         .cvp-print:disabled { opacity:.55; cursor:default; }
         .cvp-print svg { width:14px; height:14px; }
@@ -382,7 +383,7 @@
               <h1 class="cvp-h1" id="cvp-title">Painel de Vendas — ${escapeHtml(MONTHS[month - 1])}/${year}</h1>
             </div>
             <div class="cvp-controls">
-              <div class="cvp-period">
+              <div class="cvp-period cvp-period-seg">
                 <div class="cvp-seg" id="cvp-seg">
                   <button data-p="mes"${period === "mes" ? ' class="active"' : ""}>Mês</button>
                   <button data-p="ytd"${period === "ytd" ? ' class="active"' : ""}>YTD</button>

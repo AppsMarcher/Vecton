@@ -128,6 +128,7 @@
         .vcr-field{display:grid;gap:6px;font-size:11px;color:var(--text-soft)}.vcr-field input,.vcr-field select,.vcr-field textarea{width:100%;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:9px;font:inherit}.vcr-field textarea{min-height:72px;resize:vertical}
         .vcr-field select option,.vcr-team-tools select option,.vcr-inline-field select option{background:var(--theme-surface, #1a1d26);color:var(--text)}
         .vcr-inline-field{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-soft);white-space:nowrap}.vcr-inline-field select{width:auto;border:1px solid var(--line);background:var(--panel-strong);color:var(--text);border-radius:9px;padding:8px 10px;font:inherit}
+        .vcr-inline-field.vcr-scenario-box{box-sizing:border-box;height:34px;background:var(--panel-alt);border:1px solid var(--line);border-radius:8px;padding:2px}.vcr-scenario-box>span{padding-left:6px;font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em}.vcr-inline-field.vcr-scenario-box select{width:180px;max-width:180px;height:100%;background:transparent;border:none;border-radius:0;padding:0 8px;font-size:13px;color:var(--text);text-overflow:ellipsis}
         .vcr-period-seg{display:flex;gap:2px;background:var(--panel-alt);border:1px solid var(--line);border-radius:8px;padding:2px}.vcr-period-seg button{border:none;background:transparent;color:var(--text-soft);font:inherit;font-size:12px;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer}.vcr-period-seg button.active{background:#4f7cff;color:#fff}
         .vcr-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.vcr-checks.compact{display:flex;flex-wrap:wrap}.vcr-checks.compact .vcr-check{flex:0 0 auto}.vcr-check{display:flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:10.5px;color:var(--text-soft);line-height:1.25}
         .vcr-chips{display:flex;flex-wrap:wrap;gap:8px}.vcr-chip{display:flex;align-items:center;gap:7px;padding:9px 14px;border:1px solid var(--line);border-radius:99px;font-size:12px;color:var(--text-soft);cursor:pointer;user-select:none}.vcr-chip:has(input:checked){border-color:#14b8a6;color:var(--text);background:rgba(20,184,166,.12)}.vcr-chip input{accent-color:#14b8a6}
@@ -214,8 +215,8 @@
         card.dataset.comercialDynamicReport = "true";
         card.innerHTML = `
           <div class="rrc-top">
-            <span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-target"></use></svg></span>
-            <span class="vcr-card-status">${escapeHtml(report.status)}</span>
+            <span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-${report.report_kind === "bateu_levou" ? "trophy" : "target"}"></use></svg></span>
+            ${report.status === "active" ? "" : `<span class="vcr-card-status">${escapeHtml(report.status)}</span>`}
           </div>
           <strong class="rrc-label">${escapeHtml(report.nome)}</strong>
           <span class="rrc-subtitle">${escapeHtml(report.modalidade === "monthly" ? "Comercial · mensal" : "Comercial · YTD")}</span>
@@ -1394,7 +1395,7 @@
         </div></div>`
         : "";
       container.innerHTML = `<div class="vcr-report">
-        <header class="vcr-report-head"><div><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${formatDateBR(payload.period?.effective_start)} — ${formatDateBR(payload.period?.effective_end)}</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${modalidadeToggleHtml}<label class="vcr-inline-field">Cenário<select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
+        <header class="vcr-report-head"><div><h1>${escapeHtml(payload.report?.name || "Relatório")}</h1><span style="color:var(--text-faint);font-size:11px">${formatDateBR(payload.period?.effective_start)} — ${formatDateBR(payload.period?.effective_end)}</span></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${modalidadeToggleHtml}<label class="vcr-inline-field vcr-scenario-box"><span>Cenário</span><select id="vcr-runtime-scenario">${scenarioOptions}</select></label></div></header>
         ${isMonthAxis ? renderMonthAxisReport(payload) : isTeamComparison ? renderTeamComparisonReport(payload) : isComposition ? renderCompositionReport(payload) : `
         <div class="vcr-summary">${summary.map((item) => `<div class="vcr-stat"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(formatValue(item.value, { type: item.key?.includes("total") && payload.config?.primary_metric === "revenue" ? "currency" : "number" }))}</strong></div>`).join("")}</div>
         ${isBateuLevou ? renderBateuRankings(columns, rows, payload.report.id) : tableMarkup(columns, rows)}
