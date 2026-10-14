@@ -8,25 +8,20 @@
   // valores são UNITÁRIOS (÷ volume); linhas-pai = total ÷ volume total (média
   // ponderada pelo volume), nunca média de unitários.
   function calculateMarginBridge(rows) {
-    const q0 = rows.reduce((t, r) => t + Math.max(r.a.q, 0), 0);
-    const q1 = rows.reduce((t, r) => t + Math.max(r.b.q, 0), 0);
     return rows.map((r) => {
       const { a, b } = r;
-      const share = q0 > 0 && a.q > 0 ? a.q / q0 : 0;
       const marginUnit = a.q > 0 ? (a.rl - a.mp) / a.q : 0;
-      const volumeQ1 = q1 * share;
-      const volumeUnits = (q1 - q0) * share;
-      const mixUnits = a.q > 0 ? Math.max(b.q, 0) - volumeQ1 : 0;
+      // Não somar unidades de famílias distintas para construir um mix global.
+      const volumeUnits = a.q > 0 && b.q >= 0 ? b.q - a.q : 0;
       const M0 = a.rl - a.mp, M1 = b.rl - b.mp;
       const vol = volumeUnits * marginUnit;
-      const mix = mixUnits * marginUnit;
       const both = a.q > 0 && b.q > 0;
       const pr = both ? b.rl - b.q * a.rl / a.q : 0;
       const co = both ? -(b.mp - b.q * a.mp / a.q) : 0;
       const dM = M1 - M0;
-      // Produtos sem base positiva e movimentos sem volume comparável ficam explícitos.
-      const adj = dM - vol - mix - pr - co;
-      return { ...r, M0, M1, dM, vol, mix, pr, co, adj, volumeQ1, volumeUnits, mixUnits };
+      // Resíduo explícito, sem apresentar como efeito puro de composição.
+      const mix = dM - vol - pr - co;
+      return { ...r, M0, M1, dM, vol, mix, pr, co, volumeUnits };
     });
   }
   function createComercialMargensModule(deps) {
@@ -39,11 +34,10 @@
     const COMP_ORDER = ["Peças", "Transgrain", "Acessórios"];
     const METRICS = [["vol", "VOL"], ["fat", "FAT"], ["rl", "RL"], ["mp", "MP"], ["mb", "MC1%"]];
     const EFFECTS = {
-      vol: { name: "Volume", sub: "Variação do volume total, mantendo o mix e a margem unitária anteriores" },
+      vol: { name: "Volume", sub: "Variação da quantidade de cada produto × sua margem unitária anterior" },
       pr: { name: "Preço", sub: "RL por unidade" },
       co: { name: "Custo", sub: "MP por unidade" },
-      mix: { name: "Mix", sub: "Mudança da composição das vendas × margem unitária anterior" },
-      adj: { name: "Novos/ajustes", sub: "Produtos sem base anterior e movimentos sem volume positivo comparável" }
+      mix: { name: "Sem base/ajustes", sub: "Produtos sem volume anterior positivo e movimentos não comparáveis; resíduo da variação" }
     };
 
     let host = null;
@@ -293,11 +287,11 @@
       const pm = cm === 1 ? 12 : cm - 1;
       const rows = calculateMarginBridge(model.items.map((it) => ({ it, parent: it.parent, a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] })));
       const sum = (k) => rows.reduce((t, r) => t + r[k], 0);
-      return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix"), adj: sum("adj") };
+      return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix") };
     }
     function bridgeHtml() {
       const B = bridgeData();
-      const steps = [[`Margem ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["Mix", B.mix, false, "mix"], ["Preço (RL/un)", B.pr, false, "pr"], ["Custo (MP/un)", B.co, false, "co"], ["Novos/ajustes", B.adj, false, "adj"], [`Margem ${B.lab1}`, B.M1, true]];
+      const steps = [[`Margem ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["Preço (RL/un)", B.pr, false, "pr"], ["Custo (MP/un)", B.co, false, "co"], ["Sem base/ajustes", B.mix, false, "mix"], [`Margem ${B.lab1}`, B.M1, true]];
       const W = 640, H = 330, L = 12, T = 30, Bt = 52, n = steps.length, bw = 56, gap = (W - L * 2 - bw * n) / (n - 1);
       let run = 0;
       const pos = steps.map((s) => { if (s[2]) { run = s[1]; return [0, s[1]]; } const r = [run, run + s[1]]; run += s[1]; return r; });
@@ -335,14 +329,11 @@
       if (k === "vol") {
         const d = ag.volumeUnits;
         const pu = d !== 0 ? ag.e / d : a.q > 0 ? (a.rl - a.mp) / a.q : null;
-        return [fmtQty(a.q), fmtQty(ag.volumeQ1), dlt(d, 1, true), pu == null ? "–" : fmt(pu, 0)];
+        return [fmtQty(a.q), fmtQty(b.q), dlt(d, 1, true), pu == null ? "–" : fmt(pu, 0)];
       }
       if (k === "mix") {
-        return [fmtQty(a.q), fmtQty(b.q), fmtQty(ag.volumeQ1), dlt(ag.mixUnits, 1, true)];
-      }
-      if (k === "adj") {
         const sg2 = (v) => `<span class="${Math.abs(v) < 0.5 ? "" : v >= 0 ? "pos" : "neg"}">${sgn(v)}${brl(Math.abs(v))}</span>`;
-        return [sg2(ag.dM), sg2(-ag.vol), sg2(-ag.mix), sg2(-ag.pr - ag.co)];
+        return [sg2(ag.dM), sg2(-ag.vol), sg2(-ag.pr), sg2(-ag.co)];
       }
       const f = k === "pr" ? "rl" : "mp";
       const ua = a.q ? a[f] / a.q : null;
@@ -353,17 +344,16 @@
       const B = bridgeData();
       const k = pop.eff;
       const heads = {
-        vol: [`Qtd ${B.lab0}`, "Qtd com mix anterior", "Δ un volume", `× Margem/un ${B.lab0}`],
+        vol: [`Qtd ${B.lab0}`, `Qtd ${B.lab1}`, "Δ un comparáveis", `× Margem/un ${B.lab0}`],
         pr: [`RL/un ${B.lab0}`, `RL/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
         co: [`MP/un ${B.lab0}`, `MP/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
-        mix: [`Qtd ${B.lab0}`, `Qtd ${B.lab1}`, "Qtd com mix anterior", "Δ un mix"],
-        adj: [`Δ Margem ${B.lab1} vs ${B.lab0}`, "− Volume", "− Mix", "− Preço − Custo"]
+        mix: [`Δ Margem ${B.lab1} vs ${B.lab0}`, "− Volume", "− Preço", "− Custo"]
       }[k];
       const agg = (rs) => {
         const a = zero(), b = zero();
-        let e = 0, dM = 0, vol = 0, pr = 0, co = 0, mix = 0, volumeQ1 = 0, volumeUnits = 0, mixUnits = 0;
-        rs.forEach((r) => { add(a, r.a); add(b, r.b); e += r[k]; dM += r.dM; vol += r.vol; pr += r.pr; co += r.co; mix += r.mix; volumeQ1 += r.volumeQ1; volumeUnits += r.volumeUnits; mixUnits += r.mixUnits; });
-        return { a, b, e, dM, vol, pr, co, mix, volumeQ1, volumeUnits, mixUnits };
+        let e = 0, dM = 0, vol = 0, pr = 0, co = 0, volumeUnits = 0;
+        rs.forEach((r) => { add(a, r.a); add(b, r.b); e += r[k]; dM += r.dM; vol += r.vol; pr += r.pr; co += r.co; volumeUnits += r.volumeUnits; });
+        return { a, b, e, dM, vol, pr, co, volumeUnits };
       };
       const eff = (e) => (Math.abs(e) < 0.5 ? `<strong>–</strong>` : `<strong class="${e >= 0 ? "pos" : "neg"}">${sgn(e)}${brl(Math.abs(e))}</strong>`);
       const line = (label, ag, cls, att, cod, full) => `<tr class="${cls}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmg-ano">${eff(ag.e)}</td></tr>`;
