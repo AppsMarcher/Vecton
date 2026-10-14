@@ -263,10 +263,17 @@ Definições:
 
 - **MP** é o custo de matéria-prima da carga (colunas `rl` e `mp` do ledger, migration `253`); **MC1% = (RL − MP) ÷ RL**, recalculada no relatório. A coluna `mb_pct` gravada na carga 2023–2026 contém MP ÷ RL e **não** deve ser usada.
 - Só entra faturamento realizado (`origem = 'FAT'`), líquido de devolução. Carteira (CART) fica de fora.
-- Máquinas são agrupadas por `nome_reduzido` e por cultura (Grãos, Pecuária; CARGOGRAIN forma um grupo próprio). Peças, Transgrain e Acessórios aparecem como linhas complementares, com desdobramento por código (30 maiores + "Demais itens").
+- Máquinas são agrupadas por `nome_reduzido` e por cultura (Grãos, Pecuária e Cargograin, este último como grupo próprio). Peças, Transgrain e Acessórios aparecem como linhas complementares, com desdobramento por código (30 maiores + "Demais itens").
 - Na tabela os valores são **unitários** (÷ volume); linhas-pai são total ÷ volume total, nunca média de unitários.
 
-Estrutura da página: indicadores (volume, FAT, RL, MP, MC1%, comparados com o mês anterior), mapa do portfólio (bolhas; eixo X VOL ou RL), ponte da margem (volume → preço → custo → sem base/ajustes, com pop-over por barra) e tabela corrida com toggle VOL/FAT/RL/MP/MC1%. A ponte mantém o mês de referência vs mês anterior e inclui todos os produtos. **Volume = variação da quantidade de cada produto × sua margem unitária anterior (RL − MP)/quantidade**. Não se somam unidades de máquinas, peças e acessórios para calcular um mix global. Preço e Custo usam a variação unitária × quantidade atual dos produtos com volume positivo nos dois meses. Produtos sem quantidade anterior positiva e movimentos com quantidade negativa ficam no resíduo **Sem base/ajustes**, sem apresentá-lo como efeito puro de mix. Produtos que deixam de vender entram como redução de volume. Todos os valores financeiros, inclusive devoluções, entram nos totais de margem.
+Estrutura da página (três cards após os indicadores):
+
+- **Indicadores** (volume de máquinas, FAT, RL, MP e MC1%), comparados com o mês anterior (YTD e Ano comparam com o acumulado até o mês anterior). O relatório abre em **Mês**, com o seletor do cabeçalho no mês anterior ao atual.
+- **Posicionamento de Portfólio · Máquinas**: bolhas por nome reduzido (eixo X VOL ou RL; tamanho = margem em R$; rótulo só nas 8 maiores).
+- **Ponte da MC1 · Marcher**: mês do filtro contra o mês anterior, com pop-over por barra (Volume, RL, MP e Mix). Máquinas e Transgrain entram item a item; Peças, Acessórios e demais complementares entram em bloco, com volume 1 nos dois meses (sem efeito de Volume nem de Mix; a variação de RL e de MP do bloco cai inteira em RL e MP), de modo que a ponte fecha com o DRE. **Volume = Δ unidades × margem/un média anterior** do grupo; **Mix** = mudança de composição (Δ un × margem/un da máquina menos a média) somada às máquinas novas e aos ajustes sem base; **RL** e **MP** = variação unitária × quantidade atual.
+- **Evolutivo de Margens · Máquinas**: tabela corrida com toggle VOL/FAT/RL/MP/MC1% e botão **Equipe Comercial** (Território, Coordenação ou Vendedor; mesmo componente do Mapa de Vendas), que filtra **só a tabela** via os parâmetros `p_territorio`, `p_coordenacao` e `p_vendedor` do RPC (migration `256`). Linhas 100% zeradas não aparecem.
+
+O CSS do relatório usa o prefixo `cmm-` (isolado do Ranking Geográfico, que usa `cmg-`).
 
 O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano do filtro e o anterior); todas as visões são calculadas no cliente.
 
