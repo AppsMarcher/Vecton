@@ -305,7 +305,7 @@
       const pm = cm === 1 ? 12 : cm - 1;
       const rows = calculateMarginBridge(model.items.filter((it) => it.parent.kind === "M").map((it) => ({ it, parent: it.parent, a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] })));
       const sum = (k) => rows.reduce((t, r) => t + r[k], 0);
-      return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix") };
+      return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), rl0: rows.reduce((t, r) => t + r.a.rl, 0), rl1: rows.reduce((t, r) => t + r.b.rl, 0), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix") };
     }
     function bridgeHtml() {
       const B = bridgeData();
@@ -330,6 +330,10 @@
         const tip = st[2] ? [{ label: name, value: brl(st[1]) }]
           : [{ label: "Efeito", value: name }, { label: "Valor", value: `${sgn(st[1])}${brl(Math.abs(st[1]))}`, tone }, { label: "% da margem anterior", value: B.M0 ? `${sgn(st[1])}${fmt(Math.abs(st[1] / B.M0) * 100, 1)}%` : "–", tone }, { label: "", value: "clique para detalhar" }];
         s += `<rect ${tipAttr(tip)} ${st[3] ? `data-eff="${st[3]}" style="cursor:pointer"` : ""} x="${x}" y="${top}" width="${bw}" height="${h}" rx="4" fill="${col}"/>`;
+        if (st[2]) {
+          const rl = i === 0 ? B.rl0 : B.rl1;
+          s += `<text x="${x + bw / 2}" y="${top + h / 2 + 4}" text-anchor="middle" style="fill:#fff;font-weight:700;font-size:12px;pointer-events:none">${rl ? fmt((st[1] / rl) * 100, 1) + "%" : "–"}</text>`;
+        }
         s += `<text class="cmg-bl" x="${x + bw / 2}" y="${top - 6}" text-anchor="middle">${st[2] ? brl(st[1]) : sgn(st[1]) + brl(Math.abs(st[1]))}</text>`;
         s += `<text x="${x + bw / 2}" y="${H - 30}" text-anchor="middle">${escapeHtml(name)}</text>`;
         if (st[0].includes("(")) s += `<text x="${x + bw / 2}" y="${H - 18}" text-anchor="middle" style="font-size:9.5px">(${escapeHtml(st[0].split(" (")[1])}</text>`;
