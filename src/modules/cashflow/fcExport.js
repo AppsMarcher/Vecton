@@ -42,19 +42,25 @@
       }catch(e){await deps.alert(e.message);}
     });
   }
-  function email(report,deps,focus){
-    const session=deps.getUserId(),esc=deps.escapeHtml,dialog=document.createElement('dialog');dialog.className='fc-email-dialog';
-    dialog.innerHTML=`<form><h3>Enviar por e-mail</h3><p>${esc(report.title)} · ${esc(report.scenario)}</p><label>Para<input name="to" required placeholder="email@empresa.com, outro@empresa.com"></label><label>Cc<input name="cc" placeholder="Opcional"></label><label>Assunto<input name="subject" required value="${esc(report.title)}"></label><p>Anexo: ${esc(report.filename)}</p><label>Mensagem<textarea name="body" rows="5">Olá,\n\nSegue em anexo o ${esc(report.title)}.\nCenário: ${esc(report.scenario)}.</textarea></label><p role="status"></p><div class="fc-email-actions"><button type="button" class="ghost-button" data-close>Cancelar</button><button class="primary-button" type="submit">Enviar</button></div></form>`;
-    document.body.appendChild(dialog);dialog.showModal();const form=dialog.querySelector('form'),status=dialog.querySelector('[role=status]');
-    dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.onclose=()=>{dialog.remove();focus.focus();};
-    form.onsubmit=async event=>{
-      event.preventDefault();const fields=new FormData(form),parse=v=>String(v||'').split(/[,;]/).map(v=>v.trim()).filter(Boolean),to=parse(fields.get('to')),cc=parse(fields.get('cc'));
-      if(!to.length||to.concat(cc).some(v=>!/^\S+@[^\s@]+\.[^\s@]+$/.test(v))){status.textContent='Informe destinatários válidos, separados por vírgula.';return;}
-      if(session!==deps.getUserId()){status.textContent='A sessão mudou. Reabra o relatório.';return;}
-      const controls=[...form.querySelectorAll('input,textarea,button')];controls.forEach(el=>el.disabled=true);status.textContent='Gerando PDF e enviando e-mail…';
-      try{await deps.sendEmail({to,cc:cc.length?cc:undefined,subject:String(fields.get('subject')).trim(),body_text:String(fields.get('body')),filename:report.filename,html:report.html});status.textContent='E-mail enviado com sucesso.';dialog.querySelector('[data-close]').disabled=false;dialog.querySelector('[data-close]').textContent='Fechar';}
-      catch(e){status.textContent=e.message||'Falha no envio.';controls.forEach(el=>el.disabled=false);}
-    };
+  // Tela de envio por e-mail única dos relatórios (reportEmailModal.js, padrão do Painel de Vendas).
+  let emailModal=null;
+  function email(report,deps){
+    if(!emailModal)emailModal=window.VECTON_REPORT_EMAIL.create({escapeHtml:deps.escapeHtml,callEdgeFunction:(_name,payload)=>deps.sendEmail(payload)});
+    const session=deps.getUserId();
+    emailModal.open({
+      subtitle:`${report.title} · ${report.scenario}`,
+      subject:report.title,
+      bodyText:`Olá,
+
+Segue em anexo o ${report.title}.
+Cenário: ${report.scenario}.
+
+Atenciosamente,
+${deps.getUserName?deps.getUserName():''}`,
+      filename:report.filename,
+      buildHtml:()=>report.html,
+      isSessionValid:()=>session===deps.getUserId()
+    });
   }
   window.VECTON_FC_EXPORT={menu,bind,dataset};
 })(window);

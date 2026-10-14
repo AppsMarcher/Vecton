@@ -31,7 +31,9 @@
     });
   }
   function createComercialMargensModule(deps) {
-    const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, isSupabaseConfigured, syncHeaderPeriod, fetchAllSupabaseRows } = deps;
+    const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, isSupabaseConfigured, syncHeaderPeriod, fetchAllSupabaseRows, callEdgeFunction, appAlert } = deps;
+    // Exportar (Imprimir / E-mail / Excel) da tabela Evolutivo de Margens; só existe se o módulo de exportação carregou.
+    const exporter = window.VECTON_COMERCIAL_MARGENS_EXPORT?.createMargensExport({ escapeHtml, state, callEdgeFunction, appAlert });
     const REPORT_ID = "comercialMargens";
     const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
     const GROUP_ORDER = ["Grãos", "Pecuária", "Cargograin"];
@@ -502,86 +504,140 @@
     }
 
     // ── Tabela corrida ──────────────────────────────────────────────────
-    function mcell(c, prev, k) {
+    // Valor + variação (▲/▼) de uma célula contra a coluna anterior. d = Δ% (ou Δ p.p. no MC1%);
+    // good = favorável (em MP, queda é favorável). Usado pela tela e pela exportação.
+    function cellDelta(c, prev, k) {
       const v = val(c, k);
-      const SLOT = `<span class="cmm-dl" style="visibility:hidden">&nbsp;</span>`;
-      if (v == null) return `–${SLOT}`;
-      let t = showVal(v, k);
-      let hasDelta = false;
+      if (v == null) return { v: null, d: null, good: null };
+      let d = null, good = null;
       if (prev) {
         const p = val(prev, k);
         if (p != null && p !== 0) {
-          const d = k === "mb" ? (v - p) * 100 : (v / p - 1) * 100;
-          const good = k === "mp" ? d < 0 : d > 0;
-          t += `<span class="cmm-dl ${good ? "pos" : "neg"}">${d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(d), k === "vol" ? 0 : 1)}${k === "mb" ? " pp" : "%"}</span>`;
-          hasDelta = true;
+          d = k === "mb" ? (v - p) * 100 : (v / p - 1) * 100;
+          good = k === "mp" ? d < 0 : d > 0;
         }
       }
-      return hasDelta ? t : t + SLOT;
+      return { v, d, good };
     }
-    function tableHtml() {
-      const k = metric;
+    function mcell(c, prev, k) {
+      const SLOT = `<span class="cmm-dl" style="visibility:hidden">&nbsp;</span>`;
+      const x = cellDelta(c, prev, k);
+      if (x.v == null) return `–${SLOT}`;
+      const t = showVal(x.v, k);
+      if (x.d == null) return t + SLOT;
+      return `${t}<span class="cmm-dl ${x.good ? "pos" : "neg"}">${x.d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(x.d), k === "vol" ? 0 : 1)}${k === "mb" ? " pp" : "%"}</span>`;
+    }
+    // Média do 4º trimestre do ano anterior (coluna "2025").
+    function q4Of(obj) {
+      const o = zero();
+      for (let m = 10; m <= 12; m++) add(o, cellsOf(obj, year - 1)[m - 1]);
+      ["q", "fat", "rl", "mp"].forEach((f) => { o[f] /= 3; });
+      return o;
+    }
+    // Colunas de uma linha: 4º tri anterior, 12 meses (null = depois do filtro) e total do ano.
+    // Cada coluna traz a célula e a anterior contra a qual se compara.
+    function columnsOf(obj, n, k) {
+      const q4 = q4Of(obj);
+      const months = [];
+      for (let m = 0; m < 12; m++) months.push(m >= n ? null : { c: cellsOf(obj, year)[m], prev: m > 0 ? cellsOf(obj, year)[m - 1] : q4 });
+      let tri = null;
+      if (n > 3 && k !== "vol") { tri = zero(); for (let m = n - 3; m < n; m++) add(tri, cellsOf(obj, year)[m]); ["q", "fat", "rl", "mp"].forEach((f) => { tri[f] *= n / 3; }); }
+      return { q4, months, ano: { c: sumRange(obj, year, 1, n), prev: tri } };
+    }
+    const nz = (c) => Math.abs(c.q) > 1e-9 || Math.abs(c.fat) > 0.005 || Math.abs(c.rl) > 0.005 || Math.abs(c.mp) > 0.005;
+    const wrapObj = (list) => { const cells = {}; [year - 1, year].forEach((y) => { cells[y] = Array.from({ length: 12 }, zero); list.forEach((p) => cellsOf(p, y).forEach((c, i) => add(cells[y][i], c))); }); return { cells }; };
+    // Linhas visíveis da tabela, na ordem da tela (respeita linhas abertas e filtro de equipe).
+    // kind: row | grp | empty. Para row: cls (cmm-tot/-mq/-prod/-sub), label (texto puro),
+    // open (null = sem seta), key (linhas-pai), cod/full (itens) e obj (dados).
+    // full = exportação: todas as linhas-pai abertas e TODOS os itens por código (sem "Demais itens").
+    function tableRows(full = false) {
       const n = nMonths();
-      const yearTotals = (obj) => sumRange(obj, year, 1, n);
-      const q4obj = (obj) => {
-        const o = zero();
-        for (let m = 10; m <= 12; m++) add(o, cellsOf(obj, year - 1)[m - 1]);
-        ["q", "fat", "rl", "mp"].forEach((f) => { o[f] /= 3; });
-        return o;
-      };
-      const row = (label, obj, cls, att, cod, full) => {
-        let r = `<tr class="${cls || ""}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmm-cd">${escapeHtml(cod)}</span>` : ""}${label}</td><td class="cmm-q4">${k === "vol" ? fmt(q4obj(obj).q, 1) : showVal(val(q4obj(obj), k), k)}</td>`;
-        for (let m = 0; m < 12; m++) {
-          if (m >= n) { r += `<td class="cmm-future"></td>`; continue; }
-          const c = cellsOf(obj, year)[m];
-          const prev = m > 0 ? cellsOf(obj, year)[m - 1] : q4obj(obj);
-          r += `<td>${mcell(c, prev, k)}</td>`;
-        }
-        let tri = null;
-        if (n > 3 && k !== "vol") { tri = zero(); for (let m = n - 3; m < n; m++) add(tri, cellsOf(obj, year)[m]); ["q", "fat", "rl", "mp"].forEach((f) => { tri[f] *= n / 3; }); }
-        return `${r}<td class="cmm-ano">${mcell(yearTotals(obj), tri, k)}</td></tr>`;
-      };
-      const nz = (c) => Math.abs(c.q) > 1e-9 || Math.abs(c.fat) > 0.005 || Math.abs(c.rl) > 0.005 || Math.abs(c.mp) > 0.005;
       // Linha 100% zerada (ano do filtro até o mês exibido e 4º tri do ano anterior) não aparece.
-      const active = (obj) => cellsOf(obj, year).slice(0, n).some(nz) || nz(q4obj(obj));
-      const wrapObj = (list) => { const cells = {}; [year - 1, year].forEach((y) => { cells[y] = Array.from({ length: 12 }, zero); list.forEach((p) => cellsOf(p, y).forEach((c, i) => add(cells[y][i], c))); }); return { cells }; };
-            let h = `<thead><tr><th></th><th class="cmm-q4" title="Média ponderada do 4º trimestre de ${year - 1}">${year - 1}</th>${MESES.map((m) => `<th>${m}</th>`).join("")}<th class="cmm-ano">${year}</th></tr></thead><tbody>`;
+      const active = (obj) => cellsOf(obj, year).slice(0, n).some(nz) || nz(q4Of(obj));
+      const out = [];
       const tm = tableModel();
       const mach = tm.parents.filter((p) => p.kind === "M");
       let shown = 0;
-      h += row("Total Máquinas", wrapObj(mach), "cmm-tot");
+      out.push({ kind: "row", cls: "cmm-tot", label: "Total Máquinas", obj: wrapObj(mach) });
       const groups = [...new Set(mach.map((p) => p.group))].sort((a, b) => groupRank(a) - groupRank(b) || a.localeCompare(b, "pt-BR"));
       const addParent = (p) => {
-        const open = openRows.has(p.key);
-        h += row(`<span class="cmm-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, p, "cmm-mq", `data-row="${escapeHtml(p.key)}"`, "", p.label);
+        const open = full || openRows.has(p.key);
+        out.push({ kind: "row", cls: "cmm-mq", label: p.label, open, key: p.key, full: p.label, obj: p });
         if (!open) return;
         const act = p.items.filter(active);
         act.sort((a, b) => Math.abs(sumRange(b, year, 1, n).rl) - Math.abs(sumRange(a, year, 1, n).rl));
-        act.slice(0, TOP_ITEMS).forEach((it) => { h += row(escapeHtml(it.desc), it, "cmm-prod", "", it.cod, it.desc); });
-        if (act.length > TOP_ITEMS) h += row(`Demais itens (${act.length - TOP_ITEMS})`, wrapObj(act.slice(TOP_ITEMS)), "cmm-prod");
+        (full ? act : act.slice(0, TOP_ITEMS)).forEach((it) => out.push({ kind: "row", cls: "cmm-prod", label: it.desc, cod: it.cod, full: it.desc, obj: it }));
+        if (!full && act.length > TOP_ITEMS) out.push({ kind: "row", cls: "cmm-prod", label: `Demais itens (${act.length - TOP_ITEMS})`, obj: wrapObj(act.slice(TOP_ITEMS)) });
       };
       groups.forEach((g) => {
         const list = mach.filter((p) => p.group === g && active(p)).sort(byMachineName);
         if (!list.length) return;
         shown += list.length;
-        h += `<tr class="cmm-grp"><td colspan="15">${escapeHtml(g)}</td></tr>`;
+        out.push({ kind: "grp", label: g });
         list.forEach(addParent);
-        h += row(`Total ${escapeHtml(g)}`, wrapObj(list), "cmm-sub");
+        out.push({ kind: "row", cls: "cmm-sub", label: `Total ${g}`, obj: wrapObj(list) });
       });
       const comp = tm.parents.filter((p) => p.kind === "C" && active(p)).sort((a, b) => (COMP_ORDER.indexOf(a.label) + 1 || 99) - (COMP_ORDER.indexOf(b.label) + 1 || 99) || a.label.localeCompare(b.label, "pt-BR"));
       if (comp.length) {
         shown += comp.length;
-        h += `<tr class="cmm-grp"><td colspan="15">${COMP_GROUP}</td></tr>`;
+        out.push({ kind: "grp", label: COMP_GROUP });
         comp.forEach(addParent);
       }
-      if (!shown) h += `<tr><td colspan="15" style="text-align:center;padding:18px;color:var(--cmm-muted)">Sem vendas para ${escapeHtml(equipeLabel())} no período.</td></tr>`;
+      if (!shown) out.push({ kind: "empty" });
+      return out;
+    }
+    function tableHtml() {
+      const k = metric;
+      const n = nMonths();
+      const row = (d) => {
+        const cols = columnsOf(d.obj, n, k);
+        const att = d.key ? `data-row="${escapeHtml(d.key)}"` : "";
+        const tip = d.full ? tipAttr(d.cod ? [{ label: "Código", value: d.cod }, { label: "Nome", value: d.full }] : [{ label: "Nome", value: d.full }]) : "";
+        const caret = d.open == null ? "" : `<span class="cmm-car">${d.open ? "▾" : "▸"}</span>`;
+        let r = `<tr class="${d.cls}" ${att}><td ${tip}>${d.cod ? `<span class="cmm-cd">${escapeHtml(d.cod)}</span>` : ""}${caret}${escapeHtml(d.label)}</td><td class="cmm-q4">${k === "vol" ? fmt(cols.q4.q, 1) : showVal(val(cols.q4, k), k)}</td>`;
+        cols.months.forEach((m) => { r += m ? `<td>${mcell(m.c, m.prev, k)}</td>` : `<td class="cmm-future"></td>`; });
+        return `${r}<td class="cmm-ano">${mcell(cols.ano.c, cols.ano.prev, k)}</td></tr>`;
+      };
+      let h = `<thead><tr><th></th><th class="cmm-q4" title="Média ponderada do 4º trimestre de ${year - 1}">${year - 1}</th>${MESES.map((m) => `<th>${m}</th>`).join("")}<th class="cmm-ano">${year}</th></tr></thead><tbody>`;
+      tableRows().forEach((d) => {
+        if (d.kind === "grp") h += `<tr class="cmm-grp"><td colspan="15">${escapeHtml(d.label)}</td></tr>`;
+        else if (d.kind === "empty") h += `<tr><td colspan="15" style="text-align:center;padding:18px;color:var(--cmm-muted)">Sem vendas para ${escapeHtml(equipeLabel())} no período.</td></tr>`;
+        else h += row(d);
+      });
       return `<div class="cmm-tw"><table class="cmm-tbl">${h}</tbody></table></div>`;
+    }
+    // Foto da tabela para exportar: as 5 métricas (VOL, FAT, RL, MP, MC1%), cada linha com todos os
+    // itens por código, respeitando o filtro de equipe (mas não a métrica/linhas abertas da tela).
+    function exportSnapshot() {
+      const n = nMonths();
+      const unit = (k) => (k === "vol" ? "Volume (un)" : k === "mb" ? "MC1% = (RL − MP) ÷ RL" : "Valores unitários (R$ ÷ volume)");
+      return {
+        title: "Evolutivo de Margens · Marcher",
+        year, nMonths: n, months: MESES,
+        periodTxt: `Jan–${MESES[n - 1]}/${year}`,
+        equipe: equipeLabel(),
+        metrics: METRICS.map(([key, label]) => ({ key, label, unit: unit(key) })),
+        rows: tableRows(true).map((d) => {
+          if (d.kind !== "row") return d.kind === "grp" ? { kind: "grp", label: d.label } : { kind: "empty" };
+          const m = {};
+          METRICS.forEach(([k]) => {
+            const cols = columnsOf(d.obj, n, k);
+            m[k] = {
+              q4: { v: k === "vol" ? cols.q4.q : val(cols.q4, k), d: null, good: null },
+              months: cols.months.map((x) => (x ? cellDelta(x.c, x.prev, k) : null)),
+              ano: cellDelta(cols.ano.c, cols.ano.prev, k)
+            };
+          });
+          return { kind: d.cls.replace("cmm-", ""), label: d.label, cod: d.cod || "", m };
+        })
+      };
     }
 
     // ── Página ──────────────────────────────────────────────────────────
     function render(container) {
       if (!container) return;
       ensureStyle();
+      exporter?.ensureStyle();
       host = container;
       if (!isSupabaseConfigured()) { container.innerHTML = `<div class="cmm-empty">Configuração do Supabase ausente.</div>`; return; }
       if (error && !model) { container.innerHTML = `<div class="cmm-empty">${escapeHtml(error)}<br><button class="cmm-btn" data-retry>Tentar novamente</button></div>`; return; }
@@ -595,7 +651,7 @@
       const periodTxt = period === "mes" ? MESES[month - 1] : period === "ytd" ? `Jan–${MESES[month - 1]}` : "Jan–Dez";
       container.innerHTML = `<div class="cmm ${loading ? "cmm-loading" : ""}">
         <div class="cmm-header"><div><h1>EVOLUTIVO DE MARGENS</h1><p>Comercial · ${periodTxt}/${year} · líquido de devoluções · MC1% = (RL − MP) ÷ RL</p></div>
-          <div class="cmm-period">${[["mes", "Mês"], ["ytd", "YTD"], ["fy", "Ano"]].map(([v, l]) => `<button data-period="${v}" class="${period === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
+          <div class="cmm-hr"><div class="cmm-period">${[["mes", "Mês"], ["ytd", "YTD"], ["fy", "Ano"]].map(([v, l]) => `<button data-period="${v}" class="${period === v ? "active" : ""}">${l}</button>`).join("")}</div>${exporter ? exporter.menuHtml(false) : ""}</div></div>
         ${notes.length ? `<div class="cmm-note">${notes.map(escapeHtml).join(" · ")}</div>` : ""}
         ${kpisHtml()}
         <div class="cmm-two">
@@ -608,6 +664,7 @@
           <div class="cmm-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano (não se aplica ao VOL)</span></div></div>
         ${pop ? popHtml() : ""}</div>`;
       bind(container);
+      exporter?.bind(container, exportSnapshot);
       syncStickyOffset(container);
     }
 
@@ -681,6 +738,7 @@
       .cmm{--cmm-panel:var(--theme-surface,#121826);--cmm-panel2:var(--theme-surface-raised,var(--theme-surface,#171f30));--cmm-line:var(--theme-border,#232c40);--cmm-text:var(--theme-ink,#eef1f6);--cmm-muted:var(--theme-ink-secondary,#9aa4b8);--cmm-faint:var(--theme-ink-muted,#6b7280);--cmm-blue:#4f7cff;--cmm-pos:var(--theme-ink-green,#3fd49a);--cmm-neg:var(--theme-ink-red,#ff6b7a);--cmm-cyan:var(--theme-ink-teal,#14b8a6);--cmm-violet:var(--theme-ink-violet,#8b5cf6);--cmm-amber:var(--theme-ink-amber,#f59e0b);color:var(--cmm-text);font-size:12px;min-width:0}
       .cmm *{box-sizing:border-box}.cmm button{font:inherit}
       .cmm-header{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;padding:2px 6px 14px;flex-wrap:wrap}.cmm-header h1{font-size:18px;letter-spacing:.01em;margin:0 0 4px}.cmm-header p{margin:0;color:var(--cmm-muted)}
+      .cmm-hr{display:flex;align-items:center;gap:8px}.cmm-period{box-sizing:border-box;height:34px}
       .cmm-period,.cmm-tabs{display:inline-flex;align-items:center;gap:2px;background:var(--cmm-panel2);border:1px solid var(--cmm-line);border-radius:8px;padding:2px}.cmm-period button,.cmm-tabs button{border:0;background:transparent;color:var(--cmm-muted);font-size:12px;font-weight:500;padding:6px 12px;border-radius:6px;cursor:pointer}.cmm-period button.active,.cmm-tabs button.active{background:#4f7cff;color:#fff}
       .cmm-btn{border:1px solid var(--cmm-line);border-radius:8px;background:var(--cmm-panel);color:var(--cmm-text);padding:7px 12px;cursor:pointer}
       .cmm-note{margin:0 6px 12px;padding:7px 10px;border:1px dashed var(--cmm-amber);border-radius:8px;color:var(--cmm-amber);font-size:11px}

@@ -614,6 +614,7 @@ fcDashboardModule = window.VECTON_FC_DASHBOARD.createDashboard({
   service: fcService,
   escapeHtml,
   getUserId: () => currentUser?.id || null,
+  getUserName: () => state.profile?.name || "",
   getPeriod: () => state.currentPeriod,
   isActive: () => activeView === "reports" && selectedReportId === "cashFlow",
   isAdmin,
@@ -1606,6 +1607,8 @@ const comercialMargensModule = createComercialMargensModule({
   callSupabaseRpc,
   isSupabaseConfigured,
   fetchAllSupabaseRows,
+  callEdgeFunction,
+  appAlert,
   // Toggle de período do cabeçalho acompanha o mês de abertura do relatório
   // (mesmo padrão do Cockpit e do Dashboard).
   syncHeaderPeriod: (year, month) => {

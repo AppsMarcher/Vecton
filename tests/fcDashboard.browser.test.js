@@ -17,6 +17,7 @@ const buffer = Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xls
     await page.goto('http://localhost/fc-dashboard');
     for (const f of ['styles.css', 'src/modules/cashflow/fcDashboard.css']) await page.addStyleTag({ path: path.join(__dirname, '..', f) });
     await page.addScriptTag({ path: library });
+    await page.addScriptTag({ path: path.join(__dirname, '../src/modules/reports/reportEmailModal.js') });
     for (const f of ['fcStructure', 'fcModel', 'fcExport', 'fcDashboard']) await page.addScriptTag({ path: path.join(__dirname, '../src/modules/cashflow', f + '.js') });
     await page.evaluate(rows => {
       window.fixtureReport = window.VECTON_FC_MODEL.parseMatrix(rows,2026,new Date(2026,8,21));
