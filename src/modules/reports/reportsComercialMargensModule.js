@@ -31,7 +31,7 @@
     });
   }
   function createComercialMargensModule(deps) {
-    const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, isSupabaseConfigured, syncHeaderPeriod } = deps;
+    const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, isSupabaseConfigured, syncHeaderPeriod, fetchAllSupabaseRows } = deps;
     const REPORT_ID = "comercialMargens";
     const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
     const GROUP_ORDER = ["Grãos", "Pecuária", "Cargograin"];
@@ -58,6 +58,17 @@
     let metric = "vol";
     let bubbleX = "vol"; // eixo X do mapa: vol | rl
     let openRows = new Set();
+    // Filtro "Equipe Comercial": vale só para a tabela Evolutivo de Margens (os demais blocos seguem sem filtro)
+    let equipe = { tipo: "", valor: "" }; // tipo: territorio | coordenacao | vendedor
+    let openEq = false;
+    let tmodel = null; // modelo filtrado da tabela
+    let tKey = "";
+    let tLoading = false;
+    let eqLoaded = false;
+    let TERRITORIOS = [];
+    let COORDENACOES = [];
+    let VENDEDORES = []; // {codigo, nome}
+    let eqCloseBound = false;
     let pop = null; // { eff, open:Set }
     let tipEl = null;
     let keyBound = false;
@@ -159,6 +170,7 @@
         const res = await callSupabaseRpc("comercial_margens_itens", { p_org: org, p_year: year });
         model = buildModel(res?.rows || []);
         loadedYear = year;
+        tmodel = null; tKey = "";
       } catch (e) {
         console.error(e);
         error = /permiss/i.test(String(e?.message || e)) ? "Você não tem permissão para ver este relatório." : "Não foi possível carregar as margens.";
@@ -167,6 +179,73 @@
         loading = false;
         render(host);
       }
+      if (model && equipe.tipo) await loadTable();
+    }
+
+    // ── Equipe Comercial (só a tabela) ──────────────────────────────────
+    const tableModel = () => (equipe.tipo && tmodel ? tmodel : model);
+    const equipeKey = () => `${year}|${equipe.tipo}|${equipe.valor}`;
+    function equipeLabel() {
+      if (!equipe.tipo || !equipe.valor) return "Todas";
+      const pref = equipe.tipo === "territorio" ? "Território" : equipe.tipo === "coordenacao" ? "Coordenação" : "Vendedor";
+      const nome = equipe.tipo === "vendedor" ? (VENDEDORES.find((v) => v.codigo === equipe.valor)?.nome || equipe.valor) : equipe.valor;
+      return `${pref}: ${nome}`;
+    }
+    async function loadEqOptions() {
+      if (eqLoaded || !fetchAllSupabaseRows) return;
+      const org = await resolveOrganizationId();
+      const [territorios, coordenacoes, vendedores] = await Promise.all([
+        fetchAllSupabaseRows("comercial_territorios", `select=nome&organization_id=eq.${org}&order=nome.asc`),
+        fetchAllSupabaseRows("comercial_coordenacoes", `select=nome&organization_id=eq.${org}&order=nome.asc`),
+        fetchAllSupabaseRows("comercial_vendedores", `select=codigo,nome&organization_id=eq.${org}&order=nome.asc`)
+      ]);
+      TERRITORIOS = (territorios || []).map((t) => t.nome);
+      COORDENACOES = (coordenacoes || []).map((c) => c.nome);
+      VENDEDORES = (vendedores || []).map((v) => ({ codigo: v.codigo, nome: v.nome }));
+      eqLoaded = true;
+    }
+    async function loadTable() {
+      if (!equipe.tipo) { tmodel = null; tKey = ""; render(host); return; }
+      if (tmodel && tKey === equipeKey()) { render(host); return; }
+      tLoading = true;
+      render(host);
+      try {
+        const org = await resolveOrganizationId();
+        const res = await callSupabaseRpc("comercial_margens_itens", {
+          p_org: org, p_year: year,
+          p_territorio: equipe.tipo === "territorio" ? [equipe.valor] : null,
+          p_coordenacao: equipe.tipo === "coordenacao" ? [equipe.valor] : null,
+          p_vendedor: equipe.tipo === "vendedor" ? [equipe.valor] : null
+        });
+        tmodel = buildModel(res?.rows || []);
+        tKey = equipeKey();
+      } catch (e) {
+        console.error(e);
+        equipe = { tipo: "", valor: "" }; tmodel = null; tKey = "";
+        error = "";
+      } finally {
+        tLoading = false;
+        render(host);
+      }
+    }
+    function equipePopoverHtml() {
+      const radio = (tipo, valor, label) => `<label><input type="radio" name="cmm-equipe" value="${tipo}|${escapeHtml(valor)}" ${equipe.tipo === tipo && equipe.valor === valor ? "checked" : ""}>${escapeHtml(label)}</label>`;
+      return `<div class="cmm-eqpop" role="dialog" aria-label="Filtrar por equipe comercial">
+        <div class="cmm-eqpop-list"><label><input type="radio" name="cmm-equipe" value="|" ${!equipe.tipo ? "checked" : ""}>Todas</label></div>
+        <div class="grp"><h4>Território</h4><div class="cmm-eqpop-list">${TERRITORIOS.map((t) => radio("territorio", t, t)).join("")}</div></div>
+        <div class="grp"><h4>Coordenação</h4><div class="cmm-eqpop-list">${COORDENACOES.map((c) => radio("coordenacao", c, c)).join("")}</div></div>
+        <div class="grp"><h4>Vendedor</h4><div class="cmm-eqpop-list">${VENDEDORES.map((v) => radio("vendedor", v.codigo, v.nome)).join("")}</div></div>
+      </div>`;
+    }
+    function equipeControlHtml() {
+      return `<div class="cmm-eqwrap" id="cmm-eq">
+        <button type="button" class="cmm-eqbtn${openEq ? " is-open" : ""}${equipe.tipo ? " is-filtered" : ""}" id="cmm-eq-btn" aria-haspopup="dialog" aria-expanded="${openEq ? "true" : "false"}">
+          <span class="ico"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="18" cy="8.5" r="2.6"/><path d="M15.7 14.3c2.9.3 5 2.4 5.8 5.7"/></svg></span>
+          <span class="lbl">Equipe Comercial</span>
+          <span class="val"><span class="val-text">${escapeHtml(equipeLabel())}</span></span>
+        </button>
+        ${openEq ? equipePopoverHtml() : ""}
+      </div>`;
     }
 
     // ── Período ─────────────────────────────────────────────────────────
@@ -466,7 +545,9 @@
       const active = (obj) => cellsOf(obj, year).slice(0, n).some(nz) || nz(q4obj(obj));
       const wrapObj = (list) => { const cells = {}; [year - 1, year].forEach((y) => { cells[y] = Array.from({ length: 12 }, zero); list.forEach((p) => cellsOf(p, y).forEach((c, i) => add(cells[y][i], c))); }); return { cells }; };
             let h = `<thead><tr><th></th><th class="cmm-q4" title="Média ponderada do 4º trimestre de ${year - 1}">${year - 1}</th>${MESES.map((m) => `<th>${m}</th>`).join("")}<th class="cmm-ano">${year}</th></tr></thead><tbody>`;
-      const mach = machines();
+      const tm = tableModel();
+      const mach = tm.parents.filter((p) => p.kind === "M");
+      let shown = 0;
       h += row("Total Máquinas", wrapObj(mach), "cmm-tot");
       const groups = [...new Set(mach.map((p) => p.group))].sort((a, b) => groupRank(a) - groupRank(b) || a.localeCompare(b, "pt-BR"));
       const addParent = (p) => {
@@ -481,15 +562,18 @@
       groups.forEach((g) => {
         const list = mach.filter((p) => p.group === g && active(p)).sort(byMachineName);
         if (!list.length) return;
+        shown += list.length;
         h += `<tr class="cmm-grp"><td colspan="15">${escapeHtml(g)}</td></tr>`;
         list.forEach(addParent);
         h += row(`Total ${escapeHtml(g)}`, wrapObj(list), "cmm-sub");
       });
-      const comp = model.parents.filter((p) => p.kind === "C" && active(p)).sort((a, b) => (COMP_ORDER.indexOf(a.label) + 1 || 99) - (COMP_ORDER.indexOf(b.label) + 1 || 99) || a.label.localeCompare(b.label, "pt-BR"));
+      const comp = tm.parents.filter((p) => p.kind === "C" && active(p)).sort((a, b) => (COMP_ORDER.indexOf(a.label) + 1 || 99) - (COMP_ORDER.indexOf(b.label) + 1 || 99) || a.label.localeCompare(b.label, "pt-BR"));
       if (comp.length) {
+        shown += comp.length;
         h += `<tr class="cmm-grp"><td colspan="15">${COMP_GROUP}</td></tr>`;
         comp.forEach(addParent);
       }
+      if (!shown) h += `<tr><td colspan="15" style="text-align:center;padding:18px;color:var(--cmm-muted)">Sem vendas para ${escapeHtml(equipeLabel())} no período.</td></tr>`;
       return `<div class="cmm-tw"><table class="cmm-tbl">${h}</tbody></table></div>`;
     }
 
@@ -517,9 +601,9 @@
           <div class="cmm-card"><div class="cmm-hd"><div><h2>Posicionamento de Portfólio · Máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmm-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
           <div class="cmm-card"><div class="cmm-hd"><h2>Ponte da MC1 · Marcher</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
-        <div class="cmm-card"><div class="cmm-hd"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
-          <div class="cmm-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
-          ${tableHtml()}
+        <div class="cmm-card"><div class="cmm-hd cmm-hd-col"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
+          <div class="cmm-ctrls">${equipeControlHtml()}<div class="cmm-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div></div>
+          <div class="${tLoading ? "cmm-tdim" : ""}">${tableHtml()}</div>
           <div class="cmm-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano (não se aplica ao VOL)</span></div></div>
         ${pop ? popHtml() : ""}</div>`;
       bind(container);
@@ -529,6 +613,25 @@
       container.querySelector("[data-retry]")?.addEventListener("click", () => load(true));
       container.querySelectorAll("[data-period]").forEach((b) => b.addEventListener("click", () => { period = b.dataset.period; pop = null; render(container); }));
       container.querySelectorAll("[data-bx]").forEach((b) => b.addEventListener("click", () => { bubbleX = b.dataset.bx; render(container); }));
+      container.querySelector("#cmm-eq-btn")?.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        openEq = !openEq;
+        if (openEq && !eqLoaded) { try { await loadEqOptions(); } catch (err) { console.error(err); } }
+        render(container);
+        container.querySelector("#cmm-eq-btn")?.focus();
+      });
+      container.querySelector(".cmm-eqpop")?.addEventListener("click", (e) => e.stopPropagation());
+      container.querySelectorAll('input[name="cmm-equipe"]').forEach((r) => r.addEventListener("change", () => {
+        const [tipo, valor] = r.value.split("|");
+        equipe = tipo ? { tipo, valor } : { tipo: "", valor: "" };
+        openEq = false;
+        loadTable();
+      }));
+      if (!eqCloseBound) {
+        eqCloseBound = true;
+        document.addEventListener("click", (e) => { if (!openEq || !host?.isConnected || e.target.closest("#cmm-eq")) return; openEq = false; render(host); });
+        document.addEventListener("keydown", (e) => { if (e.key === "Escape" && openEq && host?.isConnected) { openEq = false; render(host); } });
+      }
       container.querySelectorAll("[data-metric]").forEach((b) => b.addEventListener("click", () => { metric = b.dataset.metric; render(container); }));
       container.querySelectorAll("tr[data-row]").forEach((tr) => tr.addEventListener("click", () => { const k = tr.dataset.row; if (openRows.has(k)) openRows.delete(k); else openRows.add(k); render(container); }));
       container.querySelectorAll("[data-eff]").forEach((el) => el.addEventListener("click", () => { hideTip(); pop = { eff: el.dataset.eff, open: new Set() }; render(container); }));
@@ -563,6 +666,17 @@
       .cmm-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}.cmm-hd h2{margin:0;font-size:13px;font-weight:650}.cmm-hd p{margin:2px 0 0;color:var(--cmm-muted);font-size:11px}
       .cmm-svg text{fill:var(--cmm-muted);font-family:inherit;font-size:10.5px}.cmm-svg .cmm-bl{fill:var(--cmm-text);font-weight:600}.cmm-svg .cmm-quad{font-weight:700}.cmm-grid{stroke:var(--theme-border-subtle,#ffffff10)}.cmm-axis{stroke:var(--cmm-line)}.cmm-ref{stroke:var(--cmm-faint);stroke-dasharray:4 4}
       .cmm-bubs circle{transition:fill-opacity .12s,stroke-opacity .12s}.cmm-bubs:hover circle{fill-opacity:.12;stroke-opacity:.3}.cmm-bubs circle:hover{fill-opacity:.65;stroke-opacity:1}
+      .cmm-hd-col{display:block}.cmm-ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}.cmm-tdim{opacity:.45;pointer-events:none;transition:opacity .15s}
+      .cmm-eqwrap{position:relative}.cmm-eqbtn{min-height:35px;display:flex;align-items:center;background:var(--cmm-panel2);border:1px solid var(--cmm-line);border-radius:10px;padding:3px;font:inherit;font-size:12.5px;color:var(--cmm-text);cursor:pointer;transition:border-color .14s,box-shadow .14s,background .14s}
+      .cmm-eqbtn:hover{background:var(--theme-surface-raised,var(--cmm-panel2))}.cmm-eqbtn.is-open{border-color:#4f7cff;box-shadow:0 0 0 2px rgba(79,124,255,.16)}.cmm-eqbtn:focus-visible{outline:2px solid #4f7cff;outline-offset:2px}
+      .cmm-eqbtn .ico{color:var(--cmm-faint);display:flex;padding:0 6px 0 7px}.cmm-eqbtn .lbl{color:var(--cmm-muted);white-space:nowrap;padding-right:8px}
+      .cmm-eqbtn .val{min-height:27px;display:flex;align-items:center;gap:8px;color:var(--cmm-text);background:var(--theme-surface-raised,var(--cmm-panel2));border-radius:7px;padding:5px 10px;font-weight:600;white-space:nowrap;max-width:200px}
+      .cmm-eqbtn .val-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.cmm-eqbtn .val::after{content:"";width:6px;height:6px;flex:none;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.65;transition:transform .14s}
+      .cmm-eqbtn.is-open .val::after{transform:translateY(2px) rotate(225deg)}.cmm-eqbtn.is-filtered .val{background:rgba(79,124,255,.22);color:var(--theme-ink-blue,#cbd8ff)}
+      .cmm-eqpop{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:var(--theme-surface,#171f30);border:1px solid var(--cmm-line);border-radius:12px;padding:12px;min-width:240px;max-width:300px;box-shadow:0 20px 44px var(--theme-shadow-color,rgba(0,0,0,.5))}
+      .cmm-eqpop h4{margin:0 0 8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--cmm-faint);font-weight:600}.cmm-eqpop .grp+.grp{margin-top:10px;padding-top:10px;border-top:1px solid var(--cmm-line)}
+      .cmm-eqpop-list{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}.cmm-eqpop label{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 6px;border-radius:7px;cursor:pointer}
+      .cmm-eqpop label:hover{background:var(--theme-surface-raised,rgba(255,255,255,.05))}.cmm-eqpop input[type=radio]{width:auto;min-width:0;flex:none;accent-color:#4f7cff;margin:0}
       .cmm-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--cmm-muted);margin-top:8px}.cmm-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
       .cmm-empty{padding:40px 15px;text-align:center;color:var(--cmm-muted);border:1px dashed var(--cmm-line);border-radius:12px}
       .cmm-tw{border:1px solid var(--cmm-line);border-radius:10px}
@@ -586,7 +700,7 @@
     }
 
     function renderSelectedMargens(container, reportId) {
-      if (reportId !== REPORT_ID) { entered = false; return false; }
+      if (reportId !== REPORT_ID) { entered = false; equipe = { tipo: "", valor: "" }; openEq = false; tmodel = null; tKey = ""; return false; }
       syncPeriod();
       host = container;
       if (model && loadedYear === year) render(container);
