@@ -29,7 +29,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
 4. **Fluxo de Caixa**
    - plano de contas próprio (FC), independente do plano de contas do DRE;
    - carga anual via Excel, cenários editáveis (Forecast/Budget) e ponte com o DRE;
-   - dashboard dedicado (Relatórios Gerenciais → Fluxo de Caixa) com visões Mês/YTD/Ano e detalhamento mensal por conta;
+   - dashboard dedicado (Central de Relatórios → Fluxo de Caixa) com visões Mês/YTD/Ano e detalhamento mensal por conta;
    - ver [docs/carga-fluxo-de-caixa.md](docs/carga-fluxo-de-caixa.md), [docs/cenarios-fluxo-de-caixa.md](docs/cenarios-fluxo-de-caixa.md), [docs/dashboard-fluxo-de-caixa.md](docs/dashboard-fluxo-de-caixa.md) e [docs/plano-de-contas-fc.md](docs/plano-de-contas-fc.md).
 
 5. **Gestão Estratégica (A3)**
@@ -52,7 +52,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
    - Report Builder com relatórios personalizados;
    - Painel de Vendas, Mapa de Vendas e Vendas – Distribuição Geográfica (mapa por UF, donut/heatmap, ranking de estados);
    - Ativações de Garantia (heatmap cidade×estado/revenda, preço médio por modelo, ranking de vendedores, estoque estimado de revenda);
-   - Evolutivo de Margens (MC1%, RL, MP e volume por nome reduzido, com mapa do portfólio, ponte da margem e tabela corrida; restrito a Gestor, Admin e Super Admin).
+   - Evolutivo de Margens (MC1%, RL, MP e volume por nome reduzido, com mapa do portfólio, ponte da margem e tabela corrida, exportável em Excel, PDF e e-mail; restrito a Gestor, Admin e Super Admin).
 
 9. **Parâmetros e cargas financeiras**
    - empresas e filiais;
@@ -275,6 +275,11 @@ Estrutura da página (três cards após os indicadores):
 
 O CSS do relatório usa o prefixo `cmm-` (isolado do Ranking Geográfico, que usa `cmg-`).
 
+**Exportar** (botão ao lado do toggle Mês/YTD/Ano, mesmo padrão e altura do Painel de Vendas; `reportsComercialMargensExport.js`) exporta **somente a tabela Evolutivo de Margens · Marcher**. O módulo do relatório gera uma "foto" (`exportSnapshot`) com as 5 métricas e todos os itens por código, respeitando o filtro **Equipe Comercial**; a métrica e as linhas abertas da tela não influenciam o arquivo. Três formatos:
+
+- **Baixar Excel** (ExcelJS, no navegador): VOL, FAT, RL, MP e MC1% **lado a lado**, cada bloco com `2025`, JAN–DEZ (meses depois do filtro vazios) e `2026`; só valores, sem coluna de variação. Nomes reduzidos, totais e subtotais na coluna do código; itens com o código na coluna A e o nome na B. Painéis congelados e A4 paisagem.
+- **Imprimir** e **Enviar por e-mail** (mesmo HTML; no e-mail, o PDF é gerado no servidor): A4 **retrato**, **uma página por métrica**, só nomes reduzidos e totais, com as 14 colunas da tela e a variação ▲▼ abaixo do valor. A fonte e o espaçamento se ajustam ao número de linhas para caber em uma página (por volta de 70 linhas a fonte chega a ~5px).
+
 O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano do filtro e o anterior); todas as visões são calculadas no cliente.
 
 ## Supabase e migrations
@@ -354,6 +359,10 @@ Funções disponíveis (`supabase/functions/`):
 | `send-report-email` | gera PDF de relatório (Browserless) e envia por e-mail via Resend |
 
 As funções usam `service_role` somente no servidor e validam manualmente o token do chamador.
+
+### Envio de relatório por e-mail
+
+A tela **Enviar por e-mail** é única (`src/modules/reports/reportEmailModal.js`, `window.VECTON_REPORT_EMAIL`), extraída do Painel de Vendas, e usada por **Painel de Vendas**, **Fluxo de Caixa** e **Evolutivo de Margens**. Cada relatório informa só subtítulo, assunto, texto, nome do anexo e como montar o HTML (`buildHtml`); o módulo cuida da validação, do autocomplete dos destinatários lembrados (localStorage, compartilhados entre os relatórios), dos alertas e da chamada à Edge Function `send-report-email`. Um novo relatório com envio deve usar esse módulo, não criar outra tela.
 
 Exemplo de deploy:
 
@@ -470,5 +479,5 @@ Também confira:
 | cargas comerciais | `comercialVendasCargaModule.js`, `comercialPlanejadoCargaModule.js`, migrations `038–042` |
 | Ativações de Garantia | `garantiaAtivacoesCargaModule.js`, `reportsGarantiaAtivacoesModule.js`, migration `237` |
 | painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `090`, `112–126`, `240–241`, `243–244` |
-| Evolutivo de Margens | `reportsComercialMargensModule.js`, card e perfis em `index.html`, regras de acesso em `app.js`, migrations `253`, `255` e `256` |
+| Evolutivo de Margens | `reportsComercialMargensModule.js`, `reportsComercialMargensExport.js` (Excel/PDF/e-mail), card e perfis em `index.html`, regras de acesso em `app.js`, migrations `253`, `255` e `256` |
 | campanhas e criador de relatórios comerciais | `src/modules/reports/comercialReportsModule.js`, migrations `064–069`, `074–075`, `245` |
