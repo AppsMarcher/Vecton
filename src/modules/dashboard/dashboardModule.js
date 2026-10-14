@@ -20,11 +20,27 @@
       renderReportsView,
       renderDashComboChart,
       renderDashAlerts,
-      renderDashOpexCards
+      renderDashOpexCards,
+      resetOpexMode,
+      syncHeaderPeriod
     } = deps;
 
+    let entered = false;
+
     function renderDashboard() {
-      if (getActiveView() !== "dashboard") return;
+      if (getActiveView() !== "dashboard") { entered = false; return; }
+      if (!entered) {
+        // Toda vez que ENTRA no Dashboard (não a cada re-render): filtro Mês e
+        // mês calendário anterior (mesmo padrão do Cockpit). Depois disso, segue
+        // o seletor do cabeçalho até o usuário sair e entrar de novo.
+        entered = true;
+        _dreAccum = false;
+        resetOpexMode?.();
+        const lastMonth = new Date();
+        lastMonth.setDate(1); // evita estourar o mês ao cair num dia 29-31 que não existe no mês anterior
+        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        syncHeaderPeriod?.(lastMonth.getFullYear(), lastMonth.getMonth() + 1);
+      }
 
       const year = Number(state.currentPeriod?.year || 2026);
       const monthIdx = Number(state.currentPeriod?.month || 1) - 1;

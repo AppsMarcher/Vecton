@@ -1625,7 +1625,7 @@ const headcountRenderModule = createHeadcountRenderModule({
   getActiveHcErrorRowId: () => activeHcErrorRowId,
   renderHcRowsTableRef: () => renderHcRowsTable()
 });
-const { renderDashOpexCards, clearOpexDonutCache } = createDashboardCardsModule({
+const { renderDashOpexCards, clearOpexDonutCache, resetOpexMode } = createDashboardCardsModule({
   MONTH_LABELS,
   HC_PESSOAL_ACCOUNTS,
   getOpexStructure: () => OPEX_STRUCTURE,
@@ -1667,7 +1667,15 @@ const { renderDashboard } = createDashboardModule({
   renderReportsView,
   renderDashComboChart,
   renderDashAlerts,
-  renderDashOpexCards
+  renderDashOpexCards,
+  resetOpexMode,
+  // Mesmo padrão do Cockpit: o toggle de período do cabeçalho acompanha o mês
+  // que o Dashboard abre mostrando.
+  syncHeaderPeriod: (year, month) => {
+    state.currentPeriod = { year, month };
+    renderPeriodSummary();
+    renderPeriodPicker();
+  }
 });
 cockpitService = window.VECTON_COCKPIT_SERVICE.createCockpitService({
   isConfigured: isSupabaseConfigured,

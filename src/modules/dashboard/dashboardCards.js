@@ -918,7 +918,8 @@
 
     return {
       renderDashOpexCards,
-      clearOpexDonutCache
+      clearOpexDonutCache,
+      resetOpexMode: () => { _opexAccum = false; }
     };
   }
 
