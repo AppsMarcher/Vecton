@@ -692,7 +692,9 @@
       .cmm-future{color:var(--cmm-faint)}.cmm-dl{display:block;font-size:9.5px;font-weight:600;line-height:1;margin-top:2px}.cmm-dl.pos,.cmm-dl.neg{opacity:.95}
       .cmm-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center}.cmm-pop{width:85vw;height:85vh;background:var(--cmm-panel);border:1px solid var(--cmm-line);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden;color:var(--cmm-text)}
       .cmm-pop-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--cmm-line)}.cmm-pop-t{font-size:15px;font-weight:700}.cmm-pop-t span{color:var(--cmm-muted);font-weight:500;font-size:12px}.cmm-pop-s{margin-top:4px}.cmm-pop-s span{color:var(--cmm-faint);font-size:11px;margin-left:6px}.cmm-pop-b{overflow:auto;flex:1;padding:0 18px 14px}
-      @media(max-width:1180px){.cmm-tw{overflow-x:auto}.cmm-tbl{min-width:1000px}.cmm-pt{min-width:0}}
+      /* Janelas estreitas (ex.: zoom 125%): modo compacto, sem rolagem horizontal no card; com overflow no contêiner o cabeçalho deixaria de congelar */
+      @media(max-width:1180px){.cmm-tbl th,.cmm-tbl td{padding:3px 4px;font-size:10.5px}.cmm-tbl th:first-child,.cmm-tbl td:first-child{width:170px;max-width:170px}.cmm-tbl th:nth-child(2),.cmm-tbl td:nth-child(2){width:56px}.cmm-tbl th.cmm-ano,.cmm-tbl td.cmm-ano{width:68px}}
+      @media(max-width:760px){.cmm-tw{overflow-x:auto}.cmm-tbl{min-width:900px}.cmm-pt{min-width:0}}
       @media(max-width:1150px){.cmm-kpis{grid-template-columns:repeat(3,1fr)}.cmm-two{grid-template-columns:1fr}}
       @media(max-width:768px){.cmm-kpis{grid-template-columns:repeat(2,1fr)}.cmm-pop{width:100vw;height:100vh;border-radius:0}}
       `;
