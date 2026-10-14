@@ -12,7 +12,7 @@
   //  • Volume = Δun × margem/un média anterior das máquinas com base;
   //  • Mix = Δun × (margem/un da máquina − média), a mudança de composição, somada a
   //    máquinas novas (sem venda anterior) e ajustes sem base, que entram inteiros;
-  //  • Preço (RL/un) e MP (MP/un) por máquina.
+  //  • RL (RL/un) e MP (MP/un) por máquina.
   function calculateMarginBridge(rows) {
     const base = rows.filter((r) => r.a.q > 0);
     const q0 = base.reduce((t, r) => t + r.a.q, 0);
@@ -41,7 +41,7 @@
     const METRICS = [["vol", "VOL"], ["fat", "FAT"], ["rl", "RL"], ["mp", "MP"], ["mb", "MC1%"]];
     const EFFECTS = {
       vol: { name: "Volume", sub: "Δ unidades × margem/un média anterior das máquinas" },
-      pr: { name: "Preço", sub: "RL por unidade" },
+      pr: { name: "RL", sub: "RL por unidade" },
       co: { name: "MP", sub: "MP por unidade" },
       mix: { name: "Mix", sub: "Composição (Δ un × margem/un acima ou abaixo da média) + máquinas novas e ajustes sem base" }
     };
@@ -303,13 +303,23 @@
       const cm = nMonths();
       const py = cm === 1 ? year - 1 : year;
       const pm = cm === 1 ? 12 : cm - 1;
-      const rows = calculateMarginBridge(model.items.filter((it) => it.parent.kind === "M").map((it) => ({ it, parent: it.parent, a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] })));
+      const byItem = (list) => calculateMarginBridge(list.map((it) => ({ it, parent: it.parent, a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] })));
+      // Fecha com o DRE: máquinas e Transgrain (poucos códigos) entram item a item, cada
+      // grupo com a sua própria margem média. Peças, Acessórios e demais complementares
+      // entram em bloco, com volume 1 nos dois meses: sem efeito Volume nem Mix, e a
+      // variação do RL e da MP do bloco cai inteira em RL e MP.
+      const blocks = model.parents.filter((p) => p.kind === "C" && p.fam !== "Transgrain").map((p) => {
+        const mk = (c) => ({ ...c, q: 1 });
+        const it = { cod: "", desc: p.label, nr: "", tipo: p.label, parent: p };
+        return { ...calculateMarginBridge([{ it, parent: p, a: mk(cellsOf(p, py)[pm - 1]), b: mk(cellsOf(p, year)[cm - 1]) }])[0], block: true };
+      });
+      const rows = [...byItem(model.items.filter((it) => it.parent.kind === "M")), ...byItem(model.items.filter((it) => it.parent.fam === "Transgrain")), ...blocks];
       const sum = (k) => rows.reduce((t, r) => t + r[k], 0);
       return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), rl0: rows.reduce((t, r) => t + r.a.rl, 0), rl1: rows.reduce((t, r) => t + r.b.rl, 0), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix") };
     }
     function bridgeHtml() {
       const B = bridgeData();
-      const steps = [[`MC1 ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["Preço", B.pr, false, "pr"], ["MP", B.co, false, "co"], ["Mix", B.mix, false, "mix"], [`MC1 ${B.lab1}`, B.M1, true]];
+      const steps = [[`MC1 ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["RL", B.pr, false, "pr"], ["MP", B.co, false, "co"], ["Mix", B.mix, false, "mix"], [`MC1 ${B.lab1}`, B.M1, true]];
       const W = 640, H = 330, L = 12, T = 30, Bt = 52, n = steps.length, bw = 56, gap = (W - L * 2 - bw * n) / (n - 1);
       let run = 0;
       const pos = steps.map((s) => { if (s[2]) { run = s[1]; return [0, s[1]]; } const r = [run, run + s[1]]; run += s[1]; return r; });
@@ -370,7 +380,7 @@
         vol: [`Qtd ${B.lab0}`, `Qtd ${B.lab1}`, "Δ un", `× Margem/un média ${B.lab0}`],
         pr: [`RL/un ${B.lab0}`, `RL/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
         co: [`MP/un ${B.lab0}`, `MP/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
-        mix: [`Δ MC1 ${B.lab1} vs ${B.lab0}`, "− Volume", "− Preço", "− MP"]
+        mix: [`Δ MC1 ${B.lab1} vs ${B.lab0}`, "− Volume", "− RL", "− MP"]
       }[k];
       const agg = (rs) => {
         const a = zero(), b = zero();
@@ -391,6 +401,7 @@
         const byParent = new Map();
         gr.forEach((r) => { if (!byParent.has(r.parent)) byParent.set(r.parent, []); byParent.get(r.parent).push(r); });
         [...byParent.entries()].map(([p, rs]) => [p, rs, agg(rs)]).filter(([, , ag]) => ag.a.q || ag.b.q || ag.e).sort((x, y) => Math.abs(y[2].e) - Math.abs(x[2].e)).forEach(([p, rs, ag]) => {
+          if (rs[0].block) { h += line(escapeHtml(p.label), ag, "cmg-mq", "", "", p.label); return; } // bloco: sem abertura por código
           const open = pop.open.has(p.key);
           h += line(`<span class="cmg-car">${open ? "▾" : "▸"}</span>${escapeHtml(p.label)}`, ag, "cmg-mq", `data-pp="${escapeHtml(p.key)}"`, "", p.label);
           if (!open) return;
@@ -498,7 +509,7 @@
         ${kpisHtml()}
         <div class="cmg-two">
           <div class="cmg-card"><div class="cmg-hd"><div><h2>Posicionamento de Portfólio · Máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmg-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
-          <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da MC1 · Máquinas</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
+          <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da MC1</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
         <div class="cmg-card"><div class="cmg-hd"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
           <div class="cmg-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
