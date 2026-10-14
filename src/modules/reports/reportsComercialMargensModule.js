@@ -32,6 +32,7 @@
     let error = "";
     let period = "ytd"; // mes | ytd | fy
     let metric = "vol";
+    let bubbleX = "vol"; // eixo X do mapa: vol | rl
     let openRows = new Set();
     let pop = null; // { eff, open:Set }
     let tipEl = null;
@@ -207,36 +208,59 @@
     // ── Mapa do portfólio (bolhas) ──────────────────────────────────────
     function bubblesHtml() {
       const [lo, hi] = range();
-      const W = 640, H = 330, L = 48, R = 16, T = 14, B = 38;
+      const W = 640, H = 330, L = 52, R = 18, T = 16, B = 38;
+      const xKey = bubbleX; // "vol" | "rl"
       const pts = machines().map((p) => {
         const c = sumRange(p, year, lo, hi);
-        return { n: p.label, g: p.group, q: c.q, mb: mbOf(c), m: c.rl - c.mp };
-      }).filter((p) => p.q > 0 && p.mb != null);
+        return { n: p.label, g: p.group, q: c.q, rl: c.rl, x: xKey === "rl" ? c.rl : c.q, mb: mbOf(c), m: c.rl - c.mp };
+      }).filter((p) => p.q > 0 && p.mb != null && p.x > 0);
       if (!pts.length) return `<div class="cmg-empty">Sem vendas de máquinas no período.</div>`;
       const tot = zero();
       machines().forEach((p) => add(tot, sumRange(p, year, lo, hi)));
       const avgMb = mbOf(tot);
-      const avgQ = tot.q / pts.length;
-      const xmax = Math.max(...pts.map((p) => p.q)) * 1.12;
-      const ymin = Math.min(0.1, ...pts.map((p) => p.mb)) - 0.02;
-      const ymax = Math.max(...pts.map((p) => p.mb)) + 0.04;
+      const avgX = (xKey === "rl" ? tot.rl : tot.q) / pts.length;
+      const xmax = Math.max(...pts.map((p) => p.x)) * 1.1;
+      const ymin = Math.min(0.1, ...pts.map((p) => p.mb)) - 0.03;
+      const ymax = Math.max(...pts.map((p) => p.mb)) + 0.05;
       const X = (v) => L + (v / xmax) * (W - L - R);
       const Y = (v) => T + (1 - (v - ymin) / (ymax - ymin)) * (H - T - B);
       const mx = Math.max(...pts.map((p) => Math.abs(p.m)), 1);
+      const rad = (p) => 4 + Math.sqrt(Math.abs(p.m) / mx) * 13;
+      const xFmt = (v) => (xKey === "rl" ? brl(v) : fmt(v));
       let s = "";
       for (let i = 0; i <= 4; i++) { const v = ymin + ((ymax - ymin) * i) / 4; s += `<line class="cmg-grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${fmt(v * 100, 0)}%</text>`; }
-      for (let i = 0; i <= 5; i++) { const v = (xmax * i) / 5; s += `<text x="${X(v)}" y="${H - 20}" text-anchor="middle">${fmt(v)}</text>`; }
+      for (let i = 0; i <= 5; i++) { const v = (xmax * i) / 5; s += `<text x="${X(v)}" y="${H - 20}" text-anchor="middle">${xFmt(v)}</text>`; }
       s += `<line class="cmg-axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/><line class="cmg-axis" x1="${L}" x2="${L}" y1="${T}" y2="${H - B}"/>`;
-      s += `<line class="cmg-ref" x1="${X(avgQ)}" x2="${X(avgQ)}" y1="${T}" y2="${H - B}"/><line class="cmg-ref" x1="${L}" x2="${W - R}" y1="${Y(avgMb)}" y2="${Y(avgMb)}"/>`;
+      s += `<line class="cmg-ref" x1="${X(avgX)}" x2="${X(avgX)}" y1="${T}" y2="${H - B}"/><line class="cmg-ref" x1="${L}" x2="${W - R}" y1="${Y(avgMb)}" y2="${Y(avgMb)}"/>`;
       s += `<text class="cmg-quad" x="${W - R - 4}" y="${T + 10}" text-anchor="end">ESTRELAS</text><text class="cmg-quad" x="${L + 6}" y="${T + 10}">NICHOS</text><text class="cmg-quad" x="${W - R - 4}" y="${H - B - 6}" text-anchor="end">VOLUME, POUCA MARGEM</text><text class="cmg-quad" x="${L + 6}" y="${H - B - 6}">A REVISAR</text>`;
-      pts.forEach((p) => {
-        const r = 7 + Math.sqrt(Math.abs(p.m) / mx) * 20;
+      // maiores primeiro: as menores desenham por cima e não ficam escondidas
+      const ordered = pts.slice().sort((a, b) => Math.abs(b.m) - Math.abs(a.m));
+      let bubbles = "";
+      ordered.forEach((p) => {
         const col = p.g === "Grãos" ? "var(--cmg-cyan)" : p.g === "Pecuária" ? "var(--cmg-violet)" : "var(--cmg-amber)";
-        s += `<g><circle ${tipAttr([{ label: "Máquina", value: p.n }, { label: "VOL", value: `${fmtQty(p.q)} un` }, { label: "MC1%", value: `${fmt(p.mb * 100, 1)}%` }, { label: "Margem", value: brl(p.m) }])} cx="${X(p.q)}" cy="${Y(p.mb)}" r="${r}" fill="${col}" fill-opacity=".38" stroke="${col}" stroke-width="1.5"/><text class="cmg-bl" x="${X(p.q)}" y="${Y(p.mb) - r - 3}" text-anchor="middle">${escapeHtml(p.n)}</text></g>`;
+        bubbles += `<circle ${tipAttr([{ label: "Máquina", value: p.n }, { label: "VOL", value: `${fmtQty(p.q)} un` }, { label: "RL", value: brl(p.rl) }, { label: "MC1%", value: `${fmt(p.mb * 100, 1)}%` }, { label: "Margem", value: brl(p.m) }])} cx="${X(p.x)}" cy="${Y(p.mb)}" r="${rad(p)}" fill="${col}" fill-opacity=".32" stroke="${col}" stroke-width="1.4"/>`;
       });
-      s += `<text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">Volume (un)</text>`;
+      // rótulos: só as 8 maiores; cada um tenta acima, abaixo, direita e esquerda sem encostar em outro rótulo
+      const boxes = [];
+      const hit = (b) => boxes.some((o) => b.x < o.x + o.w && b.x + b.w > o.x && b.y < o.y + o.h && b.y + b.h > o.y);
+      let labels = "";
+      ordered.slice(0, 8).forEach((p) => {
+        const cx = X(p.x), cy = Y(p.mb), r = rad(p), w = p.n.length * 6.1 + 6, h = 13;
+        const cands = [
+          { x: cx - w / 2, y: cy - r - h - 1, a: "middle", tx: cx },
+          { x: cx - w / 2, y: cy + r + 2, a: "middle", tx: cx },
+          { x: cx + r + 3, y: cy - h / 2, a: "start", tx: cx + r + 6 },
+          { x: cx - r - 3 - w, y: cy - h / 2, a: "end", tx: cx - r - 6 }
+        ];
+        const pick = cands.find((b) => b.x >= L && b.x + w <= W - R && b.y >= T - 4 && b.y + h <= H - B + 14 && !hit({ x: b.x, y: b.y, w, h }));
+        if (!pick) return;
+        boxes.push({ x: pick.x, y: pick.y, w, h });
+        labels += `<text class="cmg-bl" x="${pick.tx}" y="${pick.y + h - 3}" text-anchor="${pick.a}">${escapeHtml(p.n)}</text>`;
+      });
+      s += `<g class="cmg-bubs">${bubbles}</g>${labels}`;
+      s += `<text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${xKey === "rl" ? "Receita líquida (R$)" : "Volume (un)"}</text>`;
       return `<svg class="cmg-svg" viewBox="0 0 ${W} ${H}" width="100%">${s}</svg>
-        <div class="cmg-legend"><span><i style="background:var(--cmg-cyan)"></i>Grãos</span><span><i style="background:var(--cmg-violet)"></i>Pecuária</span><span><i style="background:var(--cmg-amber)"></i>Cargograin</span><span>Linhas tracejadas = média do portfólio</span></div>`;
+        <div class="cmg-legend"><span><i style="background:var(--cmg-cyan)"></i>Grãos</span><span><i style="background:var(--cmg-violet)"></i>Pecuária</span><span><i style="background:var(--cmg-amber)"></i>Cargograin</span><span>Linhas tracejadas = média do portfólio</span><span>Nome só nas 8 maiores · passe o mouse para ver as demais</span></div>`;
     }
 
     // ── Ponte da margem (mês do filtro vs mês anterior; toda a empresa) ──
@@ -445,7 +469,7 @@
         ${notes.length ? `<div class="cmg-note">${notes.map(escapeHtml).join(" · ")}</div>` : ""}
         ${kpisHtml()}
         <div class="cmg-two">
-          <div class="cmg-card"><div class="cmg-hd"><h2>Mapa do portfólio de máquinas</h2><p>Volume × MC1% · tamanho = margem em R$ (RL − MP)</p></div>${bubblesHtml()}</div>
+          <div class="cmg-card"><div class="cmg-hd"><div><h2>Mapa do portfólio de máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmg-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
           <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da margem</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
         <div class="cmg-card"><div class="cmg-hd"><div><h2>Margens por máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
@@ -459,6 +483,7 @@
     function bind(container) {
       container.querySelector("[data-retry]")?.addEventListener("click", () => load(true));
       container.querySelectorAll("[data-period]").forEach((b) => b.addEventListener("click", () => { period = b.dataset.period; pop = null; render(container); }));
+      container.querySelectorAll("[data-bx]").forEach((b) => b.addEventListener("click", () => { bubbleX = b.dataset.bx; render(container); }));
       container.querySelectorAll("[data-metric]").forEach((b) => b.addEventListener("click", () => { metric = b.dataset.metric; render(container); }));
       container.querySelectorAll("tr[data-row]").forEach((tr) => tr.addEventListener("click", () => { const k = tr.dataset.row; if (openRows.has(k)) openRows.delete(k); else openRows.add(k); render(container); }));
       container.querySelectorAll("[data-eff]").forEach((el) => el.addEventListener("click", () => { hideTip(); pop = { eff: el.dataset.eff, open: new Set() }; render(container); }));
@@ -492,6 +517,7 @@
       .cmg-two{display:grid;grid-template-columns:1.15fr 1fr;gap:10px;margin-bottom:10px}.cmg-card{border:1px solid var(--cmg-line);border-radius:12px;background:var(--cmg-panel2);padding:14px 16px;min-width:0}.cmg-two .cmg-card{margin-bottom:0}.cmg>.cmg-card{margin-bottom:10px}
       .cmg-hd{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}.cmg-hd h2{margin:0;font-size:13px;font-weight:650}.cmg-hd p{margin:2px 0 0;color:var(--cmg-muted);font-size:11px}
       .cmg-svg text{fill:var(--cmg-muted);font-family:inherit;font-size:10.5px}.cmg-svg .cmg-bl{fill:var(--cmg-text);font-weight:600}.cmg-svg .cmg-quad{font-weight:700}.cmg-grid{stroke:var(--theme-border-subtle,#ffffff10)}.cmg-axis{stroke:var(--cmg-line)}.cmg-ref{stroke:var(--cmg-faint);stroke-dasharray:4 4}
+      .cmg-bubs circle{transition:fill-opacity .12s,stroke-opacity .12s}.cmg-bubs:hover circle{fill-opacity:.12;stroke-opacity:.3}.cmg-bubs circle:hover{fill-opacity:.65;stroke-opacity:1}
       .cmg-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:var(--cmg-muted);margin-top:8px}.cmg-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
       .cmg-empty{padding:40px 15px;text-align:center;color:var(--cmg-muted);border:1px dashed var(--cmg-line);border-radius:12px}
       .cmg-tw{border:1px solid var(--cmg-line);border-radius:10px}
