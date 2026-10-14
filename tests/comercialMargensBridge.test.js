@@ -1,0 +1,33 @@
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+const path = require('path');
+const context = { window: {} };
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../src/modules/reports/reportsComercialMargensModule.js'), 'utf8'), context);
+const calculate = context.window.VECTON_COMERCIAL_MARGENS.calculateMarginBridge;
+const cell = (q, price = 100, cost = 60) => ({ q, rl: q * price, mp: q * cost });
+const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
+function bridge(pairs) {
+  const rows = calculate(pairs.map(([a, b]) => ({ a, b })));
+  rows.forEach(r => near(r.M0 + r.vol + r.mix + r.pr + r.co + r.adj, r.M1));
+  return Object.fromEntries(['vol', 'mix', 'pr', 'co', 'adj'].map(k => [k, rows.reduce((t, r) => t + r[k], 0)]));
+}
+// Volume alone must create no fictitious mix or cost effect.
+let b = bridge([[cell(10), cell(12)]]);
+near(b.vol, 80); near(b.mix, 0); near(b.adj, 0);
+// Same total volume, different composition of high/low margin products.
+b = bridge([[cell(10), cell(15)], [cell(10, 100, 80), cell(5, 100, 80)]]);
+near(b.vol, 0); near(b.mix, 100); near(b.pr, 0); near(b.co, 0); near(b.adj, 0);
+// Simultaneous proportional growth, price increase and cost increase.
+b = bridge([[cell(10), cell(12, 110, 65)], [cell(20), cell(24, 110, 65)]]);
+near(b.vol, 240); near(b.mix, 0); near(b.pr, 360); near(b.co, -180); near(b.adj, 0);
+// New products are explicit; disappearance reconciles through volume and mix.
+b = bridge([[cell(10), cell(0)], [cell(0), cell(5)]]);
+near(b.vol, -200); near(b.mix, -200); near(b.adj, 200);
+// Returns, financial adjustments with zero quantity and an entirely new portfolio.
+bridge([[cell(10), cell(-2)]]);
+bridge([[cell(0), { q: 0, rl: -50, mp: -20 }]]);
+b = bridge([[cell(0), cell(5)]]);
+near(b.vol, 0); near(b.mix, 0); near(b.adj, 200);
+bridge([]);
+console.log('Margin bridge tests passed');

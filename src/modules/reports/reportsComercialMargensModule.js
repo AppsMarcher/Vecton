@@ -7,6 +7,28 @@
   // Definições: MP = custo de matéria-prima; MC1% = (RL − MP) ÷ RL. Na tabela os
   // valores são UNITÁRIOS (÷ volume); linhas-pai = total ÷ volume total (média
   // ponderada pelo volume), nunca média de unitários.
+  function calculateMarginBridge(rows) {
+    const q0 = rows.reduce((t, r) => t + Math.max(r.a.q, 0), 0);
+    const q1 = rows.reduce((t, r) => t + Math.max(r.b.q, 0), 0);
+    return rows.map((r) => {
+      const { a, b } = r;
+      const share = q0 > 0 && a.q > 0 ? a.q / q0 : 0;
+      const marginUnit = a.q > 0 ? (a.rl - a.mp) / a.q : 0;
+      const volumeQ1 = q1 * share;
+      const volumeUnits = (q1 - q0) * share;
+      const mixUnits = a.q > 0 ? Math.max(b.q, 0) - volumeQ1 : 0;
+      const M0 = a.rl - a.mp, M1 = b.rl - b.mp;
+      const vol = volumeUnits * marginUnit;
+      const mix = mixUnits * marginUnit;
+      const both = a.q > 0 && b.q > 0;
+      const pr = both ? b.rl - b.q * a.rl / a.q : 0;
+      const co = both ? -(b.mp - b.q * a.mp / a.q) : 0;
+      const dM = M1 - M0;
+      // Produtos sem base positiva e movimentos sem volume comparável ficam explícitos.
+      const adj = dM - vol - mix - pr - co;
+      return { ...r, M0, M1, dM, vol, mix, pr, co, adj, volumeQ1, volumeUnits, mixUnits };
+    });
+  }
   function createComercialMargensModule(deps) {
     const { escapeHtml, state, resolveOrganizationId, callSupabaseRpc, isSupabaseConfigured } = deps;
     const REPORT_ID = "comercialMargens";
@@ -17,10 +39,11 @@
     const COMP_ORDER = ["Peças", "Transgrain", "Acessórios"];
     const METRICS = [["vol", "VOL"], ["fat", "FAT"], ["rl", "RL"], ["mp", "MP"], ["mb", "MC1%"]];
     const EFFECTS = {
-      vol: { name: "Volume", sub: "Variação de quantidade × preço (RL/un) do mês anterior" },
+      vol: { name: "Volume", sub: "Variação do volume total, mantendo o mix e a margem unitária anteriores" },
       pr: { name: "Preço", sub: "RL por unidade" },
       co: { name: "Custo", sub: "MP por unidade" },
-      mix: { name: "Mix", sub: "O que sobra da variação da margem após volume, preço e custo" }
+      mix: { name: "Mix", sub: "Mudança da composição das vendas × margem unitária anterior" },
+      adj: { name: "Novos/ajustes", sub: "Produtos sem base anterior e movimentos sem volume positivo comparável" }
     };
 
     let host = null;
@@ -268,25 +291,14 @@
       const cm = nMonths();
       const py = cm === 1 ? year - 1 : year;
       const pm = cm === 1 ? 12 : cm - 1;
-      const rows = model.items.map((it) => ({ it, parent: it.parent, a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] }));
-      rows.forEach((r) => {
-        const { a, b } = r;
-        r.M0 = a.rl - a.mp;
-        r.M1 = b.rl - b.mp;
-        r.dM = r.M1 - r.M0;
-        r.vol = a.q > 0 ? (b.q - a.q) * (a.rl / a.q) : 0; // Δ quantidade real × preço (RL/un) do mês anterior
-        const both = a.q > 0 && b.q > 0;
-        r.pr = both ? b.rl - (b.q * a.rl) / a.q : 0;
-        r.co = both ? -(b.mp - (b.q * a.mp) / a.q) : 0;
-        r.mix = r.dM - r.vol - r.pr - r.co; // resíduo: o que sobra
-      });
+      const rows = calculateMarginBridge(model.items.map((it) => ({ it, parent: it.parent, a: cellsOf(it, py)[pm - 1], b: cellsOf(it, year)[cm - 1] })));
       const sum = (k) => rows.reduce((t, r) => t + r[k], 0);
-      return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix") };
+      return { rows, py, pm, cm, lab0: `${MESES[pm - 1]}/${String(py).slice(2)}`, lab1: `${MESES[cm - 1]}/${String(year).slice(2)}`, M0: sum("M0"), M1: sum("M1"), vol: sum("vol"), pr: sum("pr"), co: sum("co"), mix: sum("mix"), adj: sum("adj") };
     }
     function bridgeHtml() {
       const B = bridgeData();
-      const steps = [[`Margem ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["Preço (RL/un)", B.pr, false, "pr"], ["Custo (MP/un)", B.co, false, "co"], ["Mix", B.mix, false, "mix"], [`Margem ${B.lab1}`, B.M1, true]];
-      const W = 560, H = 330, L = 12, T = 30, Bt = 52, n = steps.length, bw = 56, gap = (W - L * 2 - bw * n) / (n - 1);
+      const steps = [[`Margem ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["Mix", B.mix, false, "mix"], ["Preço (RL/un)", B.pr, false, "pr"], ["Custo (MP/un)", B.co, false, "co"], ["Novos/ajustes", B.adj, false, "adj"], [`Margem ${B.lab1}`, B.M1, true]];
+      const W = 640, H = 330, L = 12, T = 30, Bt = 52, n = steps.length, bw = 56, gap = (W - L * 2 - bw * n) / (n - 1);
       let run = 0;
       const pos = steps.map((s) => { if (s[2]) { run = s[1]; return [0, s[1]]; } const r = [run, run + s[1]]; run += s[1]; return r; });
       const all = pos.flat();
@@ -321,13 +333,16 @@
     function popCols(k, ag) {
       const a = ag.a, b = ag.b;
       if (k === "vol") {
-        const d = b.q - a.q;
-        const pu = d !== 0 ? ag.e / d : a.q ? a.rl / a.q : null;
-        return [fmtQty(a.q), fmtQty(b.q), dlt(d, 0, true), pu == null ? "–" : fmt(pu, 0)];
+        const d = ag.volumeUnits;
+        const pu = d !== 0 ? ag.e / d : a.q > 0 ? (a.rl - a.mp) / a.q : null;
+        return [fmtQty(a.q), fmtQty(ag.volumeQ1), dlt(d, 1, true), pu == null ? "–" : fmt(pu, 0)];
       }
       if (k === "mix") {
+        return [fmtQty(a.q), fmtQty(b.q), fmtQty(ag.volumeQ1), dlt(ag.mixUnits, 1, true)];
+      }
+      if (k === "adj") {
         const sg2 = (v) => `<span class="${Math.abs(v) < 0.5 ? "" : v >= 0 ? "pos" : "neg"}">${sgn(v)}${brl(Math.abs(v))}</span>`;
-        return [sg2(ag.dM), sg2(-ag.vol), sg2(-ag.pr), sg2(-ag.co)];
+        return [sg2(ag.dM), sg2(-ag.vol), sg2(-ag.mix), sg2(-ag.pr - ag.co)];
       }
       const f = k === "pr" ? "rl" : "mp";
       const ua = a.q ? a[f] / a.q : null;
@@ -338,16 +353,17 @@
       const B = bridgeData();
       const k = pop.eff;
       const heads = {
-        vol: [`Qtd ${B.lab0}`, `Qtd ${B.lab1}`, "Δ un", `× RL/un ${B.lab0}`],
+        vol: [`Qtd ${B.lab0}`, "Qtd com mix anterior", "Δ un volume", `× Margem/un ${B.lab0}`],
         pr: [`RL/un ${B.lab0}`, `RL/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
         co: [`MP/un ${B.lab0}`, `MP/un ${B.lab1}`, "Δ R$/un", `× Qtd ${B.lab1}`],
-        mix: [`Δ Margem ${B.lab1} vs ${B.lab0}`, "− Volume", "− Preço", "− Custo"]
+        mix: [`Qtd ${B.lab0}`, `Qtd ${B.lab1}`, "Qtd com mix anterior", "Δ un mix"],
+        adj: [`Δ Margem ${B.lab1} vs ${B.lab0}`, "− Volume", "− Mix", "− Preço − Custo"]
       }[k];
       const agg = (rs) => {
         const a = zero(), b = zero();
-        let e = 0, dM = 0, vol = 0, pr = 0, co = 0;
-        rs.forEach((r) => { add(a, r.a); add(b, r.b); e += r[k]; dM += r.dM; vol += r.vol; pr += r.pr; co += r.co; });
-        return { a, b, e, dM, vol, pr, co };
+        let e = 0, dM = 0, vol = 0, pr = 0, co = 0, mix = 0, volumeQ1 = 0, volumeUnits = 0, mixUnits = 0;
+        rs.forEach((r) => { add(a, r.a); add(b, r.b); e += r[k]; dM += r.dM; vol += r.vol; pr += r.pr; co += r.co; mix += r.mix; volumeQ1 += r.volumeQ1; volumeUnits += r.volumeUnits; mixUnits += r.mixUnits; });
+        return { a, b, e, dM, vol, pr, co, mix, volumeQ1, volumeUnits, mixUnits };
       };
       const eff = (e) => (Math.abs(e) < 0.5 ? `<strong>–</strong>` : `<strong class="${e >= 0 ? "pos" : "neg"}">${sgn(e)}${brl(Math.abs(e))}</strong>`);
       const line = (label, ag, cls, att, cod, full) => `<tr class="${cls}" ${att || ""}><td ${full ? tipAttr(cod ? [{ label: "Código", value: cod }, { label: "Nome", value: full }] : [{ label: "Nome", value: full }]) : ""}>${cod ? `<span class="cmg-cd">${escapeHtml(cod)}</span>` : ""}${label}</td>${popCols(k, ag).map((v) => `<td>${v}</td>`).join("")}<td class="cmg-ano">${eff(ag.e)}</td></tr>`;
@@ -372,7 +388,7 @@
       });
       h += "</tbody></table>";
       const e = EFFECTS[k];
-      return `<div class="cmg-ov" data-ov><div class="cmg-pop"><div class="cmg-pop-h"><div><div class="cmg-pop-t">${e.name} <span>· ${e.sub} · ${B.lab1} vs ${B.lab0}</span></div><div class="cmg-pop-s">${eff(tot.e)} <span>${k === "mix" ? "Δ margem − volume − preço − custo (o que sobra) · soma dos itens = valor da barra" : "soma dos itens = valor da barra"}</span></div></div><button class="cmg-btn" data-pop-close>✕ Fechar</button></div><div class="cmg-pop-b">${h}</div></div></div>`;
+      return `<div class="cmg-ov" data-ov><div class="cmg-pop"><div class="cmg-pop-h"><div><div class="cmg-pop-t">${e.name} <span>· ${e.sub} · ${B.lab1} vs ${B.lab0}</span></div><div class="cmg-pop-s">${eff(tot.e)} <span>soma dos itens = valor da barra</span></div></div><button class="cmg-btn" data-pop-close>✕ Fechar</button></div><div class="cmg-pop-b">${h}</div></div></div>`;
     }
 
     // ── Tabela corrida ──────────────────────────────────────────────────
@@ -550,5 +566,5 @@
     }
     return { renderSelectedMargens, REPORT_ID };
   }
-  window.VECTON_COMERCIAL_MARGENS = { createComercialMargensModule };
+  window.VECTON_COMERCIAL_MARGENS = { createComercialMargensModule, calculateMarginBridge };
 })(window);
