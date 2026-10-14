@@ -1605,6 +1605,13 @@ const comercialMargensModule = createComercialMargensModule({
   resolveOrganizationId,
   callSupabaseRpc,
   isSupabaseConfigured,
+  // Toggle de período do cabeçalho acompanha o mês de abertura do relatório
+  // (mesmo padrão do Cockpit e do Dashboard).
+  syncHeaderPeriod: (year, month) => {
+    state.currentPeriod = { year, month };
+    renderPeriodSummary();
+    renderPeriodPicker();
+  },
 });
 const headcountRenderModule = createHeadcountRenderModule({
   escapeHtml,
