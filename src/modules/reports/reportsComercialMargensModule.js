@@ -602,7 +602,7 @@
           <div class="cmm-card"><div class="cmm-hd"><h2>Ponte da MC1 · Marcher</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
         <div class="cmm-card"><div class="cmm-hd"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
-          <div class="cmm-ctrls">${equipeControlHtml()}<div class="cmm-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div></div>
+          <div class="cmm-ctrls"><div class="cmm-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div>${equipeControlHtml()}</div></div>
           <div class="${tLoading ? "cmm-tdim" : ""}">${tableHtml()}</div>
           <div class="cmm-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano (não se aplica ao VOL)</span></div></div>
         ${pop ? popHtml() : ""}</div>`;
@@ -673,7 +673,7 @@
       .cmm-eqbtn .val{min-height:27px;display:flex;align-items:center;gap:8px;color:var(--cmm-text);background:var(--theme-surface-raised,var(--cmm-panel2));border-radius:7px;padding:5px 10px;font-weight:600;white-space:nowrap;max-width:200px}
       .cmm-eqbtn .val-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.cmm-eqbtn .val::after{content:"";width:6px;height:6px;flex:none;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:translateY(-2px) rotate(45deg);opacity:.65;transition:transform .14s}
       .cmm-eqbtn.is-open .val::after{transform:translateY(2px) rotate(225deg)}.cmm-eqbtn.is-filtered .val{background:rgba(79,124,255,.22);color:var(--theme-ink-blue,#cbd8ff)}
-      .cmm-eqpop{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:var(--theme-surface,#171f30);border:1px solid var(--cmm-line);border-radius:12px;padding:12px;min-width:240px;max-width:300px;box-shadow:0 20px 44px var(--theme-shadow-color,rgba(0,0,0,.5))}
+      .cmm-eqpop{position:absolute;top:calc(100% + 6px);right:0;z-index:30;background:var(--theme-surface,#171f30);border:1px solid var(--cmm-line);border-radius:12px;padding:12px;min-width:240px;max-width:300px;box-shadow:0 20px 44px var(--theme-shadow-color,rgba(0,0,0,.5))}
       .cmm-eqpop h4{margin:0 0 8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--cmm-faint);font-weight:600}.cmm-eqpop .grp+.grp{margin-top:10px;padding-top:10px;border-top:1px solid var(--cmm-line)}
       .cmm-eqpop-list{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}.cmm-eqpop label{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 6px;border-radius:7px;cursor:pointer}
       .cmm-eqpop label:hover{background:var(--theme-surface-raised,rgba(255,255,255,.05))}.cmm-eqpop input[type=radio]{width:auto;min-width:0;flex:none;accent-color:#4f7cff;margin:0}
