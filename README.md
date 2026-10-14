@@ -51,7 +51,8 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
    - OPEX e Headcount;
    - Report Builder com relatórios personalizados;
    - Painel de Vendas, Mapa de Vendas e Vendas – Distribuição Geográfica (mapa por UF, donut/heatmap, ranking de estados);
-   - Ativações de Garantia (heatmap cidade×estado/revenda, preço médio por modelo, ranking de vendedores, estoque estimado de revenda).
+   - Ativações de Garantia (heatmap cidade×estado/revenda, preço médio por modelo, ranking de vendedores, estoque estimado de revenda);
+   - Margens por Máquinas (MC1%, RL, MP e volume por nome reduzido, com mapa do portfólio, ponte da margem e tabela corrida; restrito a Gestor, Admin e Super Admin).
 
 9. **Parâmetros e cargas financeiras**
    - empresas e filiais;
@@ -65,7 +66,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
 10. **Comercial**
     - cadastros de produtos, clientes, territórios, coordenações, tipos, culturas e linhas de negócio;
     - atribuição de responsáveis por território;
-    - cargas de vendas realizadas e planejadas;
+    - cargas de vendas realizadas (FAT, RL e MP por linha) e planejadas;
     - carga recorrente/aditiva de Ativações de Garantia (upsert, fonte AltForce);
     - relatórios comerciais agregados no servidor.
 
@@ -164,9 +165,9 @@ Papéis em `user_profiles.access_role`:
 |---|---|
 | `super_admin` | acesso total; pode administrar outros Super Admins |
 | `admin` | parâmetros, cargas, usuários, planejamento, dashboard e relatórios |
-| `manager` | dashboard e relatórios; OPEX/Headcount filtrados por gestão e concessões |
+| `manager` | dashboard e relatórios (inclui Margens por Máquinas); OPEX/Headcount filtrados por gestão e concessões |
 | `analyst` | sem dashboard e DRE consolidado; acesso restrito a relatórios por CC |
-| `comercial` | entrada em Relatórios; apenas Painel e Mapa de Vendas na interface |
+| `comercial` | entrada em Relatórios; Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças. Não vê Ativações de Garantia nem Margens por Máquinas |
 
 Concessões adicionais disponíveis no perfil:
 
@@ -188,6 +189,8 @@ As restrições por gestão, CC e catálogo de relatórios são aplicadas princi
 A policy atual de `user_profiles` também permite escrita do próprio perfil sem restrição de colunas. Ela precisa ser endurecida para impedir alteração direta de `access_role` e demais campos administrativos pelo próprio usuário.
 
 Antes de considerar Gestor, Analista e Comercial fronteiras de segurança completas, as policies/RPCs devem reproduzir essas regras no PostgreSQL.
+
+Exceção já aplicada: o RPC `comercial_margens_itens` (Margens por Máquinas) valida o papel (`super_admin`, `admin` ou `manager`, inclusive `additional_access_roles`) no próprio banco, além de o card ficar oculto no frontend.
 
 ## Relatórios financeiros
 
@@ -250,10 +253,26 @@ Principais RPCs:
 - `comercial_painel_detalhe`
 - `comercial_mapa_vendas`
 - `comercial_mapa_geografico_vendas`
+- `comercial_margens_itens` (Margens por Máquinas)
+
+### Margens por Máquinas
+
+Relatório `comercialMargens` (`src/modules/reports/reportsComercialMargensModule.js`, migration `255`), no grupo Comercial do catálogo, logo após "Meta de Final de Ano". Restrito a Super Admin, Admin e Gestor (`CORE_COMMERCIAL_REPORT_IDS` e `COMERCIAL_EXCLUDED_REPORT_IDS` em `app.js`; também validado no RPC).
+
+Definições:
+
+- **MP** é o custo de matéria-prima da carga (colunas `rl` e `mp` do ledger, migration `253`); **MC1% = (RL − MP) ÷ RL**, recalculada no relatório. A coluna `mb_pct` gravada na carga 2023–2026 contém MP ÷ RL e **não** deve ser usada.
+- Só entra faturamento realizado (`origem = 'FAT'`), líquido de devolução. Carteira (CART) fica de fora.
+- Máquinas são agrupadas por `nome_reduzido` e por cultura (Grãos, Pecuária; CARGOGRAIN forma um grupo próprio). Peças, Transgrain e Acessórios aparecem como linhas complementares, com desdobramento por código (30 maiores + "Demais itens").
+- Na tabela os valores são **unitários** (÷ volume); linhas-pai são total ÷ volume total, nunca média de unitários.
+
+Estrutura da página: indicadores (volume, FAT, RL, MP, MC1%, comparados com o mês anterior), mapa do portfólio (bolhas; eixo X VOL ou RL), ponte da margem (volume → preço → custo → mix, com pop-over por barra) e tabela corrida com toggle VOL/FAT/RL/MP/MC1%. Na ponte, **Volume = Δ quantidade × RL/un do mês anterior**, Preço e Custo usam a variação unitária × quantidade atual, e **Mix é o resíduo**.
+
+O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano do filtro e o anterior); todas as visões são calculadas no cliente.
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `245` (248 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `255` (259 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -291,10 +310,18 @@ Resumo por fase:
 | `243` | `comercial_painel_detalhe` passa a devolver `entry_date` — coluna Data no drill-down de transações do Painel de Vendas |
 | `244` | `comercial_painel_detalhe` passa a devolver `documento`/`serie_documento` — coluna Documento no mesmo drill-down |
 | `245` | `comercial_report_movements` passa a devolver `documento`/`serie_documento` — coluna Documento no popover de movimentos das campanhas Bateu/Levou e Final de Ano |
+| `246` | Top Clientes da Performance de Peças passa a trazer o faturamento do mesmo período do ano anterior (variação YoY) |
+| `247` | `user_profiles` ganha a preferência de aparência (tema Claro/Dark) |
+| `248` | Fluxo de Caixa: retenção em Impostos e Taxas |
+| `249–251` | ajustes do Painel de Vendas (slot "A definir" e gestor de Pecuária sem órfão; reaplica o nome atual do vendedor) |
+| `251–252` | Ativações de Garantia: UF exterior e quantidade |
+| `253` | `rl` e `mp` no staging e no ledger de vendas realizadas (novo layout FAT/RL/MP) |
+| `254` | carteira (CART) entra só pelo mês de referência no Painel e Peças |
+| `255` | RPC `comercial_margens_itens` e posição do card Margens por Máquinas no catálogo |
 
 ### Divergências conhecidas do schema
 
-- Numeração duplicada: `025` (`025_create_custom_reports.sql` e `025_extra_managements.sql`), `074` (`074_comercial_report_movements_segment.sql` e `074_remove_legacy_bateu_levou_catalog.sql`) e `219` (`219_fc_chart_of_accounts.sql` e `219_rps_capture_backup_purge_expired_locks.sql`). A ordem entre pares com o mesmo número precisa ser controlada manualmente (checar `created_at`/histórico do Supabase, não o nome do arquivo).
+- Numeração duplicada: `025` (`025_create_custom_reports.sql` e `025_extra_managements.sql`), `074` (`074_comercial_report_movements_segment.sql` e `074_remove_legacy_bateu_levou_catalog.sql`), `219` (`219_fc_chart_of_accounts.sql` e `219_rps_capture_backup_purge_expired_locks.sql`) e `251` (`251_comercial_painel_pecuaria_gestor_nao_orfao.sql` e `251_garantia_ativacoes_uf_exterior.sql`). A ordem entre pares com o mesmo número precisa ser controlada manualmente (checar `created_at`/histórico do Supabase, não o nome do arquivo).
 - O frontend usa `headcount_import_batches`, `headcount_import_rows`, `headcount_entries` e `forecast_headcount_entries`, mas as migrations de criação dessas tabelas continuam fora deste checkout.
 - `supabase/README.md` ainda documenta somente a base inicial e não é a fonte completa do schema atual.
 - Os arquivos `_diag_*.sql` (9) e `exportar_produtos_csv.sql` são diagnóstico/utilitário avulso, não migrations de produção.
@@ -409,7 +436,7 @@ Também confira:
 - O XLSX é carregado por CDN externa.
 - As regras de leitura por perfil ainda precisam ser reforçadas no banco (ver [Atenção de segurança](#atenção-de-segurança)).
 - Há lançamentos de Realizado/Forecast em contas de OPEX sem centro de custo vinculado (import de origem incompleto) — caem em "Sem gestão cadastrada" no Cockpit; ver [docs/cockpit-gestao.md](docs/cockpit-gestao.md).
-- Há três blocos de migrations numerados em duplicidade (`025`, `074`, `219`) — a ordem de aplicação entre o par não é dada pelo nome do arquivo.
+- Há quatro blocos de migrations numerados em duplicidade (`025`, `074`, `219`, `251`) — a ordem de aplicação entre o par não é dada pelo nome do arquivo.
 
 ## Pontos de entrada para manutenção
 
@@ -435,4 +462,5 @@ Também confira:
 | cargas comerciais | `comercialVendasCargaModule.js`, `comercialPlanejadoCargaModule.js`, migrations `038–042` |
 | Ativações de Garantia | `garantiaAtivacoesCargaModule.js`, `reportsGarantiaAtivacoesModule.js`, migration `237` |
 | painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `090`, `112–126`, `240–241`, `243–244` |
+| Margens por Máquinas | `reportsComercialMargensModule.js`, card e perfis em `index.html`, regras de acesso em `app.js`, migrations `253` e `255` |
 | campanhas e criador de relatórios comerciais | `src/modules/reports/comercialReportsModule.js`, migrations `064–069`, `074–075`, `245` |
