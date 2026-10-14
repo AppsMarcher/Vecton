@@ -200,13 +200,19 @@
         pLo = 1; pHi = ref - 1;
         base = pHi >= 1 ? `acum. até ${MESES[pHi - 1]}/${yy(year)}` : `${MESES[0]}/${yy(year - 1)}`;
       }
+      // Volume = só máquinas; Faturamento, RL, MP e MC1% = total da empresa (fecha com o DRE)
       const cur = zero(); const prev = zero();
-      machines().forEach((p) => {
+      const curM = zero(); const prevM = zero();
+      model.parents.forEach((p) => {
         add(cur, sumRange(p, year, lo, hi));
         if (pHi >= pLo) add(prev, sumRange(p, pYear, pLo, pHi));
+        if (p.kind === "M") {
+          add(curM, sumRange(p, year, lo, hi));
+          if (pHi >= pLo) add(prevM, sumRange(p, pYear, pLo, pHi));
+        }
       });
       const cards = [
-        ["Volume de máquinas", fmtQty(cur.q), "<small>un</small>", delta(cur.q, prev.q, false, false, base)],
+        ["Volume de máquinas", fmtQty(curM.q), "<small>un</small>", delta(curM.q, prevM.q, false, false, base)],
         ["Faturamento", brl(cur.fat), "", delta(cur.fat, prev.fat, false, false, base)],
         ["Receita líquida", brl(cur.rl), "", delta(cur.rl, prev.rl, false, false, base)],
         ["MP", brl(cur.mp), "", delta(cur.mp, prev.mp, true, false, base)],
@@ -509,7 +515,7 @@
         ${kpisHtml()}
         <div class="cmg-two">
           <div class="cmg-card"><div class="cmg-hd"><div><h2>Posicionamento de Portfólio · Máquinas</h2><p>${bubbleX === "rl" ? "Receita líquida" : "Volume"} × MC1% · tamanho = margem em R$ (RL − MP)</p></div><div class="cmg-tabs" title="Eixo X do mapa">${[["vol", "VOL"], ["rl", "RL"]].map(([v, l]) => `<button data-bx="${v}" class="${bubbleX === v ? "active" : ""}">${l}</button>`).join("")}</div></div>${bubblesHtml()}</div>
-          <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da MC1</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
+          <div class="cmg-card"><div class="cmg-hd"><h2>Ponte da MC1 · Marcher</h2><p>${escapeHtml(br.sub)}</p></div>${br.svg}</div>
         </div>
         <div class="cmg-card"><div class="cmg-hd"><div><h2>Evolutivo de Margens · Máquinas</h2><p>Valores unitários (÷ volume) · setas comparam com o mês anterior · clique no nome para abrir os códigos</p></div>
           <div class="cmg-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div></div>
