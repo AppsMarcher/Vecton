@@ -317,7 +317,7 @@
     }
     function bridgeHtml() {
       const B = bridgeData();
-      const steps = [[`MC1 ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["Preço (RL/un)", B.pr, false, "pr"], ["MP (custo/un)", B.co, false, "co"], ["Mix", B.mix, false, "mix"], [`MC1 ${B.lab1}`, B.M1, true]];
+      const steps = [[`MC1 ${B.lab0}`, B.M0, true], ["Volume", B.vol, false, "vol"], ["Preço", B.pr, false, "pr"], ["MP", B.co, false, "co"], ["Mix", B.mix, false, "mix"], [`MC1 ${B.lab1}`, B.M1, true]];
       const W = 640, H = 330, L = 12, T = 30, Bt = 52, n = steps.length, bw = 56, gap = (W - L * 2 - bw * n) / (n - 1);
       let run = 0;
       const pos = steps.map((s) => { if (s[2]) { run = s[1]; return [0, s[1]]; } const r = [run, run + s[1]]; run += s[1]; return r; });
