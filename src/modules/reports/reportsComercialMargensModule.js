@@ -654,7 +654,8 @@
         };
         body = `<table class="cmm-dtbl"><thead><tr><th>Data</th><th>NF</th><th>Cód. Prod.</th><th class="l">Descr. Produto</th><th class="l">Cliente</th><th class="l">Cidade</th><th>UF</th><th class="l">Regional</th><th>VOL</th><th>FAT</th><th>RL</th><th>MP</th><th>MC1%</th></tr></thead><tbody>${det.rows.map(line).join("")}</tbody><tfoot><tr><td colspan="8" class="l">Total · ${det.rows.length} ${det.rows.length === 1 ? "linha" : "linhas"}</td><td>${fmtQty(tot.q)}</td><td>${money(tot.fat)}</td><td>${money(tot.rl)}</td><td>${money(tot.mp)}</td><td>${mc(tot)}</td></tr></tfoot></table>`;
       }
-      return `<div class="cmm-ov" data-dov><div class="cmm-pop cmm-dpop" role="dialog" aria-label="Notas fiscais"><div class="cmm-pop-h"><div><div class="cmm-pop-t">${escapeHtml(det.title)} <span>· ${MESES[det.month - 1]}/${year}</span></div></div><button class="cmm-btn" data-det-close>✕ Fechar</button></div><div class="cmm-pop-b">${body}</div></div></div>`;
+      // Mesmo visual do popover de detalhe do Painel de Vendas (cabeçalho, ✕ e fontes da tabela)
+      return `<div class="cmm-dov" data-dov><div class="cmm-dpop" role="dialog" aria-label="Notas fiscais"><div class="cmm-dhead"><span>${escapeHtml(det.title)} · ${MESES[det.month - 1]}/${year}</span><button class="cmm-dx" type="button" aria-label="Fechar" data-det-close>✕</button></div><div class="cmm-dbody">${body}</div></div></div>`;
     }
     // Foto da tabela para exportar: as 5 métricas (VOL, FAT, RL, MP, MC1%), cada linha com todos os
     // itens por código, respeitando o filtro de equipe (mas não a métrica/linhas abertas da tela).
@@ -835,7 +836,15 @@
       @media(max-width:760px){.cmm-tw{overflow-x:auto}.cmm-tbl{min-width:900px}.cmm-pt{min-width:0}}
       @media(max-width:1150px){.cmm-kpis{grid-template-columns:repeat(3,1fr)}.cmm-two{grid-template-columns:1fr}}
       .cmm-tbl td.cmm-det{cursor:pointer}.cmm-tbl td.cmm-det:hover{background:var(--cmm-panel2);box-shadow:inset 0 0 0 1px var(--cmm-blue)}
-      .cmm-dpop{width:85vw;height:auto;max-height:85vh}.cmm-dtbl{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}.cmm-dtbl th,.cmm-dtbl td{padding:6px 8px;text-align:right;white-space:nowrap;font-size:11.5px;border-bottom:1px solid var(--cmm-line)}.cmm-dtbl .l{text-align:left}.cmm-dtbl td.l{max-width:240px;overflow:hidden;text-overflow:ellipsis}.cmm-dtbl th{position:sticky;top:0;background:var(--cmm-panel);color:var(--cmm-muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}.cmm-dtbl tfoot td{position:sticky;bottom:0;background:var(--cmm-panel);font-weight:700}
+      .cmm-dov{position:fixed;inset:0;z-index:9800;background:var(--theme-overlay,rgba(0,0,0,.55));display:flex;align-items:center;justify-content:center;padding:32px}
+      .cmm-dpop{background:var(--theme-surface,#121317);border:1px solid var(--theme-border,#2a2d34);border-radius:14px;box-shadow:0 30px 80px var(--theme-shadow-color,rgba(0,0,0,.65));color:var(--theme-ink,#fff);width:85vw;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+      .cmm-dhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-bottom:1px solid var(--theme-border,#2a2d34);font-size:11px;font-weight:600;color:var(--theme-ink-secondary,#a1a7b3);text-transform:uppercase;letter-spacing:.05em}
+      .cmm-dx{background:none;border:none;color:var(--theme-ink-muted,#6b7280);font-size:16px;cursor:pointer;line-height:1;padding:0 2px}.cmm-dx:hover{color:var(--theme-ink,#fff)}
+      .cmm-dbody{overflow:auto}
+      .cmm-dtbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.cmm-dtbl th,.cmm-dtbl td{padding:6px 12px;font-size:10px;text-align:right;white-space:nowrap}.cmm-dtbl .l{text-align:left}.cmm-dtbl td.l{max-width:260px;overflow:hidden;text-overflow:ellipsis}
+      .cmm-dtbl th{position:sticky;top:0;background:var(--theme-surface,#121317);color:var(--theme-ink-muted,#6b7280);font-weight:500;font-size:8px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--theme-border,#2a2d34);z-index:1}
+      .cmm-dtbl tbody tr:not(:last-child) td{border-bottom:1px solid var(--theme-border-subtle,rgba(255,255,255,.05))}
+      .cmm-dtbl tfoot td{border-top:1px solid var(--theme-border,#2a2d34);font-weight:600;color:var(--theme-ink,#fff);position:sticky;bottom:0;background:var(--theme-surface,#121317)}
       @media(max-width:768px){.cmm-kpis{grid-template-columns:repeat(2,1fr)}.cmm-pop{width:100vw;height:100vh;border-radius:0}}
       `;
       document.head.appendChild(s);
