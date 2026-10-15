@@ -2,12 +2,15 @@
 # A tarefa dispara a cada 15 minutos; o proprio robo decide, pela configuracao no Vecton
 # (tabela carga_automatica_config), se ha carga devida naquele momento.
 #
-# IMPORTANTE: execute este script LOGADO COMO A CONTA QUE VAI RODAR A TAREFA. As senhas sao gravadas
-# como variaveis de ambiente do USUARIO atual; se o script rodar com outra conta, a tarefa nao as enxerga.
+# As senhas do Vecton e do SQL Server sao gravadas como variaveis de ambiente:
+#   -Escopo User     (padrao) so a conta LOGADA ve as senhas: rode o script logado como a conta da tarefa.
+#   -Escopo Machine  qualquer conta do servidor as le: permite rodar o script como administrador, sem logar
+#                    como a conta da tarefa (use em servidor de acesso restrito a TI).
 #
-#   .\instalar-tarefa.ps1 -Conta "MARCHER\svc_robo_vecton"
+#   .\instalar-tarefa.ps1 -Conta "MARCHER\robo.vecton" -Escopo Machine
 param(
   [Parameter(Mandatory = $true)][string]$Conta,
+  [ValidateSet("User", "Machine")][string]$Escopo = "User",
   [string]$Node = (Get-Command node).Source,
   [string]$Pasta = $PSScriptRoot
 )
@@ -21,12 +24,12 @@ $cred = Get-Credential -UserName $Conta -Message "Senha da conta do Windows que 
 $senhaConta = $cred.GetNetworkCredential().Password
 
 $vecton = Ler-Segredo "Senha do usuario do Vecton (robo.vecton@marcher.com.br)"
-[Environment]::SetEnvironmentVariable("VECTON_ROBO_SENHA", $vecton, "User")
+[Environment]::SetEnvironmentVariable("VECTON_ROBO_SENHA", $vecton, $Escopo)
 
 $cfg = Get-Content (Join-Path $Pasta "config.json") -Raw | ConvertFrom-Json
 if ($cfg.protheus.auth -eq "sql") {
   $banco = Ler-Segredo "Senha do usuario do SQL Server ($($cfg.protheus.user))"
-  [Environment]::SetEnvironmentVariable("PROTHEUS_SENHA", $banco, "User")
+  [Environment]::SetEnvironmentVariable("PROTHEUS_SENHA", $banco, $Escopo)
 }
 
 $acao = New-ScheduledTaskAction -Execute $Node -Argument "src\index.js run" -WorkingDirectory $Pasta
