@@ -56,7 +56,7 @@ node src/index.js vendas --mes=2026-10    # mês específico (manual)
 
 Acompanhar: `select started_at, status, reference_month, total_rows, mensagem from carga_automatica_log where job='vendas' order by started_at desc;`
 
-Configuração (tabela `carga_automatica_config`): `enabled`, `meses_atras`, `meses_frente` (0/0 = só o mês corrente), `horarios` (ex.: `{08:00,14:00}`),
+Configuração (tabela `carga_automatica_config`): `enabled`, `meses_atras`, `meses_frente` (0/0 = só o mês corrente), `horarios` (ex.: `{12:00,23:30}`),
 `params` (`cfops_saida`, `cfops_devol`, `queda_max_pct`, `diretorio_saida`).
 
 ## Ajustar territórios

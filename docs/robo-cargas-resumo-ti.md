@@ -6,7 +6,7 @@
 ## 1. O que é e para que serve
 
 Hoje a carga de vendas do Vecton é manual: atualiza-se a planilha `Painel_Vecton.xlsm` (que roda uma query no Protheus), e o arquivo é carregado na tela do Vecton.
-O **robô** faz isso sozinho: lê o Protheus (SQL Server `MARCHER-BD`, base `protheus_producao`), calcula o território de cada venda e grava no Vecton (Supabase), **duas vezes ao dia (08:00 e 14:00)**, sempre para o **mês corrente**.
+O **robô** faz isso sozinho: lê o Protheus (SQL Server `MARCHER-BD`, base `protheus_producao`), calcula o território de cada venda e grava no Vecton (Supabase), **duas vezes ao dia (12:00 e 23:30)**, sempre para o **mês corrente**.
 
 Cada execução apaga o mês corrente no Vecton e regrava tudo (carga completa). Meses anteriores e futuros continuam sendo carregados à mão, como hoje.
 
@@ -77,7 +77,7 @@ Hoje o robô roda **na máquina do Ricardo, manualmente**. Não há tarefa agend
    ```
    .\instalar-tarefa.ps1 -Conta "MARCHER\svc_robo_vecton"
    ```
-   O script pede: a senha da conta do Windows, a senha do Vecton e a do SQL Server. Cria a tarefa **"Vecton - Robo de Cargas"**, que dispara a cada 15 minutos; o robô decide sozinho se há horário vencido (08:00 e 14:00).
+   O script pede: a senha da conta do Windows, a senha do Vecton e a do SQL Server. Cria a tarefa **"Vecton - Robo de Cargas"**, que dispara a cada 15 minutos; o robô decide sozinho se há horário vencido (12:00 e 23:30).
 3. Conferir no Agendador de Tarefas que a tarefa existe e o "Resultado da última execução" é `0x0`.
 4. **Desativar a tarefa de teste da máquina do Ricardo** (se existir), para não haver dois robôs carregando o mesmo mês.
 
@@ -88,7 +88,7 @@ O robô grava uma cópia `Vendas_AAAA-MM.csv` em `O:\Controladoria\Gerencial\Vec
 
 - O robô **só lê** do Protheus: o usuário `usr_robo_vecton` precisa apenas de `SELECT` nas tabelas `SD2010, SD1010, SB1010, SF2010, SA1010, SC5010, SC6010, SF4010, SYD010`.
 - Senhas **nunca** em arquivo nem no repositório: ficam em variáveis de ambiente do usuário da tarefa. O `config.json` está fora do Git.
-- O usuário do robô no Vecton tem perfil Administrador (será usado para outras cargas). **Trocar a senha dele** antes de ir para produção: a atual foi exposta durante os testes.
+- O usuário do robô no Vecton tem perfil Administrador (será usado para outras cargas).
 
 ## 6. Como acompanhar e operar
 
@@ -107,5 +107,3 @@ O robô grava uma cópia `Vendas_AAAA-MM.csv` em `O:\Controladoria\Gerencial\Vec
 
 1. Nome do servidor e da conta de serviço que a TI definir.
 2. Caminho de rede (UNC) da pasta `3 - CARGAS ENVIADAS`, ou decisão de desligar a cópia.
-3. Troca da senha do usuário do robô no Vecton.
-4. Teste do e-mail de erro (provocando um erro de propósito) depois que a 261 estiver ativa.
