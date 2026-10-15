@@ -24,9 +24,20 @@ Roda no servidor, lê o Protheus (SQL Server `MARCHER-BD`) e carrega no Vecton p
 Lotes automáticos têm `notes` iniciando em `[auto]`: não geram aviso/e-mail (migration 259) e lotes pendentes de execuções anteriores são removidos antes de criar o novo.
 Lotes antigos já aplicados e totalmente substituídos são removidos pelo próprio banco (migration 204).
 
+## Quando a carga dá erro
+
+O robô não aplica nada (o mês continua como estava), grava o erro em `carga_automatica_log` e a migration 261 envia **e-mail e sininho**
+com as linhas reprovadas (destinatários e liga/desliga em **Parâmetros → Notificações → Carga automática com erro**).
+
+Causas comuns e correção:
+- **Cliente/produto não cadastrado:** cadastre em Parâmetros → Comercial. A próxima execução (ou `node src/index.js vendas`) carrega sozinha.
+  Atalho sem esperar: na tela de carga de vendas, abra o lote `[auto]` mantido, **Revalidar lote** e **Aplicar lote**.
+- **Território não cadastrado ou município sem território:** ajuste em Parâmetros → Comercial → Municípios / Território.
+- **Sem atribuição de responsável para o território na data:** cadastre em Parâmetros → Comercial → Atribuição.
+
 ## Instalação (uma vez)
 
-1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql` e `supabase/260_seed_comercial_regioes_municipio.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
+1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql`, `supabase/260_seed_comercial_regioes_municipio.sql` e `supabase/261_carga_automatica_aviso_erro.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
 2. **Usuário no Vecton:** convidar `robo.vecton@marcher.com.br` com papel **editor** na organização e acesso ao Comercial.
 3. **Servidor:** instalar Node 20+ e o *ODBC Driver 17/18 for SQL Server*. Copiar a pasta `robo-cargas`, rodar `npm install`.
 4. Copiar `config.example.json` para `config.json`. Autenticação do Protheus: `"windows"` (a conta que roda a tarefa precisa de leitura em `protheus_producao`) ou `"sql"` (usuário/senha via variável de ambiente).

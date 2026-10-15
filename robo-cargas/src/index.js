@@ -33,8 +33,9 @@ try {
     force: flag("force"),
     mes
   });
-  process.exit(resultados.some((r) => r.status === "erro" || r.status === "bloqueada") ? 1 : 0);
+  // exitCode (em vez de exit): deixa o Node fechar as conexoes sozinho; process.exit derruba o libuv no Windows.
+  process.exitCode = resultados.some((r) => r.status === "erro" || r.status === "bloqueada") ? 1 : 0;
 } catch (e) {
   console.error(`ERRO: ${e.message}`);
-  process.exit(1);
+  process.exitCode = 1;
 }

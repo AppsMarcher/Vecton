@@ -13,7 +13,14 @@ const pad2 = (n) => String(n).padStart(2, "0");
 
 async function conectar(cfg) {
   const sb = new Supabase(cfg.supabase);
-  const user = await sb.signIn(cfg.supabase.email, cfg.supabase.password);
+  let user;
+  try {
+    user = await sb.signIn(cfg.supabase.email, cfg.supabase.password);
+  } catch (e) {
+    // Diagnostico sem expor a senha: tamanho e espacos nas pontas ajudam a achar aspas/escape errados.
+    const pw = cfg.supabase.password;
+    throw new Error(`${e.message} [usuario ${cfg.supabase.email}; a senha recebida tem ${pw.length} caracteres${pw !== pw.trim() ? ", com espaco no inicio/fim" : ""}]`);
+  }
   const [org] = await sb.select("organizations", `name=eq.${encodeURIComponent(cfg.supabase.organizationName)}&select=id&limit=1`);
   if (!org) throw new Error(`Organizacao "${cfg.supabase.organizationName}" nao encontrada (o usuario do robo precisa ser membro dela)`);
   return { sb, user, orgId: org.id };
