@@ -662,7 +662,7 @@
       const sortTh = (key, label, cls) => {
         const active = popSort.key === key;
         const arrow = active ? (popSort.dir === 1 ? " ↑" : " ↓") : "";
-        return `<th data-sort="${key}"${cls ? ` class="${cls}"` : ""} style="cursor:pointer;user-select:none${active ? ";color:var(--theme-ink-blue, #7aa2ff)" : ""}">${label}${arrow}</th>`;
+        return `<th data-sort="${key}"${cls ? ` class="${cls}"` : ""} style="cursor:pointer;user-select:none${active ? ";color:var(--blue)" : ""}">${label}${arrow}</th>`;
       };
       const documentoLabel = (r) => [r.documento, r.serie_documento].filter(Boolean).join("/");
       let totQ = 0, totV = 0;

@@ -583,11 +583,33 @@
             <span>${ufSelecionada} · ${fmtQtd(itens.reduce((acc, r) => acc + qtd(r), 0))} máquina(s)</span>
             <button type="button" class="gar-popover-close" aria-label="Fechar">×</button>
           </div>
-          <div class="gar-city-table-wrap">
+          <div class="gar-city-table-wrap"></div>
+        `;
+        // Classificador dos cabeçalhos (padrão do app: clique alterna ↑/↓, ativo em var(--blue))
+        const colunas = [
+          ["modelo", "Modelo", (r) => r.modelo_normalizado || r.produto_raw || ""],
+          ["revenda", "Revenda", (r) => r.revenda_raw || ""],
+          ["ativacao", "Ativação", (r) => r.cadastrado_em || ""],
+          ["nf", "NF", (r) => r.nf_emissao || ""],
+          ["cliente", "Cliente final", (r) => r.cliente_final || ""],
+          ["valor", "Valor", (r) => Number(r.nf_valor_unitario) || 0]
+        ];
+        const sort = { key: "", dir: 1 };
+        const pintarTabela = () => {
+          const col = colunas.find((c) => c[0] === sort.key);
+          const ordenados = col
+            ? [...itens].sort((a, b) => sort.dir * (col[0] === "valor" ? col[2](a) - col[2](b) : String(col[2](a)).localeCompare(String(col[2](b)), "pt-BR")))
+            : itens;
+          const th = ([key, label]) => {
+            const ativo = sort.key === key;
+            return `<th data-gsort="${key}" style="cursor:pointer;user-select:none${ativo ? ";color:var(--blue)" : ""}">${label}${ativo ? (sort.dir === 1 ? " ↑" : " ↓") : ""}</th>`;
+          };
+          const wrap = pop.querySelector(".gar-city-table-wrap");
+          wrap.innerHTML = `
             <table class="data-table gar-city-table">
-              <thead><tr><th>Modelo</th><th>Revenda</th><th>Ativação</th><th>NF</th><th>Cliente final</th><th>Valor</th></tr></thead>
+              <thead><tr>${colunas.map(th).join("")}</tr></thead>
               <tbody>
-                ${itens.map((r) => `
+                ${ordenados.map((r) => `
                   <tr>
                     <td>${escapeHtml(r.modelo_normalizado || r.produto_raw || "—")}</td>
                     <td>${escapeHtml(r.revenda_raw || "—")}${revendaInfo.get(r.cliente_id) ? ` <small class="gar-city-sub">${escapeHtml(revendaInfo.get(r.cliente_id).cidade)}/${escapeHtml(revendaInfo.get(r.cliente_id).uf)}</small>` : ""}</td>
@@ -597,9 +619,14 @@
                     <td class="gar-city-valor">${fmtMoney(r.nf_valor_unitario)}</td>
                   </tr>`).join("")}
               </tbody>
-            </table>
-          </div>
-        `;
+            </table>`;
+          wrap.querySelectorAll("th[data-gsort]").forEach((h) => h.addEventListener("click", () => {
+            const key = h.dataset.gsort;
+            if (sort.key === key) sort.dir *= -1; else { sort.key = key; sort.dir = 1; }
+            pintarTabela();
+          }));
+        };
+        pintarTabela();
         pop.querySelector(".gar-popover-close").addEventListener("click", closePop);
         layout.append(pop);
 

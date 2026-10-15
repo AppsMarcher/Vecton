@@ -661,7 +661,7 @@
         const sortTh = (key, label, cls) => {
           const active = det.sort.key === key;
           const arrow = active ? (det.sort.dir === 1 ? " ↑" : " ↓") : "";
-          return `<th data-dsort="${key}"${cls ? ` class="${cls}"` : ""} style="cursor:pointer;user-select:none${active ? ";color:var(--theme-ink-blue, #7aa2ff)" : ""}">${label}${arrow}</th>`;
+          return `<th data-dsort="${key}"${cls ? ` class="${cls}"` : ""} style="cursor:pointer;user-select:none${active ? ";color:var(--blue)" : ""}">${label}${arrow}</th>`;
         };
         const line = (r) => {
           const c = { q: Number(r.quantidade) || 0, fat: Number(r.fat) || 0, rl: Number(r.rl) || 0, mp: Number(r.mp) || 0 };
