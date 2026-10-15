@@ -73,6 +73,7 @@
     let eqCloseBound = false;
     let resizeBound = false;
     let pop = null; // { eff, open:Set }
+    let det = null; // detalhe por NF de uma célula: { title, month, cods, loading, rows, error }
     let tipEl = null;
     let keyBound = false;
 
@@ -595,7 +596,13 @@
         const tip = d.full ? tipAttr(d.cod ? [{ label: "Código", value: d.cod }, { label: "Nome", value: d.full }] : [{ label: "Nome", value: d.full }]) : "";
         const caret = d.open == null ? "" : `<span class="cmm-car">${d.open ? "▾" : "▸"}</span>`;
         let r = `<tr class="${d.cls}" ${att}><td ${tip}>${d.cod ? `<span class="cmm-cd">${escapeHtml(d.cod)}</span>` : ""}${caret}${escapeHtml(d.label)}</td><td class="cmm-q4">${k === "vol" ? fmt(cols.q4.q, 1) : showVal(val(cols.q4, k), k)}</td>`;
-        cols.months.forEach((m) => { r += m ? `<td>${mcell(m.c, m.prev, k)}</td>` : `<td class="cmm-future"></td>`; });
+        // Máquinas (linha-pai ou item): clicar no valor do mês abre as NFs da célula, em qualquer métrica
+        const cods = d.cod ? (d.obj.tipo === "Máquinas" ? [d.cod] : null) : d.key && d.obj.kind === "M" ? d.obj.items.map((i) => i.cod) : null;
+        cols.months.forEach((m, i) => {
+          if (!m) { r += `<td class="cmm-future"></td>`; return; }
+          const link = cods && nz(m.c) ? ` class="cmm-det" data-det="${i + 1}" data-cods="${escapeHtml(cods.join("|"))}" data-dt="${escapeHtml(d.full || d.label)}" title="Ver notas fiscais"` : "";
+          r += `<td${link}>${mcell(m.c, m.prev, k)}</td>`;
+        });
         return `${r}<td class="cmm-ano">${mcell(cols.ano.c, cols.ano.prev, k)}</td></tr>`;
       };
       let h = `<thead><tr><th></th><th class="cmm-q4" title="Média ponderada do 4º trimestre de ${year - 1}">${year - 1}</th>${MESES.map((m) => `<th>${m}</th>`).join("")}<th class="cmm-ano">${year}</th></tr></thead><tbody>`;
@@ -605,6 +612,49 @@
         else h += row(d);
       });
       return `<div class="cmm-tw"><table class="cmm-tbl">${h}</tbody></table></div>`;
+    }
+    // ── Detalhe por NF (clique no valor do mês) ─────────────────────────
+    async function openDetail(title, mes, cods) {
+      det = { title, month: mes, cods, loading: true, rows: [], error: "" };
+      hideTip();
+      render(host);
+      const mine = det;
+      try {
+        const org = await resolveOrganizationId();
+        const res = await callSupabaseRpc("comercial_margens_detalhe", {
+          p_org: org, p_year: year, p_month: mes, p_cods: cods,
+          p_territorio: equipe.tipo === "territorio" ? [equipe.valor] : null,
+          p_coordenacao: equipe.tipo === "coordenacao" ? [equipe.valor] : null,
+          p_vendedor: equipe.tipo === "vendedor" ? [equipe.valor] : null
+        });
+        mine.rows = Array.isArray(res) ? res : res?.rows || [];
+      } catch (e) {
+        console.error(e);
+        mine.error = "Não foi possível carregar as notas fiscais.";
+      } finally {
+        mine.loading = false;
+        if (det === mine) render(host);
+      }
+    }
+    function detHtml() {
+      const fmtDate = (s) => (s ? String(s).slice(0, 10).split("-").reverse().join("/") : "–");
+      const money = (v) => fmt(v, 2);
+      const tot = zero();
+      det.rows.forEach((r) => add(tot, { q: Number(r.quantidade) || 0, fat: Number(r.fat) || 0, rl: Number(r.rl) || 0, mp: Number(r.mp) || 0 }));
+      const mc = (c) => { const v = mbOf(c); return v == null ? "–" : `${fmt(v * 100, 1)}%`; };
+      const nf = (r) => escapeHtml([r.documento, r.serie_documento].filter(Boolean).join("-") || "–");
+      let body;
+      if (det.loading) body = `<div class="cmm-empty">Carregando notas fiscais…</div>`;
+      else if (det.error) body = `<div class="cmm-empty">${escapeHtml(det.error)}</div>`;
+      else if (!det.rows.length) body = `<div class="cmm-empty">Nenhuma nota fiscal encontrada.</div>`;
+      else {
+        const line = (r) => {
+          const c = { q: Number(r.quantidade) || 0, fat: Number(r.fat) || 0, rl: Number(r.rl) || 0, mp: Number(r.mp) || 0 };
+          return `<tr><td>${fmtDate(r.entry_date)}</td><td>${nf(r)}</td><td>${escapeHtml(r.cod_produto || "–")}</td><td class="l">${escapeHtml(r.produto || "–")}</td><td class="l">${escapeHtml(r.cliente || "–")}</td><td class="l">${escapeHtml(r.cidade || "–")}</td><td>${escapeHtml(r.uf || "–")}</td><td class="l">${escapeHtml(r.regional || "–")}</td><td>${fmtQty(c.q)}</td><td>${money(c.fat)}</td><td>${money(c.rl)}</td><td>${money(c.mp)}</td><td>${mc(c)}</td></tr>`;
+        };
+        body = `<table class="cmm-dtbl"><thead><tr><th>Data</th><th>NF</th><th>Cód. Prod.</th><th class="l">Descr. Produto</th><th class="l">Cliente</th><th class="l">Cidade</th><th>UF</th><th class="l">Regional Marcher</th><th>VOL</th><th>FAT</th><th>RL</th><th>MP</th><th>MC1%</th></tr></thead><tbody>${det.rows.map(line).join("")}</tbody><tfoot><tr><td colspan="8" class="l">Total · ${det.rows.length} ${det.rows.length === 1 ? "linha" : "linhas"}</td><td>${fmtQty(tot.q)}</td><td>${money(tot.fat)}</td><td>${money(tot.rl)}</td><td>${money(tot.mp)}</td><td>${mc(tot)}</td></tr></tfoot></table>`;
+      }
+      return `<div class="cmm-ov" data-dov><div class="cmm-pop cmm-dpop" role="dialog" aria-label="Notas fiscais"><div class="cmm-pop-h"><div><div class="cmm-pop-t">${escapeHtml(det.title)} <span>· ${MESES[det.month - 1]}/${year} · notas fiscais (líquido de devoluções)</span></div></div><button class="cmm-btn" data-det-close>✕ Fechar</button></div><div class="cmm-pop-b">${body}</div></div></div>`;
     }
     // Foto da tabela para exportar: as 5 métricas (VOL, FAT, RL, MP, MC1%), cada linha com todos os
     // itens por código, respeitando o filtro de equipe (mas não a métrica/linhas abertas da tela).
@@ -662,7 +712,7 @@
           <div class="cmm-ctrls"><div class="cmm-tabs">${METRICS.map(([v, l]) => `<button data-metric="${v}" class="${metric === v ? "active" : ""}">${l}</button>`).join("")}</div>${equipeControlHtml()}</div></div>
           <div class="${tLoading ? "cmm-tdim" : ""}">${tableHtml()}</div>
           <div class="cmm-legend"><span>▲▼ verde = favorável · vermelho = desfavorável (em MP, queda é favorável)</span><span>– = mês sem volume líquido</span><span>Meses após o filtro ficam vazios</span><span>Coluna do ano anterior = média ponderada do 4º trimestre (VOL = média mensal)</span><span>Coluna do ano atual = acumulado até o mês do filtro · a seta compara com os 3 últimos meses do mesmo ano (não se aplica ao VOL)</span></div></div>
-        ${pop ? popHtml() : ""}</div>`;
+        ${pop ? popHtml() : ""}${det ? detHtml() : ""}</div>`;
       bind(container);
       exporter?.bind(container, exportSnapshot);
       syncStickyOffset(container);
@@ -715,6 +765,9 @@
       }
       container.querySelectorAll("[data-metric]").forEach((b) => b.addEventListener("click", () => { metric = b.dataset.metric; render(container); }));
       container.querySelectorAll("tr[data-row]").forEach((tr) => tr.addEventListener("click", () => { const k = tr.dataset.row; if (openRows.has(k)) openRows.delete(k); else openRows.add(k); render(container); }));
+      container.querySelectorAll("td[data-det]").forEach((td) => td.addEventListener("click", (e) => { e.stopPropagation(); openDetail(td.dataset.dt, Number(td.dataset.det), td.dataset.cods.split("|")); }));
+      container.querySelector("[data-det-close]")?.addEventListener("click", () => { det = null; render(container); });
+      container.querySelector("[data-dov]")?.addEventListener("click", (e) => { if (e.target === e.currentTarget) { det = null; render(container); } });
       container.querySelectorAll("[data-eff]").forEach((el) => el.addEventListener("click", () => { hideTip(); pop = { eff: el.dataset.eff, open: new Set() }; render(container); }));
       container.querySelectorAll("tr[data-pp]").forEach((tr) => tr.addEventListener("click", () => { const k = tr.dataset.pp; if (pop.open.has(k)) pop.open.delete(k); else pop.open.add(k); render(container); }));
       container.querySelector("[data-pop-close]")?.addEventListener("click", () => { pop = null; render(container); });
@@ -726,7 +779,10 @@
       });
       if (!keyBound) {
         keyBound = true;
-        document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pop && host?.isConnected) { pop = null; render(host); } });
+        document.addEventListener("keydown", (e) => {
+          if (e.key !== "Escape" || !host?.isConnected) return;
+          if (det) { det = null; render(host); } else if (pop) { pop = null; render(host); }
+        });
       }
     }
 
@@ -778,6 +834,8 @@
       @media(max-width:1180px){.cmm-tbl th,.cmm-tbl td{padding:3px 4px;font-size:10.5px}.cmm-tbl th:first-child,.cmm-tbl td:first-child{width:170px;max-width:170px}.cmm-tbl th:nth-child(2),.cmm-tbl td:nth-child(2){width:56px}.cmm-tbl th.cmm-ano,.cmm-tbl td.cmm-ano{width:68px}}
       @media(max-width:760px){.cmm-tw{overflow-x:auto}.cmm-tbl{min-width:900px}.cmm-pt{min-width:0}}
       @media(max-width:1150px){.cmm-kpis{grid-template-columns:repeat(3,1fr)}.cmm-two{grid-template-columns:1fr}}
+      .cmm-tbl td.cmm-det{cursor:pointer}.cmm-tbl td.cmm-det:hover{background:var(--cmm-panel2);box-shadow:inset 0 0 0 1px var(--cmm-blue)}
+      .cmm-dpop{width:min(1100px,95vw);height:auto;max-height:85vh}.cmm-dtbl{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}.cmm-dtbl th,.cmm-dtbl td{padding:6px 8px;text-align:right;white-space:nowrap;font-size:11.5px;border-bottom:1px solid var(--cmm-line)}.cmm-dtbl .l{text-align:left}.cmm-dtbl td.l{max-width:240px;overflow:hidden;text-overflow:ellipsis}.cmm-dtbl th{position:sticky;top:0;background:var(--cmm-panel);color:var(--cmm-muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}.cmm-dtbl tfoot td{position:sticky;bottom:0;background:var(--cmm-panel);font-weight:700}
       @media(max-width:768px){.cmm-kpis{grid-template-columns:repeat(2,1fr)}.cmm-pop{width:100vw;height:100vh;border-radius:0}}
       `;
       document.head.appendChild(s);
