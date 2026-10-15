@@ -600,7 +600,7 @@
         const cods = d.cod ? (d.obj.tipo === "Máquinas" ? [d.cod] : null) : d.key && d.obj.kind === "M" ? d.obj.items.map((i) => i.cod) : null;
         cols.months.forEach((m, i) => {
           if (!m) { r += `<td class="cmm-future"></td>`; return; }
-          const link = cods && nz(m.c) ? ` class="cmm-det" data-det="${i + 1}" data-cods="${escapeHtml(cods.join("|"))}" data-dt="${escapeHtml(d.full || d.label)}" title="Ver notas fiscais"` : "";
+          const link = cods && nz(m.c) ? ` class="cmm-det" data-det="${i + 1}" data-cods="${escapeHtml(cods.join("|"))}" data-dt="${escapeHtml(d.full || d.label)}" ${tipAttr([{ label: "Notas fiscais", value: "Clique para ver" }])}` : "";
           r += `<td${link}>${mcell(m.c, m.prev, k)}</td>`;
         });
         return `${r}<td class="cmm-ano">${mcell(cols.ano.c, cols.ano.prev, k)}</td></tr>`;
