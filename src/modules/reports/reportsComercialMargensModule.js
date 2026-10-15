@@ -615,7 +615,7 @@
     }
     // ── Detalhe por NF (clique no valor do mês) ─────────────────────────
     async function openDetail(title, mes, cods) {
-      det = { title, month: mes, cods, loading: true, rows: [], error: "" };
+      det = { title, month: mes, cods, loading: true, rows: [], error: "", sort: { key: "", dir: 1 } };
       hideTip();
       render(host);
       const mine = det;
@@ -648,11 +648,26 @@
       else if (det.error) body = `<div class="cmm-empty">${escapeHtml(det.error)}</div>`;
       else if (!det.rows.length) body = `<div class="cmm-empty">Nenhuma nota fiscal encontrada.</div>`;
       else {
+        // Classificador dos cabeçalhos (mesmo padrão do popover do Painel de Vendas: clique alterna ↑/↓)
+        const NUMK = ["quantidade", "fat", "rl", "mp", "mc"];
+        const mcOf = (r) => { const v = mbOf({ rl: Number(r.rl) || 0, mp: Number(r.mp) || 0 }); return v == null ? -Infinity : v; };
+        const sorted = [...det.rows];
+        if (det.sort.key) {
+          const k = det.sort.key, d = det.sort.dir;
+          sorted.sort((a, b) => NUMK.includes(k)
+            ? d * ((k === "mc" ? mcOf(a) : Number(a[k]) || 0) - (k === "mc" ? mcOf(b) : Number(b[k]) || 0) || 0)
+            : d * String(a[k] || "").localeCompare(String(b[k] || ""), "pt-BR"));
+        }
+        const sortTh = (key, label, cls) => {
+          const active = det.sort.key === key;
+          const arrow = active ? (det.sort.dir === 1 ? " ↑" : " ↓") : "";
+          return `<th data-dsort="${key}"${cls ? ` class="${cls}"` : ""} style="cursor:pointer;user-select:none${active ? ";color:var(--theme-ink-blue, #7aa2ff)" : ""}">${label}${arrow}</th>`;
+        };
         const line = (r) => {
           const c = { q: Number(r.quantidade) || 0, fat: Number(r.fat) || 0, rl: Number(r.rl) || 0, mp: Number(r.mp) || 0 };
           return `<tr><td>${fmtDate(r.entry_date)}</td><td>${nf(r)}</td><td>${escapeHtml(r.cod_produto || "–")}</td><td class="l cmm-dw" ${tipAttr([{ label: "Produto", value: r.produto || "–" }])}>${escapeHtml(r.produto || "–")}</td><td class="l cmm-dw" ${tipAttr([{ label: "Cliente", value: r.cliente || "–" }])}>${escapeHtml(r.cliente || "–")}</td><td class="l">${escapeHtml(r.cidade || "–")}</td><td>${escapeHtml(r.uf || "–")}</td><td class="l">${escapeHtml(r.regional || "–")}</td><td>${fmtQty(c.q)}</td><td>${money(c.fat)}</td><td>${money(c.rl)}</td><td>${money(c.mp)}</td><td>${mc(c)}</td></tr>`;
         };
-        body = `<table class="cmm-dtbl"><thead><tr><th>Data</th><th>NF</th><th>Cód. Prod.</th><th class="l">Descr. Produto</th><th class="l">Cliente</th><th class="l">Cidade</th><th>UF</th><th class="l">Regional</th><th>VOL</th><th>FAT</th><th>RL</th><th>MP</th><th>MC1%</th></tr></thead><tbody>${det.rows.map(line).join("")}</tbody><tfoot><tr><td colspan="8" class="l">Total · ${det.rows.length} ${det.rows.length === 1 ? "linha" : "linhas"}</td><td>${fmtQty(tot.q)}</td><td>${money(tot.fat)}</td><td>${money(tot.rl)}</td><td>${money(tot.mp)}</td><td>${mc(tot)}</td></tr></tfoot></table>`;
+        body = `<table class="cmm-dtbl"><thead><tr>${sortTh("entry_date", "Data")}${sortTh("documento", "NF")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Descr. Produto", "l")}${sortTh("cliente", "Cliente", "l")}${sortTh("cidade", "Cidade", "l")}${sortTh("uf", "UF")}${sortTh("regional", "Regional", "l")}${sortTh("quantidade", "VOL")}${sortTh("fat", "FAT")}${sortTh("rl", "RL")}${sortTh("mp", "MP")}${sortTh("mc", "MC1%")}</tr></thead><tbody>${sorted.map(line).join("")}</tbody><tfoot><tr><td colspan="8" class="l">Total · ${det.rows.length} ${det.rows.length === 1 ? "linha" : "linhas"}</td><td>${fmtQty(tot.q)}</td><td>${money(tot.fat)}</td><td>${money(tot.rl)}</td><td>${money(tot.mp)}</td><td>${mc(tot)}</td></tr></tfoot></table>`;
       }
       // Mesmo visual do popover de detalhe do Painel de Vendas (cabeçalho, ✕ e fontes da tabela)
       return `<div class="cmm-dov" data-dov><div class="cmm-dpop" role="dialog" aria-label="Notas fiscais"><div class="cmm-dhead"><span>${escapeHtml(det.title)} · ${MESES[det.month - 1]}/${year}</span><button class="cmm-dx" type="button" aria-label="Fechar" data-det-close>✕</button></div><div class="cmm-dbody">${body}</div></div></div>`;
@@ -767,6 +782,11 @@
       container.querySelectorAll("[data-metric]").forEach((b) => b.addEventListener("click", () => { metric = b.dataset.metric; render(container); }));
       container.querySelectorAll("tr[data-row]").forEach((tr) => tr.addEventListener("click", () => { const k = tr.dataset.row; if (openRows.has(k)) openRows.delete(k); else openRows.add(k); render(container); }));
       container.querySelectorAll("td[data-det]").forEach((td) => td.addEventListener("click", (e) => { e.stopPropagation(); openDetail(td.dataset.dt, Number(td.dataset.det), td.dataset.cods.split("|")); }));
+      container.querySelectorAll("th[data-dsort]").forEach((th) => th.addEventListener("click", () => {
+        const key = th.dataset.dsort;
+        if (det.sort.key === key) det.sort.dir *= -1; else { det.sort.key = key; det.sort.dir = 1; }
+        render(container);
+      }));
       container.querySelector("[data-det-close]")?.addEventListener("click", () => { det = null; render(container); });
       container.querySelector("[data-dov]")?.addEventListener("click", (e) => { if (e.target === e.currentTarget) { det = null; render(container); } });
       container.querySelectorAll("[data-eff]").forEach((el) => el.addEventListener("click", () => { hideTip(); pop = { eff: el.dataset.eff, open: new Set() }; render(container); }));
