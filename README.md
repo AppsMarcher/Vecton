@@ -230,7 +230,7 @@ Essa regra é usada nos percentuais do DRE Gerencial e nas linhas `%RL` do DRE D
 
 ## Comercial
 
-Os oito cadastros comerciais compartilham `createCadastroModule()` em `comercialCadastroModule.js`. As configurações e dependências são fornecidas pelo `app.js`.
+Os nove cadastros comerciais (inclui **Municípios**, o mapa município → território da carga automática) compartilham `createCadastroModule()` em `comercialCadastroModule.js`. As configurações e dependências são fornecidas pelo `app.js`.
 
 As cargas comerciais seguem o padrão:
 
@@ -254,6 +254,14 @@ Principais RPCs:
 - `comercial_mapa_vendas`
 - `comercial_mapa_geografico_vendas`
 - `comercial_margens_itens` (Evolutivo de Margens)
+
+### Carga automática de vendas (robô)
+
+Desde 15/10/2026 a carga de vendas do **mês corrente** roda sozinha: o robô em `robo-cargas/` (Node.js, no servidor) lê o Protheus (`MARCHER-BD`, somente leitura), resolve o território pelo mapa **Parâmetros → Comercial → Municípios** (`comercial_regioes_municipio`), cria o lote `complete` do mês e aplica pelo mesmo caminho da tela de carga. A carga é sempre completa (apaga e regrava o mês), nos horários de `carga_automatica_config.horarios` (hoje `12:00` e `23:30`); meses anteriores e futuros continuam manuais.
+
+Proteções: extração vazia e queda de mais de 30% nas linhas bloqueiam a carga; linha reprovada na validação não aplica nada. Sucesso gera o aviso "Carga de Vendas (realizado) aplicada" (marca "· carga automática"); erro gera "Carga automática com erro" por e-mail e sininho, com as linhas reprovadas. Histórico em `carga_automatica_log`. Migrations `259`–`262`.
+
+Detalhes, instalação e operação: [`robo-cargas/README.md`](robo-cargas/README.md). Resumo para a TI: [`docs/robo-cargas-resumo-ti.pdf`](docs/robo-cargas-resumo-ti.pdf).
 
 ### Evolutivo de Margens
 
@@ -284,7 +292,7 @@ O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano 
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `256` (260 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `262` (266 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -331,6 +339,8 @@ Resumo por fase:
 | `254` | carteira (CART) entra só pelo mês de referência no Painel e Peças |
 | `255` | RPC `comercial_margens_itens` e posição do card Evolutivo de Margens no catálogo |
 | `256` | `comercial_margens_itens` ganha o filtro Equipe Comercial (`p_territorio`, `p_coordenacao`, `p_vendedor`), usado só pela tabela Evolutivo de Margens |
+| `257–258` | código do cliente nas Ativações de Garantia; detalhe do Evolutivo de Margens |
+| `259–262` | carga automática de vendas (robô): `carga_automatica_config`/`carga_automatica_log`, mapa `comercial_regioes_municipio` (+ carga inicial), avisos de carga aplicada e de erro |
 
 ### Divergências conhecidas do schema
 
