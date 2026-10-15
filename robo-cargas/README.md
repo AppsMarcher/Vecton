@@ -21,7 +21,7 @@ Roda no servidor, lê o Protheus (SQL Server `MARCHER-BD`) e carrega no Vecton p
 | Linha reprovada na validação (ex.: território não cadastrado) | Não aplica nada; o lote fica na tela de carga para análise. Log `erro` e código de saída 1 |
 | Falha no Protheus/Vecton | Log `erro`, código de saída 1 (a tarefa aparece como falha no Agendador) |
 
-Lotes automáticos têm `notes` iniciando em `[auto]`: não geram aviso/e-mail (migration 259) e lotes pendentes de execuções anteriores são removidos antes de criar o novo.
+Lotes automáticos têm `notes` iniciando em `[auto]`. Cada carga bem-sucedida gera o aviso "Carga de Vendas (realizado) aplicada" (sininho + e-mail, mesmos destinatários da carga manual; texto com "· carga automática" — migration 262). Lotes pendentes de execuções anteriores são removidos antes de criar o novo.
 Lotes antigos já aplicados e totalmente substituídos são removidos pelo próprio banco (migration 204).
 
 ## Quando a carga dá erro
@@ -37,7 +37,7 @@ Causas comuns e correção:
 
 ## Instalação (uma vez)
 
-1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql`, `supabase/260_seed_comercial_regioes_municipio.sql` e `supabase/261_carga_automatica_aviso_erro.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
+1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql`, `supabase/260_seed_comercial_regioes_municipio.sql` e `supabase/261_carga_automatica_aviso_erro.sql` e `supabase/262_carga_automatica_avisa_sucesso.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
 2. **Usuário no Vecton:** convidar `robo.vecton@marcher.com.br` com papel **editor** na organização e acesso ao Comercial.
 3. **Servidor:** instalar Node 20+ e o *ODBC Driver 17/18 for SQL Server*. Copiar a pasta `robo-cargas`, rodar `npm install`.
 4. Copiar `config.example.json` para `config.json`. Autenticação do Protheus: `"windows"` (a conta que roda a tarefa precisa de leitura em `protheus_producao`) ou `"sql"` (usuário/senha via variável de ambiente).
