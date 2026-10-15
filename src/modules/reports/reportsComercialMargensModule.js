@@ -650,7 +650,7 @@
       else {
         const line = (r) => {
           const c = { q: Number(r.quantidade) || 0, fat: Number(r.fat) || 0, rl: Number(r.rl) || 0, mp: Number(r.mp) || 0 };
-          return `<tr><td>${fmtDate(r.entry_date)}</td><td>${nf(r)}</td><td>${escapeHtml(r.cod_produto || "–")}</td><td class="l">${escapeHtml(r.produto || "–")}</td><td class="l">${escapeHtml(r.cliente || "–")}</td><td class="l">${escapeHtml(r.cidade || "–")}</td><td>${escapeHtml(r.uf || "–")}</td><td class="l">${escapeHtml(r.regional || "–")}</td><td>${fmtQty(c.q)}</td><td>${money(c.fat)}</td><td>${money(c.rl)}</td><td>${money(c.mp)}</td><td>${mc(c)}</td></tr>`;
+          return `<tr><td>${fmtDate(r.entry_date)}</td><td>${nf(r)}</td><td>${escapeHtml(r.cod_produto || "–")}</td><td class="l cmm-dw" ${tipAttr([{ label: "Produto", value: r.produto || "–" }])}>${escapeHtml(r.produto || "–")}</td><td class="l cmm-dw" ${tipAttr([{ label: "Cliente", value: r.cliente || "–" }])}>${escapeHtml(r.cliente || "–")}</td><td class="l">${escapeHtml(r.cidade || "–")}</td><td>${escapeHtml(r.uf || "–")}</td><td class="l">${escapeHtml(r.regional || "–")}</td><td>${fmtQty(c.q)}</td><td>${money(c.fat)}</td><td>${money(c.rl)}</td><td>${money(c.mp)}</td><td>${mc(c)}</td></tr>`;
         };
         body = `<table class="cmm-dtbl"><thead><tr><th>Data</th><th>NF</th><th>Cód. Prod.</th><th class="l">Descr. Produto</th><th class="l">Cliente</th><th class="l">Cidade</th><th>UF</th><th class="l">Regional</th><th>VOL</th><th>FAT</th><th>RL</th><th>MP</th><th>MC1%</th></tr></thead><tbody>${det.rows.map(line).join("")}</tbody><tfoot><tr><td colspan="8" class="l">Total · ${det.rows.length} ${det.rows.length === 1 ? "linha" : "linhas"}</td><td>${fmtQty(tot.q)}</td><td>${money(tot.fat)}</td><td>${money(tot.rl)}</td><td>${money(tot.mp)}</td><td>${mc(tot)}</td></tr></tfoot></table>`;
       }
@@ -841,7 +841,7 @@
       .cmm-dhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-bottom:1px solid var(--theme-border,#2a2d34);font-size:11px;font-weight:600;color:var(--theme-ink-secondary,#a1a7b3);text-transform:uppercase;letter-spacing:.05em}
       .cmm-dx{background:none;border:none;color:var(--theme-ink-muted,#6b7280);font-size:16px;cursor:pointer;line-height:1;padding:0 2px}.cmm-dx:hover{color:var(--theme-ink,#fff)}
       .cmm-dbody{overflow:auto}
-      .cmm-dtbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.cmm-dtbl th,.cmm-dtbl td{padding:6px 12px;font-size:10px;text-align:right;white-space:nowrap}.cmm-dtbl .l{text-align:left}.cmm-dtbl td.l{max-width:260px;overflow:hidden;text-overflow:ellipsis}
+      .cmm-dtbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.cmm-dtbl th,.cmm-dtbl td{padding:6px 12px;font-size:10px;text-align:right;white-space:nowrap}.cmm-dtbl .l{text-align:left}.cmm-dtbl td.l{max-width:260px;overflow:hidden;text-overflow:ellipsis}.cmm-dtbl td.cmm-dw{max-width:220px}
       .cmm-dtbl th{position:sticky;top:0;background:var(--theme-surface,#121317);color:var(--theme-ink-muted,#6b7280);font-weight:500;font-size:8px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--theme-border,#2a2d34);z-index:1}
       .cmm-dtbl tbody tr:not(:last-child) td{border-bottom:1px solid var(--theme-border-subtle,rgba(255,255,255,.05))}
       .cmm-dtbl tfoot td{border-top:1px solid var(--theme-border,#2a2d34);font-weight:600;color:var(--theme-ink,#fff);position:sticky;bottom:0;background:var(--theme-surface,#121317)}
