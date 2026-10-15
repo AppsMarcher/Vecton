@@ -1,0 +1,19 @@
+{
+  "supabase": {
+    "url": "https://jwjnvxshtdekzcprmsyl.supabase.co",
+    "anonKey": "sb_publishable_6OaMzol1VlWDUfchoBsehQ_csHEdpFV",
+    "organizationName": "Marcher Brasil",
+    "email": "robo.vecton@marcher.com.br",
+    "passwordEnv": "VECTON_ROBO_SENHA"
+  },
+  "protheus": {
+    "server": "MARCHER-BD",
+    "database": "protheus_producao",
+    "auth": "windows",
+    "user": "",
+    "passwordEnv": "PROTHEUS_SENHA",
+    "odbcDriver": "ODBC Driver 17 for SQL Server",
+    "timeoutSeconds": 600
+  },
+  "timezone": "America/Sao_Paulo"
+}

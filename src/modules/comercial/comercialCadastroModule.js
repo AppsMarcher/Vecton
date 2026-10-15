@@ -13,7 +13,8 @@
       fields,
       searchable,
       newLabel,
-      noConflictOnCreate
+      noConflictOnCreate,
+      maxRows
     } = config;
 
     const {
@@ -133,7 +134,9 @@
 
     function renderTable(tbody) {
       const colspan = fields.length + 1;
-      const visible = sortRows(rows.filter(matchesSearch));
+      const matched = sortRows(rows.filter(matchesSearch));
+      // maxRows (opcional): cadastros muito grandes mostram so as primeiras linhas; a busca refina.
+      const visible = maxRows ? matched.slice(0, maxRows) : matched;
       if (!visible.length) {
         tbody.innerHTML = `<tr><td colspan="${colspan}" class="users-empty">Nenhum resultado encontrado.</td></tr>`;
         return;
@@ -151,7 +154,10 @@
               </button>
             </div>
           </td>
-        </tr>`).join("");
+        </tr>`).join("")
+        + (matched.length > visible.length
+          ? `<tr><td colspan="${colspan}" class="users-empty">Mostrando ${visible.length} de ${matched.length}. Use a busca para refinar.</td></tr>`
+          : "");
 
       tbody.querySelectorAll("[data-action]").forEach((btn) => {
         btn.addEventListener("click", () => {

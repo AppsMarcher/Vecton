@@ -1,0 +1,18 @@
+{
+  "name": "vecton-robo-cargas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Robo de cargas automaticas Protheus -> Vecton",
+  "type": "module",
+  "scripts": {
+    "run": "node src/index.js run",
+    "vendas:simular": "node src/index.js vendas --dry-run",
+    "test": "node --test test/robo.test.js"
+  },
+  "dependencies": {
+    "mssql": "^11.0.1"
+  },
+  "optionalDependencies": {
+    "msnodesqlv8": "^4.4.0"
+  }
+}

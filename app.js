@@ -213,6 +213,7 @@ const views = {
   comProdutos: document.querySelector("#comProdutos-view"),
   comClientes: document.querySelector("#comClientes-view"),
   comTerritorios: document.querySelector("#comTerritorios-view"),
+  comRegioes: document.querySelector("#comRegioes-view"),
   comCoordenacoes: document.querySelector("#comCoordenacoes-view"),
   comTipos: document.querySelector("#comTipos-view"),
   comCulturas: document.querySelector("#comCulturas-view"),
@@ -967,6 +968,22 @@ const comTerritoriosMod = createCadastroModule({
   fields: [{ key: "nome", label: "Nome", required: true }]
 }, comercialCadastroDeps);
 
+// Municipio -> territorio (usado pelo robo de cargas), vinculado a comercial_territorios por id.
+const comRegioesMod = createCadastroModule({
+  table: "comercial_regioes_municipio", idPrefix: "com-regioes",
+  titleSingular: "Município", titlePlural: "Municípios", newLabel: "Novo município",
+  conflictKeys: ["organization_id", "codigo_ibge"],
+  searchable: true, maxRows: 300,
+  fields: [
+    { key: "municipio", label: "Município", required: true },
+    { key: "uf", label: "UF", required: true, type: "select", options: () => UF_OPTIONS },
+    { key: "territorio_id", label: "Território", required: true, type: "select",
+      options: () => comTerritoriosMod.getRows().map((r) => ({ value: r.id, label: r.nome })) },
+    { key: "codigo_ibge", label: "Código IBGE", required: true, lockOnEdit: true },
+    { key: "coord", label: "Coord.", required: false }
+  ]
+}, comercialCadastroDeps);
+
 const comProdutosMod = createCadastroModule({
   table: "comercial_produtos", idPrefix: "com-produtos",
   titleSingular: "Produto", titlePlural: "Produtos",
@@ -1056,6 +1073,13 @@ const comercialModules = {
   comLinhasNegocio: comLinhasNegocioMod,
   comCoordenacoes: comCoordenacoesMod,
   comTerritorios: comTerritoriosMod,
+  comRegioes: {
+    loadAndRender: async () => {
+      await comTerritoriosMod.loadAndRender();
+      await comRegioesMod.loadAndRender();
+    },
+    bindAddButton: comRegioesMod.bindAddButton
+  },
   comClientes: comClientesMod,
   comVendedores: comVendedoresMod,
   comProdutos: {

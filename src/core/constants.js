@@ -89,6 +89,7 @@ const VIEW_HEADER_METADATA = {
   comProdutos:       { kicker: "PARÂMETROS", title: "Produtos" },
   comClientes:       { kicker: "PARÂMETROS", title: "Clientes" },
   comTerritorios:    { kicker: "PARÂMETROS", title: "Território" },
+  comRegioes:        { kicker: "PARÂMETROS", title: "Municípios" },
   comCoordenacoes:   { kicker: "PARÂMETROS", title: "Coordenação" },
   comTipos:          { kicker: "PARÂMETROS", title: "Tipo" },
   comCulturas:       { kicker: "PARÂMETROS", title: "Cultura" },

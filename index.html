@@ -397,6 +397,7 @@
               <button class="submenu-button" type="button" data-view="comProdutos"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-briefcase"></use></svg><span>Produtos</span></button>
               <button class="submenu-button" type="button" data-view="comClientes"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-users-plus"></use></svg><span>Clientes</span></button>
               <button class="submenu-button" type="button" data-view="comTerritorios"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-branch"></use></svg><span>Território</span></button>
+              <button class="submenu-button" type="button" data-view="comRegioes"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-branch"></use></svg><span>Municípios</span></button>
               <button class="submenu-button" type="button" data-view="comCoordenacoes"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-layers"></use></svg><span>Coordenação</span></button>
               <button class="submenu-button" type="button" data-view="comTipos"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-target"></use></svg><span>Tipo</span></button>
               <button class="submenu-button" type="button" data-view="comCulturas"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-activity"></use></svg><span>Cultura</span></button>
@@ -1040,6 +1041,27 @@
             <table class="data-table cadastro-table">
               <thead><tr><th>Nome</th><th></th></tr></thead>
               <tbody id="com-territorios-table-body"><tr><td colspan="2" class="users-empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="comRegioes-view" class="content-view">
+        <div class="cadastro-shell">
+          <div class="cadastro-header">
+            <div>
+              <h2 class="cadastro-title">Municípios</h2>
+              <p class="cadastro-subtitle">Município → território. Usado na carga automática de vendas para definir o território de cada cliente.</p>
+            </div>
+            <button id="com-regioes-add-btn" class="primary-button" type="button">+ Novo município</button>
+          </div>
+          <div class="cadastro-search">
+            <input id="com-regioes-search" type="text" placeholder="Buscar por município, UF, território ou código IBGE...">
+          </div>
+          <div class="content-card cadastro-table-card">
+            <table class="data-table cadastro-table">
+              <thead><tr><th>Município</th><th>UF</th><th>Território</th><th>Código IBGE</th><th>Coord.</th><th></th></tr></thead>
+              <tbody id="com-regioes-table-body"><tr><td colspan="6" class="users-empty">Carregando...</td></tr></tbody>
             </table>
           </div>
         </div>
