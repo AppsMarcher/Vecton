@@ -70,10 +70,14 @@ test("navegador: injeta a sessao, espera o relatorio ficar pronto e le o html", 
   const pagina = `<!doctype html><meta charset="utf-8"><title>stub</title><body>stub
 <script>
   const sessao = localStorage.getItem(${JSON.stringify(CHAVE_SESSAO)});
-  let pronto = false;
-  setTimeout(() => { pronto = true; }, 600);
+  let bootFeito = false, aberto = false, pronto = false;
+  setTimeout(() => { bootFeito = true; }, 400);
+  window.VECTON_AUTOMATION = {
+    ready: () => bootFeito && !!sessao,
+    openReport: (id) => { aberto = id === "comercialPainel"; if (aberto) setTimeout(() => { pronto = true; }, 300); return { ok: aberto, pode: aberto, view: "reports", selecionado: aberto ? id : null }; }
+  };
   window.VECTON_REPORT_AUTOMATION = { comercialPainel: {
-    ready: () => pronto && !!sessao,
+    ready: () => aberto && pronto && !!sessao,
     build: async ({ assinatura }) => ({ ano: 2026, mes: 10, cenario: "Fcst 5+7", subject: "Painel de Vendas — Outubro/2026",
       filename: "painel.pdf", bodyText: "assinado por " + assinatura, html: "<html>sessao=" + (JSON.parse(sessao).user || {}).id + "</html>" })
   } };

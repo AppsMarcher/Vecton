@@ -23,6 +23,8 @@ export function scriptSessao(sessao) {
   return `try { localStorage.setItem(${JSON.stringify(CHAVE_SESSAO)}, ${JSON.stringify(JSON.stringify(sessao))}); } catch (e) {}`;
 }
 
+// Endereco do app. O link direto (?report=) ainda vai junto como reforco, mas quem abre o relatorio e o gancho
+// window.VECTON_AUTOMATION (app.js), que nao depende de o app ter lido o link.
 export function urlDoRelatorio(appUrl, reportId) {
   return `${String(appUrl).replace(/\/$/, "")}/?report=${encodeURIComponent(reportId)}`;
 }
@@ -44,6 +46,22 @@ export async function montarRelatorio({ appUrl, sessao, reportId, assinatura = "
     const page = await context.newPage();
     page.on("pageerror", (e) => erros.push(String(e.message || e).slice(0, 200)));
     await page.goto(urlDoRelatorio(appUrl, reportId), { waitUntil: "domcontentloaded", timeout: timeoutMs });
+    const diagnostico = async (etapa, extra = "") => {
+      const texto = await page.evaluate(() => document.body?.innerText?.replace(/\s+/g, " ").slice(0, 200) || "").catch(() => "");
+      return new Error(`${etapa} em ${Math.round(timeoutMs / 1000)}s (url ${page.url()}${extra}; tela: "${texto}"; erros: ${erros.slice(0, 3).join(" | ") || "nenhum"})`);
+    };
+    // 1) o app terminou de carregar (sessao aceita, dados lidos)
+    try {
+      await page.waitForFunction(() => window.VECTON_AUTOMATION?.ready?.() === true, null, { timeout: timeoutMs, polling: 500 });
+    } catch {
+      throw await diagnostico("O app nao terminou de carregar");
+    }
+    // 2) abre o relatorio (idempotente) e confere que abriu
+    const aberto = await page.evaluate((id) => window.VECTON_AUTOMATION.openReport(id), reportId);
+    if (!aberto?.ok) {
+      throw new Error(`O Vecton nao abriu o relatorio ${reportId} para o usuario do robo (permissao: ${aberto?.pode ? "sim" : "NAO"}; tela atual: ${aberto?.view}/${aberto?.selecionado}). Confira o perfil de acesso do usuario do robo.`);
+    }
+    // 3) o relatorio carregou os dados
     try {
       await page.waitForFunction(
         (id) => window.VECTON_REPORT_AUTOMATION?.[id]?.ready?.() === true,
@@ -51,8 +69,7 @@ export async function montarRelatorio({ appUrl, sessao, reportId, assinatura = "
         { timeout: timeoutMs, polling: 500 }
       );
     } catch {
-      const texto = await page.evaluate(() => document.body?.innerText?.replace(/\s+/g, " ").slice(0, 240) || "").catch(() => "");
-      throw new Error(`O relatorio nao ficou pronto em ${Math.round(timeoutMs / 1000)}s (url ${page.url()}; tela: "${texto}"; erros: ${erros.slice(0, 3).join(" | ") || "nenhum"})`);
+      throw await diagnostico("O relatorio abriu mas nao terminou de carregar os dados");
     }
     return await page.evaluate(async ({ id, ass }) => await window.VECTON_REPORT_AUTOMATION[id].build({ assinatura: ass }), { id: reportId, ass: assinatura });
   } finally {

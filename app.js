@@ -867,6 +867,19 @@ function openReportFromNotification(reportId, year, month) {
   renderReportsView();
 }
 
+// Gancho para o robô de relatórios (robo-cargas/src/relatorios/navegador.js), que roda o app num navegador sem tela:
+// em vez de depender do link direto (?report=), o robô espera o fim do carregamento e pede para abrir o relatório.
+// Devolve o estado final para o robô diagnosticar (ex.: usuário sem permissão para o relatório).
+let appBootDone = false;
+window.VECTON_AUTOMATION = {
+  ready: () => appBootDone,
+  openReport: (reportId) => {
+    const pode = canSeeReport(reportId);
+    openReportFromNotification(reportId, 0, 0);
+    return { ok: activeView === "reports" && selectedReportId === reportId, pode, view: activeView, selecionado: selectedReportId || null };
+  }
+};
+
 // Correio interno: cuida só do conteúdo da aba "Mensagens"; quem monta o
 // popover, as abas e o polling é o notificationsModule, que recebe este módulo
 // como dependência (uma consulta periódica só, via RPC inbox_counts).
@@ -2323,6 +2336,7 @@ async function hydrateFromSupabase() {
     if (canManageUsers()) void loadAndRenderUsers();
     startNotifications();
     applyPendingDeepLink();
+    appBootDone = true;
     void announcementsDisplayModule.checkAndShow();
   } catch (error) {
     console.error(error);
