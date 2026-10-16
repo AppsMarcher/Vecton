@@ -2452,7 +2452,9 @@ function isRpsGestao()   { return hasRole("rps_gestao"); }
 function isGestaoEstrategica() { return hasRole("gestao_estrategica"); }
 function canAccessDashboard() { return isSuperAdmin() || isAdmin() || isManager(); }
 function canAccessPlanning()  { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst(); }
-function canAccessReportsMenu() { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst() || isComercial() || isMarketing(); }
+// Quem só tem relatórios por concessão (extra_report_ids, ignorando flags "id:flag") também vê o menu.
+function hasExtraReportAccess() { return getExtraReportIds().some((id) => !String(id).includes(":")); }
+function canAccessReportsMenu() { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst() || isComercial() || isMarketing() || hasExtraReportAccess(); }
 // Mesmo conjunto de canFillValues() na RPS (rpsModule.js) — quem não preenche
 // valores também não precisa ver o menu. Comercial/Analista "puros" ficam de fora.
 function canAccessRps() { return isSuperAdmin() || isAdmin() || isManager() || isRpsGestao(); }
@@ -2539,8 +2541,9 @@ function canDrillPainelVendas() {
 //  • analyst (Analista): somente OPEX e Headcount por gestão/CC
 //  • comercial: allowlist fixa dos relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS),
 //    exceto Ativações de Garantia (COMERCIAL_EXCLUDED_REPORT_IDS)
-//  • extra_report_ids: concessão ADICIONAL, exceto para os relatórios
-//    comerciais fixos, que exigem um perfil que os autorize explicitamente
+//  • extra_report_ids (matriz "Acessos adicionais"): concessão ADICIONAL válida para QUALQUER
+//    relatório, inclusive os comerciais fixos — o que for marcado ali aparece para a pessoa
+//    mesmo sem o perfil que o libera por regra
 // Com perfis combináveis, o resultado é a UNIÃO do que cada perfil marcado
 // libera (basta UM dos perfis da pessoa liberar o relatório).
 function roleCanSeeReport(role, reportId) {
@@ -2556,7 +2559,6 @@ function roleCanSeeReport(role, reportId) {
 }
 function canSeeReport(reportId) {
   if (getAllAccessRoles().some((role) => roleCanSeeReport(role, reportId))) return true;
-  if (CORE_COMMERCIAL_REPORT_IDS.includes(reportId)) return false;
   return getExtraReportIds().includes(reportId);
 }
 

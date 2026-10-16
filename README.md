@@ -180,7 +180,7 @@ Concessões adicionais disponíveis no perfil:
 | `management` | gestão principal |
 | `extra_managements` | gestões adicionais com acesso pleno |
 | `extra_cc_ids` | centros de custos avulsos |
-| `extra_report_ids` | relatórios adicionais |
+| `extra_report_ids` | relatórios adicionais (matriz de Acessos adicionais): vale para qualquer relatório, inclusive os comerciais fixos, mesmo sem o perfil que o libera por regra; quem só tem concessão também vê o menu Relatórios |
 | `extra_account_codes` | contas contábeis adicionais |
 | `extra_branch_ids` | empresas/filiais adicionais |
 
@@ -363,6 +363,7 @@ Resumo por fase:
 | `267` | Ativações de Garantia: CFOP, CPF/CNPJ do destinatário, forma de pagamento, financiamento, preço da máquina (aba Itens) e parcelas |
 | `268` | card "Marcher no Campo" na mesma seção de Ativações de Garantia no catálogo de relatórios |
 | `269` | perfil de acesso `marketing` (enum `access_profile_role`; rodar sozinho, sem transação) |
+| `270` | Evolutivo de Margens aceita quem tem `comercialMargens` em `extra_report_ids` (funções `comercial_margens_itens`/`_detalhe`) |
 | `253` | `rl` e `mp` no staging e no ledger de vendas realizadas (novo layout FAT/RL/MP) |
 | `254` | carteira (CART) entra só pelo mês de referência no Painel e Peças |
 | `255` | RPC `comercial_margens_itens` e posição do card Evolutivo de Margens no catálogo |

@@ -533,7 +533,8 @@
       row.className = "access-row" + (isDefault ? " access-row-all" : "");
 
       const cb = document.createElement("span");
-      cb.className = "access-checkbox" + (checked ? " access-checkbox-on" : "");
+      // Azul = padrão do perfil; verde = exceção marcada em Acessos adicionais.
+      cb.className = "access-checkbox" + (checked ? ` access-checkbox-on${isDefault ? "" : " access-checkbox-extra"}` : "");
       cb.innerHTML = checked
         ? `<svg viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>`
         : "";
@@ -545,10 +546,21 @@
         cb.addEventListener("click", () => {
           const on = cb.dataset.checked !== "1";
           cb.dataset.checked = on ? "1" : "0";
-          cb.className = "access-checkbox" + (on ? " access-checkbox-on" : "");
+          cb.className = "access-checkbox" + (on ? " access-checkbox-on access-checkbox-extra" : "");
           cb.innerHTML = on
             ? `<svg viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg>`
             : "";
+          // a etiqueta "extra" acompanha a marcação
+          const lblRow = cb.closest(".access-row");
+          const tagEl = lblRow?.querySelector(".ue-extra-tag");
+          if (on && !tagEl) {
+            const novo = document.createElement("span");
+            novo.className = "ue-extra-tag";
+            novo.textContent = "extra";
+            lblRow?.append(novo);
+          } else if (!on && tagEl) {
+            tagEl.remove();
+          }
         });
       }
 

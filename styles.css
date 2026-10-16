@@ -6264,6 +6264,12 @@ body.dialog-open {
   color: var(--theme-ink-blue, #7fa4ff);
 }
 
+.access-checkbox-extra {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.55);
+  color: var(--theme-ink-green, #22c55e);
+}
+
 .access-row-label {
   line-height: 1.3;
 }
@@ -7373,7 +7379,7 @@ body.auth-only .content-view {
 .ue-extra-tag {
   margin-left: auto;
   font-size: 0.6rem; font-weight: 700;
-  background: rgba(245,158,11,0.18); color: var(--theme-ink-amber, #f59e0b);
+  background: rgba(34,197,94,0.18); color: var(--theme-ink-green, #22c55e);
   padding: 1px 6px; border-radius: 10px;
   text-transform: uppercase; letter-spacing: 0.04em;
 }
