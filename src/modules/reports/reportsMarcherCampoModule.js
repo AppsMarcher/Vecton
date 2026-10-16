@@ -187,7 +187,7 @@
         const ativo = s && s.key === c.key;
         return `<th data-sort="${c.key}" class="${c.right ? "r" : ""} ${c.cls || ""}" style="cursor:pointer;user-select:none${ativo ? ";color:var(--blue)" : ""}">${c.label}${ativo ? (s.dir === 1 ? " ↑" : " ↓") : ""}</th>`;
       };
-      return `<table class="data-table mc-table"><thead><tr>${cols.map(th).join("")}</tr></thead><tbody>${ordenadas.map((r) => `<tr>${cols.map((c) => `<td class="${c.right ? "r" : ""} ${c.cls || ""}">${c.html(r)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+      return `<table class="mc-table"><thead><tr>${cols.map(th).join("")}</tr></thead><tbody>${ordenadas.map((r) => `<tr>${cols.map((c) => `<td class="${c.right ? "r" : ""} ${c.cls || ""}">${c.html(r)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     }
     function barra(v, max, label) {
       const w = Math.max(2, Math.round((v / (max || 1)) * 90));
@@ -419,7 +419,7 @@
 
       // Mediana por regiao x nacional
       const regCols = REGS.filter((r) => st.some((s) => s.arr.some((m) => m.regiao === r)));
-      const heat = `<div class="mc-tbl"><table class="data-table mc-table"><thead><tr><th>Modelo</th><th class="r">Nacional</th>${regCols.map((r) => `<th class="r">${r}</th>`).join("")}</tr></thead><tbody>`
+      const heat = `<div class="mc-tbl"><table class="mc-table"><thead><tr><th>Modelo</th><th class="r">Nacional</th>${regCols.map((r) => `<th class="r">${r}</th>`).join("")}</tr></thead><tbody>`
         + st.map((s) => `<tr><td><b>${esc(s.modelo)}</b></td><td class="r">${mil(s.med)}</td>${regCols.map((r) => {
           const pr = s.arr.filter((m) => m.regiao === r).map((m) => m.preco);
           if (!pr.length) return `<td class="r mc-muted">–</td>`;

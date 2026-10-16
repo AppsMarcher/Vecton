@@ -13160,7 +13160,11 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .mc-ph { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 12px; }
 .mc-ph small, .mc-small { font-size: .74rem; color: var(--text-faint); }
 .mc-tbl { overflow-x: auto; }
-.mc-table th, .mc-table td { padding: 7px 10px; white-space: nowrap; vertical-align: middle; }
+.mc-table { width: 100%; border-collapse: collapse; table-layout: auto; }
+.mc-table th, .mc-table td { padding: 7px 10px; white-space: nowrap; vertical-align: middle; border-bottom: 1px solid var(--theme-border-subtle, rgba(255, 255, 255, 0.04)); font-variant-numeric: tabular-nums; }
+.mc-table th { background: var(--theme-surface-tint, rgba(255, 255, 255, 0.02)); color: var(--text-soft); font-size: 0.64rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.mc-table td { color: var(--text); font-size: 0.78rem; line-height: 1.25; }
+.mc-table tbody tr:hover td { background: var(--line-soft); }
 .mc-table th, .mc-table td { text-align: left; }
 .mc-table th.r, .mc-table td.r { text-align: right; }
 .mc-table .mc-num { width: 40px; min-width: 40px; text-align: left; }
