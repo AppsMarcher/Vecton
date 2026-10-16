@@ -6,7 +6,7 @@ Roda no servidor, lê o Protheus (SQL Server `MARCHER-BD`) e carrega no Vecton p
 ## Status (16/10/2026)
 
 **Implantado e validado em produção.** No servidor (`C:\robo-cargas`): login no Vecton, leitura do Protheus com o login SQL `usr_robo_vecton`, simulação (`--dry-run`), **carga real** do mês corrente, tarefa agendada a cada 5 min (ciclo programado e pedidos do botão atendidos).
-Banco do Vecton com as migrations 259–263 aplicadas; carga de vendas ligada (`enabled = true`) com horários `12:00` e `23:30`.
+Banco do Vecton com as migrations 259–264 aplicadas; carga de vendas ligada (`enabled = true`) com horários `12:00` e `23:30`. A carga do **DRE** tem horários próprios (`10:00`, `15:00` e `19:00`; cada carga tem a sua linha em `carga_automatica_config`) e está desligada até a simulação ser conferida.
 Botão **Carregar agora** e seção Automatizadas na tela: validados (pedido atendido em até 5 min, card atualizado sozinho, aviso no sino e por e-mail).
 Ainda não exercitado: o e-mail "Carga automática com erro", que só dispara numa falha real.
 
@@ -95,7 +95,7 @@ Criar `src/jobs/<nome>.js` exportando: `nome`, `precisaRegioes`, `alvo` (tabelas
 ## Dicas de operação
 
 - **Carregar agora:** `node src/index.js vendas` (não depende do horário; regrava o mês corrente e dispara o aviso de carga aplicada).
-- **Horários:** `update carga_automatica_config set horarios = array['12:00','23:30'] where job = 'vendas';`. Evite `00:00`: nesse horário o "mês corrente" já virou, e as vendas do fim do último dia do mês ficariam fora da carga automática.
+- **Horários (por carga):** `update carga_automatica_config set horarios = array['12:00','23:30'] where job = 'vendas';` e `... array['10:00','15:00','19:00'] where job = 'dre';`. Evite `00:00`: nesse horário o "mês corrente" já virou, e as vendas do fim do último dia do mês ficariam fora da carga automática.
 - **Pausar:** `update carga_automatica_config set enabled = false where job = 'vendas';`
 - **Pasta do CSV:** `update carga_automatica_config set params = jsonb_set(params, '{diretorio_saida}', '"C:\\robo-cargas\\logs"') where job = 'vendas';`
 - A tarefa agendada roda a cada 15 min; execuções sem horário devido não geram log. Falha de login no Vecton não grava log no banco (só no Agendador).

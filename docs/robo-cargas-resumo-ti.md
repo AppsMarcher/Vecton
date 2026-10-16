@@ -43,7 +43,8 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 | Robô instalado no servidor (`C:\robo-cargas`, Node, `npm install`, `config.json`) | **Concluído** |
 | Simulação (`--dry-run`) a partir do servidor | **Validada** |
 | **Carga real** a partir do servidor | **Validada**: mês 2026-10, 166 linhas (FAT 51, CART 115), 0 sem território |
-| Carga ligada e horários `12:00` e `23:30` | Configurado no Vecton |
+| Carga de vendas ligada, horários `12:00` e `23:30` | Configurado no Vecton |
+| Carga do DRE: horários próprios `10:00`, `15:00` e `19:00` | Configurado no Vecton (carga ainda desligada) |
 | Pasta de cópia dos CSVs | Configurada para `C:\robo-cargas\logs` |
 | Tarefa agendada no Windows (`Vecton - Robo de Cargas`, a cada 5 min) | **Em operação**: ciclo programado das 23:30 e pedidos do botão atendidos |
 | Aviso de carga aplicada (sino e e-mail), nas cargas manual, programada e pelo botão | **Validado** |
@@ -76,7 +77,7 @@ A migration 264 cadastra a carga `dre` **desligada**. Passos, em ordem:
 1. Atualizar `C:\robo-cargas` com a versão do GitHub (novos: `src\jobs\dre.js`, `src\erros.js`, `sql\dre_mes.sql`; alterados: `src\runner.js` e `src\jobs\vendas.js`). Não é preciso recriar a tarefa.
 2. Conferir que o login `usr_robo_vecton` lê `CT2010` (`GRANT SELECT ON dbo.CT2010`).
 3. Simular, sem gravar: `node src/index.js dre --dry-run`. Comparar o total de lançamentos e o saldo com o `Razao_Contabil [carga dados].xlsm` do mês.
-4. Quem usa o Vecton liga a carga (`update carga_automatica_config set enabled = true where job = 'dre';`) e ajusta os horários em `carga_automatica_config`.
+4. Quem usa o Vecton liga a carga (`update carga_automatica_config set enabled = true where job = 'dre';`). Os horários do DRE são próprios (`10:00`, `15:00` e `19:00`) e ficam em `carga_automatica_config`, separados dos das vendas.
 
 ### 4.2 Conta definitiva para a tarefa
 A tarefa roda com `marcher.local\ti.marcher`. Se a senha dessa conta for trocada, a tarefa para até ser recriada. O ideal é uma **conta de serviço** do domínio, de senha estável, com o direito "Fazer logon como tarefa em lote" e acesso a `C:\robo-cargas`. Para trocar, rodar o mesmo script com o novo `-Conta` (ele substitui a tarefa existente).
@@ -116,7 +117,7 @@ O robô grava `Vendas_AAAA-MM.csv` em `C:\robo-cargas\logs` (sobrescrito a cada 
   ```
   Status: `ok`, `erro`, `bloqueada`.
 - **Pausar:** `update public.carga_automatica_config set enabled = false where job = 'vendas';` (religar com `true`).
-- **Alterar horários:** `update public.carga_automatica_config set horarios = array['12:00','23:30'] where job = 'vendas';` (não usar `00:00`).
+- **Alterar horários (cada carga tem os seus):** `update public.carga_automatica_config set horarios = array['12:00','23:30'] where job = 'vendas';` e `... array['10:00','15:00','19:00'] where job = 'dre';` (não usar `00:00`).
 - **Rodar agora, à mão:** `node src/index.js vendas` na pasta do robô (apaga e regrava o mês corrente e dispara os avisos de carga aplicada).
 - **Quando der erro:** o e-mail chega aos administradores (lista em Parâmetros → Notificações → "Carga automática com erro"). Causa comum: cliente ou produto não cadastrado; basta cadastrar e a próxima execução carrega sozinha.
 - Documentação técnica completa: `robo-cargas/README.md`.
