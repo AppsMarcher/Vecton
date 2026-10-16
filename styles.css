@@ -5284,7 +5284,10 @@ textarea[disabled] {
   transition: border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
 }
 .notif-cfg-row:last-child { border-bottom: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08)); }
-.notif-cfg-row:hover { border-color: var(--theme-border-strong, rgba(255, 255, 255, 0.16)); box-shadow: 0 8px 22px var(--theme-shadow-color, rgba(5, 10, 18, 0.18)); }
+/* O contêiner externo é só uma moldura transparente: sem isto, o .content-card:hover global pinta o contorno azul na lista
+   inteira. O realce vai apenas para o cartão apontado. */
+.content-card.notif-cfg-card:hover { outline-color: transparent; }
+.notif-cfg-row:hover { border-color: var(--blue); box-shadow: 0 8px 22px var(--theme-shadow-color, rgba(5, 10, 18, 0.18)); }
 .notif-cfg-head { display: flex; align-items: flex-start; gap: 10px; }
 .notif-cfg-info { min-width: 0; }
 .notif-cfg-grip {
@@ -5308,8 +5311,37 @@ textarea[disabled] {
 .notif-cfg-grip:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; color: var(--text); }
 .notif-cfg-grip:active { cursor: grabbing; }
 .notif-cfg-row.is-dragging { opacity: 0.4; }
-.notif-cfg-row.drop-before { box-shadow: 0 -3px 0 0 var(--blue); }
-.notif-cfg-row.drop-after { box-shadow: 0 3px 0 0 var(--blue); }
+/* Indicador de destino ao arrastar: linha fina de 2px no espaço entre os cartões (que têm 12px de vão), com uma bolinha
+   na ponta esquerda. Fica fora do cartão, então não encosta na borda nem desloca o conteúdo. */
+.notif-cfg-row.drop-before::before,
+.notif-cfg-row.drop-after::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--blue);
+  box-shadow: 0 0 8px rgba(79, 124, 255, 0.55);
+  pointer-events: none;
+  animation: notif-drop-in 120ms ease-out;
+}
+.notif-cfg-row.drop-before::after,
+.notif-cfg-row.drop-after::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--blue);
+  pointer-events: none;
+}
+.notif-cfg-row.drop-before::before { top: -7px; }
+.notif-cfg-row.drop-before::after { top: -10px; }
+.notif-cfg-row.drop-after::after { bottom: -7px; }
+.notif-cfg-row.drop-after::before { bottom: -10px; }
+@keyframes notif-drop-in { from { opacity: 0; transform: scaleX(0.92); } to { opacity: 1; transform: scaleX(1); } }
 
 /* ─── SCROLLBAR FLUTUANTE (tabelas DRE) ─────────────────────────────────── */
 .floating-hscroll {
