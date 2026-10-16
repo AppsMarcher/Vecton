@@ -164,70 +164,91 @@ async function sendResetPasswordEmailViaResend(
 // Resend não processa a sintaxe de template do Supabase -- o link precisa ir
 // pronto). Se o template visual mudar lá, replicar aqui também.
 function buildResetPasswordHtml(confirmLink: string): string {
-  return `<!DOCTYPE html>
+  return buildEmailLayout({
+    tag: "Segurança",
+    title: "Redefina sua senha",
+    paragraphs: ["Recebemos uma solicitação para redefinir sua senha de acesso ao VectonPlan. Use o botão abaixo para continuar com segurança."],
+    buttonLabel: "Criar nova senha",
+    href: confirmLink,
+    noteTitle: "Atenção",
+    note: "Se você não pediu a redefinição, basta ignorar esta mensagem. Sua senha atual continuará válida até que uma nova seja criada.",
+    fallbackLink: confirmLink,
+    footer: "Proteção de acesso para manter seus dados financeiros em segurança.",
+  });
+}
+
+// ── Layout padrão dos e-mails do Vecton (opção A: claro corporativo) ──────────
+// Mesmo bloco replicado em cada Edge Function que envia e-mail (o deploy pelo
+// painel do Supabase não resolve import fora da pasta da function). Se mudar
+// aqui, replicar nas outras: send-notification-emails, send-report-email,
+// invite-user, resend-invite, forgot-password, resend-password -- e em
+// supabase/email-templates/. Imagens hospedadas no GitHub Pages do app.
+const EMAIL_IMG = "https://vecton.marcher.com.br/assets/email";
+
+type EmailLayoutOpts = {
+  tag: string;               // rótulo azul acima do título
+  title: string;             // texto puro (é escapado aqui)
+  paragraphs: string[];      // texto puro (é escapado aqui)
+  buttonLabel?: string;
+  href?: string;             // já validado por quem chama
+  noteTitle?: string;        // caixa de destaque opcional
+  note?: string;
+  fallbackLink?: string;     // link por extenso, abaixo do botão
+  footer: string;
+};
+
+function emailEsc(v: string): string {
+  return v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function buildEmailLayout(o: EmailLayoutOpts): string {
+  const paras = o.paragraphs
+    .map((p) => `<p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#4a5565;">${emailEsc(p)}</p>`)
+    .join("");
+  const button = o.buttonLabel && o.href
+    ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:22px 0 4px;"><tr>
+         <td align="center" bgcolor="#1f4fd8" style="border-radius:8px;">
+           <a href="${o.href}" style="display:inline-block;padding:14px 24px;font-size:14px;font-weight:700;line-height:1;text-decoration:none;color:#ffffff;">${emailEsc(o.buttonLabel)}</a>
+         </td></tr></table>`
+    : "";
+  const note = o.note
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0 0;background:#f4f6fa;border:1px solid #dde2ea;border-radius:8px;"><tr><td style="padding:14px 16px;">
+         ${o.noteTitle ? `<p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7686;font-weight:700;">${emailEsc(o.noteTitle)}</p>` : ""}
+         <p style="margin:0;font-size:13px;line-height:1.6;color:#4a5565;">${emailEsc(o.note)}</p>
+       </td></tr></table>`
+    : "";
+  const fallback = o.fallbackLink
+    ? `<p style="margin:18px 0 6px;font-size:12px;line-height:1.6;color:#8793a3;">Se o botão não funcionar, copie e cole este link no navegador:</p>
+       <p style="margin:0;font-size:12px;line-height:1.6;color:#4a5565;word-break:break-all;">${emailEsc(o.fallbackLink)}</p>`
+    : "";
+  return `<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Redefina sua senha</title>
-</head>
-<body style="margin:0;padding:0;background-color:#09090a;font-family:Inter,Segoe UI,Arial,sans-serif;color:#ffffff;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#09090a;margin:0;padding:24px 0;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;margin:0 auto;">
-          <tr>
-            <td style="padding:0 20px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:linear-gradient(180deg,#111214 0%,#0f1013 100%);border:1px solid #2a2d34;border-radius:24px;overflow:hidden;">
-                <tr>
-                  <td style="padding:32px;">
-                    <div style="display:inline-block;padding:8px 14px;border:1px solid rgba(79,124,255,0.28);border-radius:999px;background:rgba(79,124,255,0.12);font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#c6d3ff;font-weight:700;">
-                      VectonPlan
-                    </div>
-                    <h1 style="margin:22px 0 12px 0;font-size:32px;line-height:1.15;color:#ffffff;font-weight:700;">
-                      Redefina sua senha
-                    </h1>
-                    <p style="margin:0 0 16px 0;font-size:16px;line-height:1.7;color:#a1a7b3;">
-                      Recebemos uma solicitação para redefinir sua senha de acesso ao VectonPlan. Use o link abaixo para continuar com segurança.
-                    </p>
-                    <table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px 0 24px 0;">
-                      <tr>
-                        <td align="center" bgcolor="#4f7cff" style="border-radius:14px;">
-                          <a href="${confirmLink}" style="display:inline-block;padding:15px 24px;font-size:15px;font-weight:700;line-height:1;text-decoration:none;color:#ffffff;">
-                            Criar nova senha
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 24px 0;background:#0b0c0f;border:1px solid #2a2d34;border-radius:16px;">
-                      <tr>
-                        <td style="padding:18px 18px 16px 18px;">
-                          <p style="margin:0 0 8px 0;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280;font-weight:700;">
-                            Atenção
-                          </p>
-                          <p style="margin:0;font-size:14px;line-height:1.7;color:#cbd5e1;">
-                            Se você não pediu a redefinição, basta ignorar esta mensagem. Sua senha atual continuará válida até que uma nova seja criada.
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                    <p style="margin:0 0 18px 0;font-size:14px;line-height:1.7;color:#6b7280;">
-                      Se o botão não funcionar, copie e cole este link no navegador:
-                    </p>
-                    <p style="margin:0;padding:14px 16px;border-radius:14px;background:#0b0c0f;border:1px solid #2a2d34;font-size:13px;line-height:1.6;color:#cbd5e1;word-break:break-all;">
-                      ${confirmLink}
-                    </p>
-                  </td>
-                </tr>
-              </table>
-              <p style="margin:16px 0 0 0;padding:0 8px;font-size:12px;line-height:1.6;color:#6b7280;text-align:center;">
-                Proteção de acesso para manter seus dados financeiros em segurança.
-              </p>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${emailEsc(o.title)}</title></head>
+<body style="margin:0;padding:0;background-color:#f1f3f7;font-family:Inter,Segoe UI,Arial,sans-serif;color:#1b2430;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f1f3f7;margin:0;padding:24px 0;">
+    <tr><td align="center" style="padding:0 12px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #dde2ea;border-radius:12px;overflow:hidden;">
+        <tr><td style="padding:18px 24px;border-bottom:4px solid #1f4fd8;">
+          <img src="${EMAIL_IMG}/logo-vecton.png" width="140" alt="Vecton Planning" style="display:block;width:140px;height:auto;border:0;">
+        </td></tr>
+        <tr><td style="padding:26px 24px 22px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+            <td valign="middle" style="padding-right:12px;">
+              <p style="margin:0 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#1f4fd8;font-weight:700;">${emailEsc(o.tag)}</p>
+              <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#1b2430;font-weight:700;">${emailEsc(o.title)}</h1>
+              ${paras}
+              ${button}
             </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
+            <td valign="middle" width="110" style="width:110px;">
+              <img src="${EMAIL_IMG}/mascote.png" width="110" alt="Mascote Marcher" style="display:block;width:110px;height:auto;border:0;">
+            </td>
+          </tr></table>
+          ${note}
+          ${fallback}
+        </td></tr>
+        <tr><td style="padding:14px 24px;border-top:1px solid #e6eaf0;font-size:12px;line-height:1.5;color:#8793a3;">${emailEsc(o.footer)}</td></tr>
+      </table>
+    </td></tr>
   </table>
 </body>
 </html>`;

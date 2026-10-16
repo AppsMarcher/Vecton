@@ -52,75 +52,99 @@ const MAX_ATTEMPTS = 5;     // depois disso o item vira 'failed' e para de tenta
 const APP_URL = "https://vecton.marcher.com.br";
 const RETENTION_DAYS = 90;  // notificações mais antigas que isso são apagadas
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+// ── Layout padrão dos e-mails do Vecton (opção A: claro corporativo) ──────────
+// Mesmo bloco replicado em cada Edge Function que envia e-mail (o deploy pelo
+// painel do Supabase não resolve import fora da pasta da function). Se mudar
+// aqui, replicar nas outras: send-notification-emails, send-report-email,
+// invite-user, resend-invite, forgot-password, resend-password -- e em
+// supabase/email-templates/. Imagens hospedadas no GitHub Pages do app.
+const EMAIL_IMG = "https://vecton.marcher.com.br/assets/email";
+
+type EmailLayoutOpts = {
+  tag: string;               // rótulo azul acima do título
+  title: string;             // texto puro (é escapado aqui)
+  paragraphs: string[];      // texto puro (é escapado aqui)
+  buttonLabel?: string;
+  href?: string;             // já validado por quem chama
+  noteTitle?: string;        // caixa de destaque opcional
+  note?: string;
+  fallbackLink?: string;     // link por extenso, abaixo do botão
+  footer: string;
+};
+
+function emailEsc(v: string): string {
+  return v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-// Mesmo logo usado no header/sidebar/login do app (fundo escuro) -- ver
-// index.html. Hospedado no próprio GitHub Pages, acesso público (não precisa
-// de auth), por isso pode ser referenciado direto por URL no <img> do e-mail
-// (embutir como data: URI é mal suportado por clientes de e-mail, sobretudo
-// Outlook desktop).
-const LOGO_URL = "https://vecton.marcher.com.br/logo-branco.png";
+function buildEmailLayout(o: EmailLayoutOpts): string {
+  const paras = o.paragraphs
+    .map((p) => `<p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#4a5565;">${emailEsc(p)}</p>`)
+    .join("");
+  const button = o.buttonLabel && o.href
+    ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:22px 0 4px;"><tr>
+         <td align="center" bgcolor="#1f4fd8" style="border-radius:8px;">
+           <a href="${o.href}" style="display:inline-block;padding:14px 24px;font-size:14px;font-weight:700;line-height:1;text-decoration:none;color:#ffffff;">${emailEsc(o.buttonLabel)}</a>
+         </td></tr></table>`
+    : "";
+  const note = o.note
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0 0;background:#f4f6fa;border:1px solid #dde2ea;border-radius:8px;"><tr><td style="padding:14px 16px;">
+         ${o.noteTitle ? `<p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7686;font-weight:700;">${emailEsc(o.noteTitle)}</p>` : ""}
+         <p style="margin:0;font-size:13px;line-height:1.6;color:#4a5565;">${emailEsc(o.note)}</p>
+       </td></tr></table>`
+    : "";
+  const fallback = o.fallbackLink
+    ? `<p style="margin:18px 0 6px;font-size:12px;line-height:1.6;color:#8793a3;">Se o botão não funcionar, copie e cole este link no navegador:</p>
+       <p style="margin:0;font-size:12px;line-height:1.6;color:#4a5565;word-break:break-all;">${emailEsc(o.fallbackLink)}</p>`
+    : "";
+  return `<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${emailEsc(o.title)}</title></head>
+<body style="margin:0;padding:0;background-color:#f1f3f7;font-family:Inter,Segoe UI,Arial,sans-serif;color:#1b2430;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f1f3f7;margin:0;padding:24px 0;">
+    <tr><td align="center" style="padding:0 12px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #dde2ea;border-radius:12px;overflow:hidden;">
+        <tr><td style="padding:18px 24px;border-bottom:4px solid #1f4fd8;">
+          <img src="${EMAIL_IMG}/logo-vecton.png" width="140" alt="Vecton Planning" style="display:block;width:140px;height:auto;border:0;">
+        </td></tr>
+        <tr><td style="padding:26px 24px 22px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+            <td valign="middle" style="padding-right:12px;">
+              <p style="margin:0 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#1f4fd8;font-weight:700;">${emailEsc(o.tag)}</p>
+              <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#1b2430;font-weight:700;">${emailEsc(o.title)}</h1>
+              ${paras}
+              ${button}
+            </td>
+            <td valign="middle" width="110" style="width:110px;">
+              <img src="${EMAIL_IMG}/mascote.png" width="110" alt="Mascote Marcher" style="display:block;width:110px;height:auto;border:0;">
+            </td>
+          </tr></table>
+          ${note}
+          ${fallback}
+        </td></tr>
+        <tr><td style="padding:14px 24px;border-top:1px solid #e6eaf0;font-size:12px;line-height:1.5;color:#8793a3;">${emailEsc(o.footer)}</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
 
 function buildHtml(subject: string, bodyText: string, linkPath?: string | null): string {
-  const lines = bodyText.split("\n").filter(Boolean).map(escapeHtml);
-  const title = lines.shift() ?? escapeHtml(subject);
-  const rest = lines.map((l) => `<p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#a1a7b3;">${l}</p>`).join("");
+  const lines = bodyText.split("
+").filter(Boolean);
+  const title = lines.shift() ?? subject;
   // link_path vem da trigger (migration 093) como "?report=...&ano=&mes=", e
   // abre o relatorio do evento no mes certo. Sem ele o botao cai na home.
   // Aceita so o formato esperado -- o conteudo vai pra dentro de um href.
   const safePath = linkPath && /^\?[A-Za-z0-9_=&]+$/.test(linkPath) ? linkPath : "";
-  const href = APP_URL + safePath;
-  const rotulo = safePath ? "Abrir o relatório" : "Abrir o Vecton";
-  // Mesma linguagem visual dos templates de auth (supabase/email-templates/):
-  // fundo escuro, card com gradiente + borda sutil, botão azul arredondado.
-  return `<!doctype html>
-<html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#09090a;font-family:Inter,Segoe UI,Arial,sans-serif;color:#ffffff;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#09090a;margin:0;padding:24px 0;">
-    <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:480px;margin:0 auto;">
-          <tr>
-            <td style="padding:0 20px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:linear-gradient(180deg,#111214 0%,#0f1013 100%);border:1px solid #2a2d34;border-radius:20px;overflow:hidden;">
-                <tr>
-                  <td style="padding:28px;">
-                    <img src="${LOGO_URL}" width="120" alt="Vecton Planning" style="display:block;width:120px;height:auto;margin:0 0 20px;border:0;outline:none;">
-                    <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#ffffff;font-weight:700;">${escapeHtml(title)}</h1>
-                    ${rest}
-                    <table role="presentation" cellspacing="0" cellpadding="0" style="margin:22px 0 0;">
-                      <tr>
-                        <td align="center">
-                          <!--[if mso]>
-                          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${href}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="27%" stroke="f" fillcolor="#4f7cff">
-                          <w:anchorlock/>
-                          <center style="color:#ffffff;font-family:Segoe UI,Arial,sans-serif;font-size:14px;font-weight:700;">${rotulo}</center>
-                          </v:roundrect>
-                          <![endif]-->
-                          <!--[if !mso]><!-->
-                          <a href="${href}" style="background-color:#4f7cff;border-radius:12px;color:#ffffff;display:inline-block;font-family:Inter,Segoe UI,Arial,sans-serif;font-size:14px;font-weight:700;line-height:44px;text-align:center;text-decoration:none;width:220px;-webkit-text-size-adjust:none;mso-hide:all;">${rotulo}</a>
-                          <!--<![endif]-->
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+  return buildEmailLayout({
+    tag: "Aviso do Vecton",
+    title,
+    paragraphs: lines,
+    buttonLabel: safePath ? "Abrir o relatório" : "Abrir o Vecton",
+    href: APP_URL + safePath,
+    footer: "Aviso automático do Vecton · Marcher Brasil Agroindustrial",
+  });
 }
 
 Deno.serve(async (req) => {

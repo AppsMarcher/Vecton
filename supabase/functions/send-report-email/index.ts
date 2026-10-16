@@ -56,6 +56,83 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+// ── Layout padrão dos e-mails do Vecton (opção A: claro corporativo) ──────────
+// Mesmo bloco replicado em cada Edge Function que envia e-mail (o deploy pelo
+// painel do Supabase não resolve import fora da pasta da function). Se mudar
+// aqui, replicar nas outras: send-notification-emails, send-report-email,
+// invite-user, resend-invite, forgot-password, resend-password -- e em
+// supabase/email-templates/. Imagens hospedadas no GitHub Pages do app.
+const EMAIL_IMG = "https://vecton.marcher.com.br/assets/email";
+
+type EmailLayoutOpts = {
+  tag: string;               // rótulo azul acima do título
+  title: string;             // texto puro (é escapado aqui)
+  paragraphs: string[];      // texto puro (é escapado aqui)
+  buttonLabel?: string;
+  href?: string;             // já validado por quem chama
+  noteTitle?: string;        // caixa de destaque opcional
+  note?: string;
+  fallbackLink?: string;     // link por extenso, abaixo do botão
+  footer: string;
+};
+
+function emailEsc(v: string): string {
+  return v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function buildEmailLayout(o: EmailLayoutOpts): string {
+  const paras = o.paragraphs
+    .map((p) => `<p style="margin:0 0 10px;font-size:15px;line-height:1.6;color:#4a5565;">${emailEsc(p)}</p>`)
+    .join("");
+  const button = o.buttonLabel && o.href
+    ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:22px 0 4px;"><tr>
+         <td align="center" bgcolor="#1f4fd8" style="border-radius:8px;">
+           <a href="${o.href}" style="display:inline-block;padding:14px 24px;font-size:14px;font-weight:700;line-height:1;text-decoration:none;color:#ffffff;">${emailEsc(o.buttonLabel)}</a>
+         </td></tr></table>`
+    : "";
+  const note = o.note
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0 0;background:#f4f6fa;border:1px solid #dde2ea;border-radius:8px;"><tr><td style="padding:14px 16px;">
+         ${o.noteTitle ? `<p style="margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7686;font-weight:700;">${emailEsc(o.noteTitle)}</p>` : ""}
+         <p style="margin:0;font-size:13px;line-height:1.6;color:#4a5565;">${emailEsc(o.note)}</p>
+       </td></tr></table>`
+    : "";
+  const fallback = o.fallbackLink
+    ? `<p style="margin:18px 0 6px;font-size:12px;line-height:1.6;color:#8793a3;">Se o botão não funcionar, copie e cole este link no navegador:</p>
+       <p style="margin:0;font-size:12px;line-height:1.6;color:#4a5565;word-break:break-all;">${emailEsc(o.fallbackLink)}</p>`
+    : "";
+  return `<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${emailEsc(o.title)}</title></head>
+<body style="margin:0;padding:0;background-color:#f1f3f7;font-family:Inter,Segoe UI,Arial,sans-serif;color:#1b2430;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f1f3f7;margin:0;padding:24px 0;">
+    <tr><td align="center" style="padding:0 12px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #dde2ea;border-radius:12px;overflow:hidden;">
+        <tr><td style="padding:18px 24px;border-bottom:4px solid #1f4fd8;">
+          <img src="${EMAIL_IMG}/logo-vecton.png" width="140" alt="Vecton Planning" style="display:block;width:140px;height:auto;border:0;">
+        </td></tr>
+        <tr><td style="padding:26px 24px 22px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+            <td valign="middle" style="padding-right:12px;">
+              <p style="margin:0 0 6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#1f4fd8;font-weight:700;">${emailEsc(o.tag)}</p>
+              <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#1b2430;font-weight:700;">${emailEsc(o.title)}</h1>
+              ${paras}
+              ${button}
+            </td>
+            <td valign="middle" width="110" style="width:110px;">
+              <img src="${EMAIL_IMG}/mascote.png" width="110" alt="Mascote Marcher" style="display:block;width:110px;height:auto;border:0;">
+            </td>
+          </tr></table>
+          ${note}
+          ${fallback}
+        </td></tr>
+        <tr><td style="padding:14px 24px;border-top:1px solid #e6eaf0;font-size:12px;line-height:1.5;color:#8793a3;">${emailEsc(o.footer)}</td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "Método não permitido" }, 405);
@@ -154,6 +231,12 @@ Deno.serve(async (req) => {
         ...(cc.length ? { cc } : {}),
         subject,
         text: bodyText,
+        html: buildEmailLayout({
+          tag: "Relatório",
+          title: subject,
+          paragraphs: bodyText.split("\n").filter(Boolean),
+          footer: "Relatório em anexo (PDF) · Marcher Brasil Agroindustrial",
+        }),
         attachments: [
           {
             filename,
