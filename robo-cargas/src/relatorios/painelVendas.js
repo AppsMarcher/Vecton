@@ -67,7 +67,7 @@ export async function executarPainelVendas(cfg, { sb, orgId }, { dryRun = false,
     mkdirSync(dir, { recursive: true });
     const arq = join(dir, `Painel-Vendas_${rotulo}.html`);
     writeFileSync(arq, construido.html, "utf8");
-    console.log(`[SIMULACAO] ${JOB} ${rotulo}: painel montado (cenario ${construido.cenario}; ${Math.round(construido.html.length / 1024)} KB).`);
+    console.log(`[SIMULACAO] ${JOB} ${rotulo}: painel montado (cenario ${construido.cenario}; cenarios visiveis: ${(construido.cenarios || []).join(", ") || "nenhum"}; ${Math.round(construido.html.length / 1024)} KB).`);
     console.log(`            html de conferencia: ${arq}`);
     console.log(`            destinatarios que receberiam: ${destinatarios.join(", ") || "(nenhum configurado)"}`);
     console.log("            nada foi enviado.");
@@ -78,7 +78,7 @@ export async function executarPainelVendas(cfg, { sb, orgId }, { dryRun = false,
     const envio = montarEnvio(construido, destinatarios);
     await sb.request("POST", "/functions/v1/send-report-email", { body: envio });
     await sb.update("notification_settings", `organization_id=eq.${orgId}&kind=eq.${KIND}`, { schedule_last_fired_on: ag.data });
-    const msg = `Painel de Vendas ${rotulo} enviado a ${envio.to.length} destinatario(s) (cenario ${construido.cenario})`;
+    const msg = `Painel de Vendas ${rotulo} enviado a ${envio.to.length} destinatario(s) (cenario ${construido.cenario}; ${(construido.cenarios || []).length} cenario(s) visivel(is))`;
     await registrarLog(sb, orgId, base, { ...ref, status: "ok", mensagem: msg });
     console.log(`${JOB}: ${msg}.`);
     return { status: "ok", mensagem: msg };

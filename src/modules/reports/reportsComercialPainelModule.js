@@ -1468,15 +1468,20 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       ready: () => enteredPainel && !loading && loadedKey === paramsKey() && coords.length > 0,
       describe: () => ({ ano: year, mes: month, cenario: scenarios.find((s) => s.id === scenarioId)?.name || "Budget" }),
       build: async ({ assinatura = "" } = {}) => {
+        // Recarrega a lista de cenarios e re-resolve o padrao (Fcst 5+7, senao o 1o) imediatamente antes de montar,
+        // como a tela faz ao abrir; assim o PDF nao depende de a lista estar no meio de uma recarga.
+        await loadScenarios();
         const mLabel = MONTHS[month - 1];
+        const html = await buildReportHtmlForEmail();
         return {
           ano: year,
           mes: month,
           cenario: scenarios.find((s) => s.id === scenarioId)?.name || "Budget",
+          cenarios: scenarios.map((s) => s.name),
           subject: `Painel de Vendas — ${mLabel}/${year}`,
           filename: reportFilename(),
           bodyText: `Olá,\n\nSegue em anexo o Painel de Vendas de ${mLabel}/${year} (mês e acumulado YTD).\n\n${assinatura ? `Atenciosamente,\n${assinatura}` : ""}`.trim(),
-          html: await buildReportHtmlForEmail()
+          html
         };
       }
     };
