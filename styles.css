@@ -13156,12 +13156,16 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .mc-tabs button[aria-selected="true"] { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
 .mc-body { display: grid; gap: 16px; }
 .mc-panel { min-width: 0; }
-.mc-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.mc-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
 .mc-ph { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 12px; }
 .mc-ph small, .mc-small { font-size: .74rem; color: var(--text-faint); }
 .mc-tbl { overflow-x: auto; }
 .mc-table th, .mc-table td { padding: 7px 10px; white-space: nowrap; vertical-align: middle; }
-.mc-table .r { text-align: right; }
+.mc-table th, .mc-table td { text-align: left; }
+.mc-table th.r, .mc-table td.r { text-align: right; }
+.mc-table .mc-num { width: 40px; min-width: 40px; text-align: left; }
+.mc-table .mc-name { min-width: 240px; white-space: normal; }
+.mc-table .mc-wide { min-width: 190px; white-space: normal; }
 .mc-table td > .mc-small { white-space: normal; }
 .mc-sub { display: block; font-size: .68rem; color: var(--text-faint); }
 .mc-muted { color: var(--text-faint); }

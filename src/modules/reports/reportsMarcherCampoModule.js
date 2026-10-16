@@ -185,9 +185,9 @@
       }
       const th = (c) => {
         const ativo = s && s.key === c.key;
-        return `<th data-sort="${c.key}" class="${c.right ? "r" : ""}" style="cursor:pointer;user-select:none${ativo ? ";color:var(--blue)" : ""}">${c.label}${ativo ? (s.dir === 1 ? " ↑" : " ↓") : ""}</th>`;
+        return `<th data-sort="${c.key}" class="${c.right ? "r" : ""} ${c.cls || ""}" style="cursor:pointer;user-select:none${ativo ? ";color:var(--blue)" : ""}">${c.label}${ativo ? (s.dir === 1 ? " ↑" : " ↓") : ""}</th>`;
       };
-      return `<table class="data-table mc-table"><thead><tr>${cols.map(th).join("")}</tr></thead><tbody>${ordenadas.map((r) => `<tr>${cols.map((c) => `<td class="${c.right ? "r" : ""}">${c.html(r)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+      return `<table class="data-table mc-table"><thead><tr>${cols.map(th).join("")}</tr></thead><tbody>${ordenadas.map((r) => `<tr>${cols.map((c) => `<td class="${c.right ? "r" : ""} ${c.cls || ""}">${c.html(r)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     }
     function barra(v, max, label) {
       const w = Math.max(2, Math.round((v / (max || 1)) * 90));
@@ -275,12 +275,12 @@
         { key: "top", label: "Revenda líder", val: (r) => r.top, html: (r) => `<span class="mc-small">${esc(r.top)}</span>` }
       ], ufs);
       const tCid = cidades.length ? tabelaHtml("cidades", [
-        { key: "cid", label: "Cidade", val: (r) => r.cidadeUf, html: (r) => `<b>${esc(r.cidadeUf)}</b>` },
+        { key: "cid", label: "Cidade", cls: "mc-name", val: (r) => r.cidadeUf, html: (r) => `<b>${esc(r.cidadeUf)}</b>` },
         { key: "un", label: "Máquinas", val: (r) => r.un, html: (r) => barra(r.un, maxC, r.un) },
         { key: "val", label: "Faturamento", right: true, val: (r) => r.valor, html: (r) => brl(r.valor) },
         { key: "cli", label: "Clientes", right: true, val: (r) => r.clientes, html: (r) => r.clientes },
         { key: "rev", label: "Revendas", val: (r) => r.revendas, html: (r) => `<span class="mc-small">${esc(r.revendas)}</span>` },
-        { key: "mod", label: "Modelos", val: (r) => r.modelos, html: (r) => `<span class="mc-small">${esc(r.modelos)}</span>` }
+        { key: "mod", label: "Modelos", cls: "mc-wide", val: (r) => r.modelos, html: (r) => `<span class="mc-small">${esc(r.modelos)}</span>` }
       ], cidades) : `<div class="actuals-empty">Nenhuma cidade com 3 ou mais máquinas.</div>`;
       return `<p class="mc-lede">Local da máquina informado na ativação (fazenda do cliente). MATOPIBA agrupa MA, TO, PI e BA.</p>`
         + panel("Estados que mais ativaram garantia", "mix de categorias e revenda líder", legendaCats() + tUF)
@@ -293,11 +293,11 @@
         modelos: listaCurta(arr, (m) => m.modelo, 3), revenda: topPor(arr, (m) => m.revenda)
       }));
       const colsCli = (maxLinhas) => [
-        { key: "cli", label: "Cliente", val: (r) => r.nome, html: (r) => `<b>${esc(r.nome)}</b><div class="mc-small">${esc(r.cidade)}</div>` },
+        { key: "cli", label: "Cliente", cls: "mc-name", val: (r) => r.nome, html: (r) => `<b>${esc(r.nome)}</b><div class="mc-small">${esc(r.cidade)}</div>` },
         { key: "un", label: "Máq.", right: true, val: (r) => r.un, html: (r) => r.un },
         { key: "val", label: "Valor", right: true, val: (r) => r.valor, html: (r) => brl(r.valor) },
-        { key: "mod", label: "Modelos", val: (r) => r.modelos, html: (r) => `<span class="mc-small">${esc(r.modelos)}</span>` },
-        { key: "rev", label: "Revenda", val: (r) => r.revenda, html: (r) => `<span class="mc-small">${esc(r.revenda)}</span>` }
+        { key: "mod", label: "Modelos", cls: "mc-wide", val: (r) => r.modelos, html: (r) => `<span class="mc-small">${esc(r.modelos)}</span>` },
+        { key: "rev", label: "Revenda", cls: "mc-wide", val: (r) => r.revenda, html: (r) => `<span class="mc-small">${esc(r.revenda)}</span>` }
       ];
       const top = [...clientes].sort((a, b) => b.valor - a.valor).slice(0, 20);
       const recompra = clientes.filter((c) => c.un > 1).sort((a, b) => b.un - a.un || b.valor - a.valor);
@@ -322,8 +322,8 @@
       }).sort((a, b) => b.un - a.un);
       const maxRv = Math.max(...rv.map((r) => r.un), 1);
       const tab = tabelaHtml("rev", [
-        { key: "n", label: "#", right: true, val: (r) => rv.indexOf(r), html: (r) => rv.indexOf(r) + 1 },
-        { key: "rev", label: "Revenda", val: (r) => r.nome, html: (r) => `<b>${esc(r.nome)}</b><div class="mc-small">${esc(r.ufs)}</div>` },
+        { key: "n", label: "#", cls: "mc-num", val: (r) => rv.indexOf(r), html: (r) => rv.indexOf(r) + 1 },
+        { key: "rev", label: "Revenda", cls: "mc-name", val: (r) => r.nome, html: (r) => `<b>${esc(r.nome)}</b><div class="mc-small">${esc(r.ufs)}</div>` },
         { key: "un", label: "Máquinas", val: (r) => r.un, html: (r) => barra(r.un, maxRv, `${r.un} <span class="mc-small">${pct(r.un / (K.maquinas || 1), 1)}</span>`) },
         { key: "val", label: "Faturamento", right: true, val: (r) => r.valor, html: (r) => brl(r.valor) },
         { key: "tk", label: "Ticket", right: true, val: (r) => r.ticket ?? -1, html: (r) => mil(r.ticket) },
@@ -344,14 +344,14 @@
       })).sort((a, b) => b.un - a.un || b.valor - a.valor).slice(0, 10);
       const maxV = Math.max(...vd.map((r) => r.un), 1);
       const tab = vd.length ? tabelaHtml("vend", [
-        { key: "n", label: "#", right: true, val: (r) => vd.indexOf(r), html: (r) => vd.indexOf(r) + 1 },
-        { key: "v", label: "Vendedor", val: (r) => r.nome, html: (r) => `<b>${esc(r.nome)}</b>` },
-        { key: "rev", label: "Revenda", val: (r) => r.revenda, html: (r) => `<span class="mc-small">${esc(r.revenda)}</span>` },
+        { key: "n", label: "#", cls: "mc-num", val: (r) => vd.indexOf(r), html: (r) => vd.indexOf(r) + 1 },
+        { key: "v", label: "Vendedor", cls: "mc-name", val: (r) => r.nome, html: (r) => `<b>${esc(r.nome)}</b>` },
+        { key: "rev", label: "Revenda", cls: "mc-wide", val: (r) => r.revenda, html: (r) => `<span class="mc-small">${esc(r.revenda)}</span>` },
         { key: "uf", label: "UF", val: (r) => r.ufs, html: (r) => `<span class="mc-small">${esc(r.ufs)}</span>` },
         { key: "un", label: "Máquinas", val: (r) => r.un, html: (r) => barra(r.un, maxV, r.un) },
         { key: "val", label: "Faturamento", right: true, val: (r) => r.valor, html: (r) => brl(r.valor) },
         { key: "cli", label: "Clientes", right: true, val: (r) => r.clientes, html: (r) => r.clientes },
-        { key: "mod", label: "Modelos", val: (r) => r.modelos, html: (r) => `<span class="mc-small">${esc(r.modelos)}</span>` }
+        { key: "mod", label: "Modelos", cls: "mc-wide", val: (r) => r.modelos, html: (r) => `<span class="mc-small">${esc(r.modelos)}</span>` }
       ], vd) : `<div class="actuals-empty">Nenhum vendedor informado nas ativações.</div>`;
       return `<p class="mc-lede">O campo de vendedor está preenchido em ${pct(K.vendCob)} das ativações. Nomes de empresa no lugar do vendedor foram desconsiderados.</p>`
         + panel("Top 10 vendedores", "por máquinas; empate desempatado pelo faturamento", tab);
@@ -363,12 +363,12 @@
       const maxCat = Math.max(...cats.map((r) => r.un), 1), maxP = Math.max(...mods.map((r) => r.un), 1);
       return `<p class="mc-lede">Modelo lido do campo de produto da ativação e padronizado (ex.: "OUTGRAIN 220+" e grafias livres caem no mesmo modelo).</p><div class="mc-grid2">`
         + panel("Por categoria", "", tabelaHtml("cat", [
-          { key: "c", label: "Categoria", val: (r) => r.cat, html: (r) => `<i class="mc-dot" style="background:${CAT_COLORS[CATS.indexOf(r.cat)]}"></i><b>${r.cat}</b>` },
+          { key: "c", label: "Categoria", cls: "mc-wide", val: (r) => r.cat, html: (r) => `<i class="mc-dot" style="background:${CAT_COLORS[CATS.indexOf(r.cat)]}"></i><b>${r.cat}</b>` },
           { key: "un", label: "Máquinas", val: (r) => r.un, html: (r) => barra(r.un, maxCat, `${r.un} <span class="mc-small">${pct(r.un / (K.maquinas || 1))}</span>`) },
           { key: "val", label: "Faturamento", right: true, val: (r) => r.valor, html: (r) => mi(r.valor) }
         ], cats))
         + panel("Por modelo", "", tabelaHtml("mod", [
-          { key: "m", label: "Modelo", val: (r) => r.modelo, html: (r) => `<b>${esc(r.modelo)}</b><div class="mc-small">${r.cat}</div>` },
+          { key: "m", label: "Modelo", cls: "mc-wide", val: (r) => r.modelo, html: (r) => `<b>${esc(r.modelo)}</b><div class="mc-small">${r.cat}</div>` },
           { key: "un", label: "Máquinas", val: (r) => r.un, html: (r) => barra(r.un, maxP, r.un) },
           { key: "val", label: "Faturamento", right: true, val: (r) => r.valor, html: (r) => brl(r.valor) }
         ], mods))
@@ -462,7 +462,7 @@
       }).sort((a, b) => b.med - a.med);
       if (!rows.length) return `<div class="actuals-empty">Nenhuma revenda com 2 vendas ou mais deste modelo.</div>`;
       return tabelaHtml("precoRev", [
-        { key: "rev", label: "Revenda", val: (r) => r.revenda, html: (r) => `<b>${esc(r.revenda)}</b>` },
+        { key: "rev", label: "Revenda", cls: "mc-wide", val: (r) => r.revenda, html: (r) => `<b>${esc(r.revenda)}</b>` },
         { key: "n", label: "n", right: true, val: (r) => r.n, html: (r) => r.n },
         { key: "med", label: "Mediana", right: true, val: (r) => r.med, html: (r) => brl(r.med) },
         { key: "fx", label: "Faixa", right: true, val: (r) => r.min, html: (r) => `<span class="mc-small">${mil(r.min)} – ${mil(r.max)}</span>` },
@@ -479,7 +479,7 @@
       const fin = [...agrupar(M, (m) => m.financ).entries()].map(([label, arr]) => ({ label, un: un(arr) })).sort((a, b) => b.un - a.un);
       const maxP = Math.max(...parc.map((r) => r.un), 1), maxF = Math.max(...fin.map((r) => r.un), 1);
       const cols = (max, titulo) => [
-        { key: "l", label: titulo, val: (r) => r.label, html: (r) => `<b>${esc(r.label)}</b>` },
+        { key: "l", label: titulo, cls: "mc-wide", val: (r) => r.label, html: (r) => `<b>${esc(r.label)}</b>` },
         { key: "un", label: "Máquinas", val: (r) => r.un, html: (r) => barra(r.un, max, `${r.un} <span class="mc-small">${pct(r.un / (K.maquinas || 1))}</span>`) }
       ];
       return `<p class="mc-lede">As parcelas vêm da aba de parcelamento da NF; a forma de financiamento foi lida no campo de informações adicionais, que muitas revendas não preenchem.</p><div class="mc-grid2">`
