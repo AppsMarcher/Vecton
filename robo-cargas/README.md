@@ -34,6 +34,8 @@ O resultado volta no próprio pedido (`concluido`/`erro` + texto), a tela atuali
 | Extração vazia | Não aplica (não apaga o mês). Log `bloqueada` |
 | Queda de linhas > `queda_max_pct` (30%) vs. última carga do mês | Não aplica. Log `bloqueada`. `--force` libera |
 | Linha reprovada na validação (ex.: território não cadastrado) | Não aplica nada; o lote fica na tela de carga para análise. Log `erro` e código de saída 1 |
+| Lote com linhas não validadas (`valid_rows` ≠ extraídas) | Não aplica. Log `erro` |
+| Aplicado, mas o razão do Vecton não tem todos os lançamentos do lote | Log `erro` (o robô só diz "aplicada" depois de contar o razão) |
 | Falha no Protheus/Vecton | Log `erro`, código de saída 1 (a tarefa aparece como falha no Agendador) |
 
 Lotes automáticos têm `notes` iniciando em `[auto]`. Cada carga bem-sucedida gera o aviso "Carga de Vendas (realizado) aplicada" (sininho + e-mail, mesmos destinatários da carga manual; texto com "· carga automática" — migration 262). Lotes pendentes de execuções anteriores são removidos antes de criar o novo.
@@ -80,6 +82,11 @@ Configuração (tabela `carga_automatica_config`): `enabled`, `meses_atras`, `me
 Tela **Parâmetros → Comercial → Municípios**: busque o município, edite o território (lista dos territórios cadastrados) ou inclua município novo.
 A mudança vale na próxima execução do robô e só para o mês corrente; meses fechados não são recarregados.
 A regra fixa dos vendedores 000274 (GO_MG NORTE) e 000590 (GO_MG SUL) está em `src/territorio.js`.
+
+## Relatórios e cache do navegador
+
+Os relatórios de DRE/OPEX guardam o ano em memória no navegador e só descartavam o cache quando a carga era aplicada **por aquela tela**: uma carga do robô deixava o DRE mostrando a versão anterior até recarregar a página (Ctrl+F5).
+Corrigido no front: o cache dos relatórios (ano do período e ano corrente) é descartado quando **chega aviso novo** (o sino consulta a cada 60 s) e quando um pedido **Carregar agora** termina. Quem já estava com a página aberta antes dessa versão precisa recarregar uma vez.
 
 ## Carga do DRE
 

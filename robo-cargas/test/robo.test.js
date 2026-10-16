@@ -105,3 +105,13 @@ test("resumirPedido: sem resultados e erro; texto limitado a 1000 caracteres", (
   const longo = resumirPedido([{ mes: { ano: 2026, mes: 10 }, status: "erro", mensagem: "x".repeat(3000) }]);
   assert.equal(longo.resultado.length, 1000);
 });
+
+import { totalDoContentRange } from "../src/supabase.js";
+
+test("totalDoContentRange le o total do cabecalho do PostgREST", () => {
+  assert.equal(totalDoContentRange("0-0/596"), 596);
+  assert.equal(totalDoContentRange("*/0"), 0);
+  assert.equal(totalDoContentRange("0-9/12345"), 12345);
+  assert.equal(totalDoContentRange("0-9/*"), null);
+  assert.equal(totalDoContentRange(null), null);
+});

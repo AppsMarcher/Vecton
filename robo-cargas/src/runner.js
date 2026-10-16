@@ -123,7 +123,24 @@ async function processarMes(ctx, job, mes) {
     return { status: "erro", mensagem: `${lote.error_rows} linha(s) com erro de validação; nada foi aplicado` };
   }
 
+  // Todas as linhas precisam ter sido validadas; senao a aplicacao gravaria menos do que foi extraido.
+  if (lote.valid_rows !== resumo.total) {
+    const msg = `Lote com ${lote.valid_rows} de ${resumo.total} linhas validadas (nada foi aplicado)`;
+    await registrarLog(sb, orgId, base, { ...cabecalho, batch_id: batchId, status: "erro", detalhes: { ...detalhes, lote }, mensagem: `${msg}. Lote ${batchId} mantido para analise.` });
+    console.error(`${job.nome} ${rotulo}: ${msg}.`);
+    return { status: "erro", mensagem: msg };
+  }
+
   await sb.rpc(alvo.apply, { target_batch_id: batchId });
+
+  // Confere o resultado no razao: so diz "aplicada" se todos os lancamentos do lote estiverem la.
+  const noRazao = await sb.count(alvo.ledger, `organization_id=eq.${orgId}&batch_id=eq.${batchId}`);
+  if (noRazao !== resumo.total) {
+    const msg = `Aplicada, mas o razão tem ${noRazao} de ${resumo.total} lançamentos do lote`;
+    await registrarLog(sb, orgId, base, { ...cabecalho, batch_id: batchId, status: "erro", detalhes: { ...detalhes, no_razao: noRazao }, mensagem: msg });
+    console.error(`${job.nome} ${rotulo}: ${msg}.`);
+    return { status: "erro", mensagem: msg };
+  }
 
   let aviso = "";
   if (params.diretorio_saida) {

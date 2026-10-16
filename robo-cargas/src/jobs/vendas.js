@@ -16,6 +16,7 @@ export const precisaRegioes = true;
 export const alvo = {
   batches: "comercial_realizado_import_batches",
   rows: "comercial_realizado_import_rows",
+  ledger: "comercial_realizado_ledger_entries",
   apply: "apply_comercial_realizado_import_batch",
   remove: "delete_comercial_realizado_import_batch",
   errorSelect: "row_number,origem,documento,cod_cliente,cod_produto,validation_errors"

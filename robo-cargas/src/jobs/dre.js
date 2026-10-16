@@ -17,6 +17,7 @@ export const precisaRegioes = false;
 export const alvo = {
   batches: "actuals_import_batches",
   rows: "actuals_import_rows",
+  ledger: "actuals_ledger_entries",
   apply: "apply_actuals_import_batch",
   remove: "delete_actuals_import_batch",
   errorSelect: "row_number,branch_code,account_number,cost_center_number,history,validation_errors"

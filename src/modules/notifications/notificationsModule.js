@@ -24,13 +24,15 @@
       openReportFromNotification,
       vpFriendlyError,
       appConfirm,
-      messagesTab            // aba "Mensagens" (messagesModule); opcional
+      messagesTab,           // aba "Mensagens" (messagesModule); opcional
+      onNewNotifications     // opcional: chamado quando o contador de notificações sobe (ex.: carga aplicada pelo robô)
     } = deps;
 
     const POLL_MS = 60000;
     const FEED_LIMIT = 30;
     let _items = [];
     let _unread = 0;          // notificações
+    let _lastUnreadSeen = null; // último contador visto (null = ainda não consultou); detecta aviso novo
     let _unreadMsgs = 0;      // mensagens
     let _messagesRevision = 0; // impede polling antigo de sobrescrever leitura recente
 
@@ -121,6 +123,12 @@
         const linhas = await callSupabaseRpc("inbox_counts");
         const c = Array.isArray(linhas) ? linhas[0] : linhas;
         _unread = Number(c?.notificacoes) || 0;
+        // Aviso novo (ex.: carga aplicada pelo robô): quem usa o cache em memória dos relatórios precisa descartá-lo,
+        // senão o DRE/OPEX continuam mostrando a versão anterior até recarregar a página.
+        if (_lastUnreadSeen !== null && _unread > _lastUnreadSeen) {
+          try { onNewNotifications?.(); } catch (e) { console.error(e); }
+        }
+        _lastUnreadSeen = _unread;
         // Se o Messenger marcou uma conversa como lida enquanto esta RPC
         // estava em voo, o resultado pertence a um snapshot antigo. Nesse
         // caso, preservamos a reconciliação mais nova feita pelo Messenger.
@@ -388,6 +396,7 @@
       closePopover();
       _items = [];
       _unread = 0;
+      _lastUnreadSeen = null;
       _unreadMsgs = 0;
       _messagesRevision = 0;
       _disabled = false;

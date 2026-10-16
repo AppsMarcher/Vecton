@@ -12,6 +12,7 @@
       appConfirm,
       appAlert,
       showToast,
+      onCargaConcluida,
       getActiveView,
       isSupabaseConfigured
     } = deps;
@@ -146,6 +147,7 @@
         const p = data.pedidos.find((x) => x.id === id);
         if (!p || p.status === "pendente" || p.status === "executando") return;
         const ok = p.status === "concluido";
+        if (ok) { try { onCargaConcluida?.(); } catch (e) { console.error(e); } }
         showToast?.(`${label(p.job)}: ${ok ? "carga concluída" : "carga com problema"}${p.resultado ? ` — ${String(p.resultado).slice(0, 140)}` : ""}`, ok ? "success" : "error");
       });
     }

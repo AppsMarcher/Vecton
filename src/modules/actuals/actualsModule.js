@@ -46,7 +46,8 @@
       openGarantiaAtivacoesCarga,
       insertSupabaseRows,
       appAlert,
-      showToast
+      showToast,
+      onCargaConcluida
     } = deps;
 
     // Secao "Automatizadas" do catalogo (cards das cargas do robo + botao "Carregar agora").
@@ -58,6 +59,7 @@
       appConfirm,
       appAlert,
       showToast,
+      onCargaConcluida,
       getActiveView,
       isSupabaseConfigured
     });

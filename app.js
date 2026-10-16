@@ -406,6 +406,7 @@ const actualsModule = createActualsModule({
   appAlert,
   showToast,
   insertSupabaseRows,
+  onCargaConcluida: () => invalidateReportsAfterExternalLoad(),
   openComercialVendasCarga,
   openGarantiaAtivacoesCarga
 });
@@ -912,7 +913,8 @@ const {
   openReportFromNotification,
   vpFriendlyError,
   appConfirm,
-  messagesTab
+  messagesTab,
+  onNewNotifications: () => invalidateReportsAfterExternalLoad()
 });
 
 // ── Módulo Comercial: cadastros (Produtos, Clientes, Território, Coordenação,
@@ -5856,6 +5858,15 @@ async function fetchDreVendasMonthsForYear(year) {
     dreVendasMonthsCache.delete(normalizedYear);
     throw error;
   }
+}
+
+// Cargas feitas pelo robô (ou por outra pessoa) não passam por esta tela, que é quem descarta o cache em memória
+// dos relatórios. Chamado quando chega aviso novo ou termina um pedido "Carregar agora": o próximo acesso ao
+// DRE/OPEX busca os dados de novo, e um relatório aberto no momento é redesenhado.
+function invalidateReportsAfterExternalLoad() {
+  const anos = new Set([Number(state.currentPeriod?.year), new Date().getFullYear()].filter(Boolean));
+  anos.forEach((ano) => invalidateReportsForYear(ano));
+  if (activeView === "reports") renderReportsView();
 }
 
 function invalidateReportsForYear(year) {

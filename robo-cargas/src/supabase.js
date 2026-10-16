@@ -1,3 +1,9 @@
+// Total de linhas a partir do cabecalho Content-Range do PostgREST ("0-0/596", "*/0", "0-9/*").
+export function totalDoContentRange(valor) {
+  const m = /\/(\d+)\s*$/.exec(String(valor ?? ""));
+  return m ? Number(m[1]) : null;
+}
+
 // Cliente minimo do Supabase (Auth por senha + PostgREST + RPC) sem dependencias.
 export class Supabase {
   constructor({ url, anonKey }) {
@@ -44,6 +50,17 @@ export class Supabase {
   }
   update(table, query, patch) { return this.request("PATCH", `/rest/v1/${table}?${query}`, { body: patch, prefer: "return=minimal" }); }
   rpc(fn, args) { return this.request("POST", `/rest/v1/rpc/${fn}`, { body: args }); }
+
+  // Conta as linhas de uma consulta sem baixa-las (Prefer: count=exact).
+  async count(table, query = "") {
+    const res = await fetch(`${this.url}/rest/v1/${table}?${query}&select=id&limit=1`, {
+      headers: this.headers({ Prefer: "count=exact", Range: "0-0", "Range-Unit": "items" })
+    });
+    if (!res.ok) throw new Error(`COUNT ${table} -> ${res.status}: ${await res.text()}`);
+    const total = totalDoContentRange(res.headers.get("content-range"));
+    if (total == null) throw new Error(`COUNT ${table}: resposta sem Content-Range`);
+    return total;
+  }
 
   // PostgREST limita cada resposta (padrao 1000 linhas): pagina por Range ate acabar.
   async selectAll(table, query = "", pageSize = 1000) {
