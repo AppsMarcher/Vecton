@@ -184,6 +184,8 @@ Concessões adicionais disponíveis no perfil:
 | `extra_account_codes` | contas contábeis adicionais |
 | `extra_branch_ids` | empresas/filiais adicionais |
 
+Escopo de dados (gestões, empresas, contas e centros de custo): só Admin e Super Admin enxergam tudo. Todo outro perfil começa sem nada marcado e vê apenas a gestão própria (Gestor/Analista) mais o que receber em Acessos adicionais; Gestor/Analista sem nenhuma gestão atribuída continuam vendo tudo. Na tela de usuários, o padrão do perfil aparece em azul e as exceções marcadas em verde. Relatórios de DRE, OPEX e Headcount concedidos a quem não é Admin/Gestor/Analista só aparecem se houver ao menos uma gestão ou CC marcado.
+
 Os principais helpers ficam em `app.js`: `getAllowedManagements()`, `getPartialManagements()`, `getAllowedCcNumbers()`, `canSeeReport()` e `canSeeAccount()`.
 
 ### Atenção de segurança

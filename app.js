@@ -2481,7 +2481,12 @@ function getMatrixAccounts()  { return state.profile?.matrixAccounts || []; }
 // ── Controle de acesso por perfil (extra_* dos user_profiles) ───────────────
 // Restrito (recorte por gestão/allowlist) a menos que algum perfil marcado
 // seja admin/super_admin — combinar um perfil restrito com admin libera tudo.
-function isAccessRestricted()   { return !isAdmin() && (isManager() || isAnalyst()); }
+// Só Admin/Super Admin enxergam gestões, centros de custo e contas sem escopo. Todo outro perfil
+// (Gestor, Analista, Comercial, Marketing, RPS, A3...) fica restrito ao que lhe foi dado: gestão
+// própria (Gestor/Analista) + Acessos adicionais. Gestor/Analista SEM nenhum escopo atribuído
+// seguem vendo tudo (decisão antiga, ver hasScopeFallback); os demais sem escopo não veem nada.
+function isAccessRestricted()   { return !isAdmin(); }
+function hasScopeFallback()     { return isManager() || isAnalyst(); }
 function getExtraReportIds()    { return state.profile?.extraReportIds    || []; }
 function getExtraCcIds()        { return state.profile?.extraCcIds         || []; }
 function getExtraAccountCodes() { return state.profile?.extraAccountCodes  || []; }
@@ -2492,7 +2497,8 @@ function getAllowedManagements() {
   // Gestor/Analista sem nenhuma gestao atribuida (nem primaria, nem extra):
   // em vez de travar em "nenhuma", enxerga tudo (igual admin, sem acesso a
   // upload/parametros). Se atribuir uma gestao, volta a restringir a ela.
-  return mgmts.length > 0 ? mgmts : null;
+  if (mgmts.length > 0) return mgmts;
+  return hasScopeFallback() ? null : [];
 }
 
 // Gestões onde o acesso é parcial: usuário tem extra_cc_ids de CCs daquela gestão,
@@ -2557,9 +2563,15 @@ function roleCanSeeReport(role, reportId) {
   if (role === "analyst") return ["opexReal", "opexBudget", "headcountReal", "headcountBudget"].includes(reportId);
   return false; // rps_gestao e outros perfis sem tela de Relatórios própria
 }
+// Relatórios que dependem de escopo (gestão/CC). Quem não é Admin/Gestor/Analista só os vê por
+// concessão se tiver ao menos uma gestão ou CC marcado em Acessos adicionais — sem isso o
+// relatório abriria vazio (isAccessRestricted() sem escopo = nada).
+const SCOPED_REPORT_RE = /^(dre|opex|headcount)/;
 function canSeeReport(reportId) {
   if (getAllAccessRoles().some((role) => roleCanSeeReport(role, reportId))) return true;
-  return getExtraReportIds().includes(reportId);
+  if (!getExtraReportIds().includes(reportId)) return false;
+  if (SCOPED_REPORT_RE.test(reportId) && !hasScopeFallback() && !getExtraManagements().length && !getExtraCcIds().length) return false;
+  return true;
 }
 
 // Pode ver a conta contábil? Restrito → só as marcadas em extra_account_codes.
@@ -2576,7 +2588,7 @@ function getAllowedCcNumbers() {
   const extraMgmts = new Set(getExtraManagements().map(m => m.trim()));
   const extraIds = new Set((getExtraCcIds() || []).map(String));
   // Sem gestao primaria nem nenhuma concessao extra: enxerga tudo (igual admin).
-  if (!mgmt && extraMgmts.size === 0 && extraIds.size === 0) return null;
+  if (!mgmt && extraMgmts.size === 0 && extraIds.size === 0) return hasScopeFallback() ? null : new Set();
   const allowed = new Set();
   (state.costCenters || []).forEach((cc) => {
     const ccMgmt = (cc.management || "").trim();
@@ -2604,7 +2616,7 @@ function getCockpitManagementAccess(previous = "Marcher") {
 
 function resolveManagementFilter(prevMgmt, mgmtOptions, allOption) {
   const userMgmt = getUserManagement();
-  if (isManager() || isAnalyst()) {
+  if (isAccessRestricted()) {
     const extraMgmts = getExtraManagements();
     const partialMgmts = getPartialManagements();
     const fullMgmts = [userMgmt, ...extraMgmts].filter(Boolean);
@@ -2621,7 +2633,9 @@ function resolveManagementFilter(prevMgmt, mgmtOptions, allOption) {
       return { selectedMgmt: userMgmt, locked: true, allowedMgmts: null, partialMgmts };
     }
     // Sem nenhuma gestão atribuída (nem primária, nem extra, nem parcial):
-    // enxerga tudo, igual admin. Atribuir uma gestão volta a restringir.
+    // Gestor/Analista enxergam tudo, igual admin (atribuir uma gestão volta a restringir);
+    // os demais perfis não enxergam nenhuma gestão.
+    if (!hasScopeFallback()) return { selectedMgmt: "", locked: true, allowedMgmts: [], partialMgmts };
     const openSelected = mgmtOptions.includes(prevMgmt) ? prevMgmt : allOption;
     return { selectedMgmt: openSelected, locked: false, allowedMgmts: null, partialMgmts };
   }

@@ -453,7 +453,7 @@
     function renderAccessTrees(user, roles) {
       const wrap = document.createElement("div");
       wrap.className = "ue-trees";
-      wrap.append(renderManagementTree(user), renderBranchTree(user), renderAccountTree(user), renderCcTree(user), renderReportTree(user, roles));
+      wrap.append(renderManagementTree(user, roles), renderBranchTree(user, roles), renderAccountTree(user, roles), renderCcTree(user, roles), renderReportTree(user, roles));
       const strategicTree = renderStrategicTree(user, roles || [], strategicAreasCache);
       if (strategicTree) wrap.append(strategicTree);
       return wrap;
@@ -470,6 +470,14 @@
       };
       const old = panel.querySelector(".ue-trees");
       if (old) old.replaceWith(renderAccessTrees(fakeUser, roles));
+    }
+
+    // Só Admin/Super Admin enxergam Gestões, Empresas, Contas e Centros de Custo sem marcação
+    // (isAccessRestricted() em app.js). Todo outro perfil começa sem nada marcado: Gestor e
+    // Analista com a gestão própria, os demais só com o que for marcado aqui (exceção, em verde).
+    function treeRestricted(user, roles) {
+      const efetivos = roles && roles.length ? roles : [user.access_role].filter(Boolean);
+      return !efetivos.some((role) => ["super_admin", "admin"].includes(role));
     }
 
     function isDefaultBranch() { return true; } // branches: todos são padrão por default
@@ -613,9 +621,9 @@
       return section;
     }
 
-    function renderManagementTree(user) {
+    function renderManagementTree(user, roles) {
       const ownMgmt = user.management || "";
-      const isRestricted = ["manager", "analyst"].includes(user.access_role);
+      const isRestricted = treeRestricted(user, roles);
       const icon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><rect x="1" y="16" width="6" height="4" rx="1"/><rect x="9" y="16" width="6" height="4" rx="1"/><rect x="17" y="16" width="6" height="4" rx="1"/><path d="M4 16v-4h16v4M12 6v6"/></svg>`;
       const allMgmts = [...new Set(
         (state.costCenters || []).map(cc => (cc.management || "").trim()).filter(Boolean)
@@ -631,8 +639,8 @@
       );
     }
 
-    function renderBranchTree(user) {
-      const isRestricted = ["manager", "analyst"].includes(user.access_role);
+    function renderBranchTree(user, roles) {
+      const isRestricted = treeRestricted(user, roles);
       const icon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
       return makeTree("branch", icon, "Empresas", () =>
         (state.branches || []).map((b) => {
@@ -645,9 +653,9 @@
       );
     }
 
-    function renderCcTree(user) {
+    function renderCcTree(user, roles) {
       const mgmt = user.management || "";
-      const isRestricted = ["manager", "analyst"].includes(user.access_role);
+      const isRestricted = treeRestricted(user, roles);
       const icon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>`;
       return makeTree("cc", icon, "Centros de Custo", () => {
         const rows = [];
@@ -675,8 +683,8 @@
       });
     }
 
-    function renderAccountTree(user) {
-      const isRestricted = ["manager", "analyst"].includes(user.access_role);
+    function renderAccountTree(user, roles) {
+      const isRestricted = treeRestricted(user, roles);
       const icon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`;
       return makeTree("account", icon, "Contas", () =>
         (state.accounts || []).map((a) => {
