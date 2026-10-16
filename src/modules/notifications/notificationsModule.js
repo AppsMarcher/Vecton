@@ -427,6 +427,16 @@
       return `${list.length} destinatários`;
     }
 
+    // Ordem dos cartões na tela: a da organização (notification_settings.sort_order, gravada ao arrastar; migration 266),
+    // senão a do catálogo (notification_event_types.sort_order). Tipos novos, ainda sem ordem da org, vão para o fim.
+    function orderRank(type) {
+      const own = _settings.get(type.kind)?.sort_order;
+      return Number.isFinite(Number(own)) && own !== null && own !== undefined ? Number(own) : 1e6 + (Number(type.sort_order) || 0);
+    }
+    function orderedTypes() {
+      return [..._types].sort((a, b) => orderRank(a) - orderRank(b) || String(a.label).localeCompare(String(b.label), "pt-BR"));
+    }
+
     // Valor default de cada campo quando a org ainda não tem linha em
     // notification_settings pra esse kind (org nova, ou tipo recém-criado
     // antes do primeiro fetch semear a linha).
@@ -484,11 +494,17 @@
       // (calculado no banco, não configurável). Mostra um aviso único no
       // lugar dos dois seletores.
       const isAssignee = type.target_mode === "assignee";
+      const gripTip = escapeHtml(JSON.stringify([{ label: "Reordenar", value: "arraste ou use ↑ ↓" }]));
       return `
         <div class="notif-cfg-row" data-kind="${escapeHtml(type.kind)}">
-          <div class="notif-cfg-info">
-            <strong class="notif-cfg-label">${escapeHtml(type.label)}</strong>
-            <span class="notif-cfg-desc">${escapeHtml(type.description || "")}</span>
+          <div class="notif-cfg-head">
+            <button type="button" class="notif-cfg-grip" draggable="true" aria-label="Reordenar notificação: ${escapeHtml(type.label)}" data-tip data-tip-rows="${gripTip}">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+            </button>
+            <div class="notif-cfg-info">
+              <strong class="notif-cfg-label">${escapeHtml(type.label)}</strong>
+              <span class="notif-cfg-desc">${escapeHtml(type.description || "")}</span>
+            </div>
           </div>
           <div class="notif-cfg-controls">
             <label class="notif-cfg-toggle">
@@ -684,7 +700,7 @@
         body.innerHTML = `<div class="users-empty">Nenhum tipo de evento cadastrado. Rode a migration 092.</div>`;
         return;
       }
-      body.innerHTML = _types.map(settingsRowMarkup).join("");
+      body.innerHTML = orderedTypes().map(settingsRowMarkup).join("");
     }
 
     async function loadAndRenderSettings() {
@@ -720,10 +736,10 @@
 
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    async function persistRow(kind, patch) {
-      const orgId = await resolveOrganizationId();
+    // Linha COMPLETA de notification_settings (mesclando o que já está salvo com o patch).
+    function buildRow(orgId, kind, patch) {
       const current = { ...DEFAULT_CFG, ..._settings.get(kind) };
-      const merged = {
+      return {
         organization_id: orgId,
         kind,
         in_app: patch.in_app !== undefined ? patch.in_app : current.in_app,
@@ -734,14 +750,133 @@
         is_active: patch.is_active !== undefined ? patch.is_active : current.is_active,
         schedule_weekday: patch.schedule_weekday !== undefined ? patch.schedule_weekday : current.schedule_weekday,
         schedule_time: patch.schedule_time !== undefined ? patch.schedule_time : current.schedule_time,
+        ...(patch.sort_order !== undefined ? { sort_order: patch.sort_order } : {}),
         updated_at: new Date().toISOString(),
         updated_by: getCurrentUserId()
       };
+    }
+
+    async function persistRow(kind, patch) {
+      const orgId = await resolveOrganizationId();
+      const merged = buildRow(orgId, kind, patch);
       // Upsert com a linha COMPLETA (não parcial): a política de escrita é
       // admin da org e todos os NOT NULL vão preenchidos, então o WITH CHECK do
       // INSERT proposto passa — que é o que quebra em upsert parcial.
       await upsertSupabaseRows("notification_settings", [merged], ["organization_id", "kind"]);
-      _settings.set(kind, merged);
+      // Mantém campos que só existem na cópia em memória (ex.: sort_order).
+      _settings.set(kind, { ..._settings.get(kind), ...merged });
+    }
+
+    // Grava a ordem atual dos cartões (1..N) numa só chamada; se falhar, volta à ordem salva.
+    let _orderSaving = Promise.resolve();
+    function saveOrder() {
+      _orderSaving = _orderSaving.then(async () => {
+        const list = document.querySelector("#notif-config-body");
+        if (!list) return;
+        const kinds = [...list.querySelectorAll(".notif-cfg-row")].map((row) => row.dataset.kind);
+        try {
+          const orgId = await resolveOrganizationId();
+          const rows = kinds.map((kind, index) => buildRow(orgId, kind, { sort_order: index + 1 }));
+          await upsertSupabaseRows("notification_settings", rows, ["organization_id", "kind"]);
+          rows.forEach((row) => _settings.set(row.kind, { ..._settings.get(row.kind), ...row }));
+          showToast("Ordem das notificações salva.");
+        } catch (error) {
+          console.error(error);
+          paintSettings(); // desfaz o arrasto na tela
+          showToast(vpFriendlyError(error, "Falha ao salvar a ordem. Se for a primeira vez, aplique a migration 266."), "error");
+        }
+      });
+      return _orderSaving;
+    }
+
+    // ── Arrastar para reordenar ──────────────────────────────────────────────
+    // Pela alça (⋮⋮) de cada cartão, com o mouse (arrastar e soltar) ou com o teclado (↑ ↓ na alça).
+    function bindReorder(list) {
+      let dragged = null;
+      const clearMarks = () => list.querySelectorAll(".drop-before, .drop-after").forEach((n) => n.classList.remove("drop-before", "drop-after"));
+      const finish = () => { dragged?.classList.remove("is-dragging"); dragged = null; clearMarks(); };
+
+      list.addEventListener("dragstart", (event) => {
+        const grip = event.target.closest?.(".notif-cfg-grip");
+        if (!grip || !isAdmin()) { event.preventDefault(); return; }
+        dragged = grip.closest(".notif-cfg-row");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", dragged.dataset.kind);
+        try { event.dataTransfer.setDragImage(dragged, 24, 24); } catch (_) { /* navegador sem suporte */ }
+        document.querySelector("#cockpit-tip")?.setAttribute("hidden", "");
+        requestAnimationFrame(() => dragged?.classList.add("is-dragging"));
+      });
+      list.addEventListener("dragover", (event) => {
+        if (!dragged) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        const row = event.target.closest(".notif-cfg-row");
+        clearMarks();
+        if (!row || row === dragged) return;
+        const box = row.getBoundingClientRect();
+        row.classList.add(event.clientY < box.top + box.height / 2 ? "drop-before" : "drop-after");
+      });
+      list.addEventListener("drop", (event) => {
+        if (!dragged) return;
+        event.preventDefault();
+        const row = event.target.closest(".notif-cfg-row");
+        if (row && row !== dragged) {
+          const before = row.classList.contains("drop-before");
+          list.insertBefore(dragged, before ? row : row.nextElementSibling);
+          void saveOrder();
+        }
+        finish();
+      });
+      list.addEventListener("dragend", finish);
+
+      // Teclado: ↑ ↓ na alça move o cartão (grava depois de uma pausa curta).
+      let keyTimer = null;
+      list.addEventListener("keydown", (event) => {
+        const grip = event.target.closest?.(".notif-cfg-grip");
+        if (!grip || !isAdmin() || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+        event.preventDefault();
+        const row = grip.closest(".notif-cfg-row");
+        const target = event.key === "ArrowUp" ? row.previousElementSibling : row.nextElementSibling;
+        if (!target) return;
+        list.insertBefore(row, event.key === "ArrowUp" ? target : target.nextElementSibling);
+        grip.focus();
+        clearTimeout(keyTimer);
+        keyTimer = setTimeout(() => void saveOrder(), 500);
+      });
+    }
+
+    // Tooltip padrão do app (.cockpit-tip) para a alça — mesmo cartão do Cockpit, em vez do title nativo.
+    function bindTips(list) {
+      let tip = document.querySelector("#cockpit-tip");
+      if (!tip) {
+        tip = document.createElement("div");
+        tip.id = "cockpit-tip";
+        tip.className = "cockpit-tip";
+        tip.hidden = true;
+        document.body.appendChild(tip);
+      }
+      const fill = (point) => {
+        let rows = [];
+        try { rows = JSON.parse(point.dataset.tipRows || "[]"); } catch (_) { rows = []; }
+        tip.innerHTML = rows.map((r) => `<div class="cockpit-tip-row"><span>${escapeHtml(r.label)}</span><strong>${escapeHtml(r.value)}</strong></div>`).join("");
+        tip.hidden = false;
+      };
+      const place = (x, y) => {
+        const width = tip.offsetWidth || 120;
+        tip.style.left = `${Math.min(x + 14, window.innerWidth - width - 8)}px`;
+        tip.style.top = `${Math.max(y - 64, 8)}px`;
+      };
+      list.addEventListener("pointerover", (e) => { const p = e.target.closest("[data-tip]"); if (p) fill(p); });
+      list.addEventListener("pointermove", (e) => { if (e.target.closest("[data-tip]")) place(e.clientX, e.clientY); });
+      list.addEventListener("pointerout", (e) => { if (e.target.closest("[data-tip]") && !e.relatedTarget?.closest?.("[data-tip]")) tip.hidden = true; });
+      list.addEventListener("focusin", (e) => {
+        const p = e.target.closest("[data-tip]");
+        if (!p) return;
+        fill(p);
+        const box = p.getBoundingClientRect();
+        place(box.left + box.width / 2, box.top);
+      });
+      list.addEventListener("focusout", (e) => { if (e.target.closest("[data-tip]")) tip.hidden = true; });
     }
 
     const CHECKBOX_FIELDS = ["in_app", "email", "messenger", "is_active"];
@@ -758,6 +893,8 @@
       const list = document.querySelector("#notif-config-body");
       if (!list || list.dataset.bound === "1") return;
       list.dataset.bound = "1";
+      bindReorder(list);
+      bindTips(list);
 
       list.addEventListener("change", async (event) => {
         const input = event.target;

@@ -305,7 +305,7 @@ O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano 
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `265` (269 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `266` (270 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -354,6 +354,7 @@ Resumo por fase:
 | `256` | `comercial_margens_itens` ganha o filtro Equipe Comercial (`p_territorio`, `p_coordenacao`, `p_vendedor`), usado só pela tabela Evolutivo de Margens |
 | `257–258` | código do cliente nas Ativações de Garantia; detalhe do Evolutivo de Margens |
 | `259–265` | carga automática de vendas e DRE e envio semanal do Painel de Vendas (robô): `carga_automatica_config`/`carga_automatica_log`, mapa `comercial_regioes_municipio` (+ carga inicial), avisos de carga aplicada e de erro, pedidos "Carregar agora" (`carga_automatica_pedido`) |
+| `266` | `notification_settings.sort_order` — ordem dos cartões da tela Parâmetros → Notificações (arrastar para reordenar, por organização) |
 
 ### Divergências conhecidas do schema
 

@@ -5272,6 +5272,45 @@ textarea[disabled] {
 .auto-carga-actions { margin-top: 4px; display: flex; align-items: center; gap: 8px; }
 .auto-carga-run[disabled] { opacity: 0.6; cursor: default; }
 
+/* Notificações em cartões separados e reordenáveis (arrastar pela alça ⋮⋮ ou ↑ ↓ no teclado). */
+.notif-cfg-card { background: transparent; border: none; box-shadow: none; overflow: visible; padding: 0; }
+.notif-cfg-list { gap: 12px; }
+.notif-cfg-row {
+  position: relative;
+  border: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  background: var(--panel);
+  transition: border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+.notif-cfg-row:last-child { border-bottom: 1px solid var(--theme-border, rgba(255, 255, 255, 0.08)); }
+.notif-cfg-row:hover { border-color: var(--theme-border-strong, rgba(255, 255, 255, 0.16)); box-shadow: 0 8px 22px var(--theme-shadow-color, rgba(5, 10, 18, 0.18)); }
+.notif-cfg-head { display: flex; align-items: flex-start; gap: 10px; }
+.notif-cfg-info { min-width: 0; }
+.notif-cfg-grip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 26px;
+  margin: -2px 0 0 -6px;
+  padding: 0;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: grab;
+  touch-action: none;
+}
+.notif-cfg-grip svg { width: 16px; height: 16px; fill: currentColor; }
+.notif-cfg-grip:hover { background: var(--theme-surface-tint, rgba(255, 255, 255, 0.06)); color: var(--text); }
+.notif-cfg-grip:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; color: var(--text); }
+.notif-cfg-grip:active { cursor: grabbing; }
+.notif-cfg-row.is-dragging { opacity: 0.4; }
+.notif-cfg-row.drop-before { box-shadow: 0 -3px 0 0 var(--blue); }
+.notif-cfg-row.drop-after { box-shadow: 0 3px 0 0 var(--blue); }
+
 /* ─── SCROLLBAR FLUTUANTE (tabelas DRE) ─────────────────────────────────── */
 .floating-hscroll {
   position: fixed;
