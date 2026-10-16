@@ -12,7 +12,7 @@ begin;
 
 insert into public.notification_event_types (kind, label, description, target_report_id, sort_order, trigger_mode) values
   ('relatorio_painel_vendas_semanal', 'Envio semanal do Painel de Vendas',
-   'Envia por e-mail o PDF do Painel de Vendas (mês e acumulado YTD, igual ao botão Enviar por e-mail) aos destinatários marcados, no dia e horário abaixo. Marque E-mail e escolha os destinatários; quem envia é o robô de cargas no servidor.',
+   'Envia por e-mail o PDF do Painel de Vendas (mês e acumulado YTD, igual ao botão Enviar por e-mail) aos destinatários marcados, no dia e horário abaixo.',
    null, 70, 'scheduled')
 on conflict (kind) do update
   set label = excluded.label, description = excluded.description,
