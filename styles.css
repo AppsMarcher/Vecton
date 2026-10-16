@@ -6788,6 +6788,7 @@ body.auth-only .content-view {
 .ap-card--analyst    { border-top: 3px solid #8b5cf6; }
 .ap-card--comercial  { border-top: 3px solid #14b8a6; }
 .ap-card--rps-gestao { border-top: 3px solid #f472b6; }
+.ap-card--marketing  { border-top: 3px solid #f97316; }
 .ap-card--strategic  { border-top: 3px solid #0ea5e9; }
 
 .ap-card-top {
@@ -6814,6 +6815,7 @@ body.auth-only .content-view {
 .ap-badge--analyst    { background: rgba(139,92,246,0.15); color: var(--theme-ink-violet, #8b5cf6); }
 .ap-badge--comercial  { background: rgba(20,184,166,0.15); color: var(--theme-ink-teal, #14b8a6); }
 .ap-badge--rps-gestao { background: rgba(244,114,182,0.15); color: var(--theme-ink-pink, #f472b6); }
+.ap-badge--marketing  { background: rgba(249,115,22,0.15); color: var(--theme-ink-orange, #f97316); }
 .ap-badge--strategic  { background: rgba(14,165,233,0.15);  color: var(--theme-ink-blue, #0ea5e9); }
 
 .ap-user-count {

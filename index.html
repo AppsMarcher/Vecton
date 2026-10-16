@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261016mc6">
+  <link rel="stylesheet" href="styles.css?v=20261016mkt1">
   <link rel="stylesheet" href="src/modules/cashflow/fcDashboard.css?v=20261014em1">
   <link rel="stylesheet" href="src/styles/appearance.css?v=20260924maps1">
   <script src="src/core/appearance.js?v=20260924a"></script>
@@ -1334,6 +1334,7 @@
                 <li class="ap-perm ap-perm--yes">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">Todos os relatórios e drill-down</li>
                 <li class="ap-perm ap-perm--yes">Evolutivo de Margens (somente Super Admin, Admin e Gestor)</li>
+                <li class="ap-perm ap-perm--yes">Ativações de Garantia e Marcher no Campo</li>
                 <li class="ap-perm ap-perm--yes">A3 Estratégicos — visão e edição de todas as áreas</li>
                 <li class="ap-perm ap-perm--yes">Parâmetros e carga de dados</li>
                 <li class="ap-perm ap-perm--yes">Gerenciar usuários e perfis</li>
@@ -1358,6 +1359,7 @@
                 <li class="ap-perm ap-perm--yes">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">Todos os relatórios e drill-down</li>
                 <li class="ap-perm ap-perm--yes">Evolutivo de Margens (somente Super Admin, Admin e Gestor)</li>
+                <li class="ap-perm ap-perm--yes">Ativações de Garantia e Marcher no Campo</li>
                 <li class="ap-perm ap-perm--yes">A3 Estratégicos — visão e edição de todas as áreas</li>
                 <li class="ap-perm ap-perm--yes">Parâmetros e carga de dados</li>
                 <li class="ap-perm ap-perm--yes">Gerenciar usuários e perfis</li>
@@ -1384,6 +1386,7 @@
                 <li class="ap-perm ap-perm--yes">Fluxo de Caixa (consolidado + cenários próprios)</li>
                 <li class="ap-perm ap-perm--yes">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças (consolidado + drill-down)</li>
                 <li class="ap-perm ap-perm--yes">Evolutivo de Margens (consolidado + drill-down por código)</li>
+                <li class="ap-perm ap-perm--no">Ativações de Garantia e Marcher no Campo (perfil Marketing)</li>
                 <li class="ap-perm ap-perm--partial">OPEX e Headcount — restrito à gestão própria</li>
                 <li class="ap-perm ap-perm--partial">A3 Estratégicos — vê todas as áreas, edita só a da própria gestão (+ extras configuráveis)</li>
                 <li class="ap-perm ap-perm--partial">Gestões e CCs adicionais configuráveis</li>
@@ -1463,7 +1466,7 @@
                 <li class="ap-perm ap-perm--yes">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças (consolidado + drill-down)</li>
                 <li class="ap-perm ap-perm--partial">Painel de Vendas — drilldown de NFs e Pedidos configurável por usuário (com ou sem)</li>
                 <li class="ap-perm ap-perm--yes">RPS Comercial — registrar e conduzir a reunião de todas as áreas</li>
-                <li class="ap-perm ap-perm--no">Ativações de Garantia</li>
+                <li class="ap-perm ap-perm--no">Ativações de Garantia e Marcher no Campo (perfil Marketing)</li>
                 <li class="ap-perm ap-perm--no">Evolutivo de Margens</li>
                 <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Fluxo de Caixa, OPEX, Headcount)</li>
                 <li class="ap-perm ap-perm--no">Planejamento</li>
@@ -1496,6 +1499,33 @@
               </ul>
               <div class="ap-card-footer">
                 <button class="ap-users-btn" type="button" data-profile="gestao_estrategica">Ver usuários →</button>
+              </div>
+            </div>
+
+            <!-- Marketing -->
+            <div class="ap-card ap-card--marketing">
+              <div class="ap-card-top">
+                <div class="ap-badge ap-badge--marketing">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a4 4 0 0 1 0 6"/><path d="M18 6a8 8 0 0 1 0 12"/></svg>
+                  Marketing
+                </div>
+                <span class="ap-user-count" id="ap-count-marketing">— usuários</span>
+              </div>
+              <p class="ap-description">Login direto na tela Relatórios. Enxerga somente Ativações de Garantia e Marcher no Campo (sell-out das revendas ao produtor), com visão consolidada. Sem Dashboard, Planejamento, demais relatórios, Parâmetros ou cargas.</p>
+              <ul class="ap-perms">
+                <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
+                <li class="ap-perm ap-perm--yes">Ativações de Garantia</li>
+                <li class="ap-perm ap-perm--yes">Marcher no Campo</li>
+                <li class="ap-perm ap-perm--no">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças</li>
+                <li class="ap-perm ap-perm--no">Evolutivo de Margens</li>
+                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Fluxo de Caixa, OPEX, Headcount)</li>
+                <li class="ap-perm ap-perm--no">Planejamento</li>
+                <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
+                <li class="ap-perm ap-perm--no">RPS Gestão</li>
+                <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
+              </ul>
+              <div class="ap-card-footer">
+                <button class="ap-users-btn" type="button" data-profile="marketing">Ver usuários →</button>
               </div>
             </div>
 
@@ -1650,7 +1680,7 @@
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsBuilderModule.js?v=20261001theme1"></script>
   <script src="src/modules/reports/reportsSectionsModule.js?v=20260921c"></script>
-  <script src="src/modules/users/usersModule.js?v=20261008c"></script>
+  <script src="src/modules/users/usersModule.js?v=20261016mkt1"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
   <script src="src/modules/announcements/announcementsAdminModule.js?v=20260925b"></script>
   <script src="src/modules/announcements/announcementsDisplayModule.js?v=20260924c"></script>
@@ -1692,6 +1722,6 @@
   <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
   <script src="src/modules/cashflow/fcExport.js?v=20261014em1"></script>
   <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
-  <script src="app.js?v=20261016b"></script>
+  <script src="app.js?v=20261016mkt1"></script>
 </body>
 </html>

@@ -2446,11 +2446,12 @@ function isAdmin()       { return hasRole("super_admin") || hasRole("admin"); }
 function isManager()     { return hasRole("manager"); }
 function isAnalyst()     { return hasRole("analyst"); }
 function isComercial()   { return hasRole("comercial"); }
+function isMarketing()   { return hasRole("marketing"); }
 function isRpsGestao()   { return hasRole("rps_gestao"); }
 function isGestaoEstrategica() { return hasRole("gestao_estrategica"); }
 function canAccessDashboard() { return isSuperAdmin() || isAdmin() || isManager(); }
 function canAccessPlanning()  { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst(); }
-function canAccessReportsMenu() { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst() || isComercial(); }
+function canAccessReportsMenu() { return isSuperAdmin() || isAdmin() || isManager() || isAnalyst() || isComercial() || isMarketing(); }
 // Mesmo conjunto de canFillValues() na RPS (rpsModule.js) — quem não preenche
 // valores também não precisa ver o menu. Comercial/Analista "puros" ficam de fora.
 function canAccessRps() { return isSuperAdmin() || isAdmin() || isManager() || isRpsGestao(); }
@@ -2519,6 +2520,8 @@ const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comerci
 // Relatórios comerciais fixos que o perfil Comercial NÃO enxerga (Gestor/Admin continuam vendo).
 // Evolutivo de Margens: dado sensível, só Gestor, Admin e Super Admin (o RPC também valida).
 const COMERCIAL_EXCLUDED_REPORT_IDS = ["garantiaAtivacoes", "marcherCampo", "comercialMargens"];
+// Relatórios exclusivos do perfil Marketing (Admin/Super Admin também veem; Gestor, Analista e Comercial não).
+const MARKETING_REPORT_IDS = ["garantiaAtivacoes", "marcherCampo"];
 // Flag em extra_report_ids (mesmo valor em usersModule.js): perfil Comercial sem o
 // drilldown de NFs/Pedidos do Painel de Vendas. Admin/Gestor sempre têm drilldown.
 const PAINEL_SEM_DRILL_TOKEN = "comercialPainel:sem_drill";
@@ -2529,7 +2532,9 @@ function canDrillPainelVendas() {
 
 // Visibilidade do card no catálogo — modelo POR PAPEL (conforme tela Perfis de Acesso):
 //  • admin/super_admin: tudo
-//  • manager (Gestor): tudo, incluindo os relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS)
+//  • manager (Gestor): tudo, incluindo os relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS),
+//    exceto os do perfil Marketing (MARKETING_REPORT_IDS)
+//  • marketing: somente Ativações de Garantia e Marcher no Campo (MARKETING_REPORT_IDS)
 //  • analyst (Analista): somente OPEX e Headcount por gestão/CC
 //  • comercial: allowlist fixa dos relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS),
 //    exceto Ativações de Garantia (COMERCIAL_EXCLUDED_REPORT_IDS)
@@ -2543,7 +2548,8 @@ function roleCanSeeReport(role, reportId) {
     if (COMERCIAL_EXCLUDED_REPORT_IDS.includes(reportId)) return false;
     return String(reportId).startsWith("comercialRelatorio_") || CORE_COMMERCIAL_REPORT_IDS.includes(reportId);
   }
-  if (role === "manager") return true;
+  if (role === "manager") return !MARKETING_REPORT_IDS.includes(reportId);
+  if (role === "marketing") return MARKETING_REPORT_IDS.includes(reportId);
   if (role === "analyst") return ["opexReal", "opexBudget", "headcountReal", "headcountBudget"].includes(reportId);
   return false; // rps_gestao e outros perfis sem tela de Relatórios própria
 }

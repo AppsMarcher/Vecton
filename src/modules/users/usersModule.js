@@ -26,6 +26,7 @@
       manager:     "Gestor",
       analyst:     "Analista",
       comercial:   "Comercial",
+      marketing:   "Marketing",
       rps_gestao:  "RPS Gestão",
       gestao_estrategica: "A3 Estratégicos"
     };
@@ -36,6 +37,7 @@
       manager:     "#22c55e",
       analyst:     "#8b5cf6",
       comercial:   "#14b8a6",
+      marketing:   "#f97316",
       rps_gestao:  "#f472b6",
       gestao_estrategica: "#0ea5e9"
     };

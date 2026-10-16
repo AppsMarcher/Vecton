@@ -168,9 +168,10 @@ Papéis em `user_profiles.access_role`:
 |---|---|
 | `super_admin` | acesso total; pode administrar outros Super Admins |
 | `admin` | parâmetros, cargas, usuários, planejamento, dashboard e relatórios |
-| `manager` | dashboard e relatórios (inclui Evolutivo de Margens); OPEX/Headcount filtrados por gestão e concessões |
+| `manager` | dashboard e relatórios (inclui Evolutivo de Margens, mas não Ativações de Garantia nem Marcher no Campo, que são do `marketing`); OPEX/Headcount filtrados por gestão e concessões |
 | `analyst` | sem dashboard e DRE consolidado; acesso restrito a relatórios por CC |
-| `comercial` | entrada em Relatórios; Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças. Não vê Ativações de Garantia nem Evolutivo de Margens |
+| `comercial` | entrada em Relatórios; Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças. Não vê Ativações de Garantia, Marcher no Campo nem Evolutivo de Margens |
+| `marketing` | entrada em Relatórios; somente Ativações de Garantia e Marcher no Campo (Admin e Super Admin também veem). Sem dashboard, planejamento, parâmetros ou cargas |
 
 Concessões adicionais disponíveis no perfil:
 
@@ -361,6 +362,7 @@ Resumo por fase:
 | `251–252` | Ativações de Garantia: UF exterior e quantidade |
 | `267` | Ativações de Garantia: CFOP, CPF/CNPJ do destinatário, forma de pagamento, financiamento, preço da máquina (aba Itens) e parcelas |
 | `268` | card "Marcher no Campo" na mesma seção de Ativações de Garantia no catálogo de relatórios |
+| `269` | perfil de acesso `marketing` (enum `access_profile_role`; rodar sozinho, sem transação) |
 | `253` | `rl` e `mp` no staging e no ledger de vendas realizadas (novo layout FAT/RL/MP) |
 | `254` | carteira (CART) entra só pelo mês de referência no Painel e Peças |
 | `255` | RPC `comercial_margens_itens` e posição do card Evolutivo de Margens no catálogo |

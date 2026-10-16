@@ -39,7 +39,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALLOWED_ROLES = ["super_admin", "admin", "manager", "analyst", "comercial", "rps_gestao"];
+const ALLOWED_ROLES = ["super_admin", "admin", "manager", "analyst", "comercial", "marketing", "rps_gestao"];
 // Perfis se combinam (ex: Comercial + RPS Gestão). ROLE_PRIORITY decide qual
 // vira o "primário" (access_role) quando vários vêm marcados — mesma ordem
 // de PROFILE_ROLE_PRIORITY em usersModule.js. Não confiamos no que o cliente
@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
 });
 
 function ROLE_LABEL(role: string): string {
-  return { super_admin: "Super Admin", admin: "Administrador", manager: "Gestor", analyst: "Analista", comercial: "Comercial", rps_gestao: "RPS Gestão" }[role] ?? "Analista";
+  return { super_admin: "Super Admin", admin: "Administrador", manager: "Gestor", analyst: "Analista", comercial: "Comercial", marketing: "Marketing", rps_gestao: "RPS Gestão" }[role] ?? "Analista";
 }
 
 // Constrói o link do e-mail apontando pro PRÓPRIO app (não mais o
