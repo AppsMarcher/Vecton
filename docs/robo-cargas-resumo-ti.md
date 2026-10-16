@@ -13,9 +13,10 @@ Cada execução apaga o mês corrente no Vecton e regrava tudo (carga completa).
 ## 2. Como funciona
 
 ```
-Agendador do Windows (a cada 15 min)  →  robô (Node.js)
+Agendador do Windows (a cada 5 min)  →  robô (Node.js)
    1. entra no Vecton (usuário robo.vecton@marcher.com.br)
    2. lê a configuração (ligada? horários? janela de meses) no próprio Vecton
+      e verifica se há pedido "Carregar agora" feito pela tela do Vecton
    3. se há um horário vencido, consulta o Protheus (somente leitura)
    4. resolve o território (tabela Parâmetros → Comercial → Municípios)
    5. cria o lote, o Vecton valida, e o robô aplica
@@ -25,6 +26,8 @@ Agendador do Windows (a cada 15 min)  →  robô (Node.js)
 
 O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são alterados no Vecton (tabela `carga_automatica_config`), sem mexer no servidor.
 
+**Botão "Carregar agora":** na tela do Vecton (Parâmetros → Carga de Realizado → seção *Automatizadas*) um administrador pode pedir uma carga fora do horário. O navegador apenas registra o pedido no banco; é o robô, no servidor, que o executa na próxima rodada da tarefa (por isso a tarefa deve rodar a cada 5 minutos). Nenhuma porta do servidor é aberta para a internet.
+
 **Proteções:** extração vazia ou queda de mais de 30% nas linhas em relação à última carga → não aplica e avisa. Qualquer linha reprovada na validação (ex.: cliente não cadastrado) → não aplica nada e avisa por e-mail, com as linhas.
 
 ## 3. Situação da implantação (15/10/2026)
@@ -33,6 +36,7 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 |---|---|
 | Código do robô e testes unitários (14 testes) | Pronto, no GitHub |
 | Banco do Vecton (migrations 259 a 262): configuração, log, mapa de municípios, aviso por e-mail de erro e de carga concluída | Aplicado |
+| Botão "Carregar agora" (migration 263, robô e tela) | Desenvolvido; **migration 263 e robô atualizado a publicar no servidor** |
 | Tela Parâmetros → Comercial → Municípios | Publicada |
 | Usuário `robo.vecton@marcher.com.br` no Vecton | Criado, login validado |
 | Login SQL de leitura `usr_robo_vecton` no `MARCHER-BD` | Criado, validado a partir do servidor |
@@ -47,7 +51,7 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 ## 4. O que falta — pendências da TI
 
 ### 4.1 Conferir a tarefa agendada
-O script `instalar-tarefa.ps1` cria a tarefa **`Vecton - Robo de Cargas`**, que dispara a cada 15 minutos; o robô decide sozinho se há horário vencido (12:00 e 23:30). Hoje ela roda com a conta `marcher.local\ti.marcher`.
+O script `instalar-tarefa.ps1` cria a tarefa **`Vecton - Robo de Cargas`**, que dispara a cada 5 minutos (parâmetro `-IntervaloMin`); o robô decide sozinho se há horário vencido (12:00 e 23:30). Hoje ela roda com a conta `marcher.local\ti.marcher`.
 
 1. Em PowerShell **como administrador**, em `C:\robo-cargas`:
    ```
@@ -57,6 +61,13 @@ O script `instalar-tarefa.ps1` cria a tarefa **`Vecton - Robo de Cargas`**, que 
    Se aparecer `not digitally signed`: `Unblock-File .\instalar-tarefa.ps1` e, se preciso, `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` (vale só para a janela).
 2. Conferir no Agendador de Tarefas que a tarefa existe e o "Resultado da última execução" é `0x0`.
 3. Depois dos horários de 12:00 e 23:30, conferir o log (seção 6): deve aparecer uma linha `ok` por horário.
+
+### 4.1.1 Atualizar o robô no servidor (botão "Carregar agora")
+1. Atualizar os arquivos da pasta `C:\robo-cargas` com a versão atual do GitHub (principalmente `src\runner.js` e `instalar-tarefa.ps1`).
+2. Recriar a tarefa (o script substitui a existente) para que ela passe a rodar a cada 5 minutos:
+   ```
+   .\instalar-tarefa.ps1 -Conta "marcher.local\ti.marcher" -Escopo Machine
+   ```
 
 ### 4.2 Conta definitiva para a tarefa
 A tarefa roda com `marcher.local\ti.marcher`. Se a senha dessa conta for trocada, a tarefa para até ser recriada. O ideal é uma **conta de serviço** do domínio, de senha estável, com o direito "Fazer logon como tarefa em lote" e acesso a `C:\robo-cargas`. Para trocar, rodar o mesmo script com o novo `-Conta` (ele substitui a tarefa existente).

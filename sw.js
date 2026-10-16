@@ -1,10 +1,10 @@
 const CACHE_PREFIX = "vecton-static-";
-const CACHE_NAME = `${CACHE_PREFIX}20261015regioes1`;
+const CACHE_NAME = `${CACHE_PREFIX}20261016auto1`;
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./styles.css?v=20261013rps3",
+  "./styles.css?v=20261016auto1",
   "./src/modules/cashflow/fcDashboard.css?v=20260924clear1",
   "./src/styles/appearance.css?v=20260924maps1",
   "./src/modules/reports/mapAppearance.js?v=20260924a",

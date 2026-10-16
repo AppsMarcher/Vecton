@@ -85,3 +85,23 @@ test("resumir conta FAT/CART e pendencias de territorio", () => {
   const r = resumir([l, { ...l, origem: "CART", tipo: "Peças" }]);
   assert.deepEqual([r.resumo.total, r.resumo.fat, r.resumo.cart, r.resumo.semTerritorio], [2, 1, 1, 1]);
 });
+
+import { resumirPedido } from "../src/runner.js";
+
+test("resumirPedido: concluido quando todos os meses deram certo", () => {
+  const r = resumirPedido([{ job: "vendas", mes: { ano: 2026, mes: 10 }, status: "ok", mensagem: "Aplicada: 166 linhas (FAT 51, CART 115)" }]);
+  assert.equal(r.status, "concluido");
+  assert.equal(r.resultado, "2026-10: Aplicada: 166 linhas (FAT 51, CART 115)");
+});
+test("resumirPedido: erro quando algum mes foi bloqueado ou falhou", () => {
+  const bloq = resumirPedido([{ mes: { ano: 2026, mes: 10 }, status: "bloqueada", mensagem: "Queda anormal" }]);
+  assert.equal(bloq.status, "erro");
+  const falha = resumirPedido([{ mes: { ano: 2026, mes: 9 }, status: "ok", mensagem: "ok" }, { mes: { ano: 2026, mes: 10 }, status: "erro" }]);
+  assert.equal(falha.status, "erro");
+  assert.match(falha.resultado, /2026-10: erro/);
+});
+test("resumirPedido: sem resultados e erro; texto limitado a 1000 caracteres", () => {
+  assert.equal(resumirPedido([]).status, "erro");
+  const longo = resumirPedido([{ mes: { ano: 2026, mes: 10 }, status: "erro", mensagem: "x".repeat(3000) }]);
+  assert.equal(longo.resultado.length, 1000);
+});

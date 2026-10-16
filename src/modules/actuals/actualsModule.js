@@ -43,8 +43,24 @@
       upsertSupabaseRows,
       appConfirm,
       openComercialVendasCarga,
-      openGarantiaAtivacoesCarga
+      openGarantiaAtivacoesCarga,
+      insertSupabaseRows,
+      appAlert,
+      showToast
     } = deps;
+
+    // Secao "Automatizadas" do catalogo (cards das cargas do robo + botao "Carregar agora").
+    const autoCargas = window.VECTON_CARGAS_AUTOMATIZADAS_MODULE?.createCargasAutomatizadasModule({
+      escapeHtml,
+      resolveOrganizationId,
+      fetchSupabaseRowsSafe,
+      insertSupabaseRows,
+      appConfirm,
+      appAlert,
+      showToast,
+      getActiveView,
+      isSupabaseConfigured
+    });
 
     const ACTUALS_LOAD_LABELS = {
       dre: "DRE",
@@ -102,7 +118,7 @@
 
       view.innerHTML = `
         <div id="actuals-catalog" class="actuals-catalog">
-          <div class="load-catalog-header"><h2 class="load-catalog-title">Carga de Realizado</h2></div>
+          <div class="load-catalog-header"><h2 class="load-catalog-title">Carga de Realizado - Manuais</h2></div>
           <div class="load-catalog-grid">
             <button class="load-catalog-card load-catalog-card--blue" type="button" data-load-type="dre">
               <span class="lcc-icon-wrap">
@@ -142,6 +158,11 @@
               </span>
               <strong>Ativações de Garantia</strong>
             </button>
+          </div>
+
+          <div class="load-catalog-section">
+            <div class="load-catalog-header"><h2 class="load-catalog-title">Carga de Realizado - Automatizadas</h2></div>
+            <div id="auto-cargas-root" class="load-catalog-grid load-catalog-grid--auto"><div class="actuals-empty">Carregando…</div></div>
           </div>
         </div>
 
@@ -247,6 +268,7 @@
 
       view.dataset.ready = "true";
       bindEvents();
+      autoCargas?.bind(document.querySelector("#auto-cargas-root"));
     }
 
     function bindEvents() {
@@ -393,6 +415,7 @@
         if (viewTitle && getActiveView() === "actualsLoad") {
           viewTitle.textContent = "Carga de realizado";
         }
+        autoCargas?.refresh();
       }
     }
 

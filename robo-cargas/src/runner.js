@@ -80,7 +80,7 @@ async function processarMes(ctx, job, mes) {
 
   if (resumo.total === 0 && !opcoes.force) {
     await registrarLog(sb, orgId, base, { ...cabecalho, status: "bloqueada", mensagem: "Extracao vazia: carga nao aplicada para nao apagar o mes", detalhes });
-    return { status: "bloqueada" };
+    return { status: "bloqueada", mensagem: "Extração vazia: carga não aplicada para não apagar o mês" };
   }
 
   const [ultimo] = await sb.select("carga_automatica_log",
@@ -90,7 +90,7 @@ async function processarMes(ctx, job, mes) {
   if (ultimo?.total_rows && resumo.total < ultimo.total_rows * (1 - quedaMax / 100) && !opcoes.force) {
     await registrarLog(sb, orgId, base, { ...cabecalho, status: "bloqueada", detalhes: { ...detalhes, linhas_anteriores: ultimo.total_rows },
       mensagem: `Queda anormal: ${resumo.total} linhas contra ${ultimo.total_rows} na ultima carga (limite ${quedaMax}%). Use --force se for esperado.` });
-    return { status: "bloqueada" };
+    return { status: "bloqueada", mensagem: `Queda anormal: ${resumo.total} linhas contra ${ultimo.total_rows} na última carga (limite ${quedaMax}%)` };
   }
 
   const removidos = await limparLotesAutoPendentes(sb, orgId);
@@ -114,7 +114,7 @@ async function processarMes(ctx, job, mes) {
     await registrarLog(sb, orgId, base, { ...cabecalho, batch_id: batchId, status: "erro", detalhes: { ...detalhes, lote, primeiros_erros: erros },
       mensagem: `Lote com ${lote.error_rows} linha(s) com erro de validacao (nada foi aplicado). Lote ${batchId} mantido para analise na tela de carga.` });
     console.error(`${job.nome} ${rotulo}: ${lote.error_rows} linha(s) com erro. Lote ${batchId} mantido sem aplicar.`);
-    return { status: "erro" };
+    return { status: "erro", mensagem: `${lote.error_rows} linha(s) com erro de validação; nada foi aplicado` };
   }
 
   await sb.rpc("apply_comercial_realizado_import_batch", { target_batch_id: batchId });
@@ -125,7 +125,40 @@ async function processarMes(ctx, job, mes) {
   }
   await registrarLog(sb, orgId, base, { ...cabecalho, batch_id: batchId, status: "ok", detalhes, mensagem: `Carga aplicada: ${resumo.total} linhas${aviso}` });
   console.log(`${job.nome} ${rotulo}: aplicada (${resumo.total} linhas: FAT ${resumo.fat}, CART ${resumo.cart})${aviso}.`);
-  return { status: "ok" };
+  return { status: "ok", mensagem: `Aplicada: ${resumo.total} linhas (FAT ${resumo.fat}, CART ${resumo.cart})` };
+}
+
+// ---- pedidos de carga sob demanda (botao "Carregar agora" na tela do Vecton) ----------------------------------
+
+// Resultado do pedido a partir dos resultados por mes.
+export function resumirPedido(resultados) {
+  const falhou = resultados.some((r) => r.status === "erro" || r.status === "bloqueada");
+  const texto = resultados
+    .map((r) => `${r.mes.ano}-${pad2(r.mes.mes)}: ${r.mensagem || r.status}`)
+    .join(" | ");
+  return { status: falhou || !resultados.length ? "erro" : "concluido", resultado: (texto || "Nenhum mês processado").slice(0, 1000) };
+}
+
+const PEDIDO_EXPIRA_MIN = 30;
+
+// Pega o pedido pendente mais antigo do job e o marca como "executando" (atomico: so vence quem ainda o ve pendente).
+async function assumirPedido(sb, orgId, jobNome) {
+  const limite = new Date(Date.now() - PEDIDO_EXPIRA_MIN * 60e3).toISOString();
+  // Pedido que ficou "executando" ha muito tempo (robo interrompido) deixa de bloquear novos pedidos.
+  await sb.update("carga_automatica_pedido", `organization_id=eq.${orgId}&job=eq.${jobNome}&status=eq.executando&started_at=lt.${limite}`,
+    { status: "erro", finished_at: new Date().toISOString(), resultado: "Interrompido: o robô não concluiu este pedido" });
+  const [pend] = await sb.select("carga_automatica_pedido",
+    `organization_id=eq.${orgId}&job=eq.${jobNome}&status=eq.pendente&select=id&order=requested_at.asc&limit=1`);
+  if (!pend) return null;
+  const [pego] = await sb.request("PATCH", `/rest/v1/carga_automatica_pedido?id=eq.${pend.id}&status=eq.pendente`,
+    { body: { status: "executando", started_at: new Date().toISOString() }, prefer: "return=representation" });
+  return pego || null;
+}
+
+async function concluirPedido(sb, pedidoId, resumo) {
+  try {
+    await sb.update("carga_automatica_pedido", `id=eq.${pedidoId}`, { status: resumo.status, finished_at: new Date().toISOString(), resultado: resumo.resultado });
+  } catch (e) { console.error("Falha ao atualizar o pedido:", e.message); }
 }
 
 // modo "agenda": roda o que estiver devido; modo "manual": roda o job pedido agora.
@@ -138,18 +171,33 @@ export async function executar(cfg, { jobNome, agenda = false, dryRun = false, f
     if (!job) throw new Error(`Carga desconhecida: ${nome} (disponiveis: ${Object.keys(JOBS).join(", ")})`);
     const [config] = await sb.select("carga_automatica_config", `organization_id=eq.${orgId}&job=eq.${nome}&select=*&limit=1`);
     if (!config) { console.error(`${nome}: sem configuracao em carga_automatica_config (rode a migration 259).`); continue; }
-    if (!dryRun && !config.enabled) { if (!agenda) console.log(`${nome}: carga desligada na configuracao.`); continue; }
-    if (agenda && !(await devida(sb, orgId, nome, config, cfg.timezone))) continue;
-
-    const regioes = (await sb.selectAll("comercial_regioes_municipio", `organization_id=eq.${orgId}&select=municipio,uf,comercial_territorios(nome)&order=codigo_ibge`))
-      .map((r) => ({ municipio: r.municipio, uf: r.uf, regional: r.comercial_territorios?.nome }));
-    if (!regioes.length) throw new Error("comercial_regioes_municipio esta vazia (rode a migration 260)");
-    const meses = mes ? [mes] : janelaMeses(agora(cfg.timezone), config.meses_atras, config.meses_frente);
-    const ctx = { cfg, sb, user, orgId, config, regioes, opcoes: { dryRun, force } };
-    for (const m of meses) {
-      try { resultados.push({ job: nome, mes: m, ...(await processarMes(ctx, job, m)) }); }
-      catch (e) { console.error(`${nome} ${m.ano}-${pad2(m.mes)}: ${e.message}`); resultados.push({ job: nome, mes: m, status: "erro" }); }
+    // Pedido feito pela tela ("Carregar agora"): roda mesmo fora do horario e com a carga pausada.
+    const pedido = agenda && !dryRun ? await assumirPedido(sb, orgId, nome) : null;
+    if (!pedido) {
+      if (!dryRun && !config.enabled) { if (!agenda) console.log(`${nome}: carga desligada na configuracao.`); continue; }
+      if (agenda && !(await devida(sb, orgId, nome, config, cfg.timezone))) continue;
+    } else {
+      console.log(`${nome}: pedido ${pedido.id} (Carregar agora).`);
     }
+
+    const doJob = [];
+    try {
+      const regioes = (await sb.selectAll("comercial_regioes_municipio", `organization_id=eq.${orgId}&select=municipio,uf,comercial_territorios(nome)&order=codigo_ibge`))
+        .map((r) => ({ municipio: r.municipio, uf: r.uf, regional: r.comercial_territorios?.nome }));
+      if (!regioes.length) throw new Error("comercial_regioes_municipio esta vazia (rode a migration 260)");
+      const meses = mes ? [mes] : janelaMeses(agora(cfg.timezone), config.meses_atras, config.meses_frente);
+      const ctx = { cfg, sb, user, orgId, config, regioes, opcoes: { dryRun, force } };
+      for (const m of meses) {
+        try { doJob.push({ job: nome, mes: m, ...(await processarMes(ctx, job, m)) }); }
+        catch (e) { console.error(`${nome} ${m.ano}-${pad2(m.mes)}: ${e.message}`); doJob.push({ job: nome, mes: m, status: "erro", mensagem: e.message }); }
+      }
+    } catch (e) {
+      if (!pedido) throw e;
+      doJob.push({ job: nome, mes: janelaMeses(agora(cfg.timezone))[0], status: "erro", mensagem: e.message });
+    } finally {
+      if (pedido) await concluirPedido(sb, pedido.id, resumirPedido(doJob));
+    }
+    resultados.push(...doJob);
   }
   return resultados;
 }

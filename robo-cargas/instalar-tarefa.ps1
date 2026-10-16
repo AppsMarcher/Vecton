@@ -1,5 +1,5 @@
 # Cria a tarefa agendada do robo no Windows (rodar uma vez, como administrador, no servidor do robo).
-# A tarefa dispara a cada 15 minutos; o proprio robo decide, pela configuracao no Vecton
+# A tarefa dispara a cada 5 minutos (-IntervaloMin); o proprio robo decide, pela configuracao no Vecton
 # (tabela carga_automatica_config), se ha carga devida naquele momento.
 #
 # As senhas do Vecton e do SQL Server sao gravadas como variaveis de ambiente:
@@ -11,6 +11,7 @@
 param(
   [Parameter(Mandatory = $true)][string]$Conta,
   [ValidateSet("User", "Machine")][string]$Escopo = "User",
+  [int]$IntervaloMin = 5,
   [string]$Node = (Get-Command node).Source,
   [string]$Pasta = $PSScriptRoot
 )
@@ -33,10 +34,10 @@ if ($cfg.protheus.auth -eq "sql") {
 }
 
 $acao = New-ScheduledTaskAction -Execute $Node -Argument "src\index.js run" -WorkingDirectory $Pasta
-$gatilho = New-ScheduledTaskTrigger -Once -At (Get-Date).Date -RepetitionInterval (New-TimeSpan -Minutes 15)
+$gatilho = New-ScheduledTaskTrigger -Once -At (Get-Date).Date -RepetitionInterval (New-TimeSpan -Minutes $IntervaloMin)
 $opcoes = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 30)
 Register-ScheduledTask -TaskName "Vecton - Robo de Cargas" -Action $acao -Trigger $gatilho -Settings $opcoes `
   -User $Conta -Password $senhaConta -RunLevel Limited -Force | Out-Null
 
-Write-Host "Tarefa 'Vecton - Robo de Cargas' criada (a cada 15 min)."
+Write-Host "Tarefa 'Vecton - Robo de Cargas' criada (a cada $IntervaloMin min)."
 Write-Host "Teste: node src\index.js vendas --dry-run   (nao grava no Vecton)"

@@ -5,19 +5,27 @@ Roda no servidor, lê o Protheus (SQL Server `MARCHER-BD`) e carrega no Vecton p
 
 ## Status (15/10/2026)
 
-**Implantado e validado.** No servidor (`C:\robo-cargas`): login no Vecton, leitura do Protheus com o login SQL `usr_robo_vecton`, simulação (`--dry-run`) e **carga real** do mês corrente (166 linhas: FAT 51, CART 115) funcionando.
+**Implantado e validado.** Botão "Carregar agora" e seção Automatizadas na tela: implementados (migration 263), a validar em produção.
+ No servidor (`C:\robo-cargas`): login no Vecton, leitura do Protheus com o login SQL `usr_robo_vecton`, simulação (`--dry-run`) e **carga real** do mês corrente (166 linhas: FAT 51, CART 115) funcionando.
 Banco do Vecton com as migrations 259–262 aplicadas; carga de vendas ligada (`enabled = true`) com horários `12:00` e `23:30`.
 Pendente de acompanhamento: primeira execução pela tarefa agendada e o aviso por e-mail de erro (ainda não exercitado).
 
 ## Como funciona
 
-1. O Agendador de Tarefas do Windows chama `node src/index.js run` a cada 15 minutos.
+1. O Agendador de Tarefas do Windows chama `node src/index.js run` a cada **5 minutos** (`-IntervaloMin` do `instalar-tarefa.ps1`; o padrão antigo era 15).
 2. O robô entra no Vecton com o usuário de serviço e lê `carga_automatica_config` (ligada?, horários, janela de meses, parâmetros).
 3. Se um horário programado venceu e ainda não houve tentativa naquele horário, ele executa a carga. **Mudar horário/janela é um UPDATE na tabela, sem mexer no servidor.**
 4. Por mês da janela (a carga é **sempre completa**: apaga o mês no Vecton e regrava tudo, mesmo sem mudança): roda o SQL do Protheus (o mesmo do `Painel_Vecton.xlsm`, em `sql/vendas_mes.sql`), resolve o território
    (tabela `comercial_regioes_municipio`, mantida na tela **Parâmetros → Comercial → Municípios**; substitui a aba `Regioes`), cria o lote `complete`, valida e aplica.
 5. Grava o resultado em `carga_automatica_log` e uma cópia `Vendas_AAAA-MM.csv` na pasta `params.diretorio_saida` (no servidor: `C:\robo-cargas\logs`), sobrescrita a cada execução. Se a gravação do CSV falhar (ex.: unidade `O:` inexistente para a conta da tarefa), a carga **não falha**: o aviso fica na mensagem do log.
    A simulação (`--dry-run`) grava o CSV de conferência na pasta `logs/` do robô, com o mesmo nome do arquivo da carga real.
+
+## Botão "Carregar agora" (tela Carga de Realizado - Automatizadas)
+
+Em **Parâmetros → Carga de Realizado**, a seção **Automatizadas** tem um card por carga (hoje: Volumes de Vendas) com ligada/pausada, horários, última execução e o botão **Carregar agora**.
+O navegador não executa o robô: o botão grava um pedido em `carga_automatica_pedido` (migration 263; só editor/admin, um pedido em aberto por carga) e o robô o atende na próxima rodada da tarefa agendada (até 5 min), mesmo fora do horário e com a carga pausada.
+O resultado volta no próprio pedido (`concluido`/`erro` + texto), a tela atualiza sozinha e mostra um aviso. Valem as mesmas proteções e avisos da carga programada. Pedido `executando` há mais de 30 min é marcado como `erro` (robô interrompido).
+**Para o botão responder em até 5 min, a tarefa precisa rodar a cada 5 min**: recrie-a com `.\instalar-tarefa.ps1 -Conta ... -Escopo Machine` (padrão 5) ou ajuste o gatilho no Agendador.
 
 ## Proteções
 
@@ -44,7 +52,7 @@ Causas comuns e correção:
 
 ## Instalação (uma vez)
 
-1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql`, `supabase/260_seed_comercial_regioes_municipio.sql` e `supabase/261_carga_automatica_aviso_erro.sql` e `supabase/262_carga_automatica_avisa_sucesso.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
+1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql`, `supabase/260_seed_comercial_regioes_municipio.sql` e `supabase/261_carga_automatica_aviso_erro.sql` e `supabase/262_carga_automatica_avisa_sucesso.sql` e `supabase/263_carga_automatica_pedido.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
 2. **Usuário no Vecton:** `robo.vecton@marcher.com.br` com perfil **Administrador** (a função `is_org_editor` aceita admin; um perfil menor exigiria `role = 'editor'` em `organization_users`). A senha deve ser forte e guardada fora do repositório.
 3. **Servidor:** instalar Node 20+ (o *ODBC Driver 17/18 for SQL Server* só é necessário com autenticação Windows). Copiar a pasta `robo-cargas` para um disco **local** (não rodar de unidade de rede) e rodar `npm install`.
 4. Copiar `config.example.json` para `config.json`. Autenticação do Protheus: `"windows"` (a conta que roda a tarefa precisa de leitura em `protheus_producao`) ou `"sql"` (usuário/senha via variável de ambiente).

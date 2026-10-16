@@ -403,6 +403,9 @@ const actualsModule = createActualsModule({
   setSyncStatus,
   upsertSupabaseRows,
   appConfirm,
+  appAlert,
+  showToast,
+  insertSupabaseRows,
   openComercialVendasCarga,
   openGarantiaAtivacoesCarga
 });
