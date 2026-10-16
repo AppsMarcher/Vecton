@@ -3,12 +3,12 @@
 Roda no servidor, lê o Protheus (SQL Server `MARCHER-BD`) e carrega no Vecton pelo mesmo caminho da tela de carga
 (lote `complete` do mês + `apply_comercial_realizado_import_batch`). Hoje: **vendas** (FAT + CART) do **mês corrente**.
 
-## Status (15/10/2026)
+## Status (16/10/2026)
 
-**Implantado e validado.** Botão "Carregar agora" e seção Automatizadas na tela: implementados (migration 263), a validar em produção.
- No servidor (`C:\robo-cargas`): login no Vecton, leitura do Protheus com o login SQL `usr_robo_vecton`, simulação (`--dry-run`) e **carga real** do mês corrente (166 linhas: FAT 51, CART 115) funcionando.
-Banco do Vecton com as migrations 259–262 aplicadas; carga de vendas ligada (`enabled = true`) com horários `12:00` e `23:30`.
-Pendente de acompanhamento: primeira execução pela tarefa agendada e o aviso por e-mail de erro (ainda não exercitado).
+**Implantado e validado em produção.** No servidor (`C:\robo-cargas`): login no Vecton, leitura do Protheus com o login SQL `usr_robo_vecton`, simulação (`--dry-run`), **carga real** do mês corrente, tarefa agendada a cada 5 min (ciclo programado e pedidos do botão atendidos).
+Banco do Vecton com as migrations 259–263 aplicadas; carga de vendas ligada (`enabled = true`) com horários `12:00` e `23:30`.
+Botão **Carregar agora** e seção Automatizadas na tela: validados (pedido atendido em até 5 min, card atualizado sozinho, aviso no sino e por e-mail).
+Ainda não exercitado: o e-mail "Carga automática com erro", que só dispara numa falha real.
 
 ## Como funciona
 

@@ -1,6 +1,6 @@
 # Robô de cargas automáticas do Vecton — resumo para a TI
 
-**Data:** 15/10/2026 · **Responsável pelo projeto:** Ricardo Guimarães (Controladoria)
+**Data:** 16/10/2026 · **Responsável pelo projeto:** Ricardo Guimarães (Controladoria)
 **Código:** repositório GitHub `AppsMarcher/Vecton` (branch `main`), pasta `robo-cargas/` · **No servidor:** `C:\robo-cargas`
 
 ## 1. O que é e para que serve
@@ -30,13 +30,13 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 
 **Proteções:** extração vazia ou queda de mais de 30% nas linhas em relação à última carga → não aplica e avisa. Qualquer linha reprovada na validação (ex.: cliente não cadastrado) → não aplica nada e avisa por e-mail, com as linhas.
 
-## 3. Situação da implantação (15/10/2026)
+## 3. Situação da implantação (16/10/2026)
 
 | Item | Situação |
 |---|---|
 | Código do robô e testes unitários (14 testes) | Pronto, no GitHub |
 | Banco do Vecton (migrations 259 a 262): configuração, log, mapa de municípios, aviso por e-mail de erro e de carga concluída | Aplicado |
-| Botão "Carregar agora" (migration 263, robô e tela) | Desenvolvido; **migration 263 e robô atualizado a publicar no servidor** |
+| Botão "Carregar agora" (migration 263, robô e tela) | **Validado em produção** (16/10): pedido atendido pelo robô em até 5 min, card atualizado sozinho, aviso no sino e por e-mail |
 | Tela Parâmetros → Comercial → Municípios | Publicada |
 | Usuário `robo.vecton@marcher.com.br` no Vecton | Criado, login validado |
 | Login SQL de leitura `usr_robo_vecton` no `MARCHER-BD` | Criado, validado a partir do servidor |
@@ -45,12 +45,13 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 | **Carga real** a partir do servidor | **Validada**: mês 2026-10, 166 linhas (FAT 51, CART 115), 0 sem território |
 | Carga ligada e horários `12:00` e `23:30` | Configurado no Vecton |
 | Pasta de cópia dos CSVs | Configurada para `C:\robo-cargas\logs` |
-| Tarefa agendada no Windows (`Vecton - Robo de Cargas`) | A conferir (ver seção 4.1) |
-| Aviso por e-mail em caso de erro | Implementado; ainda não exercitado |
+| Tarefa agendada no Windows (`Vecton - Robo de Cargas`, a cada 5 min) | **Em operação**: ciclo programado das 23:30 e pedidos do botão atendidos |
+| Aviso de carga aplicada (sino e e-mail), nas cargas manual, programada e pelo botão | **Validado** |
+| Aviso por e-mail em caso de erro | Implementado; ainda não exercitado (só dispara numa falha real) |
 
-## 4. O que falta — pendências da TI
+## 4. O que falta — pendências da TI e referência de instalação
 
-### 4.1 Conferir a tarefa agendada
+### 4.1 Tarefa agendada (concluído; referência para recriar)
 O script `instalar-tarefa.ps1` cria a tarefa **`Vecton - Robo de Cargas`**, que dispara a cada 5 minutos (parâmetro `-IntervaloMin`); o robô decide sozinho se há horário vencido (12:00 e 23:30). Hoje ela roda com a conta `marcher.local\ti.marcher`.
 
 1. Em PowerShell **como administrador**, em `C:\robo-cargas`:
@@ -60,9 +61,9 @@ O script `instalar-tarefa.ps1` cria a tarefa **`Vecton - Robo de Cargas`**, que 
    O script pede: a senha da conta do Windows, a senha do Vecton e a do SQL Server. O `-Escopo Machine` grava as senhas como variáveis do servidor.
    Se aparecer `not digitally signed`: `Unblock-File .\instalar-tarefa.ps1` e, se preciso, `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` (vale só para a janela).
 2. Conferir no Agendador de Tarefas que a tarefa existe e o "Resultado da última execução" é `0x0`.
-3. Depois dos horários de 12:00 e 23:30, conferir o log (seção 6): deve aparecer uma linha `ok` por horário.
+3. Conferir o log (seção 6): deve aparecer uma linha `ok` por horário programado (12:00 e 23:30).
 
-### 4.1.1 Atualizar o robô no servidor (botão "Carregar agora")
+### 4.1.1 Atualizar o robô no servidor (feito em 16/10; repetir a cada nova versão)
 1. Atualizar os arquivos da pasta `C:\robo-cargas` com a versão atual do GitHub (principalmente `src\runner.js` e `instalar-tarefa.ps1`).
 2. Recriar a tarefa (o script substitui a existente) para que ela passe a rodar a cada 5 minutos:
    ```
@@ -114,6 +115,6 @@ O robô grava `Vendas_AAAA-MM.csv` em `C:\robo-cargas\logs` (sobrescrito a cada 
 
 ## 7. Pontos em aberto
 
-1. Confirmar a tarefa agendada e o primeiro ciclo de cargas (seção 4.1).
-2. Conta de serviço definitiva para a tarefa (seção 4.2).
-3. Pasta de rede (UNC) para a cópia dos CSVs, se desejada (seção 4.3).
+1. Conta de serviço definitiva para a tarefa (seção 4.2).
+2. Pasta de rede (UNC) para a cópia dos CSVs, se desejada (seção 4.3).
+3. Próxima carga a automatizar: DRE (mesmo esquema: robô, agendador e botão).
