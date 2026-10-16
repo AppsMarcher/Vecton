@@ -1459,6 +1459,28 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       return true;
     }
 
+    // Gancho para o robo de cargas (envio semanal por e-mail, robo-cargas/src/relatorios): num navegador sem tela
+    // no servidor, depois de abrir o relatorio por link direto (?report=comercialPainel), o robo espera
+    // ready() e chama build() para obter o MESMO assunto, arquivo e html que o botao "Enviar por e-mail" usa.
+    // Nao envia nada: quem envia e o robo (send-report-email).
+    window.VECTON_REPORT_AUTOMATION = window.VECTON_REPORT_AUTOMATION || {};
+    window.VECTON_REPORT_AUTOMATION[REPORT_ID] = {
+      ready: () => enteredPainel && !loading && loadedKey === paramsKey() && coords.length > 0,
+      describe: () => ({ ano: year, mes: month, cenario: scenarios.find((s) => s.id === scenarioId)?.name || "Budget" }),
+      build: async ({ assinatura = "" } = {}) => {
+        const mLabel = MONTHS[month - 1];
+        return {
+          ano: year,
+          mes: month,
+          cenario: scenarios.find((s) => s.id === scenarioId)?.name || "Budget",
+          subject: `Painel de Vendas — ${mLabel}/${year}`,
+          filename: reportFilename(),
+          bodyText: `Olá,\n\nSegue em anexo o Painel de Vendas de ${mLabel}/${year} (mês e acumulado YTD).\n\n${assinatura ? `Atenciosamente,\n${assinatura}` : ""}`.trim(),
+          html: await buildReportHtmlForEmail()
+        };
+      }
+    };
+
     return { renderSelectedPainel, REPORT_ID };
   }
 

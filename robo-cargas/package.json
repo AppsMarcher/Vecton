@@ -7,10 +7,11 @@
   "scripts": {
     "run": "node src/index.js run",
     "vendas:simular": "node src/index.js vendas --dry-run",
-    "test": "node --test test/robo.test.js test/dre.test.js"
+    "test": "node --test test/robo.test.js test/dre.test.js test/relatorios.test.js"
   },
   "dependencies": {
-    "mssql": "^11.0.1"
+    "mssql": "^11.0.1",
+    "playwright-core": "^1.64.1"
   },
   "optionalDependencies": {
     "msnodesqlv8": "^4.5.0"

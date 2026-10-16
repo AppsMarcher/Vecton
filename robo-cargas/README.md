@@ -55,7 +55,7 @@ Causas comuns e correção:
 
 ## Instalação (uma vez)
 
-1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql`, `supabase/260_seed_comercial_regioes_municipio.sql` e `supabase/261_carga_automatica_aviso_erro.sql` e `supabase/262_carga_automatica_avisa_sucesso.sql`, `supabase/263_carga_automatica_pedido.sql` e `supabase/264_carga_automatica_dre.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
+1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql`, `supabase/260_seed_comercial_regioes_municipio.sql` e `supabase/261_carga_automatica_aviso_erro.sql` e `supabase/262_carga_automatica_avisa_sucesso.sql`, `supabase/263_carga_automatica_pedido.sql`, `supabase/264_carga_automatica_dre.sql` e `supabase/265_envio_semanal_painel_vendas.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
 2. **Usuário no Vecton:** `robo.vecton@marcher.com.br` com perfil **Administrador** (a função `is_org_editor` aceita admin; um perfil menor exigiria `role = 'editor'` em `organization_users`). A senha deve ser forte e guardada fora do repositório.
 3. **Servidor:** instalar Node 20+ (o *ODBC Driver 17/18 for SQL Server* só é necessário com autenticação Windows). Copiar a pasta `robo-cargas` para um disco **local** (não rodar de unidade de rede) e rodar `npm install`.
 4. Copiar `config.example.json` para `config.json`. Autenticação do Protheus: `"windows"` (a conta que roda a tarefa precisa de leitura em `protheus_producao`) ou `"sql"` (usuário/senha via variável de ambiente).
@@ -88,6 +88,16 @@ A regra fixa dos vendedores 000274 (GO_MG NORTE) e 000590 (GO_MG SUL) está em `
 
 Os relatórios de DRE/OPEX guardam o ano em memória no navegador e só descartavam o cache quando a carga era aplicada **por aquela tela**: uma carga do robô deixava o DRE mostrando a versão anterior até recarregar a página (Ctrl+F5).
 Corrigido no front: o cache dos relatórios (ano do período e ano corrente) é descartado quando **chega aviso novo** (o sino consulta a cada 60 s) e quando um pedido **Carregar agora** termina. Quem já estava com a página aberta antes dessa versão precisa recarregar uma vez.
+
+## Envio semanal do Painel de Vendas (e-mail com PDF)
+
+O mesmo PDF do botão **Enviar por e-mail** do Painel de Vendas (mês + acumulado YTD) sai sozinho toda semana para um grupo. Configuração na tela **Parâmetros → Notificações → "Envio semanal do Painel de Vendas"** (migration 265): **ativo**, **dia da semana**, **horário**, **E-mail** marcado e os **destinatários** (usuários do Vecton). Nasce desligado (segunda 08:00, sem destinatários).
+Como funciona: a cada rodada da tarefa (`node src/index.js run`) o robô lê essa configuração; se for o dia, passou do horário e ainda não enviou hoje, abre o Vecton num **navegador sem tela** (Edge/Chrome do servidor, via `playwright-core`) com a sessão do usuário do robô, abre o Painel por link direto e pede ao módulo (`window.VECTON_REPORT_AUTOMATION.comercialPainel`) o mesmo HTML/assunto/arquivo do botão. Em seguida chama a Edge Function `send-report-email` (que gera o PDF e envia) e carimba `schedule_last_fired_on`. Resultado em `carga_automatica_log` (job `relatorio_painel_vendas`); falha gera o e-mail "Carga automática com erro" e uma nova tentativa só depois de 1 hora.
+- **Período:** o Painel abre no **mês corrente** (comportamento da tela ao entrar no relatório) e o **cenário** é o padrão da tela (`Fcst 5+7`, senão o primeiro cenário do ano), não o "favorito".
+- **Servidor:** precisa de Edge ou Chrome instalado (`relatorios.canal` = `msedge`/`chrome`, ou `relatorios.executavel` com o caminho) e de `npm install` (novo pacote `playwright-core`, sem baixar navegador). Bloco opcional `relatorios` no `config.json` (`appUrl`, `canal`, `executavel`, `timeoutSegundos`, `assinatura`); sem ele valem os padrões do `config.example.json`.
+- **Testar:** `node src/index.js relatorio --dry-run` monta o Painel e salva o HTML em `logs/Painel-Vendas_AAAA-MM.html` (abra no navegador para conferir), **sem enviar**. `node src/index.js relatorio --force` envia agora, ignorando dia/horário/ativo (exige destinatários). Para ligar: marcar **Ativo** e **E-mail**, escolher dia, horário e destinatários na tela.
+- A função pg_cron dos lembretes agendados ignora este tipo (kind `relatorio*`), para não sair também um e-mail de texto no mesmo horário.
+- O PDF é gerado pelo Browserless (secret `BROWSERLESS_API_TOKEN` da Edge Function), como no botão: um envio por semana consome pouco da cota.
 
 ## Carga do DRE
 

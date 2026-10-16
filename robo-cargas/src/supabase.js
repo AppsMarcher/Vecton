@@ -21,6 +21,7 @@ export class Supabase {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(`Login no Vecton falhou (${res.status}): ${body.error_description || body.msg || body.message || "erro"}`);
     this.token = body.access_token;
+    this.session = body; // access_token, refresh_token, expires_at, user... (usada pelo navegador dos relatorios)
     return body.user;
   }
 

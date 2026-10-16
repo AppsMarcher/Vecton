@@ -28,7 +28,7 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 
 **Botão "Carregar agora":** na tela do Vecton (Parâmetros → Carga de Realizado → seção *Automatizadas*) um administrador pode pedir uma carga fora do horário. O navegador apenas registra o pedido no banco; é o robô, no servidor, que o executa na próxima rodada da tarefa (por isso a tarefa deve rodar a cada 5 minutos). Nenhuma porta do servidor é aberta para a internet.
 
-**Cargas:** vendas (12:00 e 23:30) e DRE (10:00, 15:00 e 19:00), cada uma com seus horários.
+**Cargas:** vendas (12:00 e 23:30) e DRE (10:00, 15:00 e 19:00), cada uma com seus horários. **Envio semanal do Painel de Vendas** por e-mail (PDF, igual ao botão da tela): dia, horário e destinatários definidos pela Controladoria no Vecton.
 
 **Proteções:** extração vazia ou queda de mais de 30% nas linhas em relação à última carga → não aplica e avisa. Qualquer linha reprovada na validação (ex.: conta ou cliente não cadastrado) → não aplica nada e avisa por e-mail, com as linhas agrupadas por motivo. O robô só registra "aplicada" depois de conferir que o lote inteiro está no razão do Vecton.
 
@@ -53,6 +53,7 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 | Carga automática do **DRE** (razão contábil `CT2010`, mesmo esquema das vendas) | **Validada**: simulação bateu com o Excel (596 lançamentos, saldo 465.317,39) e a carga real foi aplicada; DRE/OPEX conferidos |
 | Relatórios (DRE/OPEX) atualizando após carga do robô | **Corrigido** (descarte do cache do navegador); exige recarregar o Vecton uma vez |
 | Robô com conferência do razão (versão atual) | Publicado no GitHub; **a atualizar no servidor** (ver 4.1.2) |
+| Envio semanal do Painel de Vendas por e-mail (migration 265, gancho no Painel, robô com navegador sem tela) | Desenvolvido e testado em máquina de desenvolvimento (navegador real contra página de teste); **a validar no servidor** (ver 4.1.3). Nasce desligado |
 | Aviso por e-mail em caso de erro | Implementado; ainda não exercitado (só dispara numa falha real) |
 
 ## 4. O que falta — pendências da TI e referência de instalação
@@ -83,6 +84,14 @@ O DRE já está ligado e validado. A versão atual do robô acrescenta a confer�
 3. Não é preciso recriar a tarefa, rodar `npm install` nem mexer em senhas ou `config.json`.
 4. Conferir: `node src/index.js dre --dry-run` deve mostrar o resumo normal, sem `Cannot find module`.
 O login `usr_robo_vecton` precisa ler `CT2010` (no ambiente atual já lê todas as tabelas).
+
+### 4.1.3 Habilitar o envio semanal do Painel de Vendas (pendente)
+O robô passa a abrir o Vecton num **navegador sem tela** para montar o Painel igual ao do botão. Passos:
+1. Confirmar que o servidor tem **Microsoft Edge** (ou Google Chrome) instalado. Se for Chrome, ajustar `relatorios.canal` para `chrome` no `config.json` (ou informar `relatorios.executavel`).
+2. Atualizar `C:\robo-cargas` com a versão do GitHub (novos: pasta `src\relatorios\`; alterados: `src\index.js`, `src\runner.js`, `src\supabase.js`, `src\util.js`, `package.json`, `config.example.json`) e rodar `npm install` (instala o `playwright-core`, que não baixa navegador). O bloco `relatorios` do `config.json` é opcional.
+3. O servidor precisa alcançar `https://vecton.marcher.com.br` (HTTPS) além do Supabase.
+4. Testar sem enviar, em `C:\robo-cargas`: `node src/index.js relatorio --dry-run`. Abrir o arquivo `logs\Painel-Vendas_AAAA-MM.html` e conferir o Painel.
+5. A Controladoria liga o envio em **Parâmetros → Notificações → Envio semanal do Painel de Vendas** (ativo, dia, horário, E-mail e destinatários). A tarefa agendada já atende o envio (a mesma rodada de 5 minutos).
 
 ### 4.2 Conta definitiva para a tarefa
 A tarefa roda com `marcher.local\ti.marcher`. Se a senha dessa conta for trocada, a tarefa para até ser recriada. O ideal é uma **conta de serviço** do domínio, de senha estável, com o direito "Fazer logon como tarefa em lote" e acesso a `C:\robo-cargas`. Para trocar, rodar o mesmo script com o novo `-Conta` (ele substitui a tarefa existente).
@@ -129,6 +138,6 @@ O robô grava `Vendas_AAAA-MM.csv` e `DRE_AAAA-MM.csv` em `C:\robo-cargas\logs` 
 
 ## 7. Pontos em aberto
 
-1. Atualizar o robô no servidor para a versão com conferência do razão (seção 4.1.2).
+1. Atualizar o robô no servidor para a versão com conferência do razão (seção 4.1.2) e habilitar o envio semanal do Painel (seção 4.1.3).
 2. Conta de serviço definitiva para a tarefa (seção 4.2).
 3. Pasta de rede (UNC) para a cópia dos CSVs, se desejada (seção 4.3).

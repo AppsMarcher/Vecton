@@ -266,7 +266,9 @@ Desde 15/10/2026 o **mês corrente** de duas cargas roda sozinho: o robô em `ro
 
 A carga é sempre completa (apaga e regrava o mês). Os horários, a janela de meses e o liga/desliga de **cada** carga ficam em `carga_automatica_config` (uma linha por carga); meses anteriores e futuros continuam manuais.
 
-Proteções: extração vazia e queda de mais de 30% nas linhas bloqueiam a carga; linha reprovada na validação não aplica nada; o robô só registra "aplicada" depois de conferir que o lote inteiro está no razão do Vecton. Sucesso gera o aviso "Carga de Vendas/Realizado aplicada" (marca "· carga automática"); erro gera "Carga automática com erro" por e-mail e sininho, com as linhas reprovadas agrupadas por motivo. Histórico em `carga_automatica_log`. Migrations `259`–`264`.
+Proteções: extração vazia e queda de mais de 30% nas linhas bloqueiam a carga; linha reprovada na validação não aplica nada; o robô só registra "aplicada" depois de conferir que o lote inteiro está no razão do Vecton. Sucesso gera o aviso "Carga de Vendas/Realizado aplicada" (marca "· carga automática"); erro gera "Carga automática com erro" por e-mail e sininho, com as linhas reprovadas agrupadas por motivo. Histórico em `carga_automatica_log`. Migrations `259`–`265`.
+
+**Envio semanal do Painel de Vendas:** o robô também envia por e-mail, uma vez por semana, o mesmo PDF do botão "Enviar por e-mail" do Painel (migration `265`). Dia, horário, ativo e destinatários ficam em **Parâmetros → Notificações → "Envio semanal do Painel de Vendas"**; o robô abre o Vecton num navegador sem tela no servidor e usa o gancho `window.VECTON_REPORT_AUTOMATION` (`reportsComercialPainelModule.js`) para obter o mesmo HTML do botão. Detalhes em [`robo-cargas/README.md`](robo-cargas/README.md).
 
 **Cache dos relatórios:** o DRE/OPEX guardam o ano em memória no navegador. Como uma carga do robô não passa pela tela, o cache é descartado quando chega aviso novo (o sino consulta a cada 60 s) e quando um pedido "Carregar agora" termina (`invalidateReportsAfterExternalLoad` em `app.js`).
 
@@ -303,7 +305,7 @@ O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano 
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `264` (268 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `265` (269 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -351,7 +353,7 @@ Resumo por fase:
 | `255` | RPC `comercial_margens_itens` e posição do card Evolutivo de Margens no catálogo |
 | `256` | `comercial_margens_itens` ganha o filtro Equipe Comercial (`p_territorio`, `p_coordenacao`, `p_vendedor`), usado só pela tabela Evolutivo de Margens |
 | `257–258` | código do cliente nas Ativações de Garantia; detalhe do Evolutivo de Margens |
-| `259–264` | carga automática de vendas e DRE (robô): `carga_automatica_config`/`carga_automatica_log`, mapa `comercial_regioes_municipio` (+ carga inicial), avisos de carga aplicada e de erro, pedidos "Carregar agora" (`carga_automatica_pedido`) |
+| `259–265` | carga automática de vendas e DRE e envio semanal do Painel de Vendas (robô): `carga_automatica_config`/`carga_automatica_log`, mapa `comercial_regioes_municipio` (+ carga inicial), avisos de carga aplicada e de erro, pedidos "Carregar agora" (`carga_automatica_pedido`) |
 
 ### Divergências conhecidas do schema
 

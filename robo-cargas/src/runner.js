@@ -13,7 +13,7 @@ export const JOBS = { vendas, dre };
 const CHUNK_LINHAS = 500;
 const pad2 = (n) => String(n).padStart(2, "0");
 
-async function conectar(cfg) {
+export async function conectar(cfg) {
   const sb = new Supabase(cfg.supabase);
   let user;
   try {

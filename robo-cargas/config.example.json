@@ -15,5 +15,12 @@
     "odbcDriver": "ODBC Driver 17 for SQL Server",
     "timeoutSeconds": 600
   },
+  "relatorios": {
+    "appUrl": "https://vecton.marcher.com.br",
+    "canal": "msedge",
+    "executavel": "",
+    "timeoutSegundos": 120,
+    "assinatura": "Vecton Planning (envio automático)"
+  },
   "timezone": "America/Sao_Paulo"
 }

@@ -6,7 +6,8 @@ export function agora(tz, instante = new Date()) {
     new Intl.DateTimeFormat("en-CA", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
       .formatToParts(instante).filter((p) => p.type !== "literal").map((p) => [p.type, p.value])
   );
-  return { ano: +parts.year, mes: +parts.month, dia: +parts.day, hhmm: `${parts.hour}:${parts.minute}`, data: `${parts.year}-${parts.month}-${parts.day}` };
+  const dow = new Date(Date.UTC(+parts.year, +parts.month - 1, +parts.day)).getUTCDay();
+  return { ano: +parts.year, mes: +parts.month, dia: +parts.day, dow, hhmm: `${parts.hour}:${parts.minute}`, data: `${parts.year}-${parts.month}-${parts.day}` };
 }
 
 // Meses a processar: do mes corrente - atras ate o mes corrente + frente.
