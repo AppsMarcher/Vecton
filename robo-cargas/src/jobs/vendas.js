@@ -10,6 +10,25 @@ import { intervaloMes, sha256, round } from "../util.js";
 const SQL_TEMPLATE = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "sql", "vendas_mes.sql"), "utf8");
 
 export const nome = "vendas";
+export const precisaRegioes = true;
+
+// Tabelas/funcoes do Vecton usadas por esta carga (o runner e generico).
+export const alvo = {
+  batches: "comercial_realizado_import_batches",
+  rows: "comercial_realizado_import_rows",
+  apply: "apply_comercial_realizado_import_batch",
+  remove: "delete_comercial_realizado_import_batch",
+  errorSelect: "row_number,origem,documento,cod_cliente,cod_produto,validation_errors"
+};
+
+// Texto curto da linha reprovada (log e e-mail de erro).
+export function descreverErro(l) {
+  return `${l.origem || "-"} · doc ${l.documento || "-"} · cliente ${l.cod_cliente || "-"} · produto ${l.cod_produto || "-"}`;
+}
+
+export const textoResumo = (resumo) => `${resumo.total} linhas (FAT ${resumo.fat}, CART ${resumo.cart})`;
+export const textoSimulacao = (resumo) =>
+  `${resumo.total} linhas (FAT ${resumo.fat}, CART ${resumo.cart}); sem territorio: ${resumo.semTerritorio}; sem tipo: ${resumo.semTipo}`;
 
 export function montarSql(params, { ini, fim }) {
   const lista = (cfops) => cfops.map((c) => `'${String(c).replace(/\D/g, "").padStart(4, "0")}'`).join(", ");

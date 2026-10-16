@@ -259,7 +259,7 @@ Principais RPCs:
 
 Desde 15/10/2026 a carga de vendas do **mês corrente** roda sozinha: o robô em `robo-cargas/` (Node.js, no servidor) lê o Protheus (`MARCHER-BD`, somente leitura), resolve o território pelo mapa **Parâmetros → Comercial → Municípios** (`comercial_regioes_municipio`), cria o lote `complete` do mês e aplica pelo mesmo caminho da tela de carga. A carga é sempre completa (apaga e regrava o mês), nos horários de `carga_automatica_config.horarios` (hoje `12:00` e `23:30`); meses anteriores e futuros continuam manuais.
 
-Proteções: extração vazia e queda de mais de 30% nas linhas bloqueiam a carga; linha reprovada na validação não aplica nada. Sucesso gera o aviso "Carga de Vendas (realizado) aplicada" (marca "· carga automática"); erro gera "Carga automática com erro" por e-mail e sininho, com as linhas reprovadas. Histórico em `carga_automatica_log`. Migrations `259`–`263`.
+Proteções: extração vazia e queda de mais de 30% nas linhas bloqueiam a carga; linha reprovada na validação não aplica nada. Sucesso gera o aviso "Carga de Vendas (realizado) aplicada" (marca "· carga automática"); erro gera "Carga automática com erro" por e-mail e sininho, com as linhas reprovadas. Histórico em `carga_automatica_log`. Migrations `259`–`264`. Cargas automáticas: **vendas** e **DRE** (razão contábil, `CT2010`; migration `264`).
 
 Em **Parâmetros → Carga de Realizado** a tela tem duas seções: **Manuais** (cards de arquivo) e **Automatizadas** (um card por carga do robô, com status e o botão **Carregar agora**, que grava um pedido em `carga_automatica_pedido`; o robô o atende em até 5 min). Código: `src/modules/actuals/cargasAutomatizadasModule.js`.
 
@@ -294,7 +294,7 @@ O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano 
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `263` (267 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `264` (268 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -342,7 +342,7 @@ Resumo por fase:
 | `255` | RPC `comercial_margens_itens` e posição do card Evolutivo de Margens no catálogo |
 | `256` | `comercial_margens_itens` ganha o filtro Equipe Comercial (`p_territorio`, `p_coordenacao`, `p_vendedor`), usado só pela tabela Evolutivo de Margens |
 | `257–258` | código do cliente nas Ativações de Garantia; detalhe do Evolutivo de Margens |
-| `259–263` | carga automática de vendas (robô): `carga_automatica_config`/`carga_automatica_log`, mapa `comercial_regioes_municipio` (+ carga inicial), avisos de carga aplicada e de erro, pedidos "Carregar agora" (`carga_automatica_pedido`) |
+| `259–264` | carga automática de vendas e DRE (robô): `carga_automatica_config`/`carga_automatica_log`, mapa `comercial_regioes_municipio` (+ carga inicial), avisos de carga aplicada e de erro, pedidos "Carregar agora" (`carga_automatica_pedido`) |
 
 ### Divergências conhecidas do schema
 

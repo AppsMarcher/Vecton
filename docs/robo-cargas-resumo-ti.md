@@ -1,6 +1,6 @@
 # Robô de cargas automáticas do Vecton — resumo para a TI
 
-**Data:** 16/10/2026 · **Responsável pelo projeto:** Ricardo Guimarães (Controladoria)
+**Data:** 16/10/2026 (atualizado com a carga do DRE) · **Responsável pelo projeto:** Ricardo Guimarães (Controladoria)
 **Código:** repositório GitHub `AppsMarcher/Vecton` (branch `main`), pasta `robo-cargas/` · **No servidor:** `C:\robo-cargas`
 
 ## 1. O que é e para que serve
@@ -47,6 +47,7 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 | Pasta de cópia dos CSVs | Configurada para `C:\robo-cargas\logs` |
 | Tarefa agendada no Windows (`Vecton - Robo de Cargas`, a cada 5 min) | **Em operação**: ciclo programado das 23:30 e pedidos do botão atendidos |
 | Aviso de carga aplicada (sino e e-mail), nas cargas manual, programada e pelo botão | **Validado** |
+| Carga automática do **DRE** (razão contábil `CT2010`, mesmo esquema das vendas; migration 264) | Desenvolvida e testada em simulação de código; **a validar no servidor** (carga nasce desligada) |
 | Aviso por e-mail em caso de erro | Implementado; ainda não exercitado (só dispara numa falha real) |
 
 ## 4. O que falta — pendências da TI e referência de instalação
@@ -69,6 +70,13 @@ O script `instalar-tarefa.ps1` cria a tarefa **`Vecton - Robo de Cargas`**, que 
    ```
    .\instalar-tarefa.ps1 -Conta "marcher.local\ti.marcher" -Escopo Machine
    ```
+
+### 4.1.2 Ativar a carga do DRE
+A migration 264 cadastra a carga `dre` **desligada**. Passos, em ordem:
+1. Atualizar `C:\robo-cargas` com a versão do GitHub (novos: `src\jobs\dre.js`, `src\erros.js`, `sql\dre_mes.sql`; alterados: `src\runner.js` e `src\jobs\vendas.js`). Não é preciso recriar a tarefa.
+2. Conferir que o login `usr_robo_vecton` lê `CT2010` (`GRANT SELECT ON dbo.CT2010`).
+3. Simular, sem gravar: `node src/index.js dre --dry-run`. Comparar o total de lançamentos e o saldo com o `Razao_Contabil [carga dados].xlsm` do mês.
+4. Quem usa o Vecton liga a carga (`update carga_automatica_config set enabled = true where job = 'dre';`) e ajusta os horários em `carga_automatica_config`.
 
 ### 4.2 Conta definitiva para a tarefa
 A tarefa roda com `marcher.local\ti.marcher`. Se a senha dessa conta for trocada, a tarefa para até ser recriada. O ideal é uma **conta de serviço** do domínio, de senha estável, com o direito "Fazer logon como tarefa em lote" e acesso a `C:\robo-cargas`. Para trocar, rodar o mesmo script com o novo `-Conta` (ele substitui a tarefa existente).
@@ -95,7 +103,7 @@ O robô grava `Vendas_AAAA-MM.csv` em `C:\robo-cargas\logs` (sobrescrito a cada 
 
 ## 5. Segurança
 
-- O robô **só lê** do Protheus: o usuário `usr_robo_vecton` precisa apenas de `SELECT` nas tabelas `SD2010, SD1010, SB1010, SF2010, SA1010, SC5010, SC6010, SF4010, SYD010`.
+- O robô **só lê** do Protheus: o usuário `usr_robo_vecton` precisa apenas de `SELECT` nas tabelas `SD2010, SD1010, SB1010, SF2010, SA1010, SC5010, SC6010, SF4010, SYD010` (vendas) e `CT2010` (DRE).
 - Senhas **nunca** em arquivo nem no repositório: ficam em variáveis de ambiente (`VECTON_ROBO_SENHA` e `PROTHEUS_SENHA`). O `config.json` está fora do Git.
 - O usuário do robô no Vecton tem perfil Administrador (será usado para outras cargas).
 
@@ -117,4 +125,4 @@ O robô grava `Vendas_AAAA-MM.csv` em `C:\robo-cargas\logs` (sobrescrito a cada 
 
 1. Conta de serviço definitiva para a tarefa (seção 4.2).
 2. Pasta de rede (UNC) para a cópia dos CSVs, se desejada (seção 4.3).
-3. Próxima carga a automatizar: DRE (mesmo esquema: robô, agendador e botão).
+3. Ativar a carga do DRE (seção 4.1.2).

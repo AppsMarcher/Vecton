@@ -23,6 +23,11 @@
     // Cargas conhecidas pela tela: rotulo, cor do card e icone. Uma nova carga automatica
     // (ex.: DRE) entra aqui e ganha o card sozinha quando existir em carga_automatica_config.
     const JOBS = {
+      dre: {
+        label: "DRE",
+        color: "blue",
+        icon: '<path d="M3 3h18v18H3z"/><path d="M3 9h18M9 21V9"/>'
+      },
       vendas: {
         label: "Volumes de Vendas",
         color: "cyan",

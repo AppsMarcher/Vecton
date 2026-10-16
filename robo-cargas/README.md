@@ -1,7 +1,7 @@
 # Robô de cargas automáticas (Protheus → Vecton)
 
 Roda no servidor, lê o Protheus (SQL Server `MARCHER-BD`) e carrega no Vecton pelo mesmo caminho da tela de carga
-(lote `complete` do mês + `apply_comercial_realizado_import_batch`). Hoje: **vendas** (FAT + CART) do **mês corrente**.
+(lote `complete` do mês + `apply_comercial_realizado_import_batch`). Cargas: **vendas** (FAT + CART) e **DRE** (razão contábil, CT2) do **mês corrente**.
 
 ## Status (16/10/2026)
 
@@ -52,7 +52,7 @@ Causas comuns e correção:
 
 ## Instalação (uma vez)
 
-1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql`, `supabase/260_seed_comercial_regioes_municipio.sql` e `supabase/261_carga_automatica_aviso_erro.sql` e `supabase/262_carga_automatica_avisa_sucesso.sql` e `supabase/263_carga_automatica_pedido.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
+1. **Banco** (SQL Editor do Supabase), nesta ordem: `supabase/259_carga_automatica.sql`, `supabase/260_seed_comercial_regioes_municipio.sql` e `supabase/261_carga_automatica_aviso_erro.sql` e `supabase/262_carga_automatica_avisa_sucesso.sql`, `supabase/263_carga_automatica_pedido.sql` e `supabase/264_carga_automatica_dre.sql`. Antes da 260, confira que os territórios usados nas regiões existem em Parâmetros → Comercial → Território (a 260 aborta e lista os que faltam).
 2. **Usuário no Vecton:** `robo.vecton@marcher.com.br` com perfil **Administrador** (a função `is_org_editor` aceita admin; um perfil menor exigiria `role = 'editor'` em `organization_users`). A senha deve ser forte e guardada fora do repositório.
 3. **Servidor:** instalar Node 20+ (o *ODBC Driver 17/18 for SQL Server* só é necessário com autenticação Windows). Copiar a pasta `robo-cargas` para um disco **local** (não rodar de unidade de rede) e rodar `npm install`.
 4. Copiar `config.example.json` para `config.json`. Autenticação do Protheus: `"windows"` (a conta que roda a tarefa precisa de leitura em `protheus_producao`) ou `"sql"` (usuário/senha via variável de ambiente).
@@ -81,10 +81,16 @@ Tela **Parâmetros → Comercial → Municípios**: busque o município, edite o
 A mudança vale na próxima execução do robô e só para o mês corrente; meses fechados não são recarregados.
 A regra fixa dos vendedores 000274 (GO_MG NORTE) e 000590 (GO_MG SUL) está em `src/territorio.js`.
 
+## Carga do DRE
+
+Mesma consulta e regras da carga manual (`Razao_Contabil [carga dados].xlsm` + tela Carga de Realizado - Manuais - DRE): lançamentos de `CT2010` (débito e crédito, moeda `01`, saldo tipo `1`) do mês corrente, contas na faixa `params.conta_de`…`params.conta_ate` (padrão `3` a `4zzzzzzzzzzzzzzzz`).
+Cada lançamento vira uma linha de `actuals_import_rows` (conta/CC só dígitos, filial com 2 posições, valor com 2 casas) e o lote `complete` do mês é aplicado por `apply_actuals_import_batch`; o aviso é "Carga de Realizado aplicada" (migration 264 cadastra a carga, **desligada**).
+O Vecton valida cada linha: conta no Plano de Contas DRE, centro de custos e empresa cadastrados; uma linha reprovada bloqueia a carga (como na tela manual) e o e-mail de erro lista os motivos **agrupados** (ex.: "conta 31101099 · CC - · filial 01 (40 linhas) — Conta nao cadastrada").
+Ligar: simular com `node src/index.js dre --dry-run`, conferir o saldo/linhas com o Excel e então `update carga_automatica_config set enabled = true where job = 'dre';`. A tarefa agendada atende as duas cargas (`node src/index.js run`).
+
 ## Nova carga
 
-Criar `src/jobs/<nome>.js` com `nome`, `extrairMes`, `paraLinhaImport`, `gravarCsv`, registrar em `JOBS` (`src/runner.js`) e inserir a linha em `carga_automatica_config`.
-(O `runner.js` hoje grava nas tabelas de lote do realizado comercial; outras cargas pedirão generalizar essa parte.)
+Criar `src/jobs/<nome>.js` exportando: `nome`, `precisaRegioes`, `alvo` (tabelas e funções do Vecton: `batches`, `rows`, `apply`, `remove`, `errorSelect`), `extrairMes`, `paraLinhaImport`, `descreverErro`, `textoResumo`, `textoSimulacao` e `gravarCsv`; copiar a query para `sql/<nome>_mes.sql` com placeholders; registrar em `JOBS` (`src/runner.js`), inserir a linha em `carga_automatica_config` e o card em `JOBS` de `src/modules/actuals/cargasAutomatizadasModule.js`. O runner é genérico (lote `complete`, validação, proteções, log, avisos, pedidos).
 
 ## Dicas de operação
 
