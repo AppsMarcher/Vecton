@@ -394,6 +394,21 @@ Funções disponíveis (`supabase/functions/`):
 
 As funções usam `service_role` somente no servidor e validam manualmente o token do chamador.
 
+### Layout padrão dos e-mails
+
+Todo e-mail do sistema usa o mesmo layout **claro corporativo**, com a logo Vecton Planning no topo, rótulo azul, título, texto, botão opcional, caixa de destaque opcional, rodapé e o mascote Marcher:
+
+| Origem | Função / arquivo |
+|---|---|
+| avisos de notificação (cargas aplicadas, erro de carga automática, lembretes de RPS, A3…) | `send-notification-emails` |
+| e-mail do relatório com PDF (botão "Enviar por e-mail" e envio semanal do Painel de Vendas) | `send-report-email` (etiqueta "Relatório", rodapé "Relatório em anexo (PDF)") |
+| convite, reenvio de convite, esqueci a senha, reenvio de senha | `invite-user`, `resend-invite`, `forgot-password`, `resend-password` |
+| e-mails do próprio Supabase Auth (confirmar cadastro, convite, redefinir senha) | modelos HTML em `supabase/email-templates/` (colados no painel do Supabase) |
+
+- **Imagens:** `assets/email/logo-vecton.png` e `assets/email/mascote.png`, servidas pelo GitHub Pages do app (`https://vecton.marcher.com.br/assets/email/`).
+- **Código replicado:** cada Edge Function é publicada sozinha (o deploy pelo painel do Supabase não resolve `import` fora da pasta da função), então o bloco `buildEmailLayout` (opções `tag`, `title`, `paragraphs`, `buttonLabel`/`href`, `noteTitle`/`note`, `fallbackLink`, `footer`) existe **copiado nas seis funções** acima e nos modelos HTML. Ao alterar o layout, aplique a mesma mudança em todos, e depois publique cada função (`supabase functions deploy <nome> --no-verify-jwt`): o código na `main` não muda o e-mail enquanto a função não for publicada.
+- Texto dos e-mails de notificação: gerado no banco (triggers e `run_scheduled_notifications`), gravado em `notification_email_outbox` e apenas formatado pela função.
+
 ### Envio de relatório por e-mail
 
 A tela **Enviar por e-mail** é única (`src/modules/reports/reportEmailModal.js`, `window.VECTON_REPORT_EMAIL`), extraída do Painel de Vendas, e usada por **Painel de Vendas**, **Fluxo de Caixa** e **Evolutivo de Margens**. Cada relatório informa só subtítulo, assunto, texto, nome do anexo e como montar o HTML (`buildHtml`); o módulo cuida da validação, do autocomplete dos destinatários lembrados (localStorage, compartilhados entre os relatórios), dos alertas e da chamada à Edge Function `send-report-email`. Um novo relatório com envio deve usar esse módulo, não criar outra tela.
@@ -509,6 +524,7 @@ Também confira:
 | RPS | `src/modules/rps/rpsModule.js`, migrations `102–108`, `179–180` |
 | RPS Comercial | `src/modules/rpsComercial/rpsComercialModule.js`, migrations `233–236`, `242` |
 | Mensagens/Notificações | `src/modules/messages/`, `src/modules/notifications/`, migrations `092–101`, `178` |
+| layout dos e-mails | `buildEmailLayout` replicado em `supabase/functions/{send-notification-emails,send-report-email,invite-user,resend-invite,forgot-password,resend-password}/index.ts`, modelos em `supabase/email-templates/`, imagens em `assets/email/` — ver [Layout padrão dos e-mails](#layout-padrão-dos-e-mails) |
 | tela de configuração das notificações (cartões reordenáveis) | `notificationsModule.js` (`bindReorder`, `saveOrder`), CSS `.notif-cfg-*` em `styles.css`, migration `266` |
 | cargas automáticas e envio semanal (robô) | `robo-cargas/` (`src/runner.js`, `src/jobs/`, `src/relatorios/`), `cargasAutomatizadasModule.js`, ganchos `VECTON_AUTOMATION` (`app.js`) e `VECTON_REPORT_AUTOMATION` (`reportsComercialPainelModule.js`), migrations `259–265`, [resumo para a TI](docs/robo-cargas-resumo-ti.pdf) |
 | Novidades (pop-up + admin) | `src/modules/announcements/`, migrations `238–239` |
