@@ -28,14 +28,16 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 
 **Botão "Carregar agora":** na tela do Vecton (Parâmetros → Carga de Realizado → seção *Automatizadas*) um administrador pode pedir uma carga fora do horário. O navegador apenas registra o pedido no banco; é o robô, no servidor, que o executa na próxima rodada da tarefa (por isso a tarefa deve rodar a cada 5 minutos). Nenhuma porta do servidor é aberta para a internet.
 
-**Proteções:** extração vazia ou queda de mais de 30% nas linhas em relação à última carga → não aplica e avisa. Qualquer linha reprovada na validação (ex.: cliente não cadastrado) → não aplica nada e avisa por e-mail, com as linhas.
+**Cargas:** vendas (12:00 e 23:30) e DRE (10:00, 15:00 e 19:00), cada uma com seus horários.
+
+**Proteções:** extração vazia ou queda de mais de 30% nas linhas em relação à última carga → não aplica e avisa. Qualquer linha reprovada na validação (ex.: conta ou cliente não cadastrado) → não aplica nada e avisa por e-mail, com as linhas agrupadas por motivo. O robô só registra "aplicada" depois de conferir que o lote inteiro está no razão do Vecton.
 
 ## 3. Situação da implantação (16/10/2026)
 
 | Item | Situação |
 |---|---|
-| Código do robô e testes unitários (14 testes) | Pronto, no GitHub |
-| Banco do Vecton (migrations 259 a 262): configuração, log, mapa de municípios, aviso por e-mail de erro e de carga concluída | Aplicado |
+| Código do robô e testes unitários (26 testes) | Pronto, no GitHub |
+| Banco do Vecton (migrations 259 a 264): configuração, log, mapa de municípios, avisos de erro e de carga concluída, pedidos "Carregar agora" e carga do DRE | Aplicado |
 | Botão "Carregar agora" (migration 263, robô e tela) | **Validado em produção** (16/10): pedido atendido pelo robô em até 5 min, card atualizado sozinho, aviso no sino e por e-mail |
 | Tela Parâmetros → Comercial → Municípios | Publicada |
 | Usuário `robo.vecton@marcher.com.br` no Vecton | Criado, login validado |
@@ -44,11 +46,13 @@ O robô **só lê** do Protheus. Horário, janela de meses e liga/desliga são a
 | Simulação (`--dry-run`) a partir do servidor | **Validada** |
 | **Carga real** a partir do servidor | **Validada**: mês 2026-10, 166 linhas (FAT 51, CART 115), 0 sem território |
 | Carga de vendas ligada, horários `12:00` e `23:30` | Configurado no Vecton |
-| Carga do DRE: horários próprios `10:00`, `15:00` e `19:00` | Configurado no Vecton (carga ainda desligada) |
+| Carga do DRE: ligada, horários próprios `10:00`, `15:00` e `19:00` | Configurado no Vecton |
 | Pasta de cópia dos CSVs | Configurada para `C:\robo-cargas\logs` |
 | Tarefa agendada no Windows (`Vecton - Robo de Cargas`, a cada 5 min) | **Em operação**: ciclo programado das 23:30 e pedidos do botão atendidos |
 | Aviso de carga aplicada (sino e e-mail), nas cargas manual, programada e pelo botão | **Validado** |
-| Carga automática do **DRE** (razão contábil `CT2010`, mesmo esquema das vendas; migration 264) | Desenvolvida e testada em simulação de código; **a validar no servidor** (carga nasce desligada) |
+| Carga automática do **DRE** (razão contábil `CT2010`, mesmo esquema das vendas) | **Validada**: simulação bateu com o Excel (596 lançamentos, saldo 465.317,39) e a carga real foi aplicada; DRE/OPEX conferidos |
+| Relatórios (DRE/OPEX) atualizando após carga do robô | **Corrigido** (descarte do cache do navegador); exige recarregar o Vecton uma vez |
+| Robô com conferência do razão (versão atual) | Publicado no GitHub; **a atualizar no servidor** (ver 4.1.2) |
 | Aviso por e-mail em caso de erro | Implementado; ainda não exercitado (só dispara numa falha real) |
 
 ## 4. O que falta — pendências da TI e referência de instalação
@@ -72,18 +76,19 @@ O script `instalar-tarefa.ps1` cria a tarefa **`Vecton - Robo de Cargas`**, que 
    .\instalar-tarefa.ps1 -Conta "marcher.local\ti.marcher" -Escopo Machine
    ```
 
-### 4.1.2 Ativar a carga do DRE
-A migration 264 cadastra a carga `dre` **desligada**. Passos, em ordem:
-1. Atualizar `C:\robo-cargas` com a versão do GitHub (novos: `src\jobs\dre.js`, `src\erros.js`, `sql\dre_mes.sql`; alterados: `src\runner.js` e `src\jobs\vendas.js`). Não é preciso recriar a tarefa.
-2. Conferir que o login `usr_robo_vecton` lê `CT2010` (`GRANT SELECT ON dbo.CT2010`).
-3. Simular, sem gravar: `node src/index.js dre --dry-run`. Comparar o total de lançamentos e o saldo com o `Razao_Contabil [carga dados].xlsm` do mês.
-4. Quem usa o Vecton liga a carga (`update carga_automatica_config set enabled = true where job = 'dre';`). Os horários do DRE são próprios (`10:00`, `15:00` e `19:00`) e ficam em `carga_automatica_config`, separados dos das vendas.
+### 4.1.2 Atualizar o robô no servidor para a versão com conferência do razão (pendente)
+O DRE já está ligado e validado. A versão atual do robô acrescenta a conferência do razão antes de registrar "aplicada". Sem atualizar, as cargas **continuam funcionando**, só sem essa proteção.
+1. Copiar do GitHub (pasta `robo-cargas`) para `C:\robo-cargas`, **os quatro juntos**: `src\runner.js`, `src\supabase.js`, `src\jobs\vendas.js` e `src\jobs\dre.js`. O `runner.js` novo exige que as duas cargas informem o seu razão, por isso nenhum deles pode ficar para trás.
+2. Se ainda não existirem: `src\erros.js` e `sql\dre_mes.sql` (usados pela carga do DRE).
+3. Não é preciso recriar a tarefa, rodar `npm install` nem mexer em senhas ou `config.json`.
+4. Conferir: `node src/index.js dre --dry-run` deve mostrar o resumo normal, sem `Cannot find module`.
+O login `usr_robo_vecton` precisa ler `CT2010` (no ambiente atual já lê todas as tabelas).
 
 ### 4.2 Conta definitiva para a tarefa
 A tarefa roda com `marcher.local\ti.marcher`. Se a senha dessa conta for trocada, a tarefa para até ser recriada. O ideal é uma **conta de serviço** do domínio, de senha estável, com o direito "Fazer logon como tarefa em lote" e acesso a `C:\robo-cargas`. Para trocar, rodar o mesmo script com o novo `-Conta` (ele substitui a tarefa existente).
 
 ### 4.3 Pasta de cópia dos arquivos (opcional)
-O robô grava `Vendas_AAAA-MM.csv` em `C:\robo-cargas\logs` (sobrescrito a cada execução). Se a Controladoria quiser a cópia em rede (ex.: `3 - CARGAS ENVIADAS`), é preciso o **caminho UNC** (`\\servidor\...`) e permissão de escrita para a conta da tarefa, pois ela não enxerga unidades mapeadas (`O:`). Se a cópia falhar, a carga **não falha**: o aviso fica no log.
+O robô grava `Vendas_AAAA-MM.csv` e `DRE_AAAA-MM.csv` em `C:\robo-cargas\logs` (sobrescrito a cada execução). Se a Controladoria quiser a cópia em rede (ex.: `3 - CARGAS ENVIADAS`), é preciso o **caminho UNC** (`\\servidor\...`) e permissão de escrita para a conta da tarefa, pois ela não enxerga unidades mapeadas (`O:`). Se a cópia falhar, a carga **não falha**: o aviso fica no log.
 
 ### 4.4 Referência: instalação do robô em um servidor novo
 1. Servidor Windows ligado 24x7 com acesso a `MARCHER-BD` (SQL Server) e à internet (`*.supabase.co`, HTTPS 443); Node.js 20 ou superior.
@@ -124,6 +129,6 @@ O robô grava `Vendas_AAAA-MM.csv` em `C:\robo-cargas\logs` (sobrescrito a cada 
 
 ## 7. Pontos em aberto
 
-1. Conta de serviço definitiva para a tarefa (seção 4.2).
-2. Pasta de rede (UNC) para a cópia dos CSVs, se desejada (seção 4.3).
-3. Ativar a carga do DRE (seção 4.1.2).
+1. Atualizar o robô no servidor para a versão com conferência do razão (seção 4.1.2).
+2. Conta de serviço definitiva para a tarefa (seção 4.2).
+3. Pasta de rede (UNC) para a cópia dos CSVs, se desejada (seção 4.3).

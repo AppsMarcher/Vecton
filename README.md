@@ -255,11 +255,20 @@ Principais RPCs:
 - `comercial_mapa_geografico_vendas`
 - `comercial_margens_itens` (Evolutivo de Margens)
 
-### Carga automática de vendas (robô)
+### Cargas automáticas (robô): vendas e DRE
 
-Desde 15/10/2026 a carga de vendas do **mês corrente** roda sozinha: o robô em `robo-cargas/` (Node.js, no servidor) lê o Protheus (`MARCHER-BD`, somente leitura), resolve o território pelo mapa **Parâmetros → Comercial → Municípios** (`comercial_regioes_municipio`), cria o lote `complete` do mês e aplica pelo mesmo caminho da tela de carga. A carga é sempre completa (apaga e regrava o mês), nos horários de `carga_automatica_config.horarios` (hoje `12:00` e `23:30`); meses anteriores e futuros continuam manuais.
+Desde 15/10/2026 o **mês corrente** de duas cargas roda sozinho: o robô em `robo-cargas/` (Node.js, no servidor) lê o Protheus (`MARCHER-BD`, somente leitura), cria o lote `complete` do mês e aplica pelo mesmo caminho da tela de carga:
 
-Proteções: extração vazia e queda de mais de 30% nas linhas bloqueiam a carga; linha reprovada na validação não aplica nada. Sucesso gera o aviso "Carga de Vendas (realizado) aplicada" (marca "· carga automática"); erro gera "Carga automática com erro" por e-mail e sininho, com as linhas reprovadas. Histórico em `carga_automatica_log`. Migrations `259`–`264`. Cargas automáticas: **vendas** e **DRE** (razão contábil, `CT2010`; migration `264`).
+| Carga | Fonte | Destino | Horários (hoje) |
+|---|---|---|---|
+| **Vendas** (FAT + CART) | `SD2/SD1/SC5/SC6…`; território pelo mapa **Parâmetros → Comercial → Municípios** (`comercial_regioes_municipio`) | `comercial_realizado_*` | `12:00` e `23:30` |
+| **DRE** (razão contábil) | `CT2010`, contas `3` a `4zzz…`, moeda `01`, saldo tipo `1` | `actuals_*` | `10:00`, `15:00` e `19:00` |
+
+A carga é sempre completa (apaga e regrava o mês). Os horários, a janela de meses e o liga/desliga de **cada** carga ficam em `carga_automatica_config` (uma linha por carga); meses anteriores e futuros continuam manuais.
+
+Proteções: extração vazia e queda de mais de 30% nas linhas bloqueiam a carga; linha reprovada na validação não aplica nada; o robô só registra "aplicada" depois de conferir que o lote inteiro está no razão do Vecton. Sucesso gera o aviso "Carga de Vendas/Realizado aplicada" (marca "· carga automática"); erro gera "Carga automática com erro" por e-mail e sininho, com as linhas reprovadas agrupadas por motivo. Histórico em `carga_automatica_log`. Migrations `259`–`264`.
+
+**Cache dos relatórios:** o DRE/OPEX guardam o ano em memória no navegador. Como uma carga do robô não passa pela tela, o cache é descartado quando chega aviso novo (o sino consulta a cada 60 s) e quando um pedido "Carregar agora" termina (`invalidateReportsAfterExternalLoad` em `app.js`).
 
 Em **Parâmetros → Carga de Realizado** a tela tem duas seções: **Manuais** (cards de arquivo) e **Automatizadas** (um card por carga do robô, com status e o botão **Carregar agora**, que grava um pedido em `carga_automatica_pedido`; o robô o atende em até 5 min). Código: `src/modules/actuals/cargasAutomatizadasModule.js`.
 

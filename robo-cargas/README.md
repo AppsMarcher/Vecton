@@ -6,7 +6,8 @@ Roda no servidor, lê o Protheus (SQL Server `MARCHER-BD`) e carrega no Vecton p
 ## Status (16/10/2026)
 
 **Implantado e validado em produção.** No servidor (`C:\robo-cargas`): login no Vecton, leitura do Protheus com o login SQL `usr_robo_vecton`, simulação (`--dry-run`), **carga real** do mês corrente, tarefa agendada a cada 5 min (ciclo programado e pedidos do botão atendidos).
-Banco do Vecton com as migrations 259–264 aplicadas; carga de vendas ligada (`enabled = true`) com horários `12:00` e `23:30`. A carga do **DRE** tem horários próprios (`10:00`, `15:00` e `19:00`; cada carga tem a sua linha em `carga_automatica_config`) e está desligada até a simulação ser conferida.
+Banco do Vecton com as migrations 259–264 aplicadas. Carga de **vendas** ligada (`12:00` e `23:30`). Carga do **DRE** ligada, com horários próprios (`10:00`, `15:00` e `19:00`; cada carga tem a sua linha em `carga_automatica_config`): simulação conferida contra o Excel (596 lançamentos, saldo 465.317,39) e carga real aplicada (596 lançamentos no razão; DRE/OPEX do mês conferidos no Vecton).
+Versão atual do robô (com conferência do razão): `runner.js`, `supabase.js`, `jobs/vendas.js` e `jobs/dre.js` precisam ir **juntos** para o servidor.
 Botão **Carregar agora** e seção Automatizadas na tela: validados (pedido atendido em até 5 min, card atualizado sozinho, aviso no sino e por e-mail).
 Ainda não exercitado: o e-mail "Carga automática com erro", que só dispara numa falha real.
 
@@ -93,7 +94,7 @@ Corrigido no front: o cache dos relatórios (ano do período e ano corrente) é 
 Mesma consulta e regras da carga manual (`Razao_Contabil [carga dados].xlsm` + tela Carga de Realizado - Manuais - DRE): lançamentos de `CT2010` (débito e crédito, moeda `01`, saldo tipo `1`) do mês corrente, contas na faixa `params.conta_de`…`params.conta_ate` (padrão `3` a `4zzzzzzzzzzzzzzzz`).
 Cada lançamento vira uma linha de `actuals_import_rows` (conta/CC só dígitos, filial com 2 posições, valor com 2 casas) e o lote `complete` do mês é aplicado por `apply_actuals_import_batch`; o aviso é "Carga de Realizado aplicada" (migration 264 cadastra a carga, **desligada**).
 O Vecton valida cada linha: conta no Plano de Contas DRE, centro de custos e empresa cadastrados; uma linha reprovada bloqueia a carga (como na tela manual) e o e-mail de erro lista os motivos **agrupados** (ex.: "conta 31101099 · CC - · filial 01 (40 linhas) — Conta nao cadastrada").
-Ligar: simular com `node src/index.js dre --dry-run`, conferir o saldo/linhas com o Excel e então `update carga_automatica_config set enabled = true where job = 'dre';`. A tarefa agendada atende as duas cargas (`node src/index.js run`).
+Ligar: simular com `node src/index.js dre --dry-run`, conferir o saldo/linhas com o Excel e então `update carga_automatica_config set enabled = true where job = 'dre';`. A tarefa agendada atende as duas cargas (`node src/index.js run`). O login SQL do robô precisa ler `CT2010` (no ambiente atual ele lê todas as tabelas).
 
 ## Nova carga
 
