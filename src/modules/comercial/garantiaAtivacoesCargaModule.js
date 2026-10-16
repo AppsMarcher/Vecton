@@ -185,6 +185,7 @@
       [
         { label: "Linhas na planilha", value: String(lastSummary.total) },
         { label: "Ignoradas (valor de NF suspeito)", value: String(lastSummary.ignoradas || 0) },
+        { label: "Sem preço de máquina", value: String(lastSummary.semPreco || 0) },
         { label: "Novas", value: String(lastSummary.novas) },
         { label: "Atualizadas", value: String(lastSummary.atualizadas) },
         { label: "Sem correspondência de revenda", value: String(lastSummary.semRevenda) },
@@ -279,7 +280,7 @@
       }
       try {
         setFeedback("Lendo arquivo...", "warn");
-        const sheetRows = await parseFile(file);
+        const { rows: sheetRows, itens, parcelas } = await parseFile(file);
         setFeedback("Resolvendo cadastros de produto e revenda...", "warn");
         const organizationId = await resolveOrganizationId();
         const { produtos, clientes } = await loadCadastrosParaMatch(organizationId);
@@ -287,7 +288,9 @@
           ? new Set((await fetchAllSupabaseRows("garantia_ativacoes", `organization_id=eq.${organizationId}&select=numero`)).map((r) => r.numero))
           : new Set();
 
-        const allParsed = garantirNumerosUnicos(sheetRows.map((raw) => normalizeImportedRow(raw)));
+        const allParsed = garantirNumerosUnicos(
+          sheetRows.map((raw) => aplicarAbasAuxiliares(normalizeImportedRow(raw), { itens, parcelas }))
+        );
         const parsedRows = allParsed.filter((row) => !isValorSuspeito(row));
         const ignoradas = allParsed.length - parsedRows.length;
         const resolved = parsedRows.map((row) => resolveMatches(row, produtos, clientes));
@@ -308,6 +311,7 @@
         lastSummary = {
           total: resolved.length,
           ignoradas,
+          semPreco: resolved.filter((row) => row.precoMaquina == null).length,
           novas: resolved.filter((row) => !existing.has(row.numero)).length,
           atualizadas: resolved.filter((row) => existing.has(row.numero)).length,
           semRevenda: resolved.filter((row) => (row.codCliente || row.revendaRaw) && !row.clienteId).length,
@@ -352,11 +356,121 @@
       if (missing.length) {
         throw new Error(`Colunas obrigatórias ausentes no arquivo: ${missing.join(", ")}. Confirme que é a exportação do AltForce (aba "AltForce").`);
       }
-      return sheetRows.map((sourceRow) => {
+      const rows = sheetRows.map((sourceRow) => {
         const out = { rawPayload: sourceRow };
         Object.entries(headerMap).forEach(([key, header]) => { out[key] = sourceRow[header]; });
         return out;
       });
+      return { rows, itens: readItens(workbook), parcelas: readParcelas(workbook) };
+    }
+
+    // Abas auxiliares do AltForce, ligadas a ativacao por (numero de serie, numero). Sao opcionais:
+    // sem elas a carga segue so com a aba AltForce (preco = valor unitario da linha, sem parcelas).
+    function findSheet(workbook, token) {
+      const name = workbook.SheetNames.find((n) => normalizeName(n).includes(token));
+      return name ? workbook.Sheets[name] : null;
+    }
+
+    function readAuxSheet(workbook, token, aliases) {
+      const sheet = findSheet(workbook, token);
+      if (!sheet) return [];
+      const rawRows = window.XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true });
+      if (!rawRows.length) return [];
+      const map = {};
+      Object.keys(rawRows[0]).forEach((header) => {
+        const normalized = normalizeHeaderName(header);
+        Object.entries(aliases).forEach(([key, options]) => {
+          if (!map[key] && options.includes(normalized)) map[key] = header;
+        });
+      });
+      return rawRows.map((src) => {
+        const out = {};
+        Object.entries(map).forEach(([key, header]) => { out[key] = src[header]; });
+        return out;
+      });
+    }
+
+    function chaveAtivacao(serie, numero) {
+      return `${String(serie || "").trim()}|${String(numero || "").trim()}`;
+    }
+
+    // Itens da NF agrupados por (serie, numero) da ativacao.
+    function readItens(workbook) {
+      const lista = readAuxSheet(workbook, "ITENS", {
+        serie: ["numerodeserie"],
+        numero: ["numero"],
+        seriesItem: ["numerosdeserie"],
+        valorUnitario: ["valorunitario"],
+        descricao: ["descricao"]
+      });
+      const map = new Map();
+      lista.forEach((it) => {
+        const key = chaveAtivacao(it.serie, it.numero);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push({
+          seriesItem: String(it.seriesItem || ""),
+          valorUnitario: parseAmount(it.valorUnitario),
+          descricao: String(it.descricao || "")
+        });
+      });
+      return map;
+    }
+
+    function readParcelas(workbook) {
+      const lista = readAuxSheet(workbook, "PARCEL", {
+        serie: ["numerodeserie"],
+        numero: ["numero"],
+        data: ["data"],
+        tipo: ["tipo"],
+        valor: ["valor"]
+      });
+      const map = new Map();
+      lista.forEach((p) => {
+        const key = chaveAtivacao(p.serie, p.numero);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push({ data: normalizeDateInput(p.data) || null, tipo: String(p.tipo || ""), valor: parseAmount(p.valor) });
+      });
+      map.forEach((list) => list.sort((a, b) => String(a.data || "").localeCompare(String(b.data || ""))));
+      return map;
+    }
+
+    // Preco da maquina em NF com varios itens: o item cujo numero de serie (ou descricao) cita a
+    // serie da ativacao; senao o de maior valor cuja descricao cita o modelo; senao o item unico.
+    // Sem aba de itens/sem item da ativacao, cai no valor unitario da linha do AltForce.
+    function resolverPreco(row, itensDaAtivacao) {
+      const linha = row.nfValorUnitario;
+      if (!itensDaAtivacao || !itensDaAtivacao.length) {
+        return { preco: linha, origem: linha != null ? "linha" : null };
+      }
+      const serie = normalizeName(row.numeroSerie).replace(/ /g, "");
+      const compacto = (txt) => normalizeName(txt).replace(/ /g, "");
+      let escolhido = serie
+        ? itensDaAtivacao.find((it) => compacto(it.seriesItem).includes(serie) || compacto(it.descricao).includes(serie))
+        : null;
+      if (!escolhido && row.modeloNormalizado) {
+        const modelo = row.modeloNormalizado.replace(/\s+/g, "");
+        escolhido = itensDaAtivacao
+          .filter((it) => compacto(it.descricao).includes(modelo))
+          .sort((a, b) => (b.valorUnitario || 0) - (a.valorUnitario || 0))[0] || null;
+      }
+      if (!escolhido && itensDaAtivacao.length === 1) escolhido = itensDaAtivacao[0];
+      if (!escolhido || escolhido.valorUnitario == null) return { preco: null, origem: null };
+      return { preco: escolhido.valorUnitario, origem: "item" };
+    }
+
+    // Financiamento por palavra-chave nas informacoes adicionais da NF (espelha a funcao SQL
+    // garantia_classificar_financiamento; a ordem e a prioridade).
+    function classificarFinanciamento(texto) {
+      const x = normalizeName(texto).toLowerCase();
+      if (!x) return "Não identificado";
+      if (/\bbnb\b/.test(x)) return "BNB";
+      if (/(finame|bndes)/.test(x)) return "Finame/BNDES";
+      if (/consorcio/.test(x)) return "Consórcio";
+      if (/aliena\w* fiduciaria/.test(x)) return "Alienação fiduciária";
+      if (/reserva de dominio/.test(x)) return "Reserva de domínio";
+      if (/financ/.test(x)) return "Financiamento (outro)";
+      if (/(\bpix\b|a vista)/.test(x)) return "À vista/PIX";
+      return "Não identificado";
     }
 
     function mapHeaders(headers) {
@@ -385,7 +499,12 @@
         nfEmissao: ["detalhesnotafiscalemissao"],
         emServicoDesde: ["detalhesdatasdagarantiaemservicodesde"],
         dataCompra: ["detalhesdatasdagarantiacompra"],
-        dataEmissaoNf: ["detalhesdatasdagarantiaemissaonf"]
+        dataEmissaoNf: ["detalhesdatasdagarantiaemissaonf"],
+        nfCfop: ["detalhesnotafiscalcfop"],
+        nfNaturezaOperacao: ["detalhesnotafiscalnaturezadaoperacao"],
+        nfDestinatarioDoc: ["detalhesnotafiscalcpfcnpjdodestinatario"],
+        nfFormaPagamento: ["detalhesnotafiscalformasdepagamento"],
+        nfInfoAdicionais: ["detalhesnotafiscalinformacoesadicionais"]
       };
       const result = {};
       headers.forEach((header) => {
@@ -462,7 +581,7 @@
     }
 
     function isValorSuspeito(row) {
-      return row.nfValorUnitario != null && row.nfValorUnitario < MIN_VALOR_MAQUINA;
+      return row.precoMaquina != null && row.precoMaquina < MIN_VALOR_MAQUINA;
     }
 
     // Cod_Cliente/Nome_Cliente vem de PROCV: "#N/A" (ou vazio) = sem cadastro.
@@ -505,8 +624,26 @@
         emServicoDesde: normalizeDateInput(raw.emServicoDesde) || null,
         dataCompra: normalizeDateInput(raw.dataCompra) || null,
         dataEmissaoNf: normalizeDateInput(raw.dataEmissaoNf) || null,
+        nfCfop: String(raw.nfCfop || "").trim(),
+        nfNaturezaOperacao: String(raw.nfNaturezaOperacao || "").trim(),
+        nfDestinatarioDoc: String(raw.nfDestinatarioDoc || "").replace(/\D/g, ""),
+        nfFormaPagamento: String(raw.nfFormaPagamento || "").trim(),
+        nfInfoAdicionais: String(raw.nfInfoAdicionais || "").trim(),
+        financiamento: classificarFinanciamento(raw.nfInfoAdicionais),
+        precoMaquina: parseAmount(raw.nfValorUnitario),
+        precoOrigem: parseAmount(raw.nfValorUnitario) != null ? "linha" : null,
+        parcelas: null,
         rawPayload: raw.rawPayload || {}
       };
+    }
+
+    // Aplica as abas auxiliares (itens e parcelas) a uma linha ja normalizada. Precisa rodar antes de
+    // garantirNumerosUnicos, pois a ligacao usa o "Numero" original da ativacao.
+    function aplicarAbasAuxiliares(row, extras) {
+      const chave = chaveAtivacao(row.numeroSerie, row.numero);
+      const { preco, origem } = resolverPreco(row, extras.itens.get(chave));
+      const parcelas = extras.parcelas.get(chave) || null;
+      return { ...row, precoMaquina: preco, precoOrigem: origem, parcelas };
     }
 
     // Casamento por normalizacao + igualdade/prefixo (sem fuzzy probabilistico):
@@ -565,6 +702,16 @@
         em_servico_desde: row.emServicoDesde,
         data_compra: row.dataCompra,
         data_emissao_nf: row.dataEmissaoNf,
+        nf_cfop: row.nfCfop || null,
+        nf_natureza_operacao: row.nfNaturezaOperacao || null,
+        nf_destinatario_doc: row.nfDestinatarioDoc || null,
+        nf_forma_pagamento: row.nfFormaPagamento || null,
+        nf_info_adicionais: row.nfInfoAdicionais || null,
+        financiamento: row.financiamento || null,
+        preco_maquina: row.precoMaquina,
+        preco_origem: row.precoOrigem,
+        parcelas: row.parcelas,
+        parcelas_qtd: row.parcelas ? row.parcelas.length : null,
         raw_payload: row.rawPayload || {}
       };
     }

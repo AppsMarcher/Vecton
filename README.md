@@ -68,7 +68,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
     - cadastros de produtos, clientes, territórios, coordenações, tipos, culturas e linhas de negócio;
     - atribuição de responsáveis por território;
     - cargas de vendas realizadas (FAT, RL e MP por linha) e planejadas;
-    - carga recorrente/aditiva de Ativações de Garantia (upsert, fonte AltForce);
+    - carga recorrente/aditiva de Ativações de Garantia (upsert, fonte AltForce; lê também as abas "Itens" e "Parcelas" da NF, ligadas por nº de série + nº da ativação, quando existem);
     - relatórios comerciais agregados no servidor.
 
 ### Aparência (tema Claro/Dark)
@@ -358,6 +358,7 @@ Resumo por fase:
 | `248` | Fluxo de Caixa: retenção em Impostos e Taxas |
 | `249–251` | ajustes do Painel de Vendas (slot "A definir" e gestor de Pecuária sem órfão; reaplica o nome atual do vendedor) |
 | `251–252` | Ativações de Garantia: UF exterior e quantidade |
+| `267` | Ativações de Garantia: CFOP, CPF/CNPJ do destinatário, forma de pagamento, financiamento, preço da máquina (aba Itens) e parcelas |
 | `253` | `rl` e `mp` no staging e no ledger de vendas realizadas (novo layout FAT/RL/MP) |
 | `254` | carteira (CART) entra só pelo mês de referência no Painel e Peças |
 | `255` | RPC `comercial_margens_itens` e posição do card Evolutivo de Margens no catálogo |
