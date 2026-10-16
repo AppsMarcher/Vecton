@@ -739,6 +739,7 @@ const { loadAndRenderUsers, bindUsersInviteButton, bindUsersSort, renderAccessPr
   isAdmin,
   getUserManagement,
   getReportTitles: () => REPORT_TITLES,
+  roleCanSeeReport,
   getCurrentUserId: () => currentUser?.id || null
 });
 const { loadAndRenderManagements, bindManagementsAddButton } = createManagementsModule({

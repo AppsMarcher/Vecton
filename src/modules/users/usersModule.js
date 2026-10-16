@@ -14,6 +14,7 @@
       isAdmin,
       getUserManagement,
       getReportTitles,
+      roleCanSeeReport,
       getCurrentUserId
     } = deps;
 
@@ -452,7 +453,7 @@
     function renderAccessTrees(user, roles) {
       const wrap = document.createElement("div");
       wrap.className = "ue-trees";
-      wrap.append(renderManagementTree(user), renderBranchTree(user), renderAccountTree(user), renderCcTree(user), renderReportTree(user));
+      wrap.append(renderManagementTree(user), renderBranchTree(user), renderAccountTree(user), renderCcTree(user), renderReportTree(user, roles));
       const strategicTree = renderStrategicTree(user, roles || [], strategicAreasCache);
       if (strategicTree) wrap.append(strategicTree);
       return wrap;
@@ -676,12 +677,15 @@
       );
     }
 
-    function renderReportTree(user) {
-      const isRestricted = ["manager", "analyst"].includes(user.access_role);
+    // O que já vem marcado é o que o(s) perfil(is) escolhido(s) enxergam por regra
+    // (roleCanSeeReport, app.js): Comercial = só os comerciais, Marketing = só os dois
+    // dele, Gestor = tudo menos os do Marketing, etc. O resto só entra como extra.
+    function renderReportTree(user, roles) {
+      const efetivos = roles && roles.length ? roles : [user.access_role].filter(Boolean);
       const icon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
       return makeTree("report", icon, "Relatórios", () =>
         Object.entries(getReportTitles()).map(([id, label]) => {
-          const isDefault = !isRestricted;
+          const isDefault = efetivos.some((role) => roleCanSeeReport(role, id));
           const isExtra = isExtraReport(user, id);
           const row = buildAccessRow(id, label, isDefault || isExtra, isDefault);
           row.dataset.tree = "report";
