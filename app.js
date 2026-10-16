@@ -66,6 +66,7 @@ const { createComercialVendasCargaModule } = window.VECTON_COMERCIAL_VENDAS_CARG
 const { createComercialPlanejadoCargaModule } = window.VECTON_COMERCIAL_PLANEJADO_CARGA;
 const { createGarantiaAtivacoesCargaModule } = window.VECTON_GARANTIA_ATIVACOES_CARGA;
 const { createReportsGarantiaAtivacoesModule } = window.VECTON_REPORTS_GARANTIA_ATIVACOES;
+const { createReportsMarcherCampoModule } = window.VECTON_REPORTS_MARCHER_CAMPO;
 const { createComercialPainelModule } = window.VECTON_COMERCIAL_PAINEL;
 const { createComercialPainelMobileModule } = window.VECTON_COMERCIAL_PAINEL_MOBILE;
 const { createMobileShellModule } = window.VECTON_MOBILE_SHELL;
@@ -1633,6 +1634,12 @@ const reportsGarantiaAtivacoesModule = createReportsGarantiaAtivacoesModule({
   fetchSupabaseRows,
   isSupabaseConfigured,
 });
+const reportsMarcherCampoModule = createReportsMarcherCampoModule({
+  escapeHtml,
+  resolveOrganizationId,
+  fetchAllSupabaseRows,
+  isSupabaseConfigured,
+});
 const { createComercialPecasGeoModule } = window.VECTON_COMERCIAL_PECAS_GEO;
 const comercialPecasGeoModule = createComercialPecasGeoModule({
   escapeHtml,
@@ -2508,10 +2515,10 @@ function isConsolidatedReport(reportId) {
   return String(reportId).startsWith("dre") || reportId === "cashFlow";
 }
 
-const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo", "garantiaAtivacoes", "comercialMargens"];
+const CORE_COMMERCIAL_REPORT_IDS = ["comercialPainel", "comercialMapa", "comercialMapaGeografico", "comercialPecasGeo", "garantiaAtivacoes", "marcherCampo", "comercialMargens"];
 // Relatórios comerciais fixos que o perfil Comercial NÃO enxerga (Gestor/Admin continuam vendo).
 // Evolutivo de Margens: dado sensível, só Gestor, Admin e Super Admin (o RPC também valida).
-const COMERCIAL_EXCLUDED_REPORT_IDS = ["garantiaAtivacoes", "comercialMargens"];
+const COMERCIAL_EXCLUDED_REPORT_IDS = ["garantiaAtivacoes", "marcherCampo", "comercialMargens"];
 // Flag em extra_report_ids (mesmo valor em usersModule.js): perfil Comercial sem o
 // drilldown de NFs/Pedidos do Painel de Vendas. Admin/Gestor sempre têm drilldown.
 const PAINEL_SEM_DRILL_TOKEN = "comercialPainel:sem_drill";
@@ -3259,7 +3266,8 @@ const REPORT_TITLES = {
   comercialMapaGeografico: "Ranking Geográfico",
   comercialPecasGeo: "Performance de Peças",
   comercialMargens: "Evolutivo de Margens",
-  garantiaAtivacoes: "Ativações de Garantia"
+  garantiaAtivacoes: "Ativações de Garantia",
+  marcherCampo: "Marcher no Campo"
 };
 
 /*
@@ -3494,6 +3502,7 @@ function renderReportsView() {
     comercialPecasGeoModule.renderSelectedPecasGeo(detailPanel, selectedReportId) ||
     comercialMargensModule.renderSelectedMargens(detailPanel, selectedReportId) ||
     reportsGarantiaAtivacoesModule.renderSelectedGarantiaAtivacoes(detailPanel, selectedReportId) ||
+    reportsMarcherCampoModule.renderSelectedMarcherCampo(detailPanel, selectedReportId) ||
     reportsDreModule.renderSelectedDreReport(detailPanel, selectedReportId) ||
     reportsOpexModule.renderSelectedOpexReport(detailPanel, selectedReportId) ||
     reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId);

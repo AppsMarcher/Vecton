@@ -53,6 +53,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
    - Report Builder com relatórios personalizados;
    - Painel de Vendas, Mapa de Vendas e Vendas – Distribuição Geográfica (mapa por UF, donut/heatmap, ranking de estados);
    - Ativações de Garantia (heatmap cidade×estado/revenda, preço médio por modelo, ranking de vendedores, estoque estimado de revenda);
+   - Marcher no Campo (sell-out das revendas ao produtor, lido de `garantia_ativacoes`: vendas por mês, estados e cidades, clientes por CPF/CNPJ, revendas, vendedores, produtos, preços por modelo/região/estado/revenda, parcelas e financiamento; mesma restrição de acesso de Ativações de Garantia);
    - Evolutivo de Margens (MC1%, RL, MP e volume por nome reduzido, com mapa do portfólio, ponte da margem e tabela corrida, exportável em Excel, PDF e e-mail; restrito a Gestor, Admin e Super Admin).
 
 9. **Parâmetros e cargas financeiras**
@@ -359,6 +360,7 @@ Resumo por fase:
 | `249–251` | ajustes do Painel de Vendas (slot "A definir" e gestor de Pecuária sem órfão; reaplica o nome atual do vendedor) |
 | `251–252` | Ativações de Garantia: UF exterior e quantidade |
 | `267` | Ativações de Garantia: CFOP, CPF/CNPJ do destinatário, forma de pagamento, financiamento, preço da máquina (aba Itens) e parcelas |
+| `268` | card "Marcher no Campo" na mesma seção de Ativações de Garantia no catálogo de relatórios |
 | `253` | `rl` e `mp` no staging e no ledger de vendas realizadas (novo layout FAT/RL/MP) |
 | `254` | carteira (CART) entra só pelo mês de referência no Painel e Peças |
 | `255` | RPC `comercial_margens_itens` e posição do card Evolutivo de Margens no catálogo |
@@ -533,6 +535,7 @@ Também confira:
 | cadastros comerciais | `comercialCadastroModule.js`, configurações em `app.js`, migrations `032–037` |
 | cargas comerciais | `comercialVendasCargaModule.js`, `comercialPlanejadoCargaModule.js`, migrations `038–042` |
 | Ativações de Garantia | `garantiaAtivacoesCargaModule.js`, `reportsGarantiaAtivacoesModule.js`, migration `237` |
+| Marcher no Campo | `reportsMarcherCampoModule.js` (lê `garantia_ativacoes`; depende da migration `267`), card posicionado pela `268` |
 | painel/mapa comercial | `reportsComercialPainelModule.js`, `reportsComercialMapaModule.js`, `reportsComercialMapaGeograficoModule.js`, migrations `043–055`, `090`, `112–126`, `240–241`, `243–244` |
 | Evolutivo de Margens | `reportsComercialMargensModule.js`, `reportsComercialMargensExport.js` (Excel/PDF/e-mail), card e perfis em `index.html`, regras de acesso em `app.js`, migrations `253`, `255` e `256` |
 | campanhas e criador de relatórios comerciais | `src/modules/reports/comercialReportsModule.js`, migrations `064–069`, `074–075`, `245` |
