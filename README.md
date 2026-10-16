@@ -43,7 +43,8 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
 
 7. **Comunicação interna**
    - **Mensagens**: correio interno com presença, janelas de conversa flutuantes e anexos via Supabase Realtime;
-   - **Notificações**: central (sino no header) alimentada por triggers do banco — lotes de carga, lembretes de RPS, KPIs fora da meta, ações estratégicas etc.
+   - **Notificações**: central (sino no header) alimentada por triggers do banco — lotes de carga (inclusive as automáticas), erros de carga automática, lembretes de RPS, KPIs fora da meta, ações estratégicas etc. A tela **Parâmetros → Notificações** mostra um cartão por tipo, **reordenável arrastando** (ordem salva por organização), e inclui o tipo agendado "Envio semanal do Painel de Vendas";
+   - **Cargas automáticas**: um robô em `robo-cargas/` (Node.js, no servidor) carrega vendas e DRE do Protheus nos horários configurados, com botão "Carregar agora" em **Parâmetros → Carga de Realizado → Automatizadas** e envio semanal do Painel de Vendas por e-mail — ver [Cargas automáticas (robô)](#cargas-automáticas-robô-vendas-e-dre).
 
 8. **Central de relatórios**
    - DRE Societário, Gerencial e DFs;
@@ -87,6 +88,7 @@ O projeto é uma SPA estática. Não existe etapa de compilação.
 - `seed-data.js`, `dre-structure.js` e `cc-structure.js` oferecem estruturas iniciais e fallback local.
 - `src/core/` contém constantes, armazenamento local e utilitários compartilhados.
 - `src/modules/` contém módulos IIFE publicados em namespaces `window.VECTON_*`.
+- `robo-cargas/` **não faz parte do app web**: é um projeto Node.js à parte (com `package.json` próprio) que roda no servidor da empresa e conversa com o Protheus e o Supabase.
 
 A ordem dos `<script>` em `index.html` é obrigatória: todos os módulos precisam estar carregados antes de `app.js`.
 
@@ -101,7 +103,7 @@ src/
 │   ├── storage.js
 │   └── utils.js
 └── modules/
-    ├── actuals/       carga de realizado
+    ├── actuals/       carga de realizado (seções Manuais e Automatizadas, `cargasAutomatizadasModule.js`)
     ├── announcements/ Novidades — pop-up de lançamentos/campanhas e admin de anúncios
     ├── auth/          login, sessão, convite e recuperação
     ├── budget/        carga de planejado
@@ -114,7 +116,7 @@ src/
     ├── messages/       correio interno (presença, anexos, Realtime)
     ├── mobile/         shell responsivo para telas < 767px
     ├── navigation/     navegação e visibilidade dos menus
-    ├── notifications/  central de notificações (triggers do banco)
+    ├── notifications/  central de notificações (triggers do banco) e tela de configuração (cartões reordenáveis)
     ├── params/         parâmetros administrativos e Plano de Contas FC
     ├── reports/        relatórios financeiros, comerciais, geográficos e builder
     ├── rps/            RPS — acompanhamento semanal por área
@@ -268,11 +270,19 @@ A carga é sempre completa (apaga e regrava o mês). Os horários, a janela de m
 
 Proteções: extração vazia e queda de mais de 30% nas linhas bloqueiam a carga; linha reprovada na validação não aplica nada; o robô só registra "aplicada" depois de conferir que o lote inteiro está no razão do Vecton. Sucesso gera o aviso "Carga de Vendas/Realizado aplicada" (marca "· carga automática"); erro gera "Carga automática com erro" por e-mail e sininho, com as linhas reprovadas agrupadas por motivo. Histórico em `carga_automatica_log`. Migrations `259`–`265`.
 
-**Envio semanal do Painel de Vendas:** o robô também envia por e-mail, uma vez por semana, o mesmo PDF do botão "Enviar por e-mail" do Painel (migration `265`). Dia, horário, ativo e destinatários ficam em **Parâmetros → Notificações → "Envio semanal do Painel de Vendas"**; o robô abre o Vecton num navegador sem tela no servidor e usa o gancho `window.VECTON_REPORT_AUTOMATION` (`reportsComercialPainelModule.js`) para obter o mesmo HTML do botão. Detalhes em [`robo-cargas/README.md`](robo-cargas/README.md).
+**Envio semanal do Painel de Vendas** (migration `265`): o robô também envia por e-mail, uma vez por semana, o **mesmo PDF** do botão "Enviar por e-mail" do Painel. Dia, horário, ativo e destinatários ficam em **Parâmetros → Notificações → "Envio semanal do Painel de Vendas"** (destinatários são usuários do Vecton). Como o HTML do relatório só existe no navegador, o robô abre o Vecton num **navegador sem tela** (Chrome ou Edge do servidor, via `playwright-core`; `relatorios.canal` no `config.json` — no servidor atual, `chrome`) com a sessão do usuário do robô, e usa dois ganchos do app:
+- `window.VECTON_AUTOMATION` (`app.js`): `ready()` (o app terminou de carregar) e `openReport(id)` (abre o relatório e devolve se o usuário tem permissão), sem depender do link direto `?report=`;
+- `window.VECTON_REPORT_AUTOMATION.comercialPainel` (`reportsComercialPainelModule.js`): `ready()` e `build()`, que entrega assunto, nome do arquivo e o **mesmo HTML** do botão (a Edge Function `send-report-email` gera o PDF e envia).
+
+O Painel abre no **mês corrente** e escolhe o cenário **pelo nome** ("Fcst" ou "5+7", senão o primeiro do ano), como a tela; **não** segue a estrela de favorito do repositório de cenários. Falha gera o e-mail "Carga automática com erro" e o robô só tenta de novo depois de 1 hora; o resultado fica em `carga_automatica_log` (job `relatorio_painel_vendas`). Teste sem enviar: `node src/index.js relatorio --dry-run`. Detalhes em [`robo-cargas/README.md`](robo-cargas/README.md).
+
+**Como o robô roda:** uma tarefa agendada do Windows (`Vecton - Robo de Cargas`, criada por `robo-cargas/instalar-tarefa.ps1`) chama `node src/index.js run` **a cada 5 minutos**; o próprio robô decide, pela configuração no Vecton, se há carga ou envio devido. Entra no Vecton com o usuário `robo.vecton@marcher.com.br` (perfil Administrador) e lê o Protheus com o login SQL `usr_robo_vecton`; as senhas ficam só em variáveis de ambiente (`VECTON_ROBO_SENHA`, `PROTHEUS_SENHA`), nunca em arquivo.
 
 **Cache dos relatórios:** o DRE/OPEX guardam o ano em memória no navegador. Como uma carga do robô não passa pela tela, o cache é descartado quando chega aviso novo (o sino consulta a cada 60 s) e quando um pedido "Carregar agora" termina (`invalidateReportsAfterExternalLoad` em `app.js`).
 
-Em **Parâmetros → Carga de Realizado** a tela tem duas seções: **Manuais** (cards de arquivo) e **Automatizadas** (um card por carga do robô, com status e o botão **Carregar agora**, que grava um pedido em `carga_automatica_pedido`; o robô o atende em até 5 min). Código: `src/modules/actuals/cargasAutomatizadasModule.js`.
+Em **Parâmetros → Carga de Realizado** a tela tem duas seções: **Manuais** (cards de arquivo) e **Automatizadas** (um card por carga do robô, com status, horários, última execução e o botão **Carregar agora**, que grava um pedido em `carga_automatica_pedido`; o robô o atende em até 5 min). Código: `src/modules/actuals/cargasAutomatizadasModule.js`.
+
+**Mapa município → território:** a carga de vendas resolve o território de cada cliente por **Parâmetros → Comercial → Municípios** (`comercial_regioes_municipio`, vinculada a `comercial_territorios`; carga inicial na migration `260`).
 
 Detalhes, instalação e operação: [`robo-cargas/README.md`](robo-cargas/README.md). Resumo para a TI: [`docs/robo-cargas-resumo-ti.pdf`](docs/robo-cargas-resumo-ti.pdf).
 
@@ -380,7 +390,7 @@ Funções disponíveis (`supabase/functions/`):
 | `market-commodities-worker` | roda 1x/dia via `pg_cron`, busca soja/milho/boi gordo no GiroRural e grava em `market_commodities` (substitui o scraping por iframe da CEPEA, bloqueado por Cloudflare desde 2026-08) |
 | `rps-backup-manager` / `rps-backup-worker` | backup semanal agendado dos dados de RPS — ver [docs/rps-backup-recuperacao.md](docs/rps-backup-recuperacao.md) |
 | `send-notification-emails` | drena a fila `notification_email_outbox` (preenchida por trigger) e envia cada item via Resend |
-| `send-report-email` | gera PDF de relatório (Browserless) e envia por e-mail via Resend |
+| `send-report-email` | gera PDF de relatório (Browserless) e envia por e-mail via Resend; chamada pelo botão "Enviar por e-mail" e pelo robô (envio semanal do Painel de Vendas) |
 
 As funções usam `service_role` somente no servidor e validam manualmente o token do chamador.
 
@@ -458,6 +468,8 @@ Get-ChildItem .\src -Recurse -Filter *.js | ForEach-Object { node --check $_.Ful
 
 `tests/` tem 21 arquivos, cada um executável isoladamente com `node tests/<arquivo>.test.js` (sem framework — usam `assert` puro e `vm.runInNewContext` para carregar o módulo sob teste isolado do resto do app; massa de dados em `tests/fixtures/`). Os arquivos `*.browser.test.js` sobem uma página real via Playwright (precisa de `npx playwright install` uma vez). Cobrem principalmente: Cockpit (`cockpit.test.js`, `cockpitService.test.js`), Fluxo de Caixa (`fcDashboard.*.test.js`, `fcPlan.*.test.js`, `fcImport.sql.test.js`), tema Claro/Dark (`appearance*.test.js`), RPS (`rpsConcurrency.test.js`, `rpsLayout.test.js`), Mensagens (`messagesAppearance.test.js`, `messagesPresencePicker.test.js`) e mapas (`mapAppearance.test.js`, `floatingScrollbar.browser.test.js`). Ainda não há um runner único nem integração com CI — rode os arquivos relevantes à mudança manualmente.
 
+**Robô de cargas** (`robo-cargas/`): `npm test` na pasta roda 34 testes (`node --test`): território, janela de meses, montagem do SQL, normalização de DRE/vendas, agrupamento de erros, agenda semanal e um teste com **navegador real** (Edge/Chrome) contra uma página de teste, que prova a injeção da sessão e a leitura do HTML. Não precisam de banco nem de Protheus.
+
 Também confira:
 
 - se todos os scripts de `index.html` existem;
@@ -471,7 +483,7 @@ Também confira:
 
 - `app.js` ainda concentra grande parte da aplicação e deve ser alterado em etapas pequenas.
 - A arquitetura depende de globais `window.VECTON_*` e da ordem manual dos scripts.
-- Não há package manager (`package.json`), bundler ou linter configurados. Há uma suíte de testes (`tests/`, 21 arquivos), mas sem runner único nem CI — ver [Testes](#testes).
+- O app web não tem package manager (`package.json`), bundler ou linter (o robô `robo-cargas/` tem o seu `package.json`). Há uma suíte de testes (`tests/`, 21 arquivos), mas sem runner único nem CI — ver [Testes](#testes).
 - Parte do schema de Headcount não está versionada nas migrations deste checkout.
 - A tela "Perfis de Acesso" é principalmente descritiva; contadores e botões "Ver usuários" ainda não possuem integração própria.
 - O XLSX é carregado por CDN externa.
@@ -497,6 +509,8 @@ Também confira:
 | RPS | `src/modules/rps/rpsModule.js`, migrations `102–108`, `179–180` |
 | RPS Comercial | `src/modules/rpsComercial/rpsComercialModule.js`, migrations `233–236`, `242` |
 | Mensagens/Notificações | `src/modules/messages/`, `src/modules/notifications/`, migrations `092–101`, `178` |
+| tela de configuração das notificações (cartões reordenáveis) | `notificationsModule.js` (`bindReorder`, `saveOrder`), CSS `.notif-cfg-*` em `styles.css`, migration `266` |
+| cargas automáticas e envio semanal (robô) | `robo-cargas/` (`src/runner.js`, `src/jobs/`, `src/relatorios/`), `cargasAutomatizadasModule.js`, ganchos `VECTON_AUTOMATION` (`app.js`) e `VECTON_REPORT_AUTOMATION` (`reportsComercialPainelModule.js`), migrations `259–265`, [resumo para a TI](docs/robo-cargas-resumo-ti.pdf) |
 | Novidades (pop-up + admin) | `src/modules/announcements/`, migrations `238–239` |
 | tema Claro/Dark | `src/core/appearance.js`, `styles.css`, [docs/tema-claro.md](docs/tema-claro.md) |
 | cadastros comerciais | `comercialCadastroModule.js`, configurações em `app.js`, migrations `032–037` |
