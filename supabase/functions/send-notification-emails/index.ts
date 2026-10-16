@@ -130,8 +130,7 @@ function buildEmailLayout(o: EmailLayoutOpts): string {
 }
 
 function buildHtml(subject: string, bodyText: string, linkPath?: string | null): string {
-  const lines = bodyText.split("
-").filter(Boolean);
+  const lines = bodyText.split("\n").filter(Boolean);
   const title = lines.shift() ?? subject;
   // link_path vem da trigger (migration 093) como "?report=...&ano=&mes=", e
   // abre o relatorio do evento no mes certo. Sem ele o botao cai na home.
