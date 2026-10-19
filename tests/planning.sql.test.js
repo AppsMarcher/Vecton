@@ -115,6 +115,11 @@ const uuid = () => require('node:crypto').randomUUID();
     await as(admin);await db.query('update user_profiles set management=null where user_id=$1',[writer]);await as(writer);
     assert.equal((await ctx()).forms.length,0,'sem escopo não vê formulários');
     await as(foreign);await assert.rejects(ctx(sid),/acesso/);await assert.rejects(write('create',null,{name:'x',year:2027,months:sources}),/organização/);
+    { // A referência da função precisa acompanhar a última migration que a recria.
+      const read = f => fs.readFileSync(path.join(__dirname, '../supabase', f), 'utf8').split(String.fromCharCode(13)).join('');
+      const mig = read('284_planning_renumera_formulas.sql'), ref = read('_referencia/planning_write_atual.sql');
+      assert(ref.includes(mig.slice(mig.indexOf('create or replace function'), mig.lastIndexOf('commit;')).trimEnd()), 'supabase/_referencia/planning_write_atual.sql defasada em relação à 284');
+    }
     if (!process.env.PLANNING_SKIP_283) { // 284: mudar a sequência renumera as fórmulas que a referenciam
       await as(admin);
       const rs = (await write('create', null, { name: 'Renumera', year: 2032, months: sources, forms: [] })).id;

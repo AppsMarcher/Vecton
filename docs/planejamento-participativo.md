@@ -107,3 +107,7 @@ Medição opcional: `PLANNING_BENCH=1 node tests/planning.sql.test.js` (e `PLANN
 ## Renumeração de fórmulas — migration 284
 
 `284_planning_renumera_formulas.sql` redefine `planning_write` (requer 278 a 283). Ao mudar a sequência de uma linha (possível apenas enquanto o formulário não tem valores salvos), as fórmulas das outras linhas que referenciam a sequência anterior (`<1>` etc.) são reescritas para a nova, na mesma transação. A sequência nova precisa estar livre; para trocar duas linhas, passe por um número livre. Sequência já usada devolve "A sequência N já está em uso por outra linha". O diálogo da linha aplica a mesma renumeração antes de validar, e `planningCore.renumberReferences` espelha a regra do banco.
+
+## Referência da `planning_write`
+
+A função `planning_write` é recriada nas migrations 278, 280, 282, 283 e 284; só a última vale no banco. A versão vigente fica em `supabase/_referencia/planning_write_atual.sql` (não é migration e não deve ser executada como tal). Para alterá-la, parta desse arquivo, crie uma migration nova com o resultado e atualize a referência junto.
