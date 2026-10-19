@@ -79,7 +79,7 @@
     function scenarioHome(st) {
       const tabs = st.admin() ? tabButtons([['forms', 'Formulários'], ['sources', 'Fontes dos meses'], ['runs', 'Integrações no DRE']], 'tab', st.tab) : '';
       const body = !st.admin() || st.tab === 'forms' ? formsList(st) : st.tab === 'sources' ? sourcesList(st) : runsList(st);
-      return `<nav class="pl-tabs">${tabs}${button('Ver DRE', 'dre')}</nav>${body}`;
+      return `${st.admin() ? `<nav class="pl-tabs">${tabs}${button('Ver DRE', 'dre')}</nav>` : ''}${body}`;
     }
     function scenario(st) {
       const f = st.form(), locked = st.locked();
