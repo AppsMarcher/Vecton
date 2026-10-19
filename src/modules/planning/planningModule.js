@@ -9,7 +9,9 @@
     const form = () => context?.forms.find(f => f.id === formId);
     const lines = () => (context?.lines || []).filter(l => l.form_id === formId);
     const locked = () => scenario.status === 'locked' || (scenario.lock_at && Date.parse(scenario.lock_at) <= Date.now());
-    const admin = () => context?.is_admin;
+    // Controles de edição (cenário/formulário) só no modo gerenciar, aberto pela engrenagem do cenário.
+    let manage = false;
+    const admin = () => !!context?.is_admin && manage;
     const inputMonths = () => context.months.filter(m => m.source_type === 'forms').map(m => m.reference_month);
     // Estado entregue às telas (planningViews.js); getters leem as variáveis atuais do módulo.
     const st = {
@@ -43,7 +45,7 @@
       if (base) await useBase(base.id);
       render();
     }
-    async function open(target, s, onBack) { mount(target, onBack); scenario = s; wizard = null; formId = null; changes.clear(); tab = 'forms'; await refresh(s.id); render(); }
+    async function open(target, s, onBack, opts = {}) { mount(target, onBack); manage = !!opts.manage; scenario = s; wizard = null; formId = null; changes.clear(); tab = 'forms'; await refresh(s.id); render(); }
     function render() {
       if (!active) return;
       const body = wizard ? views.wizard(st) : views.scenario(st);
@@ -288,7 +290,7 @@
       const blob = new Blob([await workbook.xlsx.writeBuffer()], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = `${scenario.name}-${form().code}.xlsx`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
     global.addEventListener('beforeunload', e => { if (active && changes.size) { e.preventDefault(); e.returnValue = ''; } });
-    return { ensure, getContext: () => context, startWizard, open, isActive: () => active, render, reset() { active = false; available = undefined; context = null; changes.clear(); generation++; }, async remove(s) { await rpc('planning_write', { p_org: org, p_action: 'delete_scenario', p_scenario: s.id, p_payload: { confirmation: 'REMOVER' } }); }, async favorite(id, enabled) { await rpc('planning_write', { p_org: org, p_action: 'favorite', p_scenario: id, p_payload: { enabled } }); onDefaultScenarioChanged?.(); } };
+    return { ensure, getContext: () => context, startWizard, open, isActive: () => active, render, reset() { active = false; manage = false; available = undefined; context = null; changes.clear(); generation++; }, async remove(s) { await rpc('planning_write', { p_org: org, p_action: 'delete_scenario', p_scenario: s.id, p_payload: { confirmation: 'REMOVER' } }); }, async favorite(id, enabled) { await rpc('planning_write', { p_org: org, p_action: 'favorite', p_scenario: id, p_payload: { enabled } }); onDefaultScenarioChanged?.(); } };
   }
   global.VECTON_PLANNING = { createPlanningModule };
 })(window);

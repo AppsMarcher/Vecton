@@ -34,7 +34,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
           return { ok: true };
         }
       });
-      return testModule.open(document.getElementById('planning'), scenario, () => {});
+      return testModule.open(document.getElementById('planning'), scenario, () => {}, { manage: true });
     });
     await page.getByRole('button', { name: 'Abrir →', exact: true }).click();
     await page.getByRole('textbox', { name: 'Software Jan', exact: true }).fill('1.234,56');

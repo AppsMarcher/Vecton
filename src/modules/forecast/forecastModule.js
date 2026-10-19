@@ -502,7 +502,7 @@
       const left = Math.min(rect.left, window.innerWidth - 160);
       pop.style.left = `${left}px`;
 
-      pop.querySelector("[data-fc-action='edit']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); if (scenario.planning_version && planning) { void planning.open(container, scenario, planningBack(container)); } else { renderEditForm(container, scenario); } });
+      pop.querySelector("[data-fc-action='edit']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); if (scenario.planning_version && planning) { void planning.open(container, scenario, planningBack(container), { manage: true }); } else { renderEditForm(container, scenario); } });
       pop.querySelector("[data-fc-action='copy']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); handleCopyScenario(container, scenario); });
       pop.querySelector("[data-fc-action='remove']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); handleRemoveScenario(container, scenario); });
 
