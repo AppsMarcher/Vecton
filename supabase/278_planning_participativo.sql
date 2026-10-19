@@ -181,20 +181,7 @@ create trigger planning_guard_scenario before insert or update or delete on publ
 create trigger planning_guard_ledger before insert or update or delete on public.forecast_ledger_entries for each row execute function public.planning_guard_forecast();
 create trigger planning_guard_totals before insert or update or delete on public.forecast_monthly_account_totals for each row execute function public.planning_guard_forecast();
 
--- Prevent escalation through the legacy self-profile write policy.
-create function public.planning_guard_profile() returns trigger language plpgsql security definer set search_path=public as $$
-begin
- if auth.uid() is not null and not public.planning_is_admin(case when tg_op='DELETE' then old.organization_id else new.organization_id end) then
-   if tg_op<>'UPDATE' then raise exception 'Apenas administradores podem criar ou remover perfis'; end if;
-   if new.user_id<>auth.uid() or old.user_id<>auth.uid() or
-      (to_jsonb(new)-array['full_name','phone','department','photo_kind','photo_value','appearance','updated_at'])
-      is distinct from (to_jsonb(old)-array['full_name','phone','department','photo_kind','photo_value','appearance','updated_at']) then
-      raise exception 'Campos de acesso do perfil são exclusivos do administrador';
-   end if;
- end if;
- if tg_op='DELETE' then return old; end if; return new;
-end $$;
-create trigger planning_guard_profile before insert or update or delete on public.user_profiles for each row execute function public.planning_guard_profile();
+-- A proteção de user_profiles foi separada na migration 281.
 
 create function public.planning_audit_entry() returns trigger language plpgsql security definer set search_path=public as $$
 declare r public.planning_entries; sid uuid; begin

@@ -28,7 +28,7 @@ A publicação substitui apenas linhas com `planning_form_id`, preservando os sn
 
 Triggers bloqueiam gravação pelos caminhos legados nos cenários gerenciados, inclusive nos totais mensais. Cargas por arquivo deixam de oferecer esses destinos. Cenários antigos permanecem no fluxo atual. A leitura do resultado projetado mantém a opção A previamente aceita; isso não relaxa o isolamento de organização ou os inputs.
 
-A migration protege também campos administrativos de `user_profiles`: um usuário não pode promover a si próprio nem ampliar suas concessões usando a policy antiga de escrita do próprio perfil. Preferências de aparência, foto e dados pessoais permitidos continuam editáveis. Homologar o fluxo de cadastro/convite junto dessa proteção.
+A proteção dos campos administrativos de `user_profiles` (impedir auto-promoção pela policy antiga de escrita do próprio perfil) saiu da 278 e está na `281_guard_user_profiles.sql`, independente do Planejamento. Detalhes na seção da 281, abaixo.
 
 ## Frontend
 
@@ -80,3 +80,11 @@ A conta DRE aparece antes da descrição; sua seleção sugere o nome da conta s
 O wizard passa a seis etapas: Identidade, Ponto de partida, Fontes dos meses, Valores iniciais, Liberação e Revisão. Formulários e acessos são configurados dentro do cenário. Uma base copia suas estruturas, com escolha de copiar/zerar valores e liberar/manter em construção; não copia acessos automaticamente. A revisão explicita os formulários copiados. Sem base, o cenário começa sem formulários.
 
 A identidade oferece os 12 ícones já usados pelo Vecton. Aplicar `280_planning_scenario_icon.sql` para persistir o ícone escolhido na criação. A exclusão de cenário usa `VECTON_DIALOGS.appConfirm` com o tipo `danger` e exibe falhas pelo diálogo padrão.
+
+## Proteção de perfis — migration 281
+
+`281_guard_user_profiles.sql` cria o trigger `planning_guard_profile` (antes parte da 278). Pessoa comum só altera, na própria linha, `full_name`, `email`, `phone`, `department`, `profile_label`, `photo_kind`, `photo_value`, `appearance` e `updated_at`. Admin, super_admin e chamadas sem usuário (service role) não são afetados.
+
+O upsert do diálogo de perfil (`syncUserProfile`) dispara o BEFORE INSERT mesmo quando a linha já existe; por isso o INSERT só é liberado para a própria linha já existente (vira UPDATE e é conferido). Criar perfil novo segue exclusivo do administrador. Antes do ajuste, `email` e `profile_label` estavam fora da lista e o upsert falharia para não-admins.
+
+Homologar com usuário não-admin: salvar o perfil, trocar aparência, e o fluxo de cadastro/convite (se o primeiro acesso criar o perfil pelo cliente, e não por admin ou edge function, será recusado). A 281 pode ser aplicada antes ou depois da 278.

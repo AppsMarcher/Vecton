@@ -3,7 +3,7 @@
   function createPlanningModule(deps) {
     const { escapeHtml: esc, callSupabaseRpc: rpc, resolveOrganizationId, openScenarioDreReport, invalidateScenarioCachesFor, onDefaultScenarioChanged } = deps;
     const core = global.VECTON_PLANNING_CORE, months = deps.MONTH_LABELS;
-    let org, available, context, container, root, wizard, scenario, formId, tab = 'forms', formTab = 'input', selectedCC = [], entries = [], copied = [], changes = new Map(), revision = 0, generation = 0, busy = false, dialogAction, back, active = false;
+    let org, available, context, container, root, wizard, scenario, formId, tab = 'forms', formTab = 'input', selectedCC = [], entries = [], copied = [], entryIndex = new Map(), copiedIndex = new Map(), accountNumbers = new Map(), changes = new Map(), revision = 0, generation = 0, busy = false, dialogAction, back, active = false;
     const fmt = n => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const button = (text, action, attrs = '', primary = false) => `<button type="button" class="pl-button ${primary ? 'pl-primary' : ''}" data-pl="${action}" ${attrs}>${text}</button>`;
     const form = () => context?.forms.find(f => f.id === formId);
@@ -32,7 +32,7 @@
       await refresh(null); scenario = null; formId = null; changes.clear();
       wizard = { step: 0, name: base ? `Cópia de ${base.name}` : '', year: base?.reference_year || deps.state.currentPeriod.year,
         icon: base?.icon || 'vp-icon-cost', color: base?.color || '#4f7cff', base: base?.id || '', months: Array.from({ length: 12 }, () => ({ type: 'forms' })),
-        mode: base ? 'copy' : 'new', source: base?.id || '', forms: [], names: [], values: false, copyAccess: false, access: {}, release: false };
+        mode: base ? 'copy' : 'new', forms: [], values: false, release: false };
       if (base) await useBase(base.id);
       render();
     }
@@ -99,21 +99,21 @@
       const w = wizard;
       return `<div class="pl-heading">${button('← Cenários', 'exit')}<span class="pl-badge">Criação guiada</span></div><h1>Novo cenário</h1><p class="pl-muted">Defina a base e os meses. Formulários e acessos serão configurados dentro do cenário.</p><div class="pl-wizard"><nav aria-label="Etapas de criação">${steps.map((s, i) => `<button class="pl-step ${i === w.step ? 'selected' : ''}" data-pl="step" data-index="${i}" ${i > w.step ? 'disabled' : ''}><span>${i < w.step ? '✓' : i + 1}</span>${s}</button>`).join('')}</nav><section class="pl-panel"><small class="pl-muted">ETAPA ${w.step + 1} DE ${steps.length}</small>${wizardBody()}<footer class="pl-heading pl-footer">${button(w.step ? 'Voltar' : 'Cancelar', w.step ? 'prev' : 'exit')}${button(w.step === steps.length - 1 ? 'Criar cenário' : 'Continuar →', 'next', '', true)}</footer></section></div>`;
     }
-    function selectedForms() { return wizard.mode === 'new' ? wizard.names : context.forms.filter(f => wizard.forms.includes(f.id)); }
+    function selectedForms() { return context.forms.filter(f => wizard.forms.includes(f.id)); }
     function wizardBody() {
       const w = wizard;
-      switch ([0, 1, 2, 4, 6, 7][w.step]) {
+      switch (w.step) {
         case 0: return `<h2>Qual é a identidade do cenário?</h2>${field('Nome', textInput('pl-name', w.name, 'maxlength="70" placeholder="Budget, Revisão de julho…"'))}<div class="pl-columns">${field('Ano base', textInput('pl-year', w.year, 'type="number" min="2000" max="2200"'))}${field('Cor', textInput('pl-color', w.color, 'type="color"'))}</div><label class="pl-field">Ícone</label><div class="pl-actions" role="group" aria-label="Ícone do cenário">${icons.map((ic, i) => `<button type="button" class="fc-icon-btn${w.icon === ic ? ' fc-active' : ''}" data-pl="wizard-icon" data-icon="${ic}" aria-label="Ícone ${i + 1}" aria-pressed="${w.icon === ic}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${ic}"></use></svg></button>`).join('')}</div>`;
         case 1: return `<h2>De onde vamos partir?</h2><label class="pl-choice"><input type="radio" name="pl-base" value="" ${!w.base ? 'checked' : ''}>Começar do zero</label><label class="pl-field">Usar um cenário como base<select id="pl-base" class="pl-input"><option value="">Escolher uma base</option>${context.scenarios.map(s => `<option value="${s.id}" ${s.id === w.base ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select></label><p class="pl-note">A origem não será alterada. Revise o que deseja aproveitar nas próximas etapas.</p>`;
         case 2: return `<h2>Qual é a fonte de cada mês?</h2><div class="pl-actions">${button('Todos para preenchimento', 'zero-months')}${button('Real até maio + formulários', 'mixed-months')}</div><div class="pl-months">${w.months.map((m, i) => field(months[i], `<select class="pl-input" data-month="${i}">${sourceOptions(sourceValue(m))}</select>`)).join('')}</div><p class="pl-note">Meses copiados ficam em leitura. As fontes não mudam após criar o cenário.</p>`;
-        case 4: return `<h2>Como começam os valores?</h2><label class="pl-choice"><input type="radio" name="pl-values" value="zero" ${!w.values ? 'checked' : ''}>Formulários zerados</label><label class="pl-choice"><input type="radio" name="pl-values" value="copy" ${w.values ? 'checked' : ''} ${w.mode !== 'copy' ? 'disabled' : ''}>Copiar valores salvos dos formulários</label><p class="pl-note">A cópia de inputs afeta apenas meses de formulários; os snapshots dos outros meses são preservados.</p>`;
-        case 6: return `<h2>Quando liberar o preenchimento?</h2><label class="pl-choice"><input type="radio" name="pl-release" value="draft" ${!w.release ? 'checked' : ''}>Manter os formulários em construção</label><label class="pl-choice"><input type="radio" name="pl-release" value="released" ${w.release ? 'checked' : ''}>Liberar formulários copiados com linhas</label><p class="pl-note">Formulários novos começam em construção. O cenário nasce aberto e não altera a estrela global.</p>`;
+        case 3: return `<h2>Como começam os valores?</h2><label class="pl-choice"><input type="radio" name="pl-values" value="zero" ${!w.values ? 'checked' : ''}>Formulários zerados</label><label class="pl-choice"><input type="radio" name="pl-values" value="copy" ${w.values ? 'checked' : ''} ${w.mode !== 'copy' ? 'disabled' : ''}>Copiar valores salvos dos formulários</label><p class="pl-note">A cópia de inputs afeta apenas meses de formulários; os snapshots dos outros meses são preservados.</p>`;
+        case 4: return `<h2>Quando liberar o preenchimento?</h2><label class="pl-choice"><input type="radio" name="pl-release" value="draft" ${!w.release ? 'checked' : ''}>Manter os formulários em construção</label><label class="pl-choice"><input type="radio" name="pl-release" value="released" ${w.release ? 'checked' : ''}>Liberar formulários copiados com linhas</label><p class="pl-note">Formulários novos começam em construção. O cenário nasce aberto e não altera a estrela global.</p>`;
         default: return `<h2>Confira antes de criar</h2><div class="pl-review"><div><small>Cenário</small><strong>${esc(w.name)} · ${w.year}</strong></div><div><small>Meses</small>${w.months.filter(m => m.type === 'forms').length} para preenchimento · ${w.months.filter(m => m.type !== 'forms').length} copiados</div><div><small>Formulários copiados da base</small>${selectedForms().length} · ${w.values ? 'com valores' : 'zerados'}</div><div><small>Liberação</small>${w.release ? 'Liberar copiados' : 'Em construção'}</div></div><div class="pl-months">${w.months.map((m, i) => `<div><b>${months[i]}</b><small>${esc(m.type === 'forms' ? 'Formulários' : m.type === 'real' ? 'Real ' + m.year : context.scenarios.find(s => s.id === m.scenario_id)?.name || '')}</small></div>`).join('')}</div><p class="pl-note">Configure formulários e acessos dentro do cenário. Os inputs só compõem o DRE após integrar. Meses copiados compõem a base na criação.</p>`;
       }
     }
     function captureWizard() { if (wizard?.step === 0) { wizard.name = root.querySelector('#pl-name').value.trim(); wizard.year = Number(root.querySelector('#pl-year').value); wizard.color = root.querySelector('#pl-color').value; } }
     async function useBase(id) {
-      wizard.base = id; wizard.source = id; wizard.forms = []; wizard.mode = 'new'; wizard.values = false; wizard.release = false; wizard.months = Array.from({ length: 12 }, () => ({ type: 'forms' }));
+      wizard.base = id; wizard.forms = []; wizard.mode = 'new'; wizard.values = false; wizard.release = false; wizard.months = Array.from({ length: 12 }, () => ({ type: 'forms' }));
       if (id) { const data = await rpc('planning_context', { p_org: org, p_scenario: id }); wizard.months = data.months.length === 12 ? data.months.map(m => ({ type: m.source_type, ...(m.source_type === 'real' ? { year: m.source_year } : m.source_type === 'scenario' ? { scenario_id: m.source_scenario_id } : {}) })) : wizard.months; wizard.forms = data.forms.map(f => f.id); wizard.mode = data.forms.length ? 'copy' : 'new'; }
     }
     const accessOptions = mode => [['none', 'Sem acesso'], ['read', 'Visualizar'], ['write', 'Lançar valores']].map(([id, label]) => `<option value="${id}" ${mode === id ? 'selected' : ''}>${label}</option>`).join('');
@@ -129,21 +129,27 @@
     }
     function accessView() { return `<h3>Pessoas com acesso a este formulário</h3><p class="pl-muted">Os centros de custo continuam limitados pelo perfil de cada pessoa.</p><div class="pl-list">${context.users.map(u => `<label class="pl-list-row"><span class="pl-grow">${esc(u.full_name || 'Usuário')}<small>${esc(u.management || '')}</small></span><select class="pl-input" data-access="${u.user_id}" ${locked() ? 'disabled' : ''}>${accessOptions(context.access.find(a => a.form_id === formId && a.user_id === u.user_id)?.access_mode || 'none')}</select></label>`).join('')}</div>${button('Salvar acessos', 'save-access', locked() ? 'disabled' : '', true)}<p class="pl-note">Visualizar não permite integrar. Lançar valores permite consolidar o cenário inteiro.</p>`; }
     function key(l, cc, m) { return [l, cc, m].join('|'); }
-    function entry(k) { return entries.find(e => key(e.line_id, e.cost_center_id, e.reference_month) === k); }
+    function entry(k) { return entryIndex.get(k); }
+    function indexForm() {
+      entryIndex = new Map(entries.map(e => [key(e.line_id, e.cost_center_id, e.reference_month), e]));
+      copiedIndex = new Map();
+      copied.forEach(c => { const k = c.account_number + '|' + c.reference_month; copiedIndex.set(k, (copiedIndex.get(k) || 0) + Number(c.amount)); });
+      accountNumbers = new Map((context?.accounts || []).map(a => [a.id, a.account_number]));
+    }
     function cellValue(l, m, savedOnly = false) {
-      if (!inputMonths().includes(m)) return copied.filter(c => c.account_number === context.accounts.find(a => a.id === l.account_id)?.account_number && c.reference_month === m).reduce((n, c) => n + Number(c.amount), 0);
+      if (!inputMonths().includes(m)) return copiedIndex.get(accountNumbers.get(l.account_id) + '|' + m) || 0;
       return selectedCC.reduce((n, cc) => { const k = key(l.id, cc, m); return n + Number((savedOnly ? null : changes.get(k))?.amount ?? entry(k)?.amount ?? 0); }, 0);
     }
     function computed(savedOnly = false) { const calc = core.compile(lines()); return months.map((_, i) => { try { return calc(l => cellValue(l, i + 1, savedOnly)); } catch (err) { return Object.fromEntries(lines().map(l => [l.id, l.origin === 'input' ? cellValue(l, i + 1, savedOnly) : l.origin === 'formula' ? err.message : null])); } }); }
     function gridView() {
       const f = form(), editable = f.access_mode === 'write' && !locked() && selectedCC.length === 1;
       const values = computed();
-      return `<div class="pl-heading"><details class="pl-cc"><summary>${selectedCC.length === 1 ? esc(context.cost_centers.find(c => c.id === selectedCC[0])?.cost_center_name || '') : `${selectedCC.length} centros marcados (soma)`}</summary>${context.cost_centers.map(c => `<label class="pl-choice"><input type="checkbox" data-cc="${c.id}" ${selectedCC.includes(c.id) ? 'checked' : ''}>${esc(c.cost_center_number)} · ${esc(c.cost_center_name)}</label>`).join('')}</details><div class="pl-actions">${button('Exportar Excel', 'export')}${f.access_mode === 'write' ? button('Integrar no DRE', 'project', locked() ? 'disabled' : '', true) : ''}</div></div>${selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram a soma em leitura.</p>' : ''}<div class="pl-table-scroll"><table class="pl-grid"><thead><tr><th>Linha</th>${months.map((m, i) => `<th>${m}${inputMonths().includes(i + 1) ? '' : '<small>Copiado</small>'}</th>`).join('')}<th>Total</th></tr></thead><tbody>${lines().map(l => `<tr class="${l.origin === 'formula' ? 'pl-subtotal' : ''}"><td style="font-weight:${l.style?.bold ? '600' : '400'}">${l.account_id ? `<small>${esc(context.accounts.find(a => a.id === l.account_id)?.account_number || '')}</small>` : ''}${esc(l.description)}</td>${months.map((_, i) => `<td>${l.origin === 'label' ? '' : l.origin === 'input' && inputMonths().includes(i + 1) ? `<input class="pl-cell" data-cell="${key(l.id, selectedCC[0], i + 1)}" aria-label="${esc(l.description)} ${months[i]}" value="${fmt(values[i][l.id])}" ${editable ? '' : 'disabled'}>${editable ? button('⋯', 'shortcuts', `data-line="${l.id}" data-month="${i + 1}" aria-label="Atalhos ${esc(l.description)} ${months[i]}"`) : ''}` : `<span data-value="${l.id}|${i}">${typeof values[i][l.id] === 'number' ? fmt(values[i][l.id]) : esc(values[i][l.id] || '')}</span>`}</td>`).join('')}<td data-total="${l.id}">${l.origin === 'label' ? '' : typeof values[0][l.id] === 'number' ? fmt(values.reduce((n, v) => n + (typeof v[l.id] === 'number' ? v[l.id] : 0), 0)) : 'Erro'}</td></tr>`).join('')}</tbody></table></div><div class="pl-heading pl-footer"><span id="pl-save-state" class="pl-muted">${changes.size ? `${changes.size} alterações não salvas` : 'Valores salvos'}</span><div class="pl-actions">${button('Descartar', 'discard', !changes.size ? 'disabled' : '')}${button('Salvar valores', 'save', !changes.size || !editable ? 'disabled' : '', true)}</div></div>`;
+      return `<div class="pl-heading"><details class="pl-cc"><summary>${selectedCC.length === 1 ? esc(context.cost_centers.find(c => c.id === selectedCC[0])?.cost_center_name || '') : `${selectedCC.length} centros marcados (soma)`}</summary>${context.cost_centers.map(c => `<label class="pl-choice"><input type="checkbox" data-cc="${c.id}" ${selectedCC.includes(c.id) ? 'checked' : ''}>${esc(c.cost_center_number)} · ${esc(c.cost_center_name)}</label>`).join('')}</details><div class="pl-actions">${button('Exportar Excel', 'export')}${f.access_mode === 'write' ? button('Integrar no DRE', 'project', locked() ? 'disabled' : '', true) : ''}</div></div>${selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram a soma em leitura.</p>' : ''}<div class="pl-table-scroll"><table class="pl-grid"><thead><tr><th>Linha</th>${months.map((m, i) => `<th>${m}${inputMonths().includes(i + 1) ? '' : '<small>Copiado</small>'}</th>`).join('')}<th>Total</th></tr></thead><tbody>${lines().map(l => `<tr class="${l.origin === 'formula' ? 'pl-subtotal' : ''}"><td style="font-weight:${l.style?.bold ? '600' : '400'}">${l.account_id ? `<small>${esc(accountNumbers.get(l.account_id) || '')}</small>` : ''}${esc(l.description)}</td>${months.map((_, i) => `<td>${l.origin === 'label' ? '' : l.origin === 'input' && inputMonths().includes(i + 1) ? `<input class="pl-cell" data-cell="${key(l.id, selectedCC[0], i + 1)}" aria-label="${esc(l.description)} ${months[i]}" value="${fmt(values[i][l.id])}" ${editable ? '' : 'disabled'}>${editable ? button('⋯', 'shortcuts', `data-line="${l.id}" data-month="${i + 1}" aria-label="Atalhos ${esc(l.description)} ${months[i]}"`) : ''}` : `<span data-value="${l.id}|${i}">${typeof values[i][l.id] === 'number' ? fmt(values[i][l.id]) : esc(values[i][l.id] || '')}</span>`}</td>`).join('')}<td data-total="${l.id}">${l.origin === 'label' ? '' : typeof values[0][l.id] === 'number' ? fmt(values.reduce((n, v) => n + (typeof v[l.id] === 'number' ? v[l.id] : 0), 0)) : 'Erro'}</td></tr>`).join('')}</tbody></table></div><div class="pl-heading pl-footer"><span id="pl-save-state" class="pl-muted">${changes.size ? `${changes.size} alterações não salvas` : 'Valores salvos'}</span><div class="pl-actions">${button('Descartar', 'discard', !changes.size ? 'disabled' : '')}${button('Salvar valores', 'save', !changes.size || !editable ? 'disabled' : '', true)}</div></div>`;
     }
     async function readForm(id = formId) {
       const request = ++generation;
       const data = await rpc('planning_read_form', { p_org: org, p_form: id, p_cc_ids: selectedCC });
-      if (request !== generation) return; entries = data.entries; copied = data.copied; revision = form().revision;
+      if (request !== generation) return; entries = data.entries; copied = data.copied; indexForm(); revision = form().revision;
     }
     async function loadForm(id, targetTab = 'input') {
       formId = id; formTab = targetTab; selectedCC = context.cost_centers.length ? [context.cost_centers[0].id] : []; changes.clear();
@@ -212,16 +218,12 @@
         case 'next': {
           captureWizard(); if (!wizard.name || !Number.isInteger(wizard.year) || wizard.year < 2000 || wizard.year > 2200) throw Error('Informe nome e ano válidos');
           if (wizard.step < steps.length - 1) { wizard.step++; return render(); }
-          const forms = selectedForms().map(f => ({ code: f.code, name: f.name, ...(wizard.mode === 'copy' ? { source_form_id: f.id } : {}), copy_values: wizard.values, copy_access: wizard.copyAccess,
-            status: wizard.release && wizard.mode === 'copy' ? 'released' : 'draft', ...(wizard.access[f.id] ? { access: Object.entries(wizard.access[f.id]).filter(([, m]) => m !== 'none').map(([user_id, access_mode]) => ({ user_id, access_mode })) } : {}) }));
+          const forms = selectedForms().map(f => ({ code: f.code, name: f.name, source_form_id: f.id, copy_values: wizard.values, status: wizard.release ? 'released' : 'draft' }));
           const result = await write('create', { name: wizard.name, year: wizard.year, color: wizard.color, icon: wizard.icon, months: wizard.months, forms });
           wizard = null; await refresh(result.id); scenario = context.scenarios.find(s => s.id === result.id); render(); return;
         }
         case 'zero-months': wizard.months = Array.from({ length: 12 }, () => ({ type: 'forms' })); return render();
         case 'mixed-months': wizard.months = months.map((_, i) => i < 5 ? { type: 'real', year: wizard.year } : { type: 'forms' }); return render();
-        case 'form-mode': wizard.mode = d.mode; wizard.values = false; return render();
-        case 'add-w-form': { const code = root.querySelector('#pl-code').value.trim(), name = root.querySelector('#pl-form-name').value.trim(); if (!code || !name || wizard.names.some(f => f.code === code)) throw Error('Informe nome e código único'); wizard.names.push({ id: crypto.randomUUID(), code, name }); return render(); }
-        case 'remove-w-form': wizard.names = wizard.names.filter(f => f.id !== d.id); return render();
         case 'copy-scenario': return leave(() => startWizard(container, back, scenario));
         case 'lock': return modal(locked() ? 'Desbloquear cenário?' : 'Bloquear cenário', locked() ? '<p>O cenário voltará a aceitar alterações autorizadas.</p>' : `<p>Deixe a data vazia para bloquear imediatamente ou programe o bloqueio.</p>${field('Data e hora do bloqueio', textInput('pl-lock-at', '', 'type="datetime-local"'))}`, async () => { const date = root.querySelector('#pl-lock-at')?.value; await write('lock', { locked: locked() ? false : !date, lock_at: date ? new Date(date).toISOString() : null }); close(); await refresh(); render(); });
         case 'tab': tab = d.tab; return render();
@@ -257,21 +259,8 @@
       if (el.id === 'pl-base') { await useBase(el.value); render(); }
       else if (el.name === 'pl-base') { await useBase(''); render(); }
       else if (el.dataset.month !== undefined) wizard.months[Number(el.dataset.month)] = core.sourcePayload(el.value);
-      else if (el.id === 'pl-source') { wizard.source = el.value; wizard.forms = []; render(); }
-      else if (el.dataset.copyForm) wizard.forms = el.checked ? [...wizard.forms, el.dataset.copyForm] : wizard.forms.filter(id => id !== el.dataset.copyForm);
       else if (el.name === 'pl-values') wizard.values = el.value === 'copy';
       else if (el.name === 'pl-release') wizard.release = el.value === 'released';
-      else if (el.id === 'pl-copy-access') {
-        wizard.copyAccess = el.checked; wizard.access = {};
-        if (el.checked) {
-          for (const source of new Set(selectedForms().map(f => f.scenario_id))) {
-            const data = await rpc('planning_context', { p_org: org, p_scenario: source });
-            selectedForms().filter(f => f.scenario_id === source).forEach(f => { wizard.access[f.id] = Object.fromEntries(data.access.filter(a => a.form_id === f.id).map(a => [a.user_id, a.access_mode])); });
-          }
-        }
-        render();
-      }
-      else if (el.dataset.wAccess) { wizard.access[el.dataset.wAccess] ||= {}; wizard.access[el.dataset.wAccess][el.dataset.user] = el.value; }
       else if (el.dataset.cc) { const next = el.checked ? [...selectedCC, el.dataset.cc] : selectedCC.filter(id => id !== el.dataset.cc); await leave(async () => { changes.clear(); selectedCC = next; await readForm(); render(); }); }
       else if (el.dataset.cell && !el.disabled) {
         try { setChange(el.dataset.cell, core.parseAmount(el.value)); } catch (err) { el.value = fmt(changes.get(el.dataset.cell)?.amount ?? entry(el.dataset.cell)?.amount ?? 0); throw err; }
