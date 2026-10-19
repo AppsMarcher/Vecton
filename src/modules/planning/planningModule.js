@@ -268,7 +268,9 @@
         menu.appendChild(b);
       });
       document.body.appendChild(menu);
-      menu.style.left = Math.min(e.clientX, innerWidth - menu.offsetWidth - 8) + 'px'; menu.style.top = Math.min(e.clientY, innerHeight - menu.offsetHeight - 8) + 'px';
+      // Canto inferior esquerdo do menu no canto superior direito da célula (na diagonal).
+      const r = cell.getBoundingClientRect();
+      menu.style.left = Math.max(8, Math.min(r.right, innerWidth - menu.offsetWidth - 8)) + 'px'; menu.style.top = Math.max(8, Math.min(r.top - menu.offsetHeight, innerHeight - menu.offsetHeight - 8)) + 'px';
       const off = ev => { if (ev.type === 'keydown' && ev.key !== 'Escape') return; if (ev.target.closest?.('.pl-ctx')) return; closeCellMenu(); ['pointerdown', 'keydown', 'scroll', 'resize'].forEach(t => removeEventListener(t, off, true)); };
       ['pointerdown', 'keydown', 'scroll', 'resize'].forEach(t => addEventListener(t, off, true));
     }
