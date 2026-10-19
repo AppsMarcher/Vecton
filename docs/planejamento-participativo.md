@@ -103,3 +103,7 @@ Na tela de estrutura do formulário, contas que também aparecem em outros formu
 `283_planning_save_entries_em_lote.sql` redefine `planning_write` (requer 278 a 282) trocando o laço de `save_entries`, que fazia várias consultas por célula, por validação, detecção de conflito e gravação em comandos únicos. Contrato, mensagens e regras de conflito/escopo não mudam. No PostgreSQL isolado (PGlite), 1.200 células caíram de 303 ms para 123 ms na inclusão e de 355 ms para 66 ms na atualização. O benchmark em Supabase real continua necessário. O trigger de auditoria por linha permanece.
 
 Medição opcional: `PLANNING_BENCH=1 node tests/planning.sql.test.js` (e `PLANNING_SKIP_283=1` para comparar com a versão anterior).
+
+## Renumeração de fórmulas — migration 284
+
+`284_planning_renumera_formulas.sql` redefine `planning_write` (requer 278 a 283). Ao mudar a sequência de uma linha (possível apenas enquanto o formulário não tem valores salvos), as fórmulas das outras linhas que referenciam a sequência anterior (`<1>` etc.) são reescritas para a nova, na mesma transação. A sequência nova precisa estar livre; para trocar duas linhas, passe por um número livre. Sequência já usada devolve "A sequência N já está em uso por outra linha". O diálogo da linha aplica a mesma renumeração antes de validar, e `planningCore.renumberReferences` espelha a regra do banco.

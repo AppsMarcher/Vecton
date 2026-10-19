@@ -66,11 +66,13 @@
     const cents = Math.round(amount * 100), base = Math.trunc(cents / count);
     return Array.from({ length: count }, (_, i) => (i === count - 1 ? cents - base * (count - 1) : base) / 100);
   }
+  // Troca a referência <from> por <to> (mesma regra da migration 284).
+  function renumberReferences(text, from, to) { return String(text || '').split('<' + from + '>').join('<' + to + '>'); }
   function sourcePayload(value) {
     if (value === 'forms') return { type: 'forms' };
     if (/^real:\d{4}$/.test(value)) return { type: 'real', year: Number(value.slice(5)) };
     if (value.startsWith('scenario:')) return { type: 'scenario', scenario_id: value.slice(9) };
     throw Error('Fonte inválida');
   }
-  global.VECTON_PLANNING_CORE = { parseFormula, references, evaluate, compile, parseAmount, distribute, sourcePayload };
+  global.VECTON_PLANNING_CORE = { parseFormula, references, evaluate, compile, parseAmount, distribute, sourcePayload, renumberReferences };
 })(window);

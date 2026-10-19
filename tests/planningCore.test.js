@@ -22,4 +22,6 @@ for (const value of [100, -100, 0.01, -0.01]) {
   assert.equal(values.reduce((n, v) => n + Math.round(v * 100), 0), Math.round(value * 100));
 }
 assert.equal(c.sourcePayload('real:2025').year, 2025);
+assert.equal(c.renumberReferences('<1>+<10>*<1>', 1, 7), '<7>+<10>*<7>');
+assert.equal(c.renumberReferences('<2>+3', 1, 7), '<2>+3');
 console.log('Planning core: dependency ordering, grammar, cycles, arithmetic and cents passed.');

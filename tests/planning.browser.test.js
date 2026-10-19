@@ -44,6 +44,13 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.getByRole('button', { name: 'Integrar no DRE', exact: true }).click();
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
     assert.equal(await page.evaluate(() => calls.filter(c => c.args?.p_action === 'project').length), 1);
+    // Mudar a sequência de uma linha não invalida as fórmulas que a usam (renumeradas junto).
+    await page.getByRole('button', { name: 'Estrutura', exact: true }).click();
+    await page.getByRole('button', { name: 'Editar', exact: true }).first().click();
+    await page.locator('#pl-line-seq').fill('5');
+    await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
+    assert.equal(await page.evaluate(() => calls.filter(c => c.args?.p_action === 'save_line').map(c => c.args.p_payload.seq)[0]), 5);
+    assert.equal(await page.locator('dialog[open]').count(), 0);
     await page.getByRole('button', { name: 'Acessos', exact: true }).click();
     assert.equal(await page.locator('[data-access]').count(), 1);
     // A read-only user receives no integration control or configuration tabs.

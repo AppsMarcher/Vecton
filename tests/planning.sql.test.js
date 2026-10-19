@@ -25,7 +25,7 @@ const uuid = () => require('node:crypto').randomUUID();
       insert into accounts values('${acc}','${org}','42201','Serviços',true);
       insert into dre_plan_nodes(organization_id,account_id,node_class) values('${org}','${acc}','Analitica');
       select set_config('test.user','${admin}',false);`);
-    for (const name of ['026_create_forecast_scenarios.sql', '056_create_forecast_monthly_account_totals.sql', '057_forecast_scenario_favorite.sql', '271_cenarios_nome_com_ano_estrela_global.sql', '278_planning_participativo.sql', '281_guard_user_profiles.sql', '282_planning_regras_integracao_estrela.sql', ...(process.env.PLANNING_SKIP_283 ? [] : ['283_planning_save_entries_em_lote.sql'])]) { if (name.startsWith('282')) await db.exec('alter table forecast_scenarios add column if not exists icon text;'); await db.exec(fs.readFileSync(path.join(__dirname, '../supabase', name), 'utf8')); }
+    for (const name of ['026_create_forecast_scenarios.sql', '056_create_forecast_monthly_account_totals.sql', '057_forecast_scenario_favorite.sql', '271_cenarios_nome_com_ano_estrela_global.sql', '278_planning_participativo.sql', '281_guard_user_profiles.sql', '282_planning_regras_integracao_estrela.sql', ...(process.env.PLANNING_SKIP_283 ? [] : ['283_planning_save_entries_em_lote.sql', '284_planning_renumera_formulas.sql'])]) { if (name.startsWith('282')) await db.exec('alter table forecast_scenarios add column if not exists icon text;'); await db.exec(fs.readFileSync(path.join(__dirname, '../supabase', name), 'utf8')); }
     await db.exec('grant usage on schema public,auth to authenticated; grant select,insert,update,delete on forecast_scenarios,forecast_ledger_entries,user_profiles to authenticated;');
     const as = async who => { await db.exec(`reset role;select set_config('test.user','${who}',false);set role authenticated;`); };
     const write = async (action, scenario, payload = {}, organization = org) => {
@@ -115,6 +115,21 @@ const uuid = () => require('node:crypto').randomUUID();
     await as(admin);await db.query('update user_profiles set management=null where user_id=$1',[writer]);await as(writer);
     assert.equal((await ctx()).forms.length,0,'sem escopo não vê formulários');
     await as(foreign);await assert.rejects(ctx(sid),/acesso/);await assert.rejects(write('create',null,{name:'x',year:2027,months:sources}),/organização/);
+    if (!process.env.PLANNING_SKIP_283) { // 284: mudar a sequência renumera as fórmulas que a referenciam
+      await as(admin);
+      const rs = (await write('create', null, { name: 'Renumera', year: 2032, months: sources, forms: [] })).id;
+      const rf = (await write('save_form', rs, { code: 'R', name: 'Renumera' })).id;
+      const line = async (seq, origin, extra = {}, id) => (await write('save_line', rs, { form_id: rf, ...(id ? { id } : {}), seq, description: 'L' + seq, origin, formula_name: String(seq), ...(origin === 'input' ? { account_id: acc } : {}), ...extra })).id;
+      const r1 = await line(1, 'input'), r2 = await line(2, 'input'), r3 = await line(3, 'formula', { formula_text: '<1>+<2>*<1>' });
+      const formula = async () => (await db.query('select formula_text from planning_form_lines where id=$1', [r3])).rows[0].formula_text;
+      await line(10, 'input', {}, r1);
+      assert.equal(await formula(), '<10>+<2>*<10>');
+      await assert.rejects(line(2, 'input', {}, r1), /já está em uso/);
+      assert.equal(await formula(), '<10>+<2>*<10>');
+      await write('save_entries', rs, { form_id: rf, cells: [{ line_id: r2, cost_center_id: cc, month: 1, amount: 5, version: 0 }] });
+      await assert.rejects(line(11, 'input', {}, r1), /bloqueada/);
+      assert.equal(await formula(), '<10>+<2>*<10>');
+    }
     if (process.env.PLANNING_BENCH) { // Medição opcional: lote de 100 linhas x 12 meses (1.200 células)
       await as(admin);
       const bs = (await write('create', null, { name: 'Bench', year: 2031, months: sources, forms: [] })).id;
