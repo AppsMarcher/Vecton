@@ -47,7 +47,7 @@
     function renderSelectedDreReport(detailPanel, selectedReportId) {
       const handler = REPORT_HANDLERS[selectedReportId];
       if (!handler) return false;
-      detailPanel.classList.remove("dre-cmp-shell"); // so os 3 "Real" (initCompareShell) a religam
+      detailPanel.classList.remove("dre-cmp-shell"); // os shells DRE Real e Meta a religam
       handler(detailPanel);
       return true;
     }
@@ -55,8 +55,9 @@
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     function initBudgetShell(detailPanel, wrapId) {
+      detailPanel.classList.add("dre-cmp-shell");
       detailPanel.innerHTML = `
-        <div class="vp-source-bar">
+        <div class="vp-source-bar dre-cmp-bar">
           <span class="vp-source-label">Fonte</span>
           <select class="vp-source-sel" id="vp-dre-src-sel">
             <option value="">Carregando…</option>
