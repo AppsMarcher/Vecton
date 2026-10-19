@@ -27,9 +27,7 @@
     // Headcount usa type:"headcount" — cada linha vira amount:1 (contagem de colaboradores).
     const DATA_SOURCES = [
       { id: "actual",    label: "DRE Real",    type: "ledger",    table: "actuals_ledger_entries"  },
-      { id: "budget",    label: "DRE Budget",  type: "ledger",    table: "budget_ledger_entries"   },
       { id: "hc_real",   label: "HC Real",     type: "headcount", loadType: "realizado", cacheKey: (y) => `hc-real-${y}`   },
-      { id: "hc_budget", label: "HC Budget",   type: "headcount", loadType: "orcado",    cacheKey: (y) => `hc-budget-${y}` },
       // { id: "bp_actual", label: "BP Real",     type: "ledger", table: "bp_ledger_entries"  },
       // { id: "fc_actual", label: "FC Real",     type: "ledger", table: "fc_ledger_entries"  },
     ];
@@ -129,7 +127,22 @@
       return rows.filter(r => allowed.has(String(r.cost_center_number)));
     }
 
+    // O Budget passou a ser o cenário "Budget {ano}" do repositório de cenários. Relatórios
+    // salvos com as fontes antigas ("budget" = DRE, "hc_budget" = Headcount) continuam
+    // funcionando: a fonte é resolvida para o cenário Budget do ano da célula.
+    async function resolveLegacyBudgetSource(sourceId, year) {
+      let scenarios = [];
+      try { scenarios = (await fetchScenariosForYear?.(year)) || []; } catch (_) {}
+      const budget = scenarios.find(s => s.name === `Budget ${year}`);
+      if (!budget) return null;
+      return sourceId === "hc_budget" ? `hcscenario:${budget.id}` : `scenario:${budget.id}`;
+    }
+
     async function fetchSourceYear(sourceId, year) {
+      if (sourceId === "budget" || sourceId === "hc_budget") {
+        const mapped = await resolveLegacyBudgetSource(sourceId, year);
+        return mapped ? fetchSourceYear(mapped, year) : [];
+      }
       const key = `${sourceId}:${year}`;
       if (_sourceCache.has(key)) return _sourceCache.get(key);
 
@@ -180,7 +193,7 @@
           raw = rows.map(r => ({ ...r, amount: 1 }));
         }
       } else {
-        // Ledger genérico (budget, futuro BP/FC)
+        // Ledger genérico (futuro BP/FC)
         const orgId = await resolveOrganizationId();
         const url   = `${supabaseApiUrl}/rest/v1/${src.table}` +
           `?organization_id=eq.${orgId}&reference_year=eq.${year}` +
@@ -362,7 +375,7 @@
       if (sourceId.startsWith("scenario:")) return "ledger-cc";
       const src = DATA_SOURCES.find(s => s.id === sourceId);
       if (src?.type === "headcount") return "headcount";
-      return "ledger-cc"; // budget e futuros ledgers agregados (sem lançamento individual)
+      return "ledger-cc"; // cenários e futuros ledgers agregados (sem lançamento individual)
     }
 
     let _drillPopover = null;
@@ -1495,8 +1508,8 @@
     }
 
     // ── Origem / Cenário (2 selects) ───────────────────────────────────
-    // Formato armazenado (col.source[0] / row.source[0]) continua o mesmo de sempre —
-    // "actual" | "budget" | "hc_real" | "hc_budget" | "scenario:<uuid>" | "hcscenario:<uuid>" —
+    // Formato armazenado (col.source[0] / row.source[0]): "actual" | "hc_real" | "scenario:<uuid>" |
+    // "hcscenario:<uuid>" (e os legados "budget"/"hc_budget", só lidos; o Budget é o cenário "Budget {ano}") —
     // só a UI passou a ser 2 campos (Origem + Cenário) em vez de 1 dropdown combinado.
     // Isso preserva 100% de compatibilidade com relatórios já salvos: nenhuma migração de
     // config é necessária, decomposeSource só precisa saber ler o que já existe.
@@ -1513,7 +1526,6 @@
 
     function composeSource(origin, scenario) {
       if (scenario === "real")   return origin === "hc" ? "hc_real"   : "actual";
-      if (scenario === "budget") return origin === "hc" ? "hc_budget" : "budget";
       if (scenario?.startsWith("scenario:")) {
         const scenarioId = scenario.slice("scenario:".length);
         return origin === "hc" ? `hcscenario:${scenarioId}` : `scenario:${scenarioId}`;
@@ -1531,7 +1543,6 @@
         <select id="${prefix}-scenario" data-scenario-sel data-current="${escapeHtml(scenario)}"
           style="font-size:13px;padding:6px 8px;min-width:150px">
           <option value="real"   ${scenario === "real"   ? "selected" : ""}>Real</option>
-          <option value="budget" ${scenario === "budget" ? "selected" : ""}>Budget</option>
         </select>
       </div>`;
     }
@@ -1542,7 +1553,7 @@
       return [composeSource(origin, scenario)];
     }
 
-    // Popula o select de Cenário com os cenários de forecast do ano (além de Real/Budget fixos).
+    // Popula o select de Cenário com os cenários do ano ("Budget {ano}" inclusive), além do Real.
     // Mesmo universo de cenários serve DRE e Headcount (forecast_scenarios não distingue origem).
     async function wireOriginScenario(dlg, year) {
       const scenarioSelects = [...dlg.querySelectorAll("[data-scenario-sel]")];
@@ -1550,7 +1561,12 @@
       let scenarios = [];
       try { scenarios = (await fetchScenariosForYear?.(year)) || []; } catch (_) {}
       scenarioSelects.forEach(sel => {
-        const current = sel.dataset.current || "real";
+        let current = sel.dataset.current || "real";
+        // Relatório salvo com a fonte legada "budget": mostra o cenário "Budget {ano}".
+        if (current === "budget") {
+          const budget = scenarios.find(s => s.name === `Budget ${year}`);
+          current = budget ? `scenario:${budget.id}` : "real";
+        }
         scenarios.forEach(s => {
           const opt = document.createElement("option");
           opt.value = `scenario:${s.id}`;
