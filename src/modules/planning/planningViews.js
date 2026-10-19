@@ -91,7 +91,7 @@
     function formView(st, f) {
       const tabs = [['input', 'Preenchimento'], ...(st.admin() ? [['structure', 'Estrutura'], ['access', 'Acessos']] : [])];
       const body = st.formTab === 'input' ? grid(st) : st.formTab === 'structure' ? structure(st) : access(st);
-      return `${button('← Formulários', 'index')}<div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO ${esc(f.code)}</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div><div class="pl-tabrow"><nav class="pl-tabs">${tabButtons(tabs, 'form-tab', st.formTab)}</nav>${st.formTab === 'input' ? gridToolbar(st) : ''}</div>${body}`;
+      return `${button('← Formulários', 'index')}<div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO ${esc(f.code)}</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div><div class="pl-tabrow">${tabs.length > 1 ? `<nav class="pl-tabs">${tabButtons(tabs, 'form-tab', st.formTab)}</nav>` : ''}${st.formTab === 'input' ? gridToolbar(st) : ''}</div>${body}`;
     }
     // Contas digitadas também em outro formulário do cenário: os valores se somam no DRE.
     function sharedAccountsNote(st) {
