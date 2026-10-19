@@ -6,7 +6,7 @@ const { buildSource } = require('./fixtures/cockpitSource.js').TEST_COCKPIT_SOUR
 const context = { window: {} };
 for (const file of ['cockpitAggregate', 'cockpitService']) vm.runInNewContext(fs.readFileSync(path.join(__dirname, `../src/modules/cockpit/${file}.js`), 'utf8'), context);
 const filters = { management: 'Controladoria', year: 2026, month: 9, periodType: 'YTD' }, source = buildSource();
-let favorite = { id: 'favorite-1', name: 'Revisão setembro' }, organization = 'org-a', user = 'user-a', failTable = '', missingHc = false, noTotals = false;
+let favorite = { id: 'favorite-1', name: 'Revisão setembro 2026', reference_year: 2026 }, budgetScenario = { id: 'budget-26', name: 'Budget 2026', reference_year: 2026 }, organization = 'org-a', user = 'user-a', failTable = '', missingHc = false, noTotals = false;
 const calls = [];
 // Uma pessoa no CC concedido (100) e outra fora dele (200) — a segunda testa
 // a mesma guarda client-side de scoped() (load), aqui mais sensível por
@@ -27,7 +27,11 @@ const deps = {
   readRows: async (table, query) => {
     calls.push({ table, query }); assert.match(query, new RegExp(`organization_id=eq.${organization}`));
     if (table === failTable) throw new Error('403 forbidden');
-    if (table === 'forecast_scenarios') return favorite ? [favorite] : [];
+    if (table === 'forecast_scenarios') {
+      // A estrela é global (sem filtro de ano); o Budget é o cenário "Budget {ano}".
+      if (query.includes('is_default=eq.true')) { assert.ok(!query.includes('reference_year='), 'favorite is global'); return favorite ? [favorite] : []; }
+      assert.ok(decodeURIComponent(query).includes('name=eq.Budget 2026')); return budgetScenario ? [budgetScenario] : [];
+    }
     if (table === 'forecast_headcount_entries' && missingHc) throw new Error('missing relation');
     const decoded = decodeURIComponent(query);
     if (table.endsWith('monthly_account_totals')) {
@@ -57,7 +61,7 @@ const deps = {
 (async () => {
   const service = context.window.VECTON_COCKPIT_SERVICE.createCockpitService(deps);
   const first = await service.load(filters);
-  assert.equal(first.source, 'supabase'); assert.equal(first.comparisonLabel, 'Revisão setembro');
+  assert.equal(first.source, 'supabase'); assert.equal(first.comparisonLabel, 'Revisão setembro 2026');
   assert.equal(first.opex.actual, 45000); assert.equal(first.headcount.actual, 2);
   assert.equal(first.headcountByArea.length, 1); assert.equal(first.headcountByArea[0].opex, first.opex.actual);
   assert.equal(first.efficiencyIndicators[0].value, 45000 / 900000);
@@ -65,12 +69,20 @@ const deps = {
   await Promise.all([service.load({ ...filters, month: 8 }), service.load({ ...filters, periodType: 'month' })]);
   assert.equal(calls.length, count, 'filters reuse year sources');
   await assert.rejects(service.load({ ...filters, management: 'Industrial' }), /não autorizada/); assert.equal(calls.length, count);
-  favorite = { id: 'favorite-2', name: 'Nova revisão' }; service.invalidate();
-  assert.equal((await service.load(filters)).comparisonLabel, 'Nova revisão');
-  assert.ok(calls.some(call => call.query.includes('scenario_id=eq.favorite-2')));
+  favorite = { id: 'favorite-2', name: 'Nova revisão 2025', reference_year: 2025 }; service.invalidate();
+  assert.equal((await service.load(filters)).comparisonLabel, 'Nova revisão 2025');
+  assert.ok(calls.some(call => call.table === 'forecast_ledger_entries' && call.query.includes('reference_year=eq.2025') && call.query.includes('scenario_id=eq.favorite-2')), 'favorite of another year is read in its own year');
+  assert.ok(calls.some(call => call.table === 'actuals_ledger_entries' && call.query.includes('reference_year=eq.2026')), 'actuals still follow the selected year');
   favorite = null; service.invalidate();
-  const budget = await service.load(filters); assert.equal(budget.comparisonLabel, 'Budget'); assert.equal(budget.opex.forecast, null);
-  assert.ok(calls.some(call => call.query.includes('load_type=eq.orcado')));
+  const budget = await service.load(filters); assert.equal(budget.comparisonLabel, 'Budget 2026'); assert.equal(budget.opex.forecast, null);
+  assert.ok(calls.some(call => call.table === 'forecast_ledger_entries' && call.query.includes('scenario_id=eq.budget-26')), 'Budget is read from its scenario');
+  assert.ok(!calls.some(call => call.table.startsWith('budget_')), 'legacy budget tables are no longer read');
+  assert.ok(calls.some(call => call.table === 'forecast_headcount_entries' && call.query.includes('scenario_id=eq.budget-26')), 'budget headcount is read from its scenario');
+  assert.ok(!calls.some(call => call.query.includes('load_type=eq.orcado')), 'legacy orcado headcount is no longer read');
+  budgetScenario = null; service.invalidate();
+  const none = await service.load(filters); assert.equal(none.comparisonLabel, 'Budget 2026'); assert.equal(none.opex.forecast, null);
+  assert.ok(none.warnings.some(w => /Budget 2026/.test(w)), 'missing comparison is explained');
+  budgetScenario = { id: 'budget-26', name: 'Budget 2026', reference_year: 2026 };
   organization = 'org-b'; user = 'user-b'; const before = calls.length; await service.load(filters); assert.ok(calls.length > before);
   failTable = 'actuals_ledger_entries'; service.invalidate(); await assert.rejects(service.load(filters), /403 forbidden/);
   failTable = ''; favorite = { id: 'favorite-3', name: 'Revisão' }; missingHc = true; service.invalidate();

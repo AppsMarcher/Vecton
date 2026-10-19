@@ -77,27 +77,38 @@
       const accounts = [...new Set(groups.flatMap(group => group.accounts))], centers = access.centers;
       const accountNames = (state.dreNodes || []).map(node => ({ code: node.code, name: node.name }));
       const base = `organization_id=eq.${encodeURIComponent(org)}&reference_year=eq.${filters.year}`;
-      const favorites = await cached(`${org}:${generation}:favorite:${filters.year}`, () => deps.readRows("forecast_scenarios", `${base}&is_default=eq.true&select=id,name,cutoff_month&limit=1`));
-      const favorite = favorites[0], compareBase = favorite ? `${base}&scenario_id=eq.${encodeURIComponent(favorite.id)}` : base;
-      const key = JSON.stringify([org, generation, deps.getSessionKey(), filters.year, favorite?.id || "budget", centers, groups]);
+      // Comparativo = estrela global da organização (cenário de QUALQUER ano) ou, sem
+      // estrela, o cenário "Budget {ano}". Os dados dele são lidos no ano do próprio cenário.
+      const orgBase = `organization_id=eq.${encodeURIComponent(org)}`;
+      const favorites = await cached(`${org}:${generation}:favorite`, () => deps.readRows("forecast_scenarios", `${orgBase}&is_default=eq.true&select=id,name,cutoff_month,reference_year&limit=1`));
+      const budgetName = `Budget ${filters.year}`;
+      const scenario = favorites[0] || (await cached(`${org}:${generation}:budget-scenario:${filters.year}`, () => deps.readRows("forecast_scenarios", `${orgBase}&name=eq.${encodeURIComponent(budgetName)}&select=id,name,cutoff_month,reference_year&limit=1`)))[0];
+      // Só um Forecast de verdade estima os meses futuros; um cenário "Budget ..." não.
+      const isBudgetLike = !!scenario && /^budget(?![a-z])/i.test(scenario.name);
+      const hasForecast = !!scenario && !isBudgetLike;
+      const compareYear = scenario ? Number(scenario.reference_year ?? filters.year) : filters.year;
+      const compareBase = `${orgBase}&reference_year=eq.${compareYear}&scenario_id=eq.${encodeURIComponent(scenario?.id ?? "")}`;
+      const key = JSON.stringify([org, generation, deps.getSessionKey(), filters.year, scenario?.id || "none", centers, groups]);
       const source = await cached(key, async () => {
         const codes = deps.getRevenueAccounts();
         const sources = await Promise.all([
           ledger("actuals_ledger_entries", base, accounts, centers),
-          ledger(favorite ? "forecast_ledger_entries" : "budget_ledger_entries", compareBase, accounts, centers),
+          scenario ? ledger("forecast_ledger_entries", compareBase, accounts, centers) : Promise.resolve([]),
           headcount("headcount_entries", `${base}&load_type=eq.realizado`, centers),
-          headcount(favorite ? "forecast_headcount_entries" : "headcount_entries", `${compareBase}${favorite ? "" : "&load_type=eq.orcado"}`, centers),
+          // Headcount planejado (Budget ou Forecast) vive no cenário: forecast_headcount_entries.
+          scenario ? headcount("forecast_headcount_entries", compareBase, centers) : Promise.resolve([]),
           // Only account/month revenue totals cross management boundaries; no people/CC details.
           cached(`${org}:${generation}:revenue:${filters.year}:real`, () => revenue("actuals_monthly_account_totals", base, codes, filters.year)),
-          cached(`${org}:${generation}:revenue:${filters.year}:${favorite?.id || "budget"}`, () => revenue(favorite ? "forecast_monthly_account_totals" : "budget_monthly_account_totals", compareBase, codes, filters.year))
+          scenario ? cached(`${org}:${generation}:revenue:${compareYear}:${scenario.id}`, () => revenue("forecast_monthly_account_totals", compareBase, codes, compareYear)) : Promise.resolve(Array(12).fill(null))
         ]);
         const ccById = new Map(state.costCenters.map(cc => [String(cc.id), cc]));
         const allowed = centers ? new Set(centers.map(cc => norm(cc.number))) : null;
         const scoped = rows => rows.map(row => ({ ...row, cost_center_number: ccById.get(String(row.cost_center_id))?.number ?? row.cost_center_number })).filter(row => !allowed || allowed.has(norm(row.cost_center_number)));
         return { actualRows: scoped(sources[0]), comparisonRows: scoped(sources[1]), headcountRows: scoped(sources[2]), comparisonHeadcountRows: scoped(sources[3]),
           revenueActual: sources[4], revenueComparison: sources[5], groups, costCenters: state.costCenters, accountNames,
-          personnelAccounts: [...deps.getPersonnelAccounts()], hasForecast: !!favorite, comparisonLabel: favorite?.name || "Budget",
-          warnings: favorite ? [] : ["Budget é o favorito no Planejamento. Sem cenário Forecast favorito, os meses futuros não são estimados."] };
+          personnelAccounts: [...deps.getPersonnelAccounts()], hasForecast, comparisonLabel: scenario?.name || budgetName,
+          warnings: !scenario ? [`Sem cenário favorito e sem ${budgetName} cadastrado: não há comparativo.`]
+            : hasForecast ? [] : [`${scenario.name} é o comparativo. Sem cenário Forecast favorito, os meses futuros não são estimados.`] };
       });
       return window.VECTON_COCKPIT_DATA.aggregate(filters, source);
     }

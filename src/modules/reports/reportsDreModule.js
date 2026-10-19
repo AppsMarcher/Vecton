@@ -6,10 +6,7 @@
       getCurrentPeriodMonth,
       getReportsLoadingYear,
       getReportsErrorMessage,
-      getBudgetReportsLoadingYear,
-      getBudgetReportsErrorMessage,
       reportsLedgerCache,
-      reportsBudgetCache,
       buildDreGerRealReport,
       buildDreGerRealTableMarkup,
       buildDreSocRealReport,
@@ -22,8 +19,9 @@
       initDreGerDrilldown,
       initDreSocDrilldown,
       isAccessRestricted,
-      fetchScenariosForYear,
-      fetchScenarioReportRowsForYear,
+      fetchAllScenarios,
+      fetchRealYears,
+      rowsForSource,
     } = deps;
 
     const REPORT_HANDLERS = {
@@ -61,7 +59,7 @@
         <div class="vp-source-bar">
           <span class="vp-source-label">Fonte</span>
           <select class="vp-source-sel" id="vp-dre-src-sel">
-            <option value="budget">Budget</option>
+            <option value="">Carregando…</option>
           </select>
         </div>
         <div id="${wrapId}" class="reports-table-wrap">
@@ -70,37 +68,41 @@
       return detailPanel.querySelector(`#${wrapId}`);
     }
 
+    // Opções de fonte (cenários de qualquer ano; "Real {ano}" só nos comparativos)
+    // e o valor a assumir: o atual se ainda existir; senão a estrela global, o
+    // "Budget {ano do toggle}" ou a primeira opção. O valor legado "budget" vira
+    // "Budget {ano do toggle}".
+    async function resolveSourceChoices(year, includeReal, current) {
+      const S = window.VECTON_SCENARIO_SOURCES;
+      let scenarios = [];
+      let realYears = [];
+      try {
+        [scenarios, realYears] = await Promise.all([
+          fetchAllScenarios(),
+          includeReal ? fetchRealYears() : Promise.resolve([])
+        ]);
+      } catch (_) { /* sem fontes: select fica vazio */ }
+      return S.chooseSource({ scenarios, realYears, current, toggleYear: year });
+    }
+
+    function fillSourceSelect(sel, options, value) {
+      sel.innerHTML = options.length
+        ? options.map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("")
+        : `<option value="">Nenhuma fonte disponível</option>`;
+      if (value) sel.value = value;
+    }
+
     async function populateSourceSel(detailPanel, year) {
       const sel = detailPanel.querySelector("#vp-dre-src-sel");
       if (!sel) return;
-      try {
-        const scenarios = await fetchScenariosForYear(year);
-        scenarios.forEach(s => {
-          const opt = document.createElement("option");
-          opt.value = `scenario:${s.id}`;
-          opt.textContent = s.name;
-          sel.appendChild(opt);
-        });
-        if (_budgetSource === null) {
-          const fav = scenarios.find(s => s.is_default);
-          _budgetSource = fav ? `scenario:${fav.id}` : "budget";
-        }
-      } catch (_) {}
-      // Fonte inexistente (fetch falhou ou cenario removido) -> volta ao Budget.
-      if (!_budgetSource || ![...sel.options].some(o => o.value === _budgetSource)) {
-        _budgetSource = "budget";
-      }
-      sel.value = _budgetSource;
+      const { options, value } = await resolveSourceChoices(year, false, _budgetSource);
+      _budgetSource = value;
+      fillSourceSelect(sel, options, value);
     }
 
     async function fetchRowsForSource(year, source) {
-      if (!source || source === "budget") {
-        return reportsBudgetCache.get(year)?.rows || [];
-      }
-      // Resumo conta × mês (com cache) — os DREs não precisam do ledger completo
-      // do cenário, que num "5+7" carrega meses inteiros copiados do realizado.
-      const scenarioId = source.slice("scenario:".length);
-      return fetchScenarioReportRowsForYear(scenarioId, year);
+      // Resumo conta × mês (com cache), lido no ano da própria fonte.
+      return rowsForSource(source, year);
     }
 
     async function getSourceRows(year) {
@@ -115,7 +117,7 @@
         <div class="vp-source-bar dre-cmp-bar">
           <span class="vp-source-label">Comparar com</span>
           <select class="vp-source-sel" id="vp-dre-cmp-sel">
-            <option value="budget">Budget</option>
+            <option value="">Carregando…</option>
           </select>
         </div>
         <div id="${wrapId}" class="reports-table-wrap">
@@ -127,24 +129,9 @@
     async function populateCompareSel(detailPanel, year) {
       const sel = detailPanel.querySelector("#vp-dre-cmp-sel");
       if (!sel) return;
-      try {
-        const scenarios = await fetchScenariosForYear(year);
-        scenarios.forEach(s => {
-          const opt = document.createElement("option");
-          opt.value = `scenario:${s.id}`;
-          opt.textContent = s.name;
-          sel.appendChild(opt);
-        });
-        if (_compareSource === null) {
-          const fav = scenarios.find(s => s.is_default);
-          _compareSource = fav ? `scenario:${fav.id}` : "budget";
-        }
-      } catch (_) {}
-      // Fonte inexistente (fetch falhou ou cenario removido) -> volta ao Budget.
-      if (!_compareSource || ![...sel.options].some(o => o.value === _compareSource)) {
-        _compareSource = "budget";
-      }
-      sel.value = _compareSource;
+      const { options, value } = await resolveSourceChoices(year, true, _compareSource);
+      _compareSource = value;
+      fillSourceSelect(sel, options, value);
     }
 
     // Nome de exibicao do comparativo (texto da opcao selecionada, ex: "Budget" ou "Fcst 5+7")
@@ -346,26 +333,15 @@
 
       async function doRender() {
         tableWrap.innerHTML = `<div class="actuals-empty">Carregando...</div>`;
-        if (_budgetSource === "budget") {
-          const cacheEntry = reportsBudgetCache.get(year);
-          if (getBudgetReportsLoadingYear() === year && !cacheEntry) { tableWrap.innerHTML = window.vpSkeletonTable(); return; }
-          if (getBudgetReportsErrorMessage() && !cacheEntry) { tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(getBudgetReportsErrorMessage())}</div>`; return; }
-          const report = buildDreGerRealReport(year, cacheEntry?.rows || []);
-          if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado disponivel para ${year}.</div>`; return; }
+        try {
+          const rows = await getSourceRows(year);
+          const report = buildDreGerRealReport(year, rows);
+          if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado de cenário disponivel para ${year}.</div>`; return; }
           tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted());
           initAllReportTableResizers();
-          if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "budget");
-        } else {
-          try {
-            const rows = await getSourceRows(year);
-            const report = buildDreGerRealReport(year, rows);
-            if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado de cenário disponivel para ${year}.</div>`; return; }
-            tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted());
-            initAllReportTableResizers();
-            if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, rows, year, _budgetSource);
-          } catch (e) {
-            tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o cenário."))}</div>`;
-          }
+          if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, rows, year, _budgetSource);
+        } catch (e) {
+          tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o cenário."))}</div>`;
         }
       }
     }
@@ -390,11 +366,6 @@
         } catch (e) {
           tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o cenário."))}</div>`;
           return;
-        }
-        if (_budgetSource === "budget") {
-          const cacheEntry = reportsBudgetCache.get(year);
-          if (getBudgetReportsLoadingYear() === year && !cacheEntry) { tableWrap.innerHTML = window.vpSkeletonTable(); return; }
-          if (getBudgetReportsErrorMessage() && !cacheEntry) { tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(getBudgetReportsErrorMessage())}</div>`; return; }
         }
         const report = buildDreSocRealReport(year, rows);
         if (!report.rows.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhuma linha de DRE disponivel para ${year}.</div>`; return; }
@@ -421,11 +392,6 @@
 
       async function doRender() {
         tableWrap.innerHTML = `<div class="actuals-empty">Carregando...</div>`;
-        if (_budgetSource === "budget") {
-          const cacheEntry = reportsBudgetCache.get(year);
-          if (getBudgetReportsLoadingYear() === year && !cacheEntry) { tableWrap.innerHTML = window.vpSkeletonTable(); return; }
-          if (getBudgetReportsErrorMessage() && !cacheEntry) { tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(getBudgetReportsErrorMessage())}</div>`; return; }
-        }
         let rows;
         try {
           rows = await getSourceRows(year);

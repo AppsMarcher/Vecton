@@ -18,7 +18,6 @@
       getPeriodPickerYear,
       setCurrentPeriod,
       ensureReportsDataForYear,
-      ensureBudgetReportsDataForYear,
       ensureDashboardData,
       formatMonthLabel,
       persistAndRender,
@@ -119,7 +118,6 @@
 
       if (activeView === "reports") {
         void ensureReportsDataForYear(Number(state.currentPeriod?.year || 2026));
-        void ensureBudgetReportsDataForYear(Number(state.currentPeriod?.year || 2026));
       }
       if (activeView === "dashboard") {
         void ensureDashboardData();

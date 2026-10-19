@@ -123,8 +123,6 @@ let hcReportExpanded = new Set();
 let hcReportLoadingYear = null;
 let hcReportErrorMessage = "";
 let hcBudgetExpanded = new Set();
-let hcBudgetReportLoadingYear = null;
-let hcBudgetReportErrorMessage = "";
 // Mesmo conjunto de contas de pessoal usado no card de Headcount do dashboard
 const HC_PESSOAL_ACCOUNTS = new Set([
     "4110300001001","4110300001002","4110300001007","4110300001008","4110300001009",
@@ -155,9 +153,6 @@ let reportsLoadingYear = null;
 let reportsErrorMessage = "";
 let reportsLastLoadedYear = null;
 let reportsLastLoadedAt = null;
-const reportsBudgetCache = new Map();
-let budgetReportsLoadingYear = null;
-let budgetReportsErrorMessage = "";
 let selectedReportId = null;
 let selectedHeadcountBatchId = null;
 let headcountRowsPage = 1;
@@ -547,7 +542,6 @@ try {
     getCurrentUser: () => currentUser,
     buildEmptyRow,
     chunkArray,
-    ensureBudgetReportsDataForYear,
     ensureSeedBranchesInSupabase,
     escapeHtml,
     fetchSupabaseRowsSafe,
@@ -558,7 +552,6 @@ try {
     formatMonthLabel,
     formatSyncError,
     getActualsStatusClass,
-    invalidateBudgetReportsForYear,
     invalidateScenarioCachesFor,
     isSupabaseConfigured,
     normalizeBranchCode,
@@ -666,7 +659,6 @@ const navigationModule = createNavigationModule({
   getPeriodPickerYear: () => periodPickerYear,
   setCurrentPeriod: (value) => { state.currentPeriod = value; },
   ensureReportsDataForYear,
-  ensureBudgetReportsDataForYear,
   ensureDashboardData,
   formatMonthLabel,
   persistAndRender,
@@ -1489,10 +1481,7 @@ const reportsDreModule = createReportsDreModule({
   getCurrentYear: () => Number(state.currentPeriod?.year || 2026),
   getReportsLoadingYear: () => reportsLoadingYear,
   getReportsErrorMessage: () => reportsErrorMessage,
-  getBudgetReportsLoadingYear: () => budgetReportsLoadingYear,
-  getBudgetReportsErrorMessage: () => budgetReportsErrorMessage,
   reportsLedgerCache,
-  reportsBudgetCache,
   buildDreGerRealReport,
   buildDreGerRealTableMarkup,
   buildDreSocRealReport,
@@ -1505,8 +1494,9 @@ const reportsDreModule = createReportsDreModule({
   initDreGerDrilldown,
   initDreSocDrilldown,
   isAccessRestricted,
-  fetchScenariosForYear,
-  fetchScenarioReportRowsForYear,
+  fetchAllScenarios,
+  fetchRealYears,
+  rowsForSource,
   getCurrentYear: () => Number(state.currentPeriod?.year || 2026),
   getCurrentPeriodMonth: () => Number(state.currentPeriod?.month || 1),
 });
@@ -1519,7 +1509,6 @@ const reportsOpexModule = createReportsOpexModule({
   getOpexHideZeros: () => opexHideZeros,
   setOpexHideZeros: (value) => { opexHideZeros = value; },
   reportsLedgerCache,
-  reportsBudgetCache,
   getOpexStructure: () => OPEX_STRUCTURE,
   buildOpexCostCenterFilter,
   buildOpexCcIdsFilter,
@@ -1532,13 +1521,14 @@ const reportsOpexModule = createReportsOpexModule({
   fetchActualsLedgerWithCcForYear,
   fetchActualsLedgerForManagementYear,
   fetchActualsLedgerForCcIds,
-  fetchBudgetLedgerForManagementYear,
-  fetchBudgetLedgerForCcIds,
   renderReportsView,
   renderOpexBudgetReport,
   resolveManagementFilter,
   getPartialManagements,
-  fetchScenariosForYear,
+  fetchAllScenarios,
+  fetchRealYears,
+  rowsForSource,
+  resolveSourceRef,
   fetchScenarioLedgerForYear,
   fetchScenarioReportRowsForYear,
 });
@@ -1694,7 +1684,6 @@ const { renderDashOpexCards, clearOpexDonutCache, resetOpexMode } = createDashbo
   normalizeCode,
   state,
   reportsLedgerCache,
-  reportsBudgetCache,
   hcDashCache,
   isSupabaseConfigured,
   resolveOrganizationId,
@@ -1717,7 +1706,6 @@ const { renderDashboard } = createDashboardModule({
   formatMonthLabel,
   buildDreGerRealReport,
   reportsLedgerCache,
-  reportsBudgetCache,
   getDashCompare,
   state,
   getActiveView: () => activeView,
@@ -2324,8 +2312,6 @@ async function hydrateFromSupabase() {
     reportsErrorMessage = "";
     reportsLastLoadedYear = null;
     reportsLastLoadedAt = null;
-    reportsBudgetCache.clear();
-    budgetReportsErrorMessage = "";
 
     persistAndRender();
     await loadReportCardLabels();
@@ -2660,14 +2646,13 @@ async function ensureDashboardData() {
   const needsReal = !reportsLedgerCache.has(year) && reportsLoadingYear !== year;
   if (needsReal) void ensureReportsDataForYear(year).then(() => renderDashboard());
 
-  // Comparativo do dashboard segue o cenário favorito (Budget se não houver).
+  // Comparativo do dashboard segue a estrela global (cenário de qualquer ano) ou o
+  // cenário "Budget {ano}"; os dados são lidos no ano do próprio cenário.
   void resolveDashCompareForYear(year).then((info) => {
     if (info.scenarioId) {
-      void fetchScenarioReportRowsForYear(info.scenarioId, year)
+      void fetchScenarioReportRowsForYear(info.scenarioId, info.scenarioYear)
         .then(() => renderDashboard())
         .catch((e) => console.warn("dash comparativo cenário:", e));
-    } else if (!reportsBudgetCache.has(year) && budgetReportsLoadingYear !== year) {
-      void ensureBudgetReportsDataForYear(year).then(() => renderDashboard());
     } else {
       renderDashboard();
     }
@@ -2817,7 +2802,14 @@ function buildAccessRow(id, label, checked, isAll) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function openHeadcountFromCatalog(loadType, returnView) {
+async function openHeadcountFromCatalog(loadType, returnView) {
+  // "planejado" = card do catálogo de planejado: abre direto o cenário padrão do
+  // ano da competência ("Budget {ano}" se existir); sem cenário, cai no catálogo.
+  if (loadType === "planejado") {
+    const year = Number(state.currentPeriod?.year || 2026);
+    const targetId = window.VECTON_SCENARIO_SOURCES.pickDefaultLoadTarget(await fetchAllScenarios(), year);
+    loadType = targetId ? `cenario:${targetId}` : null;
+  }
   selectedHeadcountLoadType = loadType;
   headcountReturnView = returnView || null;
   const matchingBatch = getCurrentPeriodHcBatches(loadType)[0];
@@ -2856,15 +2848,15 @@ async function fetchHeadcountRealForYear(year) {
 // Fonte do custo (ledger com CC) do relatório de Headcount. Gestor/Analista
 // buscam apenas os CCs permitidos no servidor; Admin busca tudo.
 // Considera: gestão própria + gestões extras + CCs avulsos (extra_cc_ids).
-function hcCostSource(year, isBudget) {
+function hcCostSource(year) {
   if (isAccessRestricted()) {
     const allMgmts = getAllowedManagements();
     const extraCcIdList = getExtraCcIds() || [];
     if (allMgmts === null && extraCcIdList.length === 0) {
       // Sem nenhuma gestão/CC atribuído: enxerga tudo, igual admin.
       return {
-        key: `${isBudget ? "budget" : "opex"}-cc-${year}`,
-        fetchFn: () => (isBudget ? fetchBudgetLedgerWithCcForYear : fetchActualsLedgerWithCcForYear)(year)
+        key: `opex-cc-${year}`,
+        fetchFn: () => fetchActualsLedgerWithCcForYear(year)
       };
     }
     const mgmtFilter = buildOpexCostCenterFilter(allMgmts);
@@ -2874,26 +2866,26 @@ function hcCostSource(year, isBudget) {
     });
     if (!ccIds.size) {
       return {
-        key: `${isBudget ? "budget" : "opex"}-cc-empty-${year}`,
+        key: `opex-cc-empty-${year}`,
         fetchFn: async () => []
       };
     }
     const mgmtKey = (allMgmts || []).join(",") || "__no_cc__";
     return {
-      key: `${isBudget ? "budget" : "opex"}-cc-mgmt-${year}-${mgmtKey}`,
-      fetchFn: () => (isBudget ? fetchBudgetLedgerForCcIds : fetchActualsLedgerForCcIds)(year, [...ccIds])
+      key: `opex-cc-mgmt-${year}-${mgmtKey}`,
+      fetchFn: () => fetchActualsLedgerForCcIds(year, [...ccIds])
     };
   }
   return {
-    key: `${isBudget ? "budget" : "opex"}-cc-${year}`,
-    fetchFn: () => (isBudget ? fetchBudgetLedgerWithCcForYear : fetchActualsLedgerWithCcForYear)(year)
+    key: `opex-cc-${year}`,
+    fetchFn: () => fetchActualsLedgerWithCcForYear(year)
   };
 }
 
 async function ensureHcReportDataForYear(year) {
   const y = Number(year || state.currentPeriod?.year || 2026);
   const hcKey = `hc-real-${y}`;
-  const { key: ccKey, fetchFn: ccFetch } = hcCostSource(y, false);
+  const { key: ccKey, fetchFn: ccFetch } = hcCostSource(y);
   if ((reportsLedgerCache.has(hcKey) && reportsLedgerCache.has(ccKey)) || hcReportLoadingYear === y) return;
   hcReportErrorMessage = "";
   hcReportLoadingYear = y;
@@ -3076,68 +3068,6 @@ function openHcCellPopover(ccNumber, ccName, month, year, colabs) {
 }
 
 
-async function fetchHeadcountBudgetForYear(year) {
-  const organizationId = await resolveOrganizationId();
-  const pageSize = 1000;
-  const rows = [];
-  for (let month = 1; month <= 12; month += 1) {
-    let offset = 0;
-    while (true) {
-      const page = await fetchSupabaseRowsSafe(
-        "headcount_entries",
-        `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&load_type=eq.orcado&select=reference_month,cost_center_number,matricula,colab,cargo&order=id.asc&limit=${pageSize}&offset=${offset}`
-      );
-      rows.push(...page);
-      if (page.length < pageSize) break;
-      offset += pageSize;
-    }
-  }
-  return rows;
-}
-
-// Ver comentário em fetchActualsLedgerWithCcForYear/fetchActualsLedgerForCcIds
-// (mais abaixo no arquivo): os 12 meses são buscados em paralelo, não em
-// sequência.
-async function fetchBudgetLedgerWithCcForYear(year) {
-  const organizationId = await resolveOrganizationId();
-  const perMonth = await Promise.all(allMonthsOfYear().map((month) => fetchAllSupabaseRows(
-    "budget_ledger_entries",
-    `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history`
-  )));
-  return perMonth.flat();
-}
-
-async function ensureHcBudgetReportDataForYear(year) {
-  const y = Number(year || state.currentPeriod?.year || 2026);
-  const hcKey = `hc-budget-${y}`;
-  const { key: ccKey, fetchFn: ccFetch } = hcCostSource(y, true);
-  if ((reportsLedgerCache.has(hcKey) && reportsLedgerCache.has(ccKey)) || hcBudgetReportLoadingYear === y) return;
-  hcBudgetReportErrorMessage = "";
-  hcBudgetReportLoadingYear = y;
-  renderReportsView();
-  try {
-    const tasks = [];
-    if (!reportsLedgerCache.has(hcKey)) {
-      tasks.push(fetchHeadcountBudgetForYear(y).then((rows) => reportsLedgerCache.set(hcKey, { rows })));
-    }
-    if (!reportsLedgerCache.has(ccKey)) {
-      // Custo planejado por CC é best-effort até o ledger de orçado expor cost_center_number
-      tasks.push(
-        ccFetch()
-          .then((rows) => reportsLedgerCache.set(ccKey, { rows }))
-          .catch(() => reportsLedgerCache.set(ccKey, { rows: [] }))
-      );
-    }
-    await Promise.all(tasks);
-  } catch (error) {
-    console.error(error);
-    hcBudgetReportErrorMessage = vpFriendlyError(error, "Não foi possível carregar o Headcount Planejado.");
-  } finally {
-    hcBudgetReportLoadingYear = null;
-    renderReportsView();
-  }
-}
-
 // Render compartilhado entre Headcount Realizado e Planejado
 function renderHcReport(kind) {
   const detailPanel = document.querySelector("#reports-view .reports-table-card");
@@ -3145,12 +3075,13 @@ function renderHcReport(kind) {
   const year = Number(state.currentPeriod?.year || 2026);
   const mode = detailPanel.dataset.hcMode === "custo" ? "custo" : "quadro";
   const isBudget = kind === "budget";
-  const hcKey = isBudget ? `hc-budget-${year}` : `hc-real-${year}`;
-  const ccKey = hcCostSource(year, isBudget).key;
+  // O planejado (isBudget) lê do cenário e retorna antes; o restante é só do realizado.
+  const hcKey = `hc-real-${year}`;
+  const ccKey = isBudget ? null : hcCostSource(year).key;
   const expandedSet = isBudget ? hcBudgetExpanded : hcReportExpanded;
-  const errorMsg = isBudget ? hcBudgetReportErrorMessage : hcReportErrorMessage;
-  const ensureFn = isBudget ? ensureHcBudgetReportDataForYear : ensureHcReportDataForYear;
-  const periodoLabel = isBudget ? "planejado" : "realizado";
+  const errorMsg = hcReportErrorMessage;
+  const ensureFn = ensureHcReportDataForYear;
+  const periodoLabel = "realizado";
 
   const slot = document.querySelector("#opex-gestao-slot");
   if (slot) {
@@ -3175,7 +3106,7 @@ function renderHcReport(kind) {
       <div class="vp-source-bar">
         <span class="vp-source-label">Fonte</span>
         <select class="vp-source-sel" id="hc-budget-source-sel">
-          <option value="budget">Budget</option>
+          <option value="">Carregando…</option>
         </select>
       </div>
       <div id="hc-budget-content"></div>`;
@@ -3185,19 +3116,18 @@ function renderHcReport(kind) {
     if (srcSel) {
       // Sem cache: consulta os cenários a cada render (como nos DREs), para que
       // um cenário recém-criado apareça imediatamente no seletor.
-      fetchScenariosForYear(year).then(scenarios => {
-        scenarios.forEach(s => {
-          const opt = document.createElement("option");
-          opt.value = `scenario:${s.id}`;
-          opt.textContent = s.name;
-          srcSel.appendChild(opt);
+      // Cenários de qualquer ano (o ano vem do cenário, não do toggle do cabeçalho).
+      fetchAllScenarios().then(scenarios => {
+        const { options, value } = window.VECTON_SCENARIO_SOURCES.chooseSource({
+          scenarios, current: _hcBudgetSource, toggleYear: year, includeReal: false
         });
-        if (_hcBudgetSource === null) {
-          const fav = scenarios.find(s => s.is_default);
-          _hcBudgetSource = fav ? `scenario:${fav.id}` : "budget";
-          if (selectedReportId === "headcountBudget") { renderReportsView(); return; }
-        }
-        srcSel.value = _hcBudgetSource;
+        srcSel.innerHTML = options.length
+          ? options.map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("")
+          : `<option value="">Nenhum cenário disponível</option>`;
+        const wasUnresolved = _hcBudgetSource === null;
+        _hcBudgetSource = value || "";
+        if (wasUnresolved && selectedReportId === "headcountBudget") { renderReportsView(); return; }
+        if (value) srcSel.value = value;
       });
       srcSel.addEventListener("change", () => {
         _hcBudgetSource = srcSel.value;
@@ -3216,23 +3146,30 @@ function renderHcReport(kind) {
   const hcCache = reportsLedgerCache.get(hcKey);
   const ccCache = reportsLedgerCache.get(ccKey);
 
-  // Cenário selecionado: quadro de pessoas do cenário + custos do cenário
-  if (isBudget && _hcBudgetSource !== "budget") {
+  // Sem nenhum cenário disponível
+  if (isBudget && _hcBudgetSource === "") {
+    contentDiv.innerHTML = `<div class="reports-table-wrap"><div class="actuals-empty">Nenhum cenário disponível. Crie um no Repositório de Cenários.</div></div>`;
+    return;
+  }
+
+  // Cenário selecionado: quadro de pessoas do cenário + custos do cenário,
+  // ambos lidos no ano do próprio cenário (não no do toggle do cabeçalho).
+  if (isBudget) {
     const scenarioId = _hcBudgetSource.slice("scenario:".length);
+    const scenarioYear = sourceYearSync(_hcBudgetSource, year);
     contentDiv.innerHTML = `<div class="reports-table-wrap">${vpSkeletonTable(8, 12)}</div>`;
     Promise.all([
-      fetchScenarioHeadcountForYear(scenarioId, year),
-      fetchScenarioLedgerForYear(scenarioId, year),
+      fetchScenarioHeadcountForYear(scenarioId, scenarioYear),
+      fetchScenarioLedgerForYear(scenarioId, scenarioYear),
     ]).then(([fcHcRows, fcLedgerRows]) => {
-      // Se não houver dados de headcount no cenário, cai para o budget como fallback
-      const rawHcRows = fcHcRows.length > 0 ? fcHcRows : (hcCache?.rows || []);
+      const rawHcRows = fcHcRows;
       const allowedCcs = getAllowedCcNumbers();
       const ccOf = (r) => String(r.cost_center_number ?? r.costCenterNumber ?? "").trim();
       const hcRows = allowedCcs ? rawHcRows.filter(r => allowedCcs.has(ccOf(r))) : rawHcRows;
       const scRows = allowedCcs ? fcLedgerRows.filter(r => allowedCcs.has(ccOf(r))) : fcLedgerRows;
       const hcReport = buildHcRealReport(year, hcRows, scRows);
       if (!hcReport.sections.length) {
-        contentDiv.innerHTML = `<div class="reports-table-wrap"><div class="actuals-empty">Nenhum headcount planejado disponível para ${year}.</div></div>`;
+        contentDiv.innerHTML = `<div class="reports-table-wrap"><div class="actuals-empty">Nenhum headcount planejado disponível para ${scenarioYear}.</div></div>`;
         return;
       }
       contentDiv.innerHTML = `<div class="reports-table-wrap reports-hc-wrap">${buildHcRealTableMarkup(hcReport, mode, expandedSet)}</div>`;
@@ -4446,7 +4383,7 @@ function renderOpexBudgetReport(detailPanel) {
     <div class="vp-source-bar">
       <span class="vp-source-label">Fonte</span>
       <select class="vp-source-sel" id="opex-budget-source-sel">
-        <option value="budget">Budget</option>
+        <option value="">Carregando…</option>
       </select>
     </div>
     <div id="opex-budget-content"></div>`;
@@ -4455,28 +4392,23 @@ function renderOpexBudgetReport(detailPanel) {
   const srcSel = detailPanel.querySelector("#opex-budget-source-sel");
   if (srcSel) {
     // Sem cache: consulta os cenários a cada render (como nos DREs), para que
-    // um cenário recém-criado apareça imediatamente no seletor.
-    fetchScenariosForYear(year).then(scenarios => {
-      scenarios.forEach(s => {
-        const opt = document.createElement("option");
-        opt.value = `scenario:${s.id}`;
-        opt.textContent = s.name;
-        srcSel.appendChild(opt);
+    // um cenário recém-criado apareça imediatamente no seletor. Cenários de
+    // qualquer ano (o ano vem do cenário, não do toggle do cabeçalho).
+    fetchAllScenarios().then(scenarios => {
+      const { options, value } = window.VECTON_SCENARIO_SOURCES.chooseSource({
+        scenarios, current: _opexBudgetSource, toggleYear: year, includeReal: false
       });
-      if (_opexBudgetSource === null) {
-        const fav = scenarios.find(s => s.is_default);
-        _opexBudgetSource = fav ? `scenario:${fav.id}` : "budget";
-        if (selectedReportId === "opexBudget") { renderReportsView(); return; }
-      }
-      srcSel.value = _opexBudgetSource;
+      srcSel.innerHTML = options.length
+        ? options.map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("")
+        : `<option value="">Nenhum cenário disponível</option>`;
+      const wasUnresolved = _opexBudgetSource === null;
+      _opexBudgetSource = value || "";
+      if (wasUnresolved && selectedReportId === "opexBudget") { renderReportsView(); return; }
+      if (value) srcSel.value = value;
     });
     srcSel.addEventListener("change", () => {
       _opexBudgetSource = srcSel.value;
-      if (_opexBudgetSource !== "budget") {
-        renderOpexScenario(contentDiv, year, _opexBudgetSource.slice("scenario:".length), selectedMgmt, partialMgmts);
-      } else {
-        renderReportsView();
-      }
+      renderOpexScenario(contentDiv, sourceYearSync(_opexBudgetSource, year), _opexBudgetSource.slice("scenario:".length), selectedMgmt, partialMgmts);
     });
   }
 
@@ -4487,62 +4419,14 @@ function renderOpexBudgetReport(detailPanel) {
     return;
   }
 
-  // Cenário selecionado
-  if (_opexBudgetSource !== "budget") {
-    renderOpexScenario(contentDiv, year, _opexBudgetSource.slice("scenario:".length), selectedMgmt, partialMgmts);
+  // Sem nenhum cenário disponível
+  if (_opexBudgetSource === "") {
+    contentDiv.innerHTML = `<div class="actuals-empty">Nenhum cenário disponível. Crie um no Repositório de Cenários.</div>`;
     return;
   }
 
-  const ccCacheKey = `budget-cc-${year}`;
-
-  if (selectedMgmt === allOption) {
-    const cacheEntry = reportsBudgetCache.get(year);
-    const rows = cacheEntry?.rows || [];
-    const tableMarkup = buildOpexRealTableMarkup(rows, null, opexHideZeros);
-    contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${tableMarkup}</div></div>`;
-    const cachedCc = reportsLedgerCache.get(ccCacheKey);
-    if (cachedCc) {
-      const tableEl = contentDiv.querySelector(".reports-opex-table");
-      if (tableEl) initOpexDrilldown(tableEl, cachedCc.rows, null);
-    } else {
-      const ccFetchPromise = fetchBudgetLedgerWithCcForYear(year)
-        .then((rowsWithCc) => { reportsLedgerCache.set(ccCacheKey, { rows: rowsWithCc }); return rowsWithCc; })
-        .catch(() => []);
-      const tableEl = contentDiv.querySelector(".reports-opex-table");
-      if (tableEl) initOpexDrilldown(tableEl, null, null, ccFetchPromise);
-    }
-  } else {
-    const isPartial = partialMgmts?.has(selectedMgmt);
-    const partialCcIds = isPartial ? partialMgmts.get(selectedMgmt) : null;
-    const mgmtCacheKey = isPartial
-      ? `budget-partial-${year}-${[...partialCcIds].sort().join(",")}`
-      : `budget-mgmt-${year}-${selectedMgmt}`;
-    const cached = reportsLedgerCache.get(mgmtCacheKey);
-    if (cached) {
-      const tableMarkup = buildOpexRealTableMarkup(cached.rows, null, opexHideZeros);
-      contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${tableMarkup}</div></div>`;
-      const tableEl = contentDiv.querySelector(".reports-opex-table");
-      if (tableEl) initOpexDrilldown(tableEl, cached.rows, null);
-    } else {
-      detailPanel.dataset.opexMgmt = selectedMgmt;
-      contentDiv.innerHTML = `<div class="opex-report-wrap reports-table-wrap"><div id="opex-budget-table-inner">${vpSkeletonTable()}</div></div>`;
-      const fetchPromise = isPartial
-        ? fetchBudgetLedgerForCcIds(year, partialCcIds)
-        : fetchBudgetLedgerForManagementYear(year, selectedMgmt);
-      fetchPromise.then((rows) => {
-        reportsLedgerCache.set(mgmtCacheKey, { rows });
-        if (selectedReportId === "opexBudget" && detailPanel.dataset.opexMgmt === selectedMgmt) renderReportsView();
-      }).catch(() => {
-        if (selectedReportId === "opexBudget" && detailPanel.dataset.opexMgmt === selectedMgmt) {
-          const inner = contentDiv.querySelector("#opex-budget-table-inner");
-          if (inner) inner.innerHTML = `<div class="actuals-empty">Erro ao carregar dados de planejado.</div>`;
-        }
-      });
-      return;
-    }
-  }
-
-  initAllReportTableResizers();
+  // Cenário selecionado (lê o ano do próprio cenário)
+  renderOpexScenario(contentDiv, sourceYearSync(_opexBudgetSource, year), _opexBudgetSource.slice("scenario:".length), selectedMgmt, partialMgmts);
 }
 
 function renderOpexScenario(contentDiv, year, scenarioId, selectedMgmt = "Marcher", partialMgmts = null) {
@@ -4555,7 +4439,11 @@ function renderOpexScenario(contentDiv, year, scenarioId, selectedMgmt = "Marche
   // .reports-table-wrap) nunca rodaria pra esse wrap. Refaz aqui.
   const scenarioWrap = contentDiv.querySelector(".reports-table-wrap");
   if (scenarioWrap) { initFloatingScrollbar(scenarioWrap); initVerticalScrollBounds(scenarioWrap); }
-  fetchScenarioLedgerForYear(scenarioId, year).then(rows => {
+  // Consolidado (Marcher) sem restrição de CC não precisa do ledger completo: usa o
+  // resumo conta × mês do cenário (forecast_monthly_account_totals), bem mais leve.
+  // Gestão específica, acesso parcial ou perfil restrito filtram por CC e precisam do ledger.
+  const needsCcLedger = selectedMgmt !== "Marcher" || partialMgmts?.has(selectedMgmt) || !!getAllowedCcNumbers();
+  (needsCcLedger ? fetchScenarioLedgerForYear : fetchScenarioReportRowsForYear)(scenarioId, year).then(rows => {
     if (!contentDiv.isConnected || contentDiv.opexScenarioRequestId !== requestId) return;
     const inner = contentDiv.querySelector("#opex-budget-table-inner");
     if (!inner) return;
@@ -5931,16 +5819,6 @@ function invalidateReportsForYear(year) {
   }
 }
 
-function invalidateBudgetReportsForYear(year) {
-  const normalizedYear = Number(year || state.currentPeriod?.year || 2026);
-  reportsBudgetCache.delete(normalizedYear);
-  reportsLedgerCache.delete(`budget-cc-${normalizedYear}`);
-  [...reportsLedgerCache.keys()]
-    .filter((key) => typeof key === "string" && key.startsWith(`budget-mgmt-${normalizedYear}-`))
-    .forEach((key) => reportsLedgerCache.delete(key));
-  budgetReportsErrorMessage = "";
-}
-
 async function fetchActualsReportRowsForYear(year) {
   try {
     const monthlyTotalsRows = await fetchActualsMonthlyAccountTotalsForYear(year);
@@ -5957,106 +5835,6 @@ async function fetchActualsReportRowsForYear(year) {
 }
 
 // ── Budget reports data loading ───────────────────────────────────────────────
-
-async function ensureBudgetReportsDataForYear(year) {
-  const normalizedYear = Number(year || state.currentPeriod?.year || 2026);
-  if (reportsBudgetCache.has(normalizedYear) || budgetReportsLoadingYear === normalizedYear) return;
-
-  budgetReportsErrorMessage = "";
-  budgetReportsLoadingYear = normalizedYear;
-  renderReportsView();
-
-  try {
-    const rows = isSupabaseConfigured()
-      ? await fetchBudgetReportRowsForYear(normalizedYear)
-      : await buildLocalBudgetLedgerEntriesForYear(normalizedYear);
-
-    reportsBudgetCache.set(normalizedYear, { rows });
-  } catch (error) {
-    console.error(error);
-    budgetReportsErrorMessage = vpFriendlyError(error, "Não foi possível carregar o DRE Budget.");
-  } finally {
-    budgetReportsLoadingYear = null;
-    renderReportsView();
-  }
-}
-
-async function fetchBudgetReportRowsForYear(year) {
-  try {
-    const monthlyTotalsRows = await fetchBudgetMonthlyAccountTotalsForYear(year);
-    if (monthlyTotalsRows.length > 0) {
-      return monthlyTotalsRows;
-    }
-    return fetchBudgetLedgerEntriesForYear(year);
-  } catch (error) {
-    if (!isMissingRelationError(error)) throw error;
-    return fetchBudgetLedgerEntriesForYear(year);
-  }
-}
-
-async function fetchBudgetMonthlyAccountTotalsForYear(year) {
-  const organizationId = await resolveOrganizationId();
-  const pageSize = 1000;
-  const rows = [];
-  let offset = 0;
-
-  while (true) {
-    const page = await fetchSupabaseRowsSafe(
-      "budget_monthly_account_totals",
-      `organization_id=eq.${organizationId}&reference_year=eq.${year}&select=account_number,reference_month,total_amount&order=reference_month.asc,account_number.asc&limit=${pageSize}&offset=${offset}`
-    );
-    rows.push(...page);
-    if (page.length < pageSize) {
-      break;
-    }
-    offset += pageSize;
-  }
-
-  return rows.map((row) => ({
-    account_number: row.account_number,
-    reference_month: row.reference_month,
-    amount: row.total_amount
-  }));
-}
-
-async function fetchBudgetLedgerEntriesForYear(year) {
-  const organizationId = await resolveOrganizationId();
-  const pageSize = 1000;
-  const rows = [];
-  for (let month = 1; month <= 12; month++) {
-    let offset = 0;
-    while (true) {
-      const page = await fetchSupabaseRowsSafe(
-        "budget_ledger_entries",
-        `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&select=id,account_number,amount,reference_month&order=id.asc&limit=${pageSize}&offset=${offset}`
-      );
-      rows.push(...page);
-      if (page.length < pageSize) break;
-      offset += pageSize;
-    }
-  }
-  return rows;
-}
-
-async function buildLocalBudgetLedgerEntriesForYear(year) {
-  const appliedBatches = state.budgetBatches.filter((batch) =>
-    batch.status === "applied" && Number(batch.referenceYear) === Number(year)
-  );
-  const rows = [];
-  for (const batch of appliedBatches) {
-    await ensureBudgetBatchRowsLoaded(batch.id, true);
-    (state.budgetRowsByBatch[batch.id] || [])
-      .filter((row) => row.validationStatus === "valid")
-      .forEach((row) => {
-        rows.push({
-          account_number: row.accountNumber,
-          amount: row.amount,
-          reference_month: batch.referenceMonth
-        });
-      });
-  }
-  return rows;
-}
 
 async function fetchActualsMonthlyAccountTotalsForYear(year) {
   const organizationId = await resolveOrganizationId();
@@ -6102,45 +5880,6 @@ async function fetchActualsLedgerFullForYear(year) {
     }
   }
   return rows;
-}
-
-async function fetchBudgetLedgerFullForYear(year) {
-  const organizationId = await resolveOrganizationId();
-  const pageSize = 1000;
-  const rows = [];
-  for (let month = 1; month <= 12; month++) {
-    let offset = 0;
-    while (true) {
-      const page = await fetchSupabaseRowsSafe(
-        "budget_ledger_entries",
-        `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}` +
-        `&select=account_number,branch_code,cost_center_number,lot_code,history,amount,reference_month` +
-        `&order=id.asc&limit=${pageSize}&offset=${offset}`
-      );
-      rows.push(...page);
-      if (page.length < pageSize) break;
-      offset += pageSize;
-    }
-  }
-  return rows;
-}
-
-async function fetchBudgetLedgerForCcIds(year, ccIds) {
-  const organizationId = await resolveOrganizationId();
-  const encodedIds = [...ccIds].join(",");
-  if (!encodedIds) return [];
-  const perMonth = await Promise.all(allMonthsOfYear().map((month) => fetchAllSupabaseRows(
-    "budget_ledger_entries",
-    `organization_id=eq.${organizationId}&reference_year=eq.${year}&reference_month=eq.${month}&cost_center_id=in.(${encodedIds})&select=id,account_number,cost_center_id,cost_center_number,amount,reference_month,entry_date,history`
-  )));
-  return perMonth.flat();
-}
-
-async function fetchBudgetLedgerForManagementYear(year, management) {
-  const filter = buildOpexCostCenterFilter(management);
-  const ccIds = [...(filter?.ids || [])].filter(Boolean);
-  if (!ccIds.length) return [];
-  return fetchBudgetLedgerForCcIds(year, ccIds);
 }
 
 async function fetchActualsLedgerEntriesForYear(year) {
@@ -7208,15 +6947,10 @@ function ensureHeadcountViewShell() {
           <strong>Realizado</strong>
           <p>Quadro de colaboradores ativos por CC no período.</p>
         </button>
-        <button class="actuals-catalog-card" type="button" data-hc-load-type="orcado">
-          <span class="actuals-catalog-kicker">02</span>
-          <strong>Orçado</strong>
-          <p>Quadro de colaboradores orçados por CC no período.</p>
-        </button>
         <div class="actuals-catalog-card" style="cursor:default;display:flex;flex-direction:column;gap:8px">
-          <span class="actuals-catalog-kicker">03</span>
-          <strong>Cenário</strong>
-          <p>Quadro de colaboradores planejados por cenário de forecast.</p>
+          <span class="actuals-catalog-kicker">02</span>
+          <strong>Planejado (Cenário)</strong>
+          <p>Quadro de colaboradores planejados por cenário (Budget, Forecast etc.).</p>
           <select id="hc-scenario-select" class="vp-source-sel" style="width:100%;margin-top:4px">
             <option value="">Carregando cenários...</option>
           </select>
@@ -7241,7 +6975,7 @@ function ensureHeadcountViewShell() {
             <div class="budget-target-wrap" id="hc-scenario-target-wrap" style="display:none">
               <span class="budget-target-label">Destino</span>
               <select id="hc-scenario-target" class="actuals-mode-select">
-                <option value="budget">Budget</option>
+                <option value="">Carregando cenários…</option>
               </select>
             </div>
           </div>
@@ -7389,7 +7123,8 @@ function bindHeadcountEvents() {
   // Seletor de cenário no form de planejado
   document.querySelector("#hc-scenario-target")?.addEventListener("change", (e) => {
     const val = e.target.value;
-    selectedHeadcountLoadType = val === "budget" ? "orcado" : val;
+    if (!val) return;
+    selectedHeadcountLoadType = val;
     renderHeadcountCatalog();
     renderHeadcountView();
   });
@@ -7597,10 +7332,8 @@ function renderHeadcountCatalog() {
     catalog.style.display = "none";
     detail.style.display = "";
     const label = document.querySelector("#hc-load-type-label");
-    const isPlanned = selectedHeadcountLoadType === "orcado" || selectedHeadcountLoadType.startsWith("cenario:");
-    const hcName = isPlanned
-      ? (selectedHeadcountLoadType.startsWith("cenario:") ? "Cenário" : "Planejado")
-      : "Realizado";
+    const isPlanned = selectedHeadcountLoadType.startsWith("cenario:");
+    const hcName = isPlanned ? "Planejado" : "Realizado";
     if (label) {
       // No planejado o select "Destino" já identifica o tipo — label é redundante
       label.textContent = isPlanned ? "" : `HEADCOUNT — ${hcName.toUpperCase()}`;
@@ -7613,32 +7346,24 @@ function renderHeadcountCatalog() {
     if (scenarioTarget && scenarioWrap) {
       if (isPlanned) {
         scenarioWrap.style.display = "";
-        // Popula cenários se ainda não foram carregados
-        if (scenarioTarget.options.length <= 1) {
-          const year = Number(state.currentPeriod?.year || 2026);
-          fetchScenariosForYear(year).then(scenarios => {
-            // Mantém opção "Budget" e adiciona cenários
-            while (scenarioTarget.options.length > 1) scenarioTarget.remove(1);
-            scenarios.forEach(s => {
-              const opt = document.createElement("option");
-              opt.value = `cenario:${s.id}`;
-              opt.textContent = s.name;
-              scenarioTarget.appendChild(opt);
-            });
-            // Sincroniza valor com loadType atual
-            const currentVal = selectedHeadcountLoadType.startsWith("cenario:")
-              ? selectedHeadcountLoadType : "budget";
-            if ([...scenarioTarget.options].some(o => o.value === currentVal)) {
-              scenarioTarget.value = currentVal;
-            }
+        // Destinos = cenários do ano da competência (o ano do lote é o do cenário).
+        const year = Number(state.currentPeriod?.year || 2026);
+        const syncTarget = () => {
+          if ([...scenarioTarget.options].some(o => o.value === selectedHeadcountLoadType)) {
+            scenarioTarget.value = selectedHeadcountLoadType;
+          }
+        };
+        if (scenarioTarget.dataset.year !== String(year)) {
+          scenarioTarget.dataset.year = String(year);
+          fetchAllScenarios().then(scenarios => {
+            const targets = window.VECTON_SCENARIO_SOURCES.loadTargetsForYear(scenarios, year);
+            scenarioTarget.innerHTML = targets.length
+              ? targets.map(s => `<option value="cenario:${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("")
+              : `<option value="">Nenhum cenário em ${year} — crie no Repositório</option>`;
+            syncTarget();
           });
         } else {
-          // Já populado — apenas sincroniza
-          const currentVal = selectedHeadcountLoadType.startsWith("cenario:")
-            ? selectedHeadcountLoadType : "budget";
-          if ([...scenarioTarget.options].some(o => o.value === currentVal)) {
-            scenarioTarget.value = currentVal;
-          }
+          syncTarget();
         }
       } else {
         scenarioWrap.style.display = "none";
@@ -7652,10 +7377,13 @@ function renderHeadcountCatalog() {
     const scenarioSel = catalog.querySelector("#hc-scenario-select");
     if (scenarioSel) {
       const year = Number(state.currentPeriod?.year || 2026);
-      fetchScenariosForYear(year).then(scenarios => {
+      fetchAllScenarios().then(allScenarios => {
+        const { loadTargetsForYear, pickDefaultLoadTarget } = window.VECTON_SCENARIO_SOURCES;
+        const scenarios = loadTargetsForYear(allScenarios, year);
         scenarioSel.innerHTML = scenarios.length
           ? scenarios.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("")
-          : `<option value="">Nenhum cenário disponível</option>`;
+          : `<option value="">Nenhum cenário em ${year} — crie no Repositório</option>`;
+        if (scenarios.length) scenarioSel.value = pickDefaultLoadTarget(allScenarios, year);
       }).catch(() => {
         scenarioSel.innerHTML = `<option value="">Erro ao carregar cenários</option>`;
       });
@@ -8343,33 +8071,65 @@ async function fetchScenariosForYear(year) {
   return res.ok ? await res.json() : [];
 }
 
+// Todos os cenários da organização (qualquer ano), para as listas de fonte
+// (src/core/scenarioSources.js). O nome já carrega o ano (migration 271).
+async function fetchAllScenarios() {
+  const orgId = await resolveOrganizationId();
+  const res = await authenticatedFetch(
+    `${supabaseConfig.projectUrl}/rest/v1/forecast_scenarios` +
+    `?organization_id=eq.${orgId}` +
+    `&order=reference_year.desc,sort_order.asc,created_at.asc` +
+    `&select=id,name,color,icon,reference_year,cutoff_month,is_default`
+  );
+  const rows = res.ok ? await res.json() : [];
+  scenarioIndex.clear();
+  rows.forEach((s) => scenarioIndex.set(s.id, s));
+  return rows;
+}
+
+// Anos que têm Real carregado (migration 273) — só eles viram "Real {ano}".
+async function fetchRealYears() {
+  const orgId = await resolveOrganizationId();
+  try {
+    const years = await callSupabaseRpc("list_actuals_reference_years", { target_organization_id: orgId });
+    return (years || []).map(Number);
+  } catch (_) {
+    return [];
+  }
+}
+
 // ── Cenário favorito (comparativo padrão da organização) ─────────────────────
 // is_default em forecast_scenarios (migration 057); sem favorito = Budget.
 // O Dashboard compara o real com essa fonte; os DREs Real nascem nela.
 
-const _dashCompareByYear = new Map(); // year -> { source, label, scenarioId }
+const _dashCompareByYear = new Map(); // year -> { source, label, scenarioId, scenarioYear }
 
 async function resolveDashCompareForYear(year) {
   if (_dashCompareByYear.has(year)) return _dashCompareByYear.get(year);
-  let info = { source: "budget", label: "Budget", scenarioId: null };
+  let info = { source: null, label: `Budget ${year}`, scenarioId: null, scenarioYear: year };
   try {
-    const scenarios = await fetchScenariosForYear(year);
-    const fav = scenarios.find((s) => s.is_default);
-    if (fav) info = { source: `scenario:${fav.id}`, label: fav.name, scenarioId: fav.id };
+    const scenarios = await fetchAllScenarios();
+    const chosen = scenarios.find((s) => s.is_default) || scenarios.find((s) => s.name === `Budget ${year}`);
+    if (chosen) {
+      info = {
+        source: `scenario:${chosen.id}`, label: chosen.name, scenarioId: chosen.id,
+        scenarioYear: Number(chosen.reference_year)
+      };
+    }
   } catch (_) {}
   _dashCompareByYear.set(year, info);
   return info;
 }
 
 // Leitura síncrona para o render do dashboard (dados já garantidos por
-// ensureDashboardData; enquanto não resolve, cai no Budget).
+// ensureDashboardData; enquanto não resolve, sem linhas de comparativo).
 function getDashCompare(year) {
   const info = _dashCompareByYear.get(year);
   if (info?.scenarioId) {
-    const rows = reportsLedgerCache.get(`fc-rows-${info.scenarioId}-${year}`)?.rows || [];
+    const rows = reportsLedgerCache.get(`fc-rows-${info.scenarioId}-${info.scenarioYear}`)?.rows || [];
     return { label: info.label, rows };
   }
-  return { label: "Budget", rows: reportsBudgetCache.get(year)?.rows || [] };
+  return { label: info?.label || `Budget ${year}`, rows: [] };
 }
 
 // Chamado quando o admin muda a estrela no Planejamento: re-resolve o
@@ -8477,16 +8237,69 @@ async function fetchScenarioLedgerFullForYear(scenarioId, year) {
   return rows;
 }
 
-// Resolve o fetcher de ledger detalhado conforme a fonte do relatório
-// ("real" | "budget" | "scenario:<id>") — usado pelos drilldowns de DRE.
-function ledgerFullFetcherForSource(source) {
-  if (source === "budget") return fetchBudgetLedgerFullForYear;
-  if (typeof source === "string" && source.startsWith("scenario:")) {
-    const scenarioId = source.slice("scenario:".length);
-    return (year) => fetchScenarioLedgerFullForYear(scenarioId, year);
-  }
-  return fetchActualsLedgerFullForYear;
+// BEGIN rowsForSource
+// Fontes do "Comparar com"/"Fonte" dos relatórios: "real:{ano}", "scenario:{id}" e o
+// legado "budget" (= cenário "Budget {ano do toggle}"). O ano dos dados é o da FONTE
+// (ano do cenário / ano do Real), nunca o do toggle do cabeçalho.
+const scenarioIndex = new Map(); // id -> cenário; renovado por fetchAllScenarios
+
+async function ensureScenarioIndex() {
+  if (scenarioIndex.size > 0) return;
+  (await fetchAllScenarios()).forEach((s) => scenarioIndex.set(s.id, s));
 }
+
+// -> { kind: "real", year } | { kind: "scenario", id, year } | null
+async function resolveSourceRef(source, toggleYear) {
+  const { parseSource, resolveLegacyBudget } = window.VECTON_SCENARIO_SOURCES;
+  let parsed = parseSource(source);
+  if (parsed?.kind === "legacyBudget") {
+    await ensureScenarioIndex();
+    parsed = parseSource(resolveLegacyBudget([...scenarioIndex.values()], toggleYear));
+  }
+  if (parsed?.kind === "scenario") {
+    await ensureScenarioIndex();
+    const year = scenarioIndex.get(parsed.id)?.reference_year;
+    return { ...parsed, year: year != null ? Number(year) : toggleYear };
+  }
+  return parsed;
+}
+
+// Versão síncrona de scenarioYearForSource: só vale depois de fetchAllScenarios (índice cheio).
+function sourceYearSync(source, fallbackYear) {
+  const ref = window.VECTON_SCENARIO_SOURCES.parseSource(source);
+  if (ref?.kind === "real") return ref.year;
+  if (ref?.kind === "scenario") return Number(scenarioIndex.get(ref.id)?.reference_year ?? fallbackYear);
+  return fallbackYear;
+}
+
+// Ano dos dados da fonte (o do cenário ou o do Real); cai no fallback se inválida.
+async function scenarioYearForSource(source, fallbackYear) {
+  const ref = await resolveSourceRef(source, fallbackYear);
+  return ref?.year ?? fallbackYear;
+}
+
+// Linhas conta × mês da fonte, no formato dos relatórios DRE/Opex.
+async function rowsForSource(source, toggleYear) {
+  const ref = await resolveSourceRef(source, toggleYear);
+  if (!ref) return [];
+  if (ref.kind === "scenario") return fetchScenarioReportRowsForYear(ref.id, ref.year);
+  const cached = reportsLedgerCache.get(ref.year);
+  if (cached) return cached.rows;
+  const rows = await fetchActualsReportRowsForYear(ref.year);
+  reportsLedgerCache.set(ref.year, { rows });
+  return rows;
+}
+
+// Resolve o fetcher de ledger detalhado conforme a fonte do relatório
+// ("real" | "real:{ano}" | "scenario:<id>" | "budget" legado) — usado pelos drilldowns.
+function ledgerFullFetcherForSource(source) {
+  return async (toggleYear) => {
+    const ref = await resolveSourceRef(source, toggleYear);
+    if (ref?.kind === "scenario") return fetchScenarioLedgerFullForYear(ref.id, ref.year);
+    return fetchActualsLedgerFullForYear(ref?.kind === "real" ? ref.year : toggleYear);
+  };
+}
+// END rowsForSource
 
 // Busca headcount de pessoas de um cenário (forecast_headcount_entries)
 // Retorna [] silenciosamente se a tabela ainda não existir (404).

@@ -9,7 +9,6 @@
       formatMonthLabel,
       buildDreGerRealReport,
       reportsLedgerCache,
-      reportsBudgetCache,
       getDashCompare,
       state,
       getActiveView,
@@ -47,8 +46,8 @@
       const prevMonthIdx = monthIdx === 0 ? null : monthIdx - 1;
 
       const realRows = reportsLedgerCache.get(year)?.rows || [];
-      // Comparativo = cenário favorito da org (Budget quando não há favorito).
-      const cmp = getDashCompare ? getDashCompare(year) : { label: "Budget", rows: reportsBudgetCache.get(year)?.rows || [] };
+      // Comparativo = estrela global da org ou o cenário "Budget {ano}".
+      const cmp = getDashCompare ? getDashCompare(year) : { label: `Budget ${year}`, rows: [] };
       const budgetRows = cmp.rows;
       const compareLabel = cmp.label || "Budget";
       const hasReal = realRows.length > 0;

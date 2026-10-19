@@ -8,7 +8,6 @@
       getOpexHideZeros,
       setOpexHideZeros,
       reportsLedgerCache,
-      reportsBudgetCache,
       getOpexStructure,
       buildOpexCostCenterFilter,
       buildOpexCcIdsFilter,
@@ -21,20 +20,21 @@
       fetchActualsLedgerWithCcForYear,
       fetchActualsLedgerForManagementYear,
       fetchActualsLedgerForCcIds,
-      fetchBudgetLedgerForManagementYear,
-      fetchBudgetLedgerForCcIds,
       renderReportsView,
       renderOpexBudgetReport,
       resolveManagementFilter,
       getPartialManagements,
-      fetchScenariosForYear,
+      fetchAllScenarios,
+      fetchRealYears,
+      rowsForSource,
+      resolveSourceRef,
       fetchScenarioLedgerForYear,
       fetchScenarioReportRowsForYear
     } = deps;
 
     // Fonte comparativa do OPEX Real (Mes/Acumulado x Real/Cenario/Var) — mesma
     // dinamica dos DRE Real (reportsDreModule.js). null = ainda nao resolvida ->
-    // assume o cenario favorito da org (is_default), ou Budget se nao houver.
+    // assume a estrela global, ou "Budget {ano}" se nao houver (valores: "real:{ano}" | "scenario:{id}").
     let _compareSource = null;
 
     function renderSelectedOpexReport(detailPanel, selectedReportId) {
@@ -58,23 +58,19 @@
     async function populateOpexCompareSel(detailPanel, year) {
       const sel = detailPanel.querySelector("#opex-real-cmp-sel");
       if (!sel) return;
+      let scenarios = [];
+      let realYears = [];
       try {
-        const scenarios = await fetchScenariosForYear(year);
-        scenarios.forEach((s) => {
-          const opt = document.createElement("option");
-          opt.value = `scenario:${s.id}`;
-          opt.textContent = s.name;
-          sel.appendChild(opt);
-        });
-        if (_compareSource === null) {
-          const fav = scenarios.find((s) => s.is_default);
-          _compareSource = fav ? `scenario:${fav.id}` : "budget";
-        }
-      } catch (_) { /* sem cenarios: segue so com Budget */ }
-      if (!_compareSource || ![...sel.options].some((o) => o.value === _compareSource)) {
-        _compareSource = "budget";
-      }
-      sel.value = _compareSource;
+        [scenarios, realYears] = await Promise.all([fetchAllScenarios(), fetchRealYears()]);
+      } catch (_) { /* sem fontes: select fica vazio */ }
+      const { options, value } = window.VECTON_SCENARIO_SOURCES.chooseSource({
+        scenarios, realYears, current: _compareSource, toggleYear: year
+      });
+      _compareSource = value;
+      sel.innerHTML = options.length
+        ? options.map((o) => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("")
+        : `<option value="">Nenhuma fonte disponível</option>`;
+      if (value) sel.value = value;
     }
 
     function compareLabelFor(detailPanel) {
@@ -82,21 +78,21 @@
       return sel?.selectedOptions?.[0]?.textContent || "Cenário";
     }
 
-    // Linhas do comparativo: Budget (rows CC-aware, filtro aplicado no fetch pra
-    // gestao especifica) ou Cenario. Cenario consolidado (Marcher, sem recorte
-    // de CC) usa o resumo conta×mes (forecast_monthly_account_totals) — mesma
-    // otimizacao dos DREs Real; o ledger completo (lento: pagina o cenario
-    // inteiro) so e necessario quando ha filtro por gestao/CC.
+    // Linhas do comparativo, lidas no ano da PRÓPRIA fonte (cenário ou Real de outro
+    // ano), não no do toggle. Consolidado (Marcher, sem recorte de CC) usa o resumo
+    // conta×mes (cenario: forecast_monthly_account_totals; Real: actuals_monthly_...)
+    // — o ledger completo so e necessario quando ha filtro por gestao/CC.
     async function fetchOpexCompareRows(year, source, ctx) {
-      if (!source || source === "budget") {
-        if (ctx.selectedMgmt === ctx.allOption) return reportsBudgetCache.get(year)?.rows || [];
-        return ctx.isPartial
-          ? fetchBudgetLedgerForCcIds(year, ctx.partialCcIds)
-          : fetchBudgetLedgerForManagementYear(year, ctx.selectedMgmt);
+      const ref = await resolveSourceRef(source, year);
+      if (!ref) return [];
+      if (ref.kind === "scenario") {
+        if (ctx.selectedMgmt === ctx.allOption) return fetchScenarioReportRowsForYear(ref.id, ref.year);
+        return fetchScenarioLedgerForYear(ref.id, ref.year);
       }
-      const scenarioId = source.slice("scenario:".length);
-      if (ctx.selectedMgmt === ctx.allOption) return fetchScenarioReportRowsForYear(scenarioId, year);
-      return fetchScenarioLedgerForYear(scenarioId, year);
+      if (ctx.selectedMgmt === ctx.allOption) return rowsForSource(source, year);
+      return ctx.isPartial
+        ? fetchActualsLedgerForCcIds(ref.year, ctx.partialCcIds)
+        : fetchActualsLedgerForManagementYear(ref.year, ctx.selectedMgmt);
     }
 
     function renderOpexRealReport(detailPanel) {
@@ -149,7 +145,7 @@
         <div class="vp-source-bar dre-cmp-bar">
           <div id="opex-bar-filter-slot"></div>
           <span class="vp-source-label">Comparar com</span>
-          <select class="vp-source-sel" id="opex-real-cmp-sel"><option value="budget">Budget</option></select>
+          <select class="vp-source-sel" id="opex-real-cmp-sel"><option value="">Carregando…</option></select>
         </div>
         <div class="opex-report-wrap reports-table-wrap"><div id="opex-table-inner">${window.vpSkeletonTable()}</div></div>
       `;
@@ -205,7 +201,7 @@
           compareError = e;
         }
         if (!tableInner.isConnected || src !== _compareSource) return; // stale: fonte trocou ou saiu do relatorio
-        const compareValidCcFilter = (selectedMgmt !== allOption && src !== "budget")
+        const compareValidCcFilter = (selectedMgmt !== allOption && window.VECTON_SCENARIO_SOURCES.parseSource(src)?.kind === "scenario")
           ? (isPartial ? buildOpexCcIdsFilter(partialCcIds) : buildOpexCostCenterFilter(selectedMgmt))
           : null;
         // compareRows null (falhou) -> tabela sem comparativo + aviso acima.

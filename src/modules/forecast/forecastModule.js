@@ -40,7 +40,7 @@
       const orgId = await resolveOrganizationId();
       const rows = await fetchSupabaseRowsSafe(
         "forecast_scenarios",
-        `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name,color,icon,reference_year,cutoff_month,is_default,created_at`
+        `organization_id=eq.${orgId}&order=reference_year.desc,sort_order.asc,created_at.asc&select=id,name,color,icon,reference_year,cutoff_month,is_default,created_at`
       );
       scenarios = rows;
       return rows;
@@ -49,10 +49,11 @@
     async function createScenario({ name, color, icon, referenceYear, cutoffMonth }) {
       const orgId = await resolveOrganizationId();
       const id = crypto.randomUUID();
+      const { withYearSuffix } = window.VECTON_SCENARIO_SOURCES;
       await upsertSupabaseRows("forecast_scenarios", [{
         id,
         organization_id: orgId,
-        name,
+        name: withYearSuffix(name, referenceYear),
         color,
         icon,
         reference_year: referenceYear,
@@ -69,25 +70,6 @@
       while (true) {
         const page = await fetchSupabaseRowsSafe(
           "actuals_ledger_entries",
-          `organization_id=eq.${orgId}&reference_year=eq.${year}&reference_month=eq.${month}` +
-          `&id=gt.${lastId}&select=account_number,cost_center_id,cost_center_number,amount,entry_date,history` +
-          `&order=id.asc&limit=${pgSize}`
-        );
-        rows.push(...page);
-        if (page.length < pgSize) break;
-        lastId = page[page.length - 1].id;
-      }
-      return rows;
-    }
-
-    async function fetchBudgetMonthRows(year, month) {
-      const orgId  = await resolveOrganizationId();
-      const pgSize = 1000;
-      const rows   = [];
-      let lastId   = "00000000-0000-0000-0000-000000000000";
-      while (true) {
-        const page = await fetchSupabaseRowsSafe(
-          "budget_ledger_entries",
           `organization_id=eq.${orgId}&reference_year=eq.${year}&reference_month=eq.${month}` +
           `&id=gt.${lastId}&select=account_number,cost_center_id,cost_center_number,amount,entry_date,history` +
           `&order=id.asc&limit=${pgSize}`
@@ -160,25 +142,6 @@
       return rows;
     }
 
-    async function fetchBudgetHcMonthRows(year, month) {
-      const orgId  = await resolveOrganizationId();
-      const pgSize = 1000;
-      const rows   = [];
-      let offset   = 0;
-      while (true) {
-        const page = await fetchSupabaseRowsSafe(
-          "headcount_entries",
-          `organization_id=eq.${orgId}&reference_year=eq.${year}&reference_month=eq.${month}` +
-          `&load_type=eq.orcado&select=branch_code,cost_center_number,matricula,colab,cargo` +
-          `&order=matricula.asc&limit=${pgSize}&offset=${offset}`
-        );
-        rows.push(...page);
-        if (page.length < pgSize) break;
-        offset += pgSize;
-      }
-      return rows;
-    }
-
     async function fetchScenarioHcMonthRows(srcScenarioId, year, month) {
       const orgId  = await resolveOrganizationId();
       const pgSize = 1000;
@@ -202,7 +165,6 @@
     async function copyMonthHcData(orgId, scenarioId, year, month, source) {
       let hcRows;
       if (source === "real")        hcRows = await fetchActualsHcMonthRows(year, month);
-      else if (source === "budget") hcRows = await fetchBudgetHcMonthRows(year, month);
       else                          hcRows = await fetchScenarioHcMonthRows(source, year, month);
 
       // Remove headcount existente do mês/cenário antes de inserir
@@ -234,7 +196,6 @@
     async function copyMonthData(orgId, scenarioId, year, month, source) {
       let sourceRows;
       if (source === "real")        sourceRows = await fetchActualsMonthRows(year, month);
-      else if (source === "budget") sourceRows = await fetchBudgetMonthRows(year, month);
       else                          sourceRows = await fetchScenarioMonthRows(source, year, month);
       // Copia ledger financeiro e headcount em paralelo
       await Promise.all([
@@ -248,8 +209,6 @@
       if (!container) return;
       if (isCreating) {
         renderNewForm(container);
-      } else if (selectedId === "budget") {
-        renderBudgetDetail(container);
       } else if (selectedId) {
         const sc = (scenarios || []).find(s => s.id === selectedId);
         renderDetail(container, sc);
@@ -280,28 +239,12 @@
       // sendo admin-only hoje. A estrela (favorito da org) também é admin-only.
       const canEdit = isAdmin();
 
-      // Favorito = comparativo padrão da organização (DREs Real e Dashboard).
-      // Sem cenário estrelado, o favorito é o Budget (card fixo abaixo).
-      const hasScenarioFav = (scenarios || []).some(s => s.is_default);
+      // Favorito = comparativo padrão da organização (DREs Real e Dashboard): uma estrela global.
       const starSvg = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" width="15" height="15"><path d="M12 2.6l2.87 5.82 6.42.93-4.65 4.53 1.1 6.4L12 17.26l-5.74 3.02 1.1-6.4-4.65-4.53 6.42-.93z"/></svg>`;
       const starBtn = (key, isFav) => `
         <span class="fc-star-btn${isFav ? " is-fav" : ""}${canEdit ? " fc-star-editable" : ""}"
           ${canEdit ? `role="button" tabindex="-1"` : ""} data-fc-star="${escapeHtml(key)}"
           title="${isFav ? "Comparativo padrão da organização" : (canEdit ? "Definir como comparativo padrão" : "")}">${starSvg}</span>`;
-
-      const budgetCard = `
-        <button class="reports-report-card fc-scenario-card fc-budget-card" type="button"
-          data-scenario-id="budget"
-          style="border-top-color:var(--theme-border, #64748b);--fc-accent:#64748b">
-          <div class="rrc-top">
-            <span class="rrc-icon-wrap" style="background:${hexToRgba("#64748b", 0.12)};border-color:${hexToRgba("#64748b", 0.25)};color:var(--theme-ink-secondary, #94a3b8)">
-              ${iconSvg("vp-icon-briefcase")}
-            </span>
-            ${starBtn("budget", !hasScenarioFav)}
-          </div>
-          <strong>Budget</strong>
-          <span class="rrc-subtitle">Orçamento oficial · ${year}</span>
-        </button>`;
 
       const cards = (scenarios || []).map(s => {
         const color = s.color || "#6366f1";
@@ -329,7 +272,6 @@
               ${canEdit ? `<button class="fc-new-btn" type="button" id="fc-new-btn">+ Novo cenário</button>` : ""}
             </div>
             <div class="reports-card-grid">
-              ${budgetCard}
               ${cards}
             </div>
           </div>
@@ -346,8 +288,9 @@
           e.stopPropagation();
           e.preventDefault();
           if (!canEdit) return;
-          const key = starEl.dataset.fcStar; // "budget" ou id do cenário
-          void setDefaultScenario(key === "budget" ? null : key, container);
+          const key = starEl.dataset.fcStar; // id do cenário
+          const isFav = (scenarios || []).some(s => s.id === key && s.is_default);
+          void setDefaultScenario(isFav ? null : key, container);
           return;
         }
         const menuBtn = e.target.closest("[data-fc-menu]");
@@ -361,21 +304,18 @@
         const card = e.target.closest("[data-scenario-id]");
         if (!card) return;
         const id = card.dataset.scenarioId;
-        if (id === "budget") {
-          selectedId = "budget";
-          renderBudgetDetail(container);
-          return;
-        }
         selectedId = id;
         renderDetail(container, (scenarios || []).find(s => s.id === selectedId));
       });
     }
 
-    // Define o cenário favorito da org (null = Budget). RPC valida admin no BD.
+    // Define o cenário favorito da org (estrela global; null = sem favorito).
+    // RPC valida admin no BD.
     async function setDefaultScenario(scenarioId, container) {
       try {
         const orgId = await resolveOrganizationId();
-        const year = Number(state.currentPeriod?.year || 2026);
+        const year = Number((scenarios || []).find(s => s.id === scenarioId)?.reference_year
+          || state.currentPeriod?.year || 2026);
         await callSupabaseRpc("set_default_forecast_scenario", {
           target_organization_id: orgId,
           target_reference_year: year,
@@ -391,12 +331,11 @@
 
     function renderNewForm(container) {
       const year = Number(state.currentPeriod?.year || 2026);
-      const existing = scenarios || [];
+      const existing = (scenarios || []).filter(s => Number(s.reference_year) === year);
 
       function sourceOptions() {
         return [
           `<option value="real">Real</option>`,
-          `<option value="budget">Budget</option>`,
           ...existing.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`),
         ].join("");
       }
@@ -507,6 +446,18 @@
           console.error("Erro ao criar cenário:", err);
           saveBtn.disabled = false;
           saveBtn.textContent = "Criar cenário";
+          const duplicate = /uq_forecast_scenarios_org_name|23505|duplicate key/i.test(String(err?.message || err));
+          let errEl = container.querySelector("#fc-form-error");
+          if (!errEl) {
+            errEl = document.createElement("p");
+            errEl.id = "fc-form-error";
+            errEl.className = "fc-flabel";
+            errEl.style.color = "var(--red, #ef4444)";
+            container.querySelector(".fc-form-actions")?.before(errEl);
+          }
+          errEl.textContent = duplicate
+            ? "Já existe um cenário com este nome. Escolha outro nome."
+            : "Não foi possível criar o cenário. Tente novamente.";
         }
       });
     }
@@ -682,56 +633,6 @@
       setTimeout(() => {
         document.addEventListener("click", (ev) => { if (!pop.contains(ev.target)) pop.remove(); }, { once: true });
       }, 0);
-    }
-
-    // Card fixo "Budget" (sem linha em forecast_scenarios) — mesmo padrão
-    // visual do detalhe de um cenário real, mas com DRE Societário puxando os
-    // dados do orçamento oficial em vez de um scenario_id (openScenarioDreReport
-    // já trata scenarioId vazio como fonte "budget").
-    function renderBudgetDetail(container) {
-      const year = Number(state.currentPeriod?.year || 2026);
-
-      container.innerHTML = `
-        <div class="reports-layout">
-          <div class="reports-catalog-card">
-            <div class="fc-detail-header">
-              <button class="fc-back-btn" id="fc-detail-back" type="button">← Cenários</button>
-              <div class="fc-detail-title-row">
-                <span class="fc-detail-icon" style="background:var(--theme-surface-raised, #64748b);color:#fff">${iconSvg("vp-icon-briefcase")}</span>
-                <div>
-                  <h2 class="fc-detail-name">Budget</h2>
-                  <span class="fc-detail-meta">Orçamento oficial · ${year}</span>
-                </div>
-              </div>
-            </div>
-            <div class="reports-card-grid">
-              <button class="reports-report-card fc-scenario-card" type="button" data-fc-report="dreSoc" style="border-top-color:#4f7cff">
-                <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(79,124,255,0.12);border-color:rgba(79,124,255,0.22);color:var(--theme-ink-blue, #4f7cff)"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg></span></div>
-                <strong>DRE Societário</strong>
-                <span class="rrc-subtitle">Budget</span>
-              </button>
-              <div class="reports-report-card reports-report-card--soon">
-                <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-reports"></use></svg></span></div>
-                <strong>Balanço Patrimonial</strong>
-                <span class="rrc-subtitle">Em breve</span>
-              </div>
-              <div class="reports-report-card reports-report-card--soon">
-                <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-trend-up"></use></svg></span></div>
-                <strong>Fluxo de Caixa</strong>
-                <span class="rrc-subtitle">Em breve</span>
-              </div>
-            </div>
-          </div>
-        </div>`;
-
-      container.querySelector("#fc-detail-back").addEventListener("click", () => {
-        selectedId = null;
-        renderGrid(container);
-      });
-
-      container.querySelector('[data-fc-report="dreSoc"]')?.addEventListener("click", () => {
-        if (typeof openScenarioDreReport === "function") openScenarioDreReport(null);
-      });
     }
 
     function renderDetail(container, scenario) {

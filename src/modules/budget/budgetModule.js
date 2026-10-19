@@ -11,7 +11,6 @@
       getCurrentUser,
       buildEmptyRow,
       chunkArray,
-      ensureBudgetReportsDataForYear,
       ensureSeedBranchesInSupabase,
       escapeHtml,
       fetchSupabaseRowsSafe,
@@ -22,7 +21,6 @@
       formatMonthLabel,
       formatSyncError,
       getActualsStatusClass,
-      invalidateBudgetReportsForYear,
       invalidateScenarioCachesFor,
       isSupabaseConfigured,
       normalizeBranchCode,
@@ -63,7 +61,7 @@
     let rowsFilter = "";
     let activeErrorRowId = null;
     let selectedLoadType = null;
-    let selectedScenarioTarget = "budget"; // "budget" | forecast scenario UUID
+    let selectedScenarioTarget = "";       // UUID do cenário de destino ("" = ainda não escolhido)
     let availableScenarios = null;         // null = not loaded for current year
     let availableScenariosYear = null;     // year for which scenarios were loaded
     const loadingBatchIds = new Set();
@@ -148,7 +146,7 @@
               </span>
               <strong>Volumes de Vendas</strong>
             </button>
-            <button class="load-catalog-card load-catalog-card--green" type="button" data-headcount-entry="orcado">
+            <button class="load-catalog-card load-catalog-card--green" type="button" data-headcount-entry="planejado">
               <span class="lcc-icon-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </span>
@@ -172,7 +170,7 @@
                 <div class="budget-target-wrap">
                   <span class="budget-target-label">Destino</span>
                   <select id="budget-scenario-select" class="actuals-mode-select">
-                    <option value="budget">Budget (Orçamento)</option>
+                    <option value="">Carregando cenários…</option>
                   </select>
                 </div>
               </div>
@@ -305,7 +303,7 @@
       const rowsBody = document.querySelector("#budget-rows-body");
 
       document.querySelector("#budget-scenario-select")?.addEventListener("change", (e) => {
-        selectedScenarioTarget = e.target.value || "budget";
+        selectedScenarioTarget = e.target.value || "";
       });
 
       uploadForm?.addEventListener("submit", handleBudgetUploadSubmit);
@@ -417,7 +415,7 @@
       const year = Number(state.currentPeriod?.year || 2026);
       if (availableScenariosYear !== year) {
         availableScenarios = null;
-        if (selectedScenarioTarget !== "budget") selectedScenarioTarget = "budget";
+        selectedScenarioTarget = "";
       }
       loadAvailableScenarios(year).then(() => populateScenarioSelect());
 
@@ -728,9 +726,22 @@
         return;
       }
 
-      if (loadMode === "complete" && selectedScenarioTarget === "budget") {
-        const confirmed = await appConfirm("Carga completa vai apagar o planejado existente da competencia e substituir. Deseja continuar?", "warn");
-        if (!confirmed) return;
+      if (!selectedScenarioTarget) {
+        setUploadFeedback("Escolha o cenário de destino da carga.", "error");
+        return;
+      }
+
+      if (loadMode === "complete") {
+        const year = Number(state.currentPeriod?.year);
+        const month = Number(state.currentPeriod?.month);
+        if (await hasScenarioDataForMonth(selectedScenarioTarget, year, month)) {
+          const scenarioName = (availableScenarios || []).find((s) => s.id === selectedScenarioTarget)?.name || "cenário";
+          const confirmed = await appConfirm(
+            `O cenário "${scenarioName}" já tem dados em ${formatMonthLabel(month)}/${year}. A carga completa vai apagar esses dados e substituir pelos do arquivo. Deseja continuar?`,
+            "warn"
+          );
+          if (!confirmed) return;
+        }
       }
 
       try {
@@ -822,38 +833,25 @@
       if (batch.status === "applied") return true;
       if (batch.status === "error" || batch.status === "draft") return false;
 
-      const scenarioId = selectedScenarioTarget !== "budget" ? selectedScenarioTarget : null;
-      const scenarioName = scenarioId
-        ? (availableScenarios || []).find(s => s.id === scenarioId)?.name || "cenário"
-        : null;
+      const scenarioId = selectedScenarioTarget || null;
+      if (!scenarioId) {
+        setUploadFeedback("Escolha o cenário de destino da carga.", "error");
+        return false;
+      }
+      const scenarioName = (availableScenarios || []).find(s => s.id === scenarioId)?.name || "cenário";
 
       if (batch.loadMode === "complete" && !auto) {
-        const destLabel = scenarioName
-          ? `cenário "${scenarioName}"`
-          : "planejado (Budget)";
         const confirmed = await appConfirm(
-          `Carga completa vai apagar as entradas existentes de ${destLabel} para ${formatMonthLabel(batch.referenceMonth)}/${batch.referenceYear} e substituir. Deseja continuar?`,
+          `Carga completa vai apagar as entradas existentes do cenário "${scenarioName}" para ${formatMonthLabel(batch.referenceMonth)}/${batch.referenceYear} e substituir. Deseja continuar?`,
           "warn"
         );
         if (!confirmed) return false;
       }
 
       if (isSupabaseConfigured()) {
-        // → Forecast scenario
-        if (scenarioId) {
-          setSyncStatus(`Aplicando carga no cenário "${scenarioName}"…`, "warn");
-          await applyBatchToForecast(batchId, scenarioId);
-          setSyncStatus(`Carga aplicada no cenário "${scenarioName}"`, "ok");
-          return true;
-        }
-
-        // → Budget (existing RPC path)
-        setSyncStatus(auto ? "Aplicando carga de planejado no BD..." : "Aplicando lote de planejado no BD...", "warn");
-        await callSupabaseRpc("apply_budget_import_batch", { target_batch_id: batch.id });
-        invalidateBudgetReportsForYear(batch.referenceYear);
-        await refreshBudgetBatch(batch.id);
-        void ensureBudgetReportsDataForYear(batch.referenceYear);
-        setSyncStatus(auto ? "Carga de planejado aplicada no BD" : "Lote de planejado aplicado no BD", "ok");
+        setSyncStatus(`Aplicando carga no cenário "${scenarioName}"…`, "warn");
+        await applyBatchToForecast(batchId, scenarioId);
+        setSyncStatus(`Carga aplicada no cenário "${scenarioName}"`, "ok");
         return true;
       }
 
@@ -861,7 +859,6 @@
       if (!localBatch || (localBatch.status !== "ready" && localBatch.status !== "applied")) return false;
       localBatch.status = "applied";
       localBatch.appliedAt = new Date().toISOString();
-      invalidateBudgetReportsForYear(localBatch.referenceYear);
       persistAndRender();
       setSyncStatus(auto ? "Carga de planejado aplicada localmente" : "Lote de planejado aplicado localmente", "ok");
       return true;
@@ -1178,7 +1175,7 @@
         const orgId = await resolveOrganizationId();
         const rows = await fetchSupabaseRowsSafe(
           "forecast_scenarios",
-          `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name,color,icon`
+          `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name,color,icon,reference_year`
         );
         availableScenarios = rows || [];
         availableScenariosYear = year;
@@ -1191,14 +1188,46 @@
     function populateScenarioSelect() {
       const sel = document.querySelector("#budget-scenario-select");
       if (!sel) return;
-      sel.innerHTML = [
-        `<option value="budget">Budget</option>`,
-        ...(availableScenarios || []).map(s =>
-          `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`
-        )
-      ].join("");
+      const { loadTargetsForYear, pickDefaultLoadTarget } = window.VECTON_SCENARIO_SOURCES;
+      const year = Number(state.currentPeriod?.year);
+      const targets = loadTargetsForYear(availableScenarios || [], year);
+      sel.innerHTML = targets.length
+        ? targets.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("")
+        : `<option value="">Nenhum cenário em ${year} — crie no Repositório</option>`;
+      if (!targets.some(s => s.id === selectedScenarioTarget)) {
+        selectedScenarioTarget = pickDefaultLoadTarget(availableScenarios || [], year);
+      }
       sel.value = selectedScenarioTarget;
-      if (sel.value !== selectedScenarioTarget) sel.value = "budget";
+    }
+
+    // Há lançamentos do cenário na competência? (decide a confirmação de sobrescrita)
+    async function hasScenarioDataForMonth(scenarioId, year, month) {
+      const orgId = await resolveOrganizationId();
+      const rows = await fetchSupabaseRowsSafe(
+        "forecast_ledger_entries",
+        `organization_id=eq.${orgId}&scenario_id=eq.${scenarioId}&reference_year=eq.${year}&reference_month=eq.${month}&select=id&limit=1`
+      );
+      return Array.isArray(rows) && rows.length > 0;
+    }
+
+    // Histórico simplificado: 1 linha por carga aplicada (migration 274). Não bloqueia a carga.
+    async function logScenarioLoad(scenarioId, batch, rowCount) {
+      try {
+        const orgId = await resolveOrganizationId();
+        await upsertSupabaseRows("scenario_load_log", [{
+          id: crypto.randomUUID(),
+          organization_id: orgId,
+          scenario_id: scenarioId,
+          reference_year: batch.referenceYear,
+          reference_month: batch.referenceMonth,
+          load_mode: batch.loadMode,
+          source_file_name: batch.sourceFileName || null,
+          row_count: rowCount,
+          loaded_by: getCurrentUser()?.id || null
+        }], ["id"], { minimal: true });
+      } catch (err) {
+        console.warn("Não foi possível registrar o histórico da carga:", err);
+      }
     }
 
     async function applyBatchToForecast(batchId, scenarioId) {
@@ -1255,6 +1284,7 @@
         localBatch.status    = "applied";
         localBatch.appliedAt = new Date().toISOString();
       }
+      await logScenarioLoad(scenarioId, batch, ledgerRows.length);
       invalidateScenarioCachesFor?.(scenarioId, batch.referenceYear);
       persistAndRender();
     }

@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const app = fs.readFileSync(path.join(__dirname, '../app.js'), 'utf8');
 const renderer = app.slice(app.indexOf('function renderOpexScenario('), app.indexOf('const OPEX_STRUCTURE ='));
 const filters = app.slice(app.indexOf('function buildOpexCcIdsFilter('), app.indexOf('// ─── OPEX DRILLDOWN'));
-const callSites = app.match(/renderOpexScenario\(contentDiv, year, _opexBudgetSource\.slice\("scenario:"\.length\), selectedMgmt, partialMgmts\)/g);
+const callSites = app.match(/renderOpexScenario\(contentDiv, sourceYearSync\(_opexBudgetSource, year\), _opexBudgetSource\.slice\("scenario:"\.length\), selectedMgmt, partialMgmts\)/g);
 assert.equal(callSites?.length, 2, 'both source changes and report rerenders must pass the selected management');
 const centers = [
   { id: 'c1', number: '101', management: 'Comercial' },
@@ -19,11 +19,13 @@ const rows = [
   { cost_center_number: '999', amount: 5 }
 ];
 let allowed = null, loader = () => Promise.resolve(rows);
+const fetchCalls = [];
 const context = {
   state: { costCenters: centers }, opexHideZeros: false,
   normalizeCode: value => String(value || '').replace(/\D/g, ''),
   getAllowedCcNumbers: () => allowed,
-  fetchScenarioLedgerForYear: (...args) => loader(...args),
+  fetchScenarioLedgerForYear: (...args) => { fetchCalls.push('ledger'); return loader(...args); },
+  fetchScenarioReportRowsForYear: (...args) => { fetchCalls.push('summary'); return loader(...args); },
   vpSkeletonTable: () => 'loading',
   initFloatingScrollbar: () => {}, initVerticalScrollBounds: () => {}, initAllReportTableResizers: () => {},
   buildOpexRealTableMarkup: scoped => JSON.stringify({ total: scoped.reduce((sum, row) => sum + row.amount, 0), count: scoped.length })
@@ -40,13 +42,21 @@ async function run(management, partial = null) {
 (async () => {
   assert.equal((await run('Comercial')).total, 120);
   assert.equal((await run('Industrial')).total, 900);
+  fetchCalls.length = 0;
   assert.equal((await run('Marcher')).total, 1025);
+  assert.deepEqual([...fetchCalls], ['summary'], 'consolidated Marcher without CC restriction uses the account x month summary');
+  fetchCalls.length = 0; await run('Comercial');
+  assert.deepEqual([...fetchCalls], ['ledger'], 'a specific management needs the CC-level ledger');
+  fetchCalls.length = 0; await run('Marcher', new Map([['Marcher', ['c1']]]));
+  assert.deepEqual([...fetchCalls], ['ledger'], 'partial access needs the CC-level ledger');
   assert.equal((await run('Engenharia')).count, 0, 'unknown management must not fall back to consolidated data');
   assert.equal((await run('Comercial', new Map([['Comercial', ['c2']]]))).total, 20);
   allowed = new Set(['102', '201']);
   assert.equal((await run('Comercial')).total, 20, 'selected management intersects permissions, not their union');
   assert.equal((await run('Industrial')).total, 900);
+  fetchCalls.length = 0;
   assert.equal((await run('Marcher')).total, 920, 'permission scope still restricts consolidated calls');
+  assert.deepEqual([...fetchCalls], ['ledger'], 'restricted profiles need the CC-level ledger even for Marcher');
   assert.equal((await run('Comercial', new Map([['Comercial', ['c1']]]))).count, 0);
   allowed = null;
   const pending = new Map();
