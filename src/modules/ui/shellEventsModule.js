@@ -136,9 +136,8 @@
           if (button.dataset.view === "budgetLoad") {
             setSelectedBudgetLoadType(null);
           }
-          if (button.dataset.view !== "planning") {
-            resetPlanningState();
-          }
+          // Clicar em Planejamento na sidebar volta sempre para a lista de cenários.
+          resetPlanningState();
           // Clicar no menu lateral tem que voltar sempre pra Tela 1 do A3,
           // mesmo já estando dentro de um A3 específico (Tela 2/3) — achado
           // do usuário (2026-08-29): sem isso, clicar de novo no menu não

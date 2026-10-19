@@ -77,14 +77,14 @@
       return `<h2>Integrações do cenário</h2><p class="pl-muted">Cada execução atualiza todos os formulários, usando somente valores salvos.</p><div class="pl-table-scroll"><table><thead><tr><th>Início</th><th>Status</th><th>Linhas publicadas</th><th>Detalhes</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }
     function scenarioHome(st) {
-      const tabs = tabButtons([['forms', 'Formulários'], ['sources', 'Fontes dos meses'], ['runs', 'Integrações no DRE']], 'tab', st.tab);
-      const body = st.tab === 'forms' ? formsList(st) : st.tab === 'sources' ? sourcesList(st) : runsList(st);
+      const tabs = tabButtons([['forms', 'Formulários'], ...(st.admin() ? [['sources', 'Fontes dos meses'], ['runs', 'Integrações no DRE']] : [])], 'tab', st.admin() ? st.tab : 'forms');
+      const body = !st.admin() || st.tab === 'forms' ? formsList(st) : st.tab === 'sources' ? sourcesList(st) : runsList(st);
       return `<nav class="pl-tabs">${tabs}${button('Ver DRE', 'dre')}</nav>${body}`;
     }
     function scenario(st) {
       const f = st.form(), locked = st.locked();
       const adminActions = st.admin() ? button('Copiar cenário', 'copy-scenario') + button(locked ? 'Desbloquear' : 'Bloquear', 'lock') : '';
-      return `<div class="pl-heading">${button('← Cenários', 'exit')}<div class="pl-actions">${adminActions}</div></div><div class="pl-heading"><h1>${esc(st.scenario.name)}</h1><span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span></div>${locked ? '<p class="pl-note">Cenário bloqueado: somente leitura para todos.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
+      return `${adminActions ? `<div class="pl-heading"><div class="pl-actions" style="margin-left:auto">${adminActions}</div></div>` : ''}<div class="pl-heading"><h1>${esc(st.scenario.name)}</h1><span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span></div>${locked ? '<p class="pl-note">Cenário bloqueado: somente leitura para todos.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
     }
 
     // ── Formulário: preenchimento, estrutura e acessos ─────────────────────
