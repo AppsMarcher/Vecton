@@ -12,7 +12,7 @@
   const icon = name => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || `<use href="icons.svg#vp-icon-${name}"></use>`}</svg>`;
   const button = (text,action,ico='',style='') => `<button class="btn ${style}" type="button" data-action="${esc(action)}">${ico?icon(ico):''}${esc(text)}</button>`;
   const link = (text,id,ico='',style='') => `<button class="btn ${style}" type="button" data-go="${id}">${ico?icon(ico):''}${esc(text)}</button>`;
-  const brand = () => `<div class="brand"><img src="../fav-icon.png" alt=""><div>vecton<small>PLANNING</small></div></div>`;
+  const brand = () => `<div class="brand"><img src="../assets/fav-icon.png" alt=""><div>vecton<small>PLANNING</small></div></div>`;
   let storedTheme='clear'; try {storedTheme=localStorage.getItem('vecton-mockup-theme')||'clear';} catch{}
   const state = {id:location.hash.slice(1)||'dashboard',theme:storedTheme,period:'Mês',month:'Set',management:'Marcher',region:'Norte',tab:'Todos',ui:'success',review:false,importStep:0,favorite:'Forecast 8+4',conversation:'Marina Costa',messages:[],localRows:{},formDraft:{},tableQuery:'',scope:'Todos',fcDelta:0};
   const screen = () => C.find(x=>x.id===state.id)||C[0];

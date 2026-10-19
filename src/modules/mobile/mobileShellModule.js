@@ -76,7 +76,7 @@
 
     function renderHeader() {
       return '<header class="vmob-header">' +
-        '<button type="button" class="vmob-brand" id="vmob-brand-btn" aria-label="Início · Módulos"><img class="vmob-brand-logo" src="logo-branco.png" alt="Vecton Planning"></button>' +
+        '<button type="button" class="vmob-brand" id="vmob-brand-btn" aria-label="Início · Módulos"><img class="vmob-brand-logo" src="assets/logo-branco.png" alt="Vecton Planning"></button>' +
         '<span class="vmob-header-right">' +
         '<button type="button" class="vmob-avatar" id="vmob-avatar-btn" aria-label="Abrir menu do perfil" aria-haspopup="true" aria-expanded="' + profileOpen + '">' +
         '<img class="vmob-avatar-photo" alt="" width="48" height="48" loading="eager" decoding="async" fetchpriority="high" draggable="false" hidden>' +

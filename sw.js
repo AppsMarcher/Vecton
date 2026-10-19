@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "vecton-static-";
-const CACHE_NAME = `${CACHE_PREFIX}20261016notif3`;
+const CACHE_NAME = `${CACHE_PREFIX}20261019assets1`;
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -11,7 +11,7 @@ const APP_SHELL = [
   "./src/core/appearance.js?v=20260924a",
   "./assets/vecton-messenger-clear.svg?v=20260924a",
   "./assets/logo-preto.png?v=20260924d",
-  "./fav-icon.png",
+  "./assets/fav-icon.png",
   "./assets/msn-message.mp3?v=20260804b",
   "./assets/icq.mp3?v=20260804a",
   "./assets/msn-wizz.mp3?v=20260804a",
