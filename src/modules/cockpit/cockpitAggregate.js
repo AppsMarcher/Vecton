@@ -43,7 +43,8 @@
     const hcBudgetMean = ratio(periodSum(hcComparison, selected), selected.length);
     if (![...actualIndexes.map(i => actual[i]), ...selected.map(i => comparison[i]), hcActual[month - 1], hcComparison[month - 1]].some(value => value != null)) return null;
     const opex = { ...variance(periodSum(periodType === "year" ? forecast : actual, selected), periodSum(comparison, selected)),
-      realized: periodSum(actual, actualIndexes), forecast: source.hasForecast || month === 12 ? periodSum(forecast, indexes(0, 12)) : null,
+      // Projeção anual = Real até o mês + comparativo (Forecast ou Budget) nos meses restantes.
+      realized: periodSum(actual, actualIndexes), forecast: comparison.some(value => value != null) || month === 12 ? periodSum(actual.map((value, i) => i < month ? value : comparison[i]), indexes(0, 12)) : null,
       annualBudget: periodSum(comparison, indexes(0, 12)) };
     const headcount = { ...variance(hcActual[month - 1], hcComparison[month - 1]), average: hcMean, budgetAverage: hcBudgetMean };
     // Index once: rankings/groups do not each rescan the full annual ledger.

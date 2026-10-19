@@ -39,7 +39,7 @@ const missingHc = buildSource();
 missingHc.headcountRows = missingHc.headcountRows.filter(row => row.reference_month !== 4);
 assert.equal(D.aggregate(filters, missingHc).opexPerHeadcount.actual, null);
 assert.equal(D.aggregate(filters, { ...source, actualRows: [], comparisonRows: [], headcountRows: [], comparisonHeadcountRows: [] }), null);
-assert.equal(D.aggregate(filters, { ...source, hasForecast: false }).opex.forecast, null);
+assert.equal(D.aggregate(filters, { ...source, hasForecast: false }).opex.forecast, 87600, 'sem Forecast, projeta Real + comparativo');
 close(D.aggregate({ ...filters, management: 'Marcher' }, source).headcountByArea[0].actual, 4);
 (async () => {
   let calls = 0;

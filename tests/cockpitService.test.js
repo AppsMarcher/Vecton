@@ -74,7 +74,7 @@ const deps = {
   assert.ok(calls.some(call => call.table === 'forecast_ledger_entries' && call.query.includes('reference_year=eq.2025') && call.query.includes('scenario_id=eq.favorite-2')), 'favorite of another year is read in its own year');
   assert.ok(calls.some(call => call.table === 'actuals_ledger_entries' && call.query.includes('reference_year=eq.2026')), 'actuals still follow the selected year');
   favorite = null; service.invalidate();
-  const budget = await service.load(filters); assert.equal(budget.comparisonLabel, 'Budget 2026'); assert.equal(budget.opex.forecast, null);
+  const budget = await service.load(filters); assert.equal(budget.comparisonLabel, 'Budget 2026'); assert.equal(budget.opex.forecast, 81300, 'Budget projeta o ano: Real até o mês + Budget nos meses restantes');
   assert.ok(calls.some(call => call.table === 'forecast_ledger_entries' && call.query.includes('scenario_id=eq.budget-26')), 'Budget is read from its scenario');
   assert.ok(!calls.some(call => call.table.startsWith('budget_')), 'legacy budget tables are no longer read');
   assert.ok(calls.some(call => call.table === 'forecast_headcount_entries' && call.query.includes('scenario_id=eq.budget-26')), 'budget headcount is read from its scenario');
