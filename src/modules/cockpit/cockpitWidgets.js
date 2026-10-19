@@ -67,7 +67,7 @@
       { label: `OPEX Gestão ${data.management}${data.periodType === "year" ? " · Forecast" : ""}`, value: money(opex.actual), detail: `vs ${comparisonLabel(data)} ${trend(opex.variancePercent)}`, icon: "accounts", series },
       { label: "Headcount", value: F.formatInteger(headcount.actual), detail: `${comparisonLabel(data)} ${F.formatInteger(headcount.budget)} | Δ ${F.formatDelta(headcount.variance, F.formatInteger)}`, icon: "users", clickable: !!headcount.actual },
       { label: "OPEX por HC · média mensal", value: money(perHc.actual), detail: `vs ${comparisonLabel(data)} ${trend(perHc.variancePercent)}`, icon: "activity", series: series.map(value => safeRatio(value, headcount.average)) },
-      { label: "Forecast Anual OPEX", value: money(opex.forecast), detail: `${F.formatPercent(safeRatio(opex.forecast, opex.annualBudget))} do ${comparisonLabel(data)}`, icon: "target", series: data.monthlyOpex.map(row => row.forecast) }
+      { label: "Forecast Anual OPEX", value: money(opex.forecast), detail: `vs ${comparisonLabel(data)} ${trend(safeRatio(opex.forecast - opex.annualBudget, Math.abs(opex.annualBudget)))}`, icon: "target", series: data.monthlyOpex.map(row => row.forecast) }
     ];
     // O card de Headcount abre o popover de detalhamento por área/CC (mesmo
     // dado do Raio-X, ver headcountAreas abaixo) — data-hc-total marca ambos
