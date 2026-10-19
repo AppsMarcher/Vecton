@@ -1,10 +1,9 @@
 /* Cockpit Gestão: extends the existing shell, cards, tables and theme tokens.
    Cards seguem a mesma linguagem visual do Dashboard Marcher (kpi-card/dash-card):
    compactos, cores suavizadas por indicador e curvas em vez de segmentos retos. */
-/* Gestão + Mês/YTD/Ano + Atualizar dados: mesmo grupo (.cockpit-heading-actions),
-   colados entre si e encostados na direita do cabeçalho — e todos com 34px de
-   altura (mesma altura do .period-month-button base), pra alinhar de verdade
-   em vez de só "ficar perto". */
+/* Gestão + Mês/YTD/Ano: mesmo grupo (.cockpit-heading-actions), colados entre
+   si e encostados na direita do cabeçalho — e todos com 34px de altura (mesma
+   altura do .period-month-button base), pra alinhar de verdade. */
 .cockpit-heading-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cockpit-header-filters { display: flex; align-items: center; gap: 10px; }
 .cockpit-mobile-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px; }
@@ -28,7 +27,7 @@
    gestão/período/mês some — já está visível no seletor de Gestão, nos botões
    Mês/YTD/Ano e no picker de período do header. Avisos de cobertura (ex.: sem
    Forecast favorito) não viram texto fixo: ficam no title (hover) do ponto ●. */
-.cockpit-source { color: var(--text-soft); font-size: 12px; margin: 0; line-height: 1.6; display: flex; align-items: center; gap: 6px; }
+.cockpit-source { color: var(--text-soft); font-size: 12px; margin: 0; line-height: 1.6; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 .cockpit-source:empty { display: none; }
 .cockpit-source--warn::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--amber); flex-shrink: 0; box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
 .cockpit-panel .cockpit-table-scroll { max-height: 360px; overflow: auto; }

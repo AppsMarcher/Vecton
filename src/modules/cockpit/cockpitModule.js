@@ -16,18 +16,17 @@
     let entered = false; // reseta toda vez que o usuário SAI da tela (ver render())
     function initialize() {
       root = document.querySelector("#cockpit-view");
-      root.innerHTML = `<div class="panel-header cockpit-heading"><div><h1></h1><p>Visão integrada de desempenho, custos e pessoas</p></div><div class="cockpit-heading-actions"><button type="button" class="period-month-button" data-cockpit-refresh>Atualizar dados</button></div></div><p class="cockpit-source"></p><div class="cockpit-status" role="status" aria-live="polite"></div><div class="cockpit-body">${W.shell()}</div>`;
+      root.innerHTML = `<div class="panel-header cockpit-heading"><div><h1></h1><p>Visão integrada de desempenho, custos e pessoas</p></div><div class="cockpit-heading-actions"></div></div><p class="cockpit-source"></p><div class="cockpit-status" role="status" aria-live="polite"></div><div class="cockpit-body">${W.shell()}</div>`;
       body = root.querySelector(".cockpit-body");
       status = root.querySelector(".cockpit-status");
       controls = document.createElement("div");
       controls.id = "cockpit-header-filters";
       controls.className = "cockpit-header-filters";
       controls.innerHTML = `<label class="cockpit-management"><span>Gestão</span><select class="vp-source-sel" aria-label="Gestão"></select></label><div class="cockpit-period-types" role="group" aria-label="Tipo de período">${[["month", "Mês"], ["YTD", "YTD"], ["year", "Ano"]].map(([value, label]) => `<button type="button" class="period-month-button" data-period="${value}" aria-pressed="${value === periodType}">${label}</button>`).join("")}</div>`;
-      // Gestão + Mês/YTD/Ano ficam no cabeçalho local do Cockpit, dentro do
-      // mesmo grupo do botão "Atualizar dados" (.cockpit-heading-actions) —
-      // assim os três ficam colados entre si e encostados na direita, em vez
-      // de espalhados pelo justify-content:space-between do cabeçalho.
-      root.querySelector(".cockpit-heading-actions [data-cockpit-refresh]").before(controls);
+      // Gestão + Mês/YTD/Ano ficam no cabeçalho local do Cockpit, dentro de
+      // .cockpit-heading-actions — colados entre si e encostados na direita,
+      // em vez de espalhados pelo justify-content:space-between do cabeçalho.
+      root.querySelector(".cockpit-heading-actions").append(controls);
       controls.querySelector("select").addEventListener("change", event => { management = event.target.value; render(); });
       controls.querySelectorAll("[data-period]").forEach(button => button.addEventListener("click", () => {
         periodType = button.dataset.period;
@@ -365,7 +364,7 @@
           lastData = data;
           W.render(body, data);
           const sourceEl = root.querySelector(".cockpit-source");
-          sourceEl.textContent = `Comparativo: ${data.comparisonLabel || "Budget"} · Receita líquida total Marcher`;
+          sourceEl.textContent = `Comparativo: ${data.comparisonLabel || "Budget"}`;
           if (data.opex.realized != null && periodType === "year") sourceEl.textContent += ` · Real até a competência: ${F.formatCompactCurrency(data.opex.realized)}`;
           // Avisos (ex.: sem Forecast favorito, cobertura incompleta) não viram mais um
           // parágrafo fixo na tela — ficam só no título do resumo (hover) e na região
