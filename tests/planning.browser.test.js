@@ -53,12 +53,15 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     // Wizard serializes the user's month choices, rather than a fixed 5+7 template.
     await page.evaluate(async () => { fixture.is_admin = true; await testModule.startWizard(document.getElementById('planning'), () => {}); });
     await page.getByLabel('Nome', { exact: true }).fill('Revisão');
+    await page.getByRole('button', { name: 'Ícone 4', exact: true }).click();
     await page.getByRole('button', { name: 'Continuar →', exact: true }).click();
     await page.getByRole('button', { name: 'Continuar →', exact: true }).click();
     await page.getByRole('button', { name: 'Real até maio + formulários', exact: true }).click();
-    for (let i = 0; i < 5; i++) await page.getByRole('button', { name: 'Continuar →', exact: true }).click();
+    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Continuar →', exact: true }).click();
     await page.getByRole('button', { name: 'Criar cenário', exact: true }).click();
     const created = await page.evaluate(() => calls.find(c => c.args?.p_action === 'create').args.p_payload);
+    assert.equal(created.icon, 'vp-icon-dollar');
+    assert.equal(created.forms.length, 0);
     assert.equal(created.months.filter(m => m.type === 'real').length, 5);
     assert.equal(created.months.filter(m => m.type === 'forms').length, 7);
     assert.deepEqual(errors, []);

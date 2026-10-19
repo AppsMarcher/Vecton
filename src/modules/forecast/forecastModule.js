@@ -626,35 +626,20 @@
       }
     }
 
-    function handleRemoveScenario(container, scenario) {
-      document.querySelector(".vp-delete-confirm")?.remove();
-      const pop = document.createElement("div");
-      pop.className = "vp-delete-confirm";
-      pop.innerHTML = `
-        <span>Remover <strong>${escapeHtml(scenario.name)}</strong>?</span>
-        <button class="vp-delete-confirm-yes" type="button">Remover</button>
-        <button class="vp-delete-confirm-no" type="button">Cancelar</button>
-      `;
-      document.body.appendChild(pop);
-      pop.querySelector(".vp-delete-confirm-yes").addEventListener("click", async () => {
-        pop.remove();
-        try {
-          const orgId = await resolveOrganizationId();
-          if (scenario.planning_version && planning) { await planning.remove(scenario); }
-          else { await deleteSupabaseRows("forecast_scenarios", `id=eq.${scenario.id}&organization_id=eq.${orgId}`); }
-          invalidateScenarioCachesFor?.(scenario.id);
-          scenarios = null;
-          const year = Number(state.currentPeriod?.year || 2026);
-          await loadScenarios(year);
-          renderGrid(container);
-        } catch (err) {
-          console.error("Erro ao remover cenário:", err);
-        }
-      });
-      pop.querySelector(".vp-delete-confirm-no").addEventListener("click", () => pop.remove());
-      setTimeout(() => {
-        document.addEventListener("click", (ev) => { if (!pop.contains(ev.target)) pop.remove(); }, { once: true });
-      }, 0);
+    async function handleRemoveScenario(container, scenario) {
+      const confirmed = await window.VECTON_DIALOGS.appConfirm(`Remover o cenário "${scenario.name}"? Esta ação remove seus formulários, valores e projeções.`, 'danger');
+      if (!confirmed) return;
+      try {
+        const orgId = await resolveOrganizationId();
+        if (scenario.planning_version && planning) await planning.remove(scenario);
+        else await deleteSupabaseRows("forecast_scenarios", `id=eq.${scenario.id}&organization_id=eq.${orgId}`);
+        invalidateScenarioCachesFor?.(scenario.id);
+        scenarios = null;
+        await loadScenarios(Number(state.currentPeriod?.year || 2026));
+        renderGrid(container);
+      } catch (err) {
+        await window.VECTON_DIALOGS.appAlert(err.message || 'Não foi possível remover o cenário.', 'error');
+      }
     }
 
     function renderDetail(container, scenario) {

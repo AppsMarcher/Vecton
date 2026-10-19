@@ -74,3 +74,9 @@ Nos meses copiados, a referência exibida nas linhas é o saldo contábil da con
 Aplicar `279_planning_formula_sequencia.sql` antes de publicar o frontend correspondente. O cadastro deixa de pedir referência: fórmulas usam `<1> + <2>` com a sequência de linhas Digitado/Fórmula. A migration converte expressões antigas em uma única passagem, sincroniza a referência interna com a sequência e incrementa revisões para invalidar grades/rascunhos anteriores. A coluna interna permanece por compatibilidade com as RPCs da 278. A sequência continua protegida após salvar valores.
 
 A conta DRE aparece antes da descrição; sua seleção sugere o nome da conta sem sobrescrever uma descrição personalizada.
+
+## Simplificação do wizard e ícone — migration 280
+
+O wizard passa a seis etapas: Identidade, Ponto de partida, Fontes dos meses, Valores iniciais, Liberação e Revisão. Formulários e acessos são configurados dentro do cenário. Uma base copia suas estruturas, com escolha de copiar/zerar valores e liberar/manter em construção; não copia acessos automaticamente. A revisão explicita os formulários copiados. Sem base, o cenário começa sem formulários.
+
+A identidade oferece os 12 ícones já usados pelo Vecton. Aplicar `280_planning_scenario_icon.sql` para persistir o ícone escolhido na criação. A exclusão de cenário usa `VECTON_DIALOGS.appConfirm` com o tipo `danger` e exibe falhas pelo diálogo padrão.

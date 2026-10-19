@@ -109,6 +109,10 @@ const uuid = () => require('node:crypto').randomUUID();
     const migrated = (await db.query('select seq,origin,formula_name,formula_text from planning_form_lines')).rows;
     assert(migrated.every(l => l.formula_name === (l.origin === 'label' ? null : String(l.seq))));
     assert(migrated.filter(l => l.origin === 'formula').every(l => !/<[A-Za-z_]/.test(l.formula_text)));
+    await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/280_planning_scenario_icon.sql'),'utf8'));
+    await as(admin);
+    const withIcon = await write('create',null,{name:'Icon test',year:2030,months:sources,icon:'vp-icon-dollar'});
+    assert.equal((await db.query('select icon from forecast_scenarios where id=$1',[withIcon.id])).rows[0].icon,'vp-icon-dollar');
     console.log('Planning SQL: creation rollback, RLS, access modes, scope, conflict atomicity, publication, idempotency, structural locks, copy, tenant isolation and profile escalation passed.');
   } finally { await db.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
