@@ -33,7 +33,7 @@
     const names = new Map(), asts = new Map(), order = [], visited = new Set();
     for (const line of lines) {
       if (line.origin === 'label') continue;
-      if (!reference.test(line.formula_name || '') || names.has(line.formula_name)) throw Error('Nome para fórmula inválido ou repetido');
+      if (!reference.test(line.formula_name || '') || names.has(line.formula_name)) throw Error('Referência da linha inválida ou repetida. Use letras, números ou sublinhado, sem espaços.');
       names.set(line.formula_name, line);
       if (line.origin === 'formula') asts.set(line.id, parseFormula(line.formula_text));
     }

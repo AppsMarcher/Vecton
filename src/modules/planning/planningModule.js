@@ -174,7 +174,7 @@
     }
     function lineDialog(line = null) {
       const l = line || { seq: Math.max(0, ...lines().map(l => l.seq)) + 1, origin: 'input', style: {} };
-      modal(line ? 'Editar linha' : 'Adicionar linha', `<div class="pl-columns">${field('Sequência', textInput('pl-line-seq', l.seq, 'type="number" min="1"'))}${field('Origem', `<select class="pl-input" id="pl-line-origin">${[['input', 'Digitado'], ['formula', 'Fórmula'], ['label', 'Linha normal']].map(([v, n]) => `<option value="${v}" ${l.origin === v ? 'selected' : ''}>${n}</option>`).join('')}</select>`)}</div>${field('Descrição', textInput('pl-line-name', l.description))}${field('Nome para fórmula', textInput('pl-line-ref', l.formula_name))}${field('Conta DRE analítica (Digitado)', `<select id="pl-line-account" class="pl-input"><option value="">Sem conta</option>${context.accounts.map(a => `<option value="${a.id}" ${a.id === l.account_id ? 'selected' : ''}>${esc(a.account_number)} · ${esc(a.account_name)}</option>`).join('')}</select>`)}${field('Expressão (Fórmula)', textInput('pl-line-expression', l.formula_text))}${field('Agrupamento visual', textInput('pl-line-group', l.group_name))}<label class="pl-choice"><input type="checkbox" id="pl-line-bold" ${l.style?.bold ? 'checked' : ''}>Negrito</label>${line ? button('Excluir linha', 'delete-line', `data-id="${line.id}"`) : ''}<p class="pl-note">Após salvar valores, conta, origem, referências, fórmula e exclusão ficam protegidas no banco.</p>`, async () => {
+      modal(line ? 'Editar linha' : 'Adicionar linha', `<div class="pl-columns">${field('Sequência', textInput('pl-line-seq', l.seq, 'type="number" min="1"'))}${field('Origem', `<select class="pl-input" id="pl-line-origin">${[['input', 'Digitado'], ['formula', 'Fórmula'], ['label', 'Linha normal']].map(([v, n]) => `<option value="${v}" ${l.origin === v ? 'selected' : ''}>${n}</option>`).join('')}</select>`)}</div>${field('Descrição', textInput('pl-line-name', l.description))}${field('Referência da linha', textInput('pl-line-ref', l.formula_name) + '<small>Identificador único, sem espaços. Ex.: SALARIOS. Outras fórmulas podem usar &lt;SALARIOS&gt; para referenciar este valor.</small>')}${field('Conta DRE analítica (Digitado)', `<select id="pl-line-account" class="pl-input"><option value="">Sem conta</option>${context.accounts.map(a => `<option value="${a.id}" ${a.id === l.account_id ? 'selected' : ''}>${esc(a.account_number)} · ${esc(a.account_name)}</option>`).join('')}</select>`)}${field('Expressão (Fórmula)', textInput('pl-line-expression', l.formula_text))}${field('Agrupamento visual', textInput('pl-line-group', l.group_name))}<label class="pl-choice"><input type="checkbox" id="pl-line-bold" ${l.style?.bold ? 'checked' : ''}>Negrito</label>${line ? button('Excluir linha', 'delete-line', `data-id="${line.id}"`) : ''}<p class="pl-note">Após salvar valores, conta, origem, referências, fórmula e exclusão ficam protegidas no banco.</p>`, async () => {
         const origin = root.querySelector('#pl-line-origin').value;
         const payload = { form_id: formId, ...(line ? { id: line.id } : {}), seq: Number(root.querySelector('#pl-line-seq').value), description: root.querySelector('#pl-line-name').value, origin,
           formula_name: origin === 'label' ? null : root.querySelector('#pl-line-ref').value, formula_text: origin === 'formula' ? root.querySelector('#pl-line-expression').value : null,
@@ -183,6 +183,15 @@
         core.compile([...lines().filter(x => x.id !== line?.id), { ...payload, id: line?.id || 'new' }]);
         await write('save_line', payload); close(); await refresh(); await readForm(); render();
       });
+      const originSelect = root.querySelector('#pl-line-origin');
+      const updateFields = () => {
+        const origin = originSelect.value;
+        root.querySelector('#pl-line-ref').closest('label').style.display = origin === 'label' ? 'none' : '';
+        root.querySelector('#pl-line-account').closest('label').style.display = origin !== 'input' ? 'none' : '';
+        root.querySelector('#pl-line-expression').closest('label').style.display = origin !== 'formula' ? 'none' : '';
+      };
+      originSelect.addEventListener('change', updateFields);
+      updateFields();
     }
     async function action(name, el) {
       const d = el.dataset;
