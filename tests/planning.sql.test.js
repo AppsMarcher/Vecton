@@ -25,7 +25,7 @@ const uuid = () => require('node:crypto').randomUUID();
       insert into accounts values('${acc}','${org}','42201','Serviços',true);
       insert into dre_plan_nodes(organization_id,account_id,node_class) values('${org}','${acc}','Analitica');
       select set_config('test.user','${admin}',false);`);
-    for (const name of ['026_create_forecast_scenarios.sql', '056_create_forecast_monthly_account_totals.sql', '057_forecast_scenario_favorite.sql', '271_cenarios_nome_com_ano_estrela_global.sql', '278_planning_participativo.sql', '281_guard_user_profiles.sql', '282_planning_regras_integracao_estrela.sql']) { if (name.startsWith('282')) await db.exec('alter table forecast_scenarios add column if not exists icon text;'); await db.exec(fs.readFileSync(path.join(__dirname, '../supabase', name), 'utf8')); }
+    for (const name of ['026_create_forecast_scenarios.sql', '056_create_forecast_monthly_account_totals.sql', '057_forecast_scenario_favorite.sql', '271_cenarios_nome_com_ano_estrela_global.sql', '278_planning_participativo.sql', '281_guard_user_profiles.sql', '282_planning_regras_integracao_estrela.sql', ...(process.env.PLANNING_SKIP_283 ? [] : ['283_planning_save_entries_em_lote.sql'])]) { if (name.startsWith('282')) await db.exec('alter table forecast_scenarios add column if not exists icon text;'); await db.exec(fs.readFileSync(path.join(__dirname, '../supabase', name), 'utf8')); }
     await db.exec('grant usage on schema public,auth to authenticated; grant select,insert,update,delete on forecast_scenarios,forecast_ledger_entries,user_profiles to authenticated;');
     const as = async who => { await db.exec(`reset role;select set_config('test.user','${who}',false);set role authenticated;`); };
     const write = async (action, scenario, payload = {}, organization = org) => {
@@ -115,6 +115,19 @@ const uuid = () => require('node:crypto').randomUUID();
     await as(admin);await db.query('update user_profiles set management=null where user_id=$1',[writer]);await as(writer);
     assert.equal((await ctx()).forms.length,0,'sem escopo não vê formulários');
     await as(foreign);await assert.rejects(ctx(sid),/acesso/);await assert.rejects(write('create',null,{name:'x',year:2027,months:sources}),/organização/);
+    if (process.env.PLANNING_BENCH) { // Medição opcional: lote de 100 linhas x 12 meses (1.200 células)
+      await as(admin);
+      const bs = (await write('create', null, { name: 'Bench', year: 2031, months: sources, forms: [] })).id;
+      const bf = (await write('save_form', bs, { code: 'B', name: 'Bench' })).id;
+      await db.exec('reset role');
+      await db.query("insert into planning_form_lines(organization_id,form_id,seq,description,origin,formula_name,account_id) select $1,$2,g,'L'||g,'input',g::text,$3 from generate_series(1,100) g", [org, bf, acc]);
+      await as(admin);
+      const bl = (await db.query('select id from planning_form_lines where form_id=$1', [bf])).rows;
+      const cells = bl.flatMap(l => Array.from({ length: 12 }, (_, i) => ({ line_id: l.id, cost_center_id: cc, month: i + 1, amount: 10 + i, version: 0 })));
+      let t = Date.now(); assert.equal((await write('save_entries', bs, { form_id: bf, cells })).ok, true); const first = Date.now() - t;
+      const again = cells.map(c => ({ ...c, version: 1, amount: 99 })); t = Date.now(); assert.equal((await write('save_entries', bs, { form_id: bf, cells: again })).ok, true);
+      console.log(`Bench save_entries (${cells.length} células): inclusão ${first} ms · atualização ${Date.now() - t} ms`);
+    }
     await db.exec('reset role');
     await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/279_planning_formula_sequencia.sql'),'utf8'));
     const migrated = (await db.query('select seq,origin,formula_name,formula_text from planning_form_lines')).rows;

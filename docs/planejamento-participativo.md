@@ -97,3 +97,9 @@ Homologar com usuário não-admin: salvar o perfil, trocar aparência, e o fluxo
 - A estrela (favorito) pode ser marcada também em cenário **bloqueado**, pois é global e não altera o conteúdo.
 
 Na tela de estrutura do formulário, contas que também aparecem em outros formulários do mesmo cenário geram um aviso (os valores se somam no DRE). O aviso não bloqueia.
+
+## Salvamento em lote — migration 283
+
+`283_planning_save_entries_em_lote.sql` redefine `planning_write` (requer 278 a 282) trocando o laço de `save_entries`, que fazia várias consultas por célula, por validação, detecção de conflito e gravação em comandos únicos. Contrato, mensagens e regras de conflito/escopo não mudam. No PostgreSQL isolado (PGlite), 1.200 células caíram de 303 ms para 123 ms na inclusão e de 355 ms para 66 ms na atualização. O benchmark em Supabase real continua necessário. O trigger de auditoria por linha permanece.
+
+Medição opcional: `PLANNING_BENCH=1 node tests/planning.sql.test.js` (e `PLANNING_SKIP_283=1` para comparar com a versão anterior).
