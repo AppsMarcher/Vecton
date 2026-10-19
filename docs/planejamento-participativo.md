@@ -88,3 +88,12 @@ A identidade oferece os 12 ícones já usados pelo Vecton. Aplicar `280_planning
 O upsert do diálogo de perfil (`syncUserProfile`) dispara o BEFORE INSERT mesmo quando a linha já existe; por isso o INSERT só é liberado para a própria linha já existente (vira UPDATE e é conferido). Criar perfil novo segue exclusivo do administrador. Antes do ajuste, `email` e `profile_label` estavam fora da lista e o upsert falharia para não-admins.
 
 Homologar com usuário não-admin: salvar o perfil, trocar aparência, e o fluxo de cadastro/convite (se o primeiro acesso criar o perfil pelo cliente, e não por admin ou edge function, será recusado). A 281 pode ser aplicada antes ou depois da 278.
+
+## Regras da integração e da estrela — migration 282
+
+`282_planning_regras_integracao_estrela.sql` redefine `planning_write` a partir da versão da 280 (requer 278, 279 e 280):
+
+- A integração no DRE publica apenas formulários **liberados**. Formulário em construção não entra, e ao voltar para construção seus valores saem do DRE na próxima integração.
+- A estrela (favorito) pode ser marcada também em cenário **bloqueado**, pois é global e não altera o conteúdo.
+
+Na tela de estrutura do formulário, contas que também aparecem em outros formulários do mesmo cenário geram um aviso (os valores se somam no DRE). O aviso não bloqueia.

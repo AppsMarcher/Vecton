@@ -25,7 +25,7 @@ const uuid = () => require('node:crypto').randomUUID();
       insert into accounts values('${acc}','${org}','42201','Serviços',true);
       insert into dre_plan_nodes(organization_id,account_id,node_class) values('${org}','${acc}','Analitica');
       select set_config('test.user','${admin}',false);`);
-    for (const name of ['026_create_forecast_scenarios.sql', '056_create_forecast_monthly_account_totals.sql', '057_forecast_scenario_favorite.sql', '271_cenarios_nome_com_ano_estrela_global.sql', '278_planning_participativo.sql', '281_guard_user_profiles.sql']) await db.exec(fs.readFileSync(path.join(__dirname, '../supabase', name), 'utf8'));
+    for (const name of ['026_create_forecast_scenarios.sql', '056_create_forecast_monthly_account_totals.sql', '057_forecast_scenario_favorite.sql', '271_cenarios_nome_com_ano_estrela_global.sql', '278_planning_participativo.sql', '281_guard_user_profiles.sql', '282_planning_regras_integracao_estrela.sql']) { if (name.startsWith('282')) await db.exec('alter table forecast_scenarios add column if not exists icon text;'); await db.exec(fs.readFileSync(path.join(__dirname, '../supabase', name), 'utf8')); }
     await db.exec('grant usage on schema public,auth to authenticated; grant select,insert,update,delete on forecast_scenarios,forecast_ledger_entries,user_profiles to authenticated;');
     const as = async who => { await db.exec(`reset role;select set_config('test.user','${who}',false);set role authenticated;`); };
     const write = async (action, scenario, payload = {}, organization = org) => {
@@ -72,6 +72,13 @@ const uuid = () => require('node:crypto').randomUUID();
     await write('lock',sid,{locked:true});await as(writer);
     await assert.rejects(write('save_entries',sid,{form_id:fid,cells:[cell(50,1)]}),/bloqueado/);
     await as(admin);await assert.rejects(write('project',sid,{form_id:fid}),/bloqueado/);await write('lock',sid,{locked:false});
+    // 282: estrela vale em cenário bloqueado; formulário em construção não é integrado.
+    await write('lock',sid,{locked:true});await write('favorite',sid,{enabled:true});await write('favorite',sid,{enabled:false});await write('lock',sid,{locked:false});
+    const antes=await sum();
+    await write('save_form',sid,{id:fid,code:'01',name:'Opex',status:'draft'});
+    assert.equal((await write('project',sid,{form_id:fid})).rows_written,0);assert.equal(await sum(),0);
+    await write('save_form',sid,{id:fid,code:'01',name:'Opex',status:'released'});
+    await write('project',sid,{form_id:fid});assert.equal(await sum(),antes);
     const copy=(await write('create',null,{name:'Cópia',year:2028,months:sources,forms:[{source_form_id:fid,copy_values:true,copy_access:true}]})).id;
     const copied=await ctx(copy);assert.equal(copied.forms.length,1);assert.equal(copied.access.length,2);
     await write('favorite',sid,{enabled:true});await write('favorite',copy,{enabled:true});
@@ -82,6 +89,8 @@ const uuid = () => require('node:crypto').randomUUID();
     await write('import_accounts',sid,{form_id:fid2,account_ids:[acc]});
     assert.equal((await ctx(sid)).lines.filter(l=>l.form_id===fid2).length,1);
     await write('save_entries',sid,{form_id:fid2,cells:[{line_id:lid2,cost_center_id:cc,month:1,amount:25,version:0}]});
+    await write('project',sid,{form_id:fid});assert.equal(await sum(),100);
+    await write('save_form',sid,{id:fid2,code:'02',name:'Outro formulário',status:'released'});
     await write('project',sid,{form_id:fid});assert.equal(await sum(),125);
     await write('project',sid,{form_id:fid});assert.equal(await sum(),125);
     // Snapshot copies are rebased to the destination year and never republished.
