@@ -18,7 +18,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
         months: Array.from({ length: 12 }, (_, i) => ({ reference_month: i + 1, source_type: 'forms' })),
         cost_centers: [{ id: 'cc', cost_center_name: 'TI', cost_center_number: '101' }],
         accounts: [{ id: 'account', account_number: '42201', account_name: 'Software' }], users: [{ user_id: 'writer', full_name: 'Gestor TI' }], access: [], runs: [],
-        lines: [{ id: 'line', form_id: 'form', seq: 1, description: 'Software', origin: 'input', formula_name: 'SOFT', account_id: 'account', style: {} }, { id: 'total', form_id: 'form', seq: 2, description: 'Total', origin: 'formula', formula_name: 'TOTAL', formula_text: '<SOFT>*2', style: {} }]
+        lines: [{ id: 'line', form_id: 'form', seq: 1, description: 'Software', origin: 'input', formula_name: 'SOFT', account_id: 'account', style: {} }, { id: 'total', form_id: 'form', seq: 2, description: 'Total', origin: 'formula', formula_name: 'TOTAL', formula_text: '<1>*2', style: {} }]
       };
       let entries = []; window.calls = [];
       window.fixture = fixture;

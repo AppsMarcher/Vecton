@@ -4,12 +4,12 @@ const vm = require('node:vm');
 const sandbox = { window: {} };
 vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname, '../src/modules/planning/planningCore.js'), 'utf8'), sandbox);
 const c = sandbox.window.VECTON_PLANNING_CORE;
-const lines = [{ id: 'sum', origin: 'formula', formula_name: 'TOTAL', formula_text: '<SUB> * 2' },
-  { id: 'a', origin: 'input', formula_name: 'A' }, { id: 'b', origin: 'input', formula_name: 'B' },
-  { id: 'sub', origin: 'formula', formula_name: 'SUB', formula_text: '<A> + <B>' }];
+const lines = [{ id: 'sum', origin: 'formula', seq: 4, formula_text: '<3> * 2' },
+  { id: 'a', origin: 'input', seq: 1 }, { id: 'b', origin: 'input', seq: 2 },
+  { id: 'sub', origin: 'formula', seq: 3, formula_text: '<1> + <2>' }];
 assert.equal(c.compile(lines)(l => l.id === 'a' ? 10 : -3).sum, 14);
-assert.throws(() => c.compile([...lines, { id: 'cycle', origin: 'formula', formula_name: 'C', formula_text: '<C>' }]), /circular/);
-assert.throws(() => c.compile([{ id: 'x', origin: 'formula', formula_name: 'X', formula_text: '<MISSING>' }]), /inexistente/);
+assert.throws(() => c.compile([...lines, { id: 'cycle', origin: 'formula', seq: 5, formula_text: '<5>' }]), /circular/);
+assert.throws(() => c.compile([{ id: 'x', origin: 'formula', seq: 1, formula_text: '<99>' }]), /inexistente/);
 for (const text of ['window.alert(1)', '1 2', '<A>foo', '2(3)', '1+', '()', '1;2']) assert.throws(() => c.parseFormula(text), /inválida|ausente|incompleta/);
 assert.throws(() => c.evaluate(c.parseFormula('1/(2-2)'), () => 0), /zero/);
 assert.equal(c.evaluate(c.parseFormula('-(2+3)*4/2'), () => 0), -10);

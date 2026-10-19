@@ -1,6 +1,5 @@
 (function (global) {
   'use strict';
-  const reference = /^[A-Za-z0-9_]+$/;
   function parseFormula(text) {
     const source = String(text || '').replace(/\s/g, '');
     if (source.length > 4000) throw Error('Fórmula muito longa');
@@ -33,8 +32,8 @@
     const names = new Map(), asts = new Map(), order = [], visited = new Set();
     for (const line of lines) {
       if (line.origin === 'label') continue;
-      if (!reference.test(line.formula_name || '') || names.has(line.formula_name)) throw Error('Referência da linha inválida ou repetida. Use letras, números ou sublinhado, sem espaços.');
-      names.set(line.formula_name, line);
+      if (!Number.isInteger(Number(line.seq)) || Number(line.seq) < 1 || names.has(String(line.seq))) throw Error('Sequência da linha inválida ou repetida. Use um número inteiro positivo.');
+      names.set(String(line.seq), line);
       if (line.origin === 'formula') asts.set(line.id, parseFormula(line.formula_text));
     }
     function visit(line, path) {
@@ -50,8 +49,8 @@
     lines.filter(l => l.origin !== 'label').forEach(l => visit(l, new Set()));
     return input => {
       const values = new Map();
-      for (const line of order) values.set(line.formula_name, line.origin === 'input' ? Number(input(line) || 0) : evaluate(asts.get(line.id), ref => values.get(ref)));
-      return Object.fromEntries(lines.map(l => [l.id, l.origin === 'label' ? null : values.get(l.formula_name)]));
+      for (const line of order) values.set(String(line.seq), line.origin === 'input' ? Number(input(line) || 0) : evaluate(asts.get(line.id), ref => values.get(ref)));
+      return Object.fromEntries(lines.map(l => [l.id, l.origin === 'label' ? null : values.get(String(l.seq))]));
     };
   }
   function parseAmount(raw) {

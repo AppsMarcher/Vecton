@@ -68,3 +68,9 @@ O teste de navegador abre um perfil isolado do Edge, carrega os módulos reais e
 Sem alterações de RH por posição, Comercial, Fluxo de Caixa, aprovações, variáveis ou novas funções de fórmula. A atualização entre colegas aparece ao reler/salvar; o Realtime não foi acrescentado. Alertas por notificação/e-mail não foram ligados à integração. O desempenho no Supabase e o piloto OPEX dependem de homologação.
 
 Nos meses copiados, a referência exibida nas linhas é o saldo contábil da conta/CC; não é um rateio por formulário. Não somar referências de formulários distintos como se fossem contribuições independentes. A projeção não usa essas referências, preservando a base copiada uma única vez.
+
+## Fórmulas por sequência — migration 279
+
+Aplicar `279_planning_formula_sequencia.sql` antes de publicar o frontend correspondente. O cadastro deixa de pedir referência: fórmulas usam `<1> + <2>` com a sequência de linhas Digitado/Fórmula. A migration converte expressões antigas em uma única passagem, sincroniza a referência interna com a sequência e incrementa revisões para invalidar grades/rascunhos anteriores. A coluna interna permanece por compatibilidade com as RPCs da 278. A sequência continua protegida após salvar valores.
+
+A conta DRE aparece antes da descrição; sua seleção sugere o nome da conta sem sobrescrever uma descrição personalizada.

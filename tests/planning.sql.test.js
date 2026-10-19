@@ -104,6 +104,11 @@ const uuid = () => require('node:crypto').randomUUID();
     await as(admin);await db.query('update user_profiles set management=null where user_id=$1',[writer]);await as(writer);
     assert.equal((await ctx()).forms.length,0,'sem escopo não vê formulários');
     await as(foreign);await assert.rejects(ctx(sid),/acesso/);await assert.rejects(write('create',null,{name:'x',year:2027,months:sources}),/organização/);
+    await db.exec('reset role');
+    await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/279_planning_formula_sequencia.sql'),'utf8'));
+    const migrated = (await db.query('select seq,origin,formula_name,formula_text from planning_form_lines')).rows;
+    assert(migrated.every(l => l.formula_name === (l.origin === 'label' ? null : String(l.seq))));
+    assert(migrated.filter(l => l.origin === 'formula').every(l => !/<[A-Za-z_]/.test(l.formula_text)));
     console.log('Planning SQL: creation rollback, RLS, access modes, scope, conflict atomicity, publication, idempotency, structural locks, copy, tenant isolation and profile escalation passed.');
   } finally { await db.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
