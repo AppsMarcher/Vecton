@@ -22,7 +22,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
    - dados 100% de fontes reais do Supabase (sem massa de demonstração); ver [docs/cockpit-gestao.md](docs/cockpit-gestao.md).
 
 3. **Planejamento**
-   - módulo participativo em `src/modules/planning/`: wizard, construtor de formulários, acessos por pessoa, digitação por CC e integração do cenário inteiro no DRE; requer a migration `278` em homologação — ver [Planejamento participativo](docs/planejamento-participativo.md);
+   - módulo participativo em `src/modules/planning/`: wizard, construtor de formulários, acessos por pessoa, digitação por CC e integração do cenário inteiro no DRE; usa as migrations `278–280` — ver [Planejamento participativo](docs/planejamento-participativo.md);
    - **repositório único de cenários** (Budget, Forecast, revisões), com o **ano no nome** ("Budget 2026", "Fcst 5+7 2026"); o Budget é um cenário como os demais — ver [Cenários versionados por ano](#cenários-versionados-por-ano);
    - combinação de realizado e meses replanejados;
    - **estrela global**: um cenário favorito por organização é o comparativo padrão;
@@ -220,12 +220,27 @@ Pontos de código: `src/core/scenarioSources.js` (funções puras: `withYearSuff
 
 Budget antigo: `budget_ledger_entries` e `budget_monthly_account_totals` foram copiados para o cenário "Budget 2026" (migration `272`) e estão **somente leitura** (trigger da `276`); nenhuma tela lê mais essas tabelas. `budget_import_batches`/`budget_import_rows` seguem como área de staging/validação da carga. Apagar as tabelas antigas é uma decisão à parte. Especificação e plano: `docs/superpowers/specs/2026-10-19-versionamento-cenarios-por-ano-design.md` e `docs/superpowers/plans/2026-10-19-versionamento-cenarios-por-ano.md`.
 
+### Planejamento participativo — atualização de 19/10/2026
+
+O módulo `src/modules/planning/` amplia o repositório de cenários com construção livre de formulários e preenchimento descentralizado. Não depende de modelos fixos. A documentação técnica e o roteiro de homologação estão em [Planejamento participativo](docs/planejamento-participativo.md).
+
+- **Criação e cópia:** `+ Novo cenário` abre um wizard de seis etapas: Identidade, Ponto de partida, Fontes dos meses, Valores iniciais, Liberação e Revisão. Identidade inclui nome, ano, cor e escolha entre os 12 ícones do app. Formulários e acessos são configurados dentro do cenário, sem etapas próprias no wizard. Ao escolher uma base, suas estruturas são copiadas; o administrador escolhe copiar/zerar os inputs e liberar/manter os formulários em construção. Acessos não são copiados automaticamente.
+- **Composição mensal:** cada um dos 12 meses recebe inputs de formulários ou um snapshot de Real/outro cenário. Budget pode começar com 12 meses zerados; Forecast pode combinar fontes. A fonte mensal fica imutável após a criação. Meses copiados ficam em leitura e mantêm o saldo no ano de destino.
+- **Construtor:** linhas Digitado, Fórmula e Linha normal, com sequência, descrição, agrupamento visual e negrito. Para Digitado, a conta DRE analítica aparece antes da descrição; sua escolha sugere o nome da conta, preservando textos personalizados. Fórmulas usam a **sequência**, como `<1> + <2>`; não há campo de referência no cadastro. A migration `279` converte fórmulas antigas e mantém a coluna interna `formula_name` sincronizada apenas por compatibilidade. Há importação de contas e cópia de estruturas dentro do cenário.
+- **Participação:** cada formulário tem acessos por pessoa, com Visualizar ou Lançar valores. O escopo de centros de custo é a interseção com as concessões do perfil. Um CC permite editar; vários mostram a soma em leitura. Visualizar não integra. Não há acesso geral por ausência de escopo.
+- **Preenchimento:** grade de 12 meses, salvamento explícito, fórmulas locais, colagem tabular, navegação por teclado, repetição, distribuição em centavos, cópia entre centros autorizados e exportação dos valores salvos. Rascunhos locais dependem da revisão da estrutura; conflitos de versão rejeitam o lote inteiro para revisão.
+- **Integração:** qualquer participante com Lançar valores em formulário liberado pode integrar. Cada clique reconsolida **todos os formulários do cenário**, usando somente inputs salvos de linhas Digitado. Substitui a projeção anterior sem duplicar valores e preserva snapshots; fórmulas não geram lançamentos. Despesas positivas e receitas negativas seguem a convenção do ledger. A estrela continua global por organização.
+- **Proteções:** após haver valores salvos, sequência, origem, conta, fórmula e exclusão de linhas ficam protegidas. Descrição, agrupamento, negrito e novas linhas continuam disponíveis. Bloqueio manual/agendado impede alterações inclusive de administradores. A exclusão do cenário usa o diálogo padrão `VECTON_DIALOGS.appConfirm` e apresenta eventuais erros no app.
+- **Banco:** tabelas de meses, formulários, linhas, acessos, inputs, execuções e auditoria; leitura com RLS e escrita por RPC (`planning_context`, `planning_read_form`, `planning_write`). Cenários gerenciados não são destinos de cargas por arquivo nem aceitam escrita pelos caminhos legados. A migration `278` também protege campos administrativos de `user_profiles` contra ampliação de privilégios pelo próprio usuário.
+
+**Publicação:** aplicar as migrations `278`, `279` e `280` em ordem antes do frontend correspondente. A migration `280` requer `278` e `279`; conferir a presença das três no histórico do banco ao homologar. O push para `main` dispara o GitHub Pages, mas não confirma que o deploy terminou. A aplicação em produção não substitui a homologação de perfis, conflitos, convites e volume do piloto. Não foram incluídos Realtime no preenchimento, aprovações, notificações de integração ou mudanças de RH/Comercial.
+
 ### DRE
 
 - DRE Societário: estrutura baseada no plano de contas.
 - DRE Gerencial: linhas gerenciais calculadas por grupos de contas.
 - DRE DFs: apresentação baseada no modelo de demonstrações financeiras.
-- Os relatórios "Meta" (Budget) escolhem a fonte entre os cenários do repositório (inclusive "Budget {ano}"); os relatórios Real têm o seletor "Comparar com" (Real de outro ano ou cenário).
+- Os relatórios "Meta" (Budget) escolhem a fonte entre os cenários do repositório (inclusive "Budget {ano}"); os relatórios Real têm o seletor "Comparar com" (Real de outro ano ou cenário). Nos três DREs Meta (Gerencial, Societário e DFs), o seletor fica à direita, na mesma posição dos DREs Real, sem a linha horizontal sob a barra.
 
 Percentuais mensais são calculados contra a Receita Líquida do próprio mês. Na coluna `TOTAL`, o cálculo correto é ponderado:
 
@@ -341,7 +356,7 @@ O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano 
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `277` (281 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `280` (284 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -402,6 +417,9 @@ Resumo por fase:
 | `275` | remove o headcount "orçado" de 2026 (cópia do realizado) de `headcount_entries` e seus lotes |
 | `276` | trava a escrita em `budget_ledger_entries`/`budget_monthly_account_totals` (somente leitura); aplicar depois do deploy do app |
 | `277` | Budget comercial (`scenario_id` nulo) vira o cenário "Budget {ano}"; `comercial_pecas_geo_evolucao_mensal` lê a meta desse cenário |
+| `278` | Planejamento participativo: formulários, acessos, inputs, meses, auditoria, RPCs/RLS e proteção dos campos administrativos do perfil |
+| `279` | converte fórmulas para referências por sequência (`<1> + <2>`), sincroniza a referência interna e invalida revisões antigas |
+| `280` | criação de cenário pela RPC passa a persistir o ícone escolhido no wizard |
 
 ### Divergências conhecidas do schema
 
@@ -489,8 +507,8 @@ assets, incremente também o sufixo de `CACHE_NAME` em `sw.js`.
 
 Versões relevantes neste checkout:
 
-- `styles.css?v=20260925toggle1`
-- `app.js?v=20260925a`
+- `styles.css?v=20261016mkt2`
+- `app.js?v=20261019planning1`
 
 Cada módulo em `src/` carrega seu próprio `?v=`, atualizado independentemente (ver a lista completa de `<script>` em `index.html`); não é preciso subir a versão de `app.js` para publicar um módulo isolado, só a do(s) arquivo(s) alterado(s).
 
@@ -518,7 +536,7 @@ Get-ChildItem .\src -Recurse -Filter *.js | ForEach-Object { node --check $_.Ful
 
 ### Testes
 
-`tests/` tem 27 arquivos, cada um executável isoladamente com `node tests/<arquivo>.test.js` (sem framework — usam `assert` puro e `vm.runInNewContext` para carregar o módulo sob teste isolado do resto do app; massa de dados em `tests/fixtures/`). Os arquivos `*.browser.test.js` sobem uma página real via Playwright (precisa de `npx playwright install` uma vez). Cobrem principalmente: Cockpit (`cockpit.test.js`, `cockpitService.test.js`), Fluxo de Caixa (`fcDashboard.*.test.js`, `fcPlan.*.test.js`, `fcImport.sql.test.js`), tema Claro/Dark (`appearance*.test.js`), RPS (`rpsConcurrency.test.js`, `rpsLayout.test.js`), Mensagens (`messagesAppearance.test.js`, `messagesPresencePicker.test.js`), mapas (`mapAppearance.test.js`, `floatingScrollbar.browser.test.js`) e cenários versionados por ano (`scenarioSources.test.js`, `reportsSources.test.js`, `budgetScenarioTarget.test.js`, `comercialScenarioSource.test.js`, `reportsBuilderBudget.test.js`; além de `opexPlannedManagement.test.js` e `cockpitService.test.js`, ajustados). Os SQL de verificação das migrations ficam em `supabase/tests/` (somente leitura: `271`, `272`, `275`, `277`). Ainda não há um runner único nem integração com CI — rode os arquivos relevantes à mudança manualmente.
+`tests/` tem 30 arquivos, cada um executável isoladamente com `node tests/<arquivo>.test.js` (sem framework — usam `assert` puro e `vm.runInNewContext` para carregar o módulo sob teste isolado do resto do app; massa de dados em `tests/fixtures/`). Os arquivos `*.browser.test.js` sobem uma página real via Playwright (precisa de `npx playwright install` uma vez). Cobrem principalmente: Cockpit (`cockpit.test.js`, `cockpitService.test.js`), Fluxo de Caixa (`fcDashboard.*.test.js`, `fcPlan.*.test.js`, `fcImport.sql.test.js`), tema Claro/Dark (`appearance*.test.js`), RPS (`rpsConcurrency.test.js`, `rpsLayout.test.js`), Mensagens (`messagesAppearance.test.js`, `messagesPresencePicker.test.js`), mapas (`mapAppearance.test.js`, `floatingScrollbar.browser.test.js`) e cenários versionados por ano (`scenarioSources.test.js`, `reportsSources.test.js`, `budgetScenarioTarget.test.js`, `comercialScenarioSource.test.js`, `reportsBuilderBudget.test.js`; além de `opexPlannedManagement.test.js` e `cockpitService.test.js`, ajustados). O Planejamento participativo tem `planningCore.test.js` (aritmética, dependências, ciclos e centavos), `planning.sql.test.js` (PostgreSQL isolado/PGlite: migrations 278–280, permissões, conflitos, integração, conversão de fórmulas e ícones) e `planning.browser.test.js` (Edge isolado com RPCs simuladas: grade, salvamento, fórmulas, acessos e wizard de seis etapas). Esses testes não gravam em produção; instruções e dependências estão em [Planejamento participativo](docs/planejamento-participativo.md). Os SQL de verificação das migrations ficam em `supabase/tests/` (somente leitura: `271`, `272`, `275`, `277`). Ainda não há um runner único nem integração com CI — rode os arquivos relevantes à mudança manualmente.
 
 **Robô de cargas** (`robo-cargas/`): `npm test` na pasta roda 34 testes (`node --test`): território, janela de meses, montagem do SQL, normalização de DRE/vendas, agrupamento de erros, agenda semanal e um teste com **navegador real** (Edge/Chrome) contra uma página de teste, que prova a injeção da sessão e a leitura do HTML. Não precisam de banco nem de Protheus.
 
