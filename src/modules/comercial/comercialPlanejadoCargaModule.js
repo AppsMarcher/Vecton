@@ -47,7 +47,7 @@
     }
 
     let selectedBatchId = state.comercialPlanejadoBatches[0]?.id || null;
-    let selectedScenarioTarget = "budget"; // "budget" | scenario UUID
+    let selectedScenarioTarget = ""; // UUID do cenário de destino ("" = ainda não escolhido)
     let availableScenarios = [];
     let availableScenariosYear = null;
     let rowsPage = 1;
@@ -79,7 +79,7 @@
                 <div class="budget-target-wrap">
                   <span class="budget-target-label">Destino</span>
                   <select id="complan-scenario-select" class="actuals-mode-select">
-                    <option value="budget">Budget</option>
+                    <option value="">Carregando cenários…</option>
                   </select>
                 </div>
               </div>
@@ -175,7 +175,7 @@
       document.querySelector("#complan-period-button")?.addEventListener("click", () => periodTrigger?.click());
       document.querySelector("#complan-back")?.addEventListener("click", () => onBack?.());
       document.querySelector("#complan-scenario-select")?.addEventListener("change", (e) => {
-        selectedScenarioTarget = e.target.value || "budget";
+        selectedScenarioTarget = e.target.value || "";
       });
 
       document.querySelector("#complan-rows-search")?.addEventListener("input", (event) => {
@@ -248,7 +248,7 @@
         const orgId = await resolveOrganizationId();
         const rows = await fetchSupabaseRowsSafe(
           "forecast_scenarios",
-          `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name`
+          `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name,reference_year`
         );
         availableScenarios = rows || [];
         availableScenariosYear = year;
@@ -262,15 +262,17 @@
     function populateScenarioSelect() {
       const sel = document.querySelector("#complan-scenario-select");
       if (!sel) return;
-      sel.innerHTML = [
-        `<option value="budget">Budget</option>`,
-        ...availableScenarios.map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`)
-      ].join("");
-      if (!availableScenarios.some((s) => s.id === selectedScenarioTarget)) {
-        if (selectedScenarioTarget !== "budget") selectedScenarioTarget = "budget";
+      // Destinos = cenários do ano da competência ("Budget {ano}" vem pré-selecionado).
+      const { loadTargetsForYear, pickDefaultLoadTarget } = window.VECTON_SCENARIO_SOURCES;
+      const year = Number(state.currentPeriod?.year);
+      const targets = loadTargetsForYear(availableScenarios, year);
+      sel.innerHTML = targets.length
+        ? targets.map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("")
+        : `<option value="">Nenhum cenário em ${year} — crie no Repositório</option>`;
+      if (!targets.some((s) => s.id === selectedScenarioTarget)) {
+        selectedScenarioTarget = pickDefaultLoadTarget(availableScenarios, year);
       }
       sel.value = selectedScenarioTarget;
-      if (sel.value !== selectedScenarioTarget) sel.value = "budget";
     }
 
     function scenarioLabel(scenarioId) {
@@ -542,8 +544,12 @@
         setFeedback("Selecione um arquivo para importar.", "error");
         return;
       }
+      if (!selectedScenarioTarget) {
+        setFeedback("Escolha o cenário de destino da carga.", "error");
+        return;
+      }
       if (loadMode === "complete") {
-        const confirmed = await appConfirm(`Carga completa vai apagar a meta dos meses presentes no arquivo, no destino "${scenarioLabel(selectedScenarioTarget === "budget" ? null : selectedScenarioTarget)}", e substituir (os meses ausentes ficam intactos). Deseja continuar?`, "warn");
+        const confirmed = await appConfirm(`Carga completa vai apagar a meta dos meses presentes no arquivo, no destino "${scenarioLabel(selectedScenarioTarget)}", e substituir (os meses ausentes ficam intactos). Deseja continuar?`, "warn");
         if (!confirmed) return;
       }
       try {
@@ -785,7 +791,7 @@
     // ------------------------------------------------------ persistence
 
     async function createBatch({ loadMode, sourceType, sourceFileName }) {
-      const scenarioId = selectedScenarioTarget !== "budget" ? selectedScenarioTarget : null;
+      const scenarioId = selectedScenarioTarget || null;
       const batch = normalizeBatch({
         id: crypto.randomUUID(),
         scenarioId,

@@ -395,9 +395,9 @@
       return ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][m - 1] || "";
     }
     function cenarioLabel(id) {
-      if (!id) return "Budget";
+      if (!id) return "Sem cenário";
       const found = scenarios.find((s) => s.id === id);
-      return found ? found.name : "Budget";
+      return found ? found.name : "Sem cenário";
     }
 
     // Grade de mês/ano -- escolhe A QUE mês/ano o painel se refere (Mês exibe
@@ -433,7 +433,7 @@
 
     function filtersBlock() {
       const summary = periodLabel() + " · " + cenarioLabel(ui.scenarioId);
-      const cenarioItems = [{ id: "", label: "Budget" }].concat(scenarios.map((s) => ({ id: s.id, label: s.name })))
+      const cenarioItems = scenarios.map((s) => ({ id: s.id, label: s.name }))
         .map((c) => {
           const selected = (c.id || null) === (ui.scenarioId || null);
           return '<button type="button" class="vmob-cenario-item' + (selected ? " is-selected" : "") + '" data-action="select-cenario" data-id="' + c.id + '">' +

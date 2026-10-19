@@ -325,10 +325,8 @@
 
     function render(container) {
       ensureStyle();
-      // "Budget" e' sentinela (scenario_id null) -- tem que aparecer sempre no
-      // dropdown, nao so quando `scenarios` vem vazio, senao fica impossivel
-      // selecionar Budget assim que existir pelo menos 1 cenario de forecast.
-      const scenOpts = `<option value=""${!scenarioId ? " selected" : ""}>Budget</option>` +
+      // O Budget agora e' um cenario como os demais ("Budget {ano}", repositorio de cenarios).
+      const scenOpts = (scenarios.length ? "" : `<option value="" selected>Sem cenário no ano</option>`) +
         scenarios.map((s) => `<option value="${escapeHtml(s.id)}"${s.id === scenarioId ? " selected" : ""}>${escapeHtml(s.name)}</option>`).join("");
       container.innerHTML = `
         <div class="cvp">

@@ -73,9 +73,9 @@
     let activeOverlay = null;
     let runtimeToken = 0;
     const rankingSorts = new Map();
-    // reportId -> scenarioId (null = Budget). Ausente = ainda não resolvido;
-    // a primeira renderização de cada relatório assume o cenário favorito da
-    // organização (is_default em forecast_scenarios), nunca o Budget fixo.
+    // reportId -> scenarioId. Ausente = ainda não resolvido; a primeira renderização de
+    // cada relatório assume a estrela global (se for cenário do ano), senão o cenário
+    // "Budget {ano}", senão o primeiro cenário do ano.
     const scenarioSelections = new Map();
     // reportId -> "monthly"|"annual_ytd". Ausente = usa a modalidade oficial
     // gravada no relatório (comportamento de sempre). Toggle ao vivo Mês/YTD
@@ -88,10 +88,11 @@
         const org = await resolveOrganizationId();
         const scenarios = await fetchSupabaseRowsSafe(
           "forecast_scenarios",
-          `organization_id=eq.${org}&reference_year=eq.${year}&order=created_at.asc&select=id,is_default`
+          `organization_id=eq.${org}&reference_year=eq.${year}&order=created_at.asc&select=id,name,is_default`
         );
-        const fav = (scenarios || []).find((scenario) => scenario.is_default);
-        return fav ? fav.id : null;
+        const list = scenarios || [];
+        const chosen = list.find((s) => s.is_default) || list.find((s) => s.name === `Budget ${year}`) || list[0];
+        return chosen ? chosen.id : null;
       } catch (_) {
         return null;
       }
@@ -1387,7 +1388,7 @@
       // vendedor e cultura) — "Desempenho de um vendedor" já é YTD fixo, e
       // os demais eixos/campanhas não pediram essa opção.
       const supportsModalidadeToggle = isTeamComparison || isSellerCultureComposition;
-      const scenarioOptions = `<option value="" ${!scenarioId ? "selected" : ""}>Budget</option>` + scenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}" ${scenario.id === scenarioId ? "selected" : ""}>${escapeHtml(scenario.name)}</option>`).join("");
+      const scenarioOptions = (scenarios.length ? "" : `<option value="" selected>Sem cenário no ano</option>`) + scenarios.map((scenario) => `<option value="${escapeHtml(scenario.id)}" ${scenario.id === scenarioId ? "selected" : ""}>${escapeHtml(scenario.name)}</option>`).join("");
       const modalidadeToggleHtml = supportsModalidadeToggle
         ? `<div class="vcr-inline-field"><span>Período</span><div class="vcr-period-seg" id="vcr-runtime-modalidade">
           <button type="button" data-mode="monthly" class="${payload.report?.mode !== "annual_ytd" ? "active" : ""}">Mês</button>
