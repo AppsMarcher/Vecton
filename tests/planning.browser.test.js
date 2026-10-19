@@ -8,6 +8,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     const errors = []; page.on('pageerror', e => errors.push(e.message));
     await page.setContent('<main id="planning"></main>');
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningCore.js') });
+    await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningViews.js') });
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningModule.js') });
     await page.addStyleTag({ path: path.join(__dirname, '../src/modules/planning/planning.css') });
     await page.evaluate(() => {

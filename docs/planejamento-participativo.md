@@ -34,7 +34,7 @@ A proteção dos campos administrativos de `user_profiles` (impedir auto-promoç
 
 `src/modules/planning/planningCore.js` implementa parser aritmético sem `eval`/`new Function`, dependências/ciclos, validação numérica e distribuição em centavos.
 
-`planningModule.js` contém o wizard e o workspace, sem dados demonstrativos. `planning.css` usa os tokens do Vecton nos dois temas. `forecastModule.js` integra o novo fluxo preservando os relatórios e cenários antigos. A ausência de `planning_context` mantém a criação antiga disponível até aplicar a migration.
+O front se divide em três arquivos carregados nesta ordem: `planningCore.js` (fórmulas, valores, centavos), `planningViews.js` (telas do wizard, cenário, estrutura, acessos e grade; só montam HTML a partir do estado recebido) e `planningModule.js` (estado, chamadas ao servidor, eventos e diálogos), sem dados demonstrativos. `planning.css` usa os tokens do Vecton nos dois temas. `forecastModule.js` integra o novo fluxo preservando os relatórios e cenários antigos. A ausência de `planning_context` mantém a criação antiga disponível até aplicar a migration.
 
 O rascunho local é identificado por organização, usuário, cenário, formulário e centros. Falha de localStorage não impede o preenchimento. A recuperação depende da mesma revisão de estrutura e o save sempre revalida as versões no servidor. Não há edição offline ou publicação automática.
 
