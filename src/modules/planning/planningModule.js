@@ -56,6 +56,11 @@
         catch (_) { /* Partial input is validated on blur. */ }
       };
       root.onpaste = paste;
+      root.oncontextmenu = e => {
+        const cell = e.target.closest?.('[data-cell]');
+        if (!cell || cell.disabled) return;
+        e.preventDefault(); void run(() => cellMenu(e, cell));
+      };
       root.onfocusin = e => {
         if (e.target.dataset.cell) {
           e.target.dataset.beforeEdit = String(changes.get(e.target.dataset.cell)?.amount ?? entry(e.target.dataset.cell)?.amount ?? 0);
@@ -223,7 +228,6 @@
           // One server transaction for the entire selection.
           await write('import_accounts', { form_id: formId, account_ids: [...root.querySelectorAll('[data-import]:checked')].map(e => e.dataset.import) }); close(); await refresh(); await readForm(); render();
         });
-        case 'shortcuts': return shortcuts(d.line, Number(d.month));
         case 'export': return exportExcel();
       }
     }
@@ -239,14 +243,34 @@
         el.value = fmt(changes.get(el.dataset.cell).amount); updateGrid();
       }
     }
-    function shortcuts(lineId, month) {
-      modal('Atalhos de preenchimento', `${field('Ação', '<select id="pl-shortcut" class="pl-input"><option value="repeat">Repetir até dezembro</option><option value="distribute">Distribuir total entre meses editáveis</option><option value="copy">Copiar outro centro de custo</option></select>')}${field('Total a distribuir', textInput('pl-total', '0,00'))}${field('Centro de origem', `<select id="pl-origin-cc" class="pl-input">${context.cost_centers.filter(c => !selectedCC.includes(c.id)).map(c => `<option value="${c.id}">${esc(c.cost_center_name)}</option>`).join('')}</select>`)}<p class="pl-note">Substitui valores na grade; clique em Salvar para gravar. Cole blocos do Excel diretamente nas células.</p>`, async () => {
-        const kind = root.querySelector('#pl-shortcut').value;
-        if (kind === 'repeat') { const k = key(lineId, selectedCC[0], month); const amount = changes.get(k)?.amount ?? entry(k)?.amount ?? 0; inputMonths().filter(m => m > month).forEach(m => setChange(key(lineId, selectedCC[0], m), amount)); }
-        else if (kind === 'distribute') { const values = core.distribute(core.parseAmount(root.querySelector('#pl-total').value), inputMonths().length); inputMonths().forEach((m, i) => setChange(key(lineId, selectedCC[0], m), values[i])); }
-        else { const cc = root.querySelector('#pl-origin-cc').value; if (!cc) throw Error('Selecione o centro de origem'); const data = await rpc('planning_read_form', { p_org: org, p_form: formId, p_cc_ids: [cc] }); lines().filter(l => l.origin === 'input').forEach(l => inputMonths().forEach(m => setChange(key(l.id, selectedCC[0], m), Number(data.entries.find(e => e.line_id === l.id && e.reference_month === m)?.amount || 0)))); }
-        close(); render();
+    // Menu de clique direito da célula: repetir até dezembro, distribuir e colar valor.
+    function closeCellMenu() { document.querySelector('.pl-ctx')?.remove(); }
+    async function clipboardAmount() {
+      try {
+        const raw = (await navigator.clipboard.readText()).trim();
+        return raw && !/[\t\n]/.test(raw) ? core.parseAmount(raw) : null;
+      } catch (_) { return null; }
+    }
+    async function cellMenu(e, cell) {
+      closeCellMenu();
+      const [lineId, , month] = cell.dataset.cell.split('|'), k = cell.dataset.cell, m = Number(month);
+      const current = () => changes.get(k)?.amount ?? entry(k)?.amount ?? 0;
+      const following = inputMonths().filter(x => x >= m), pasted = await clipboardAmount();
+      const items = [
+        ['Repetir até dezembro', true, () => inputMonths().filter(x => x > m).forEach(x => setChange(key(lineId, selectedCC[0], x), current()))],
+        ['Distribuir entre os meses', true, () => core.distribute(current(), following.length).forEach((v, i) => setChange(key(lineId, selectedCC[0], following[i]), v))],
+        ['Colar valor' + (pasted === null ? '' : ` (${fmt(pasted)})`), pasted !== null, () => setChange(k, pasted)]
+      ];
+      const menu = document.createElement('div'); menu.className = 'pl-ctx'; menu.setAttribute('role', 'menu');
+      items.forEach(([label, enabled, apply]) => {
+        const b = document.createElement('button'); b.type = 'button'; b.setAttribute('role', 'menuitem'); b.textContent = label; b.disabled = !enabled;
+        b.onclick = () => { closeCellMenu(); void run(async () => { apply(); render(); }); };
+        menu.appendChild(b);
       });
+      document.body.appendChild(menu);
+      menu.style.left = Math.min(e.clientX, innerWidth - menu.offsetWidth - 8) + 'px'; menu.style.top = Math.min(e.clientY, innerHeight - menu.offsetHeight - 8) + 'px';
+      const off = ev => { if (ev.type === 'keydown' && ev.key !== 'Escape') return; if (ev.target.closest?.('.pl-ctx')) return; closeCellMenu(); ['pointerdown', 'keydown', 'scroll', 'resize'].forEach(t => removeEventListener(t, off, true)); };
+      ['pointerdown', 'keydown', 'scroll', 'resize'].forEach(t => addEventListener(t, off, true));
     }
     function paste(e) {
       if (!e.target.dataset.cell || e.target.disabled) return; const raw = e.clipboardData.getData('text'); if (!/[\t\n]/.test(raw)) return;

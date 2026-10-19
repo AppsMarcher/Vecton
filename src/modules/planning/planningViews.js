@@ -8,7 +8,7 @@
     const field = (label, html) => `<label class="pl-field">${label}${html}</label>`;
     const textInput = (id, value = '', attrs = '') => `<input class="pl-input" id="${id}" value="${esc(value)}" ${attrs}>`;
     const off = locked => (locked ? 'disabled' : '');
-    const statusBadge = f => `<span class="pl-badge">${f.status === 'released' ? 'Liberado' : 'Em construção'}</span>`;
+    const statusBadge = f => `<span class="pl-badge${f.status === 'released' ? ' pl-badge--ok' : ''}">${f.status === 'released' ? 'Liberado' : 'Em construção'}</span>`;
     const tabButtons = (tabs, action, current) => tabs.map(([id, name]) => button(name, action, `data-tab="${id}" ${current === id ? 'aria-pressed="true"' : ''}`)).join('');
 
     // ── Criação guiada ─────────────────────────────────────────────────────
@@ -84,14 +84,14 @@
     function scenario(st) {
       const f = st.form(), locked = st.locked();
       const adminActions = st.admin() ? button('Copiar cenário', 'copy-scenario') + button(locked ? 'Desbloquear' : 'Bloquear', 'lock') : '';
-      return `<div class="pl-heading">${button('← Cenários', 'exit')}<div class="pl-actions">${adminActions}</div></div><div class="pl-heading"><h1>${esc(st.scenario.name)}</h1><span class="pl-badge">${locked ? 'Bloqueado' : 'Aberto'}</span></div>${locked ? '<p class="pl-note">Cenário bloqueado: somente leitura para todos.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
+      return `<div class="pl-heading">${button('← Cenários', 'exit')}<div class="pl-actions">${adminActions}</div></div><div class="pl-heading"><h1>${esc(st.scenario.name)}</h1><span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span></div>${locked ? '<p class="pl-note">Cenário bloqueado: somente leitura para todos.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
     }
 
     // ── Formulário: preenchimento, estrutura e acessos ─────────────────────
     function formView(st, f) {
       const tabs = [['input', 'Preenchimento'], ...(st.admin() ? [['structure', 'Estrutura'], ['access', 'Acessos']] : [])];
       const body = st.formTab === 'input' ? grid(st) : st.formTab === 'structure' ? structure(st) : access(st);
-      return `${button('← Formulários', 'index')}<div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO ${esc(f.code)}</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div><nav class="pl-tabs">${tabButtons(tabs, 'form-tab', st.formTab)}</nav>${body}`;
+      return `${button('← Formulários', 'index')}<div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO ${esc(f.code)}</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div><div class="pl-tabrow"><nav class="pl-tabs">${tabButtons(tabs, 'form-tab', st.formTab)}</nav>${st.formTab === 'input' ? gridToolbar(st) : ''}</div>${body}`;
     }
     // Contas digitadas também em outro formulário do cenário: os valores se somam no DRE.
     function sharedAccountsNote(st) {
@@ -131,8 +131,7 @@
       if (l.origin === 'label') return '<td></td>';
       if (l.origin === 'input' && st.inputMonths().includes(i + 1)) {
         const input = `<input class="pl-cell" data-cell="${st.key(l.id, st.selectedCC[0], i + 1)}" aria-label="${esc(l.description)} ${months[i]}" value="${fmt(values[i][l.id])}" ${editable ? '' : 'disabled'}>`;
-        const shortcut = editable ? button('⋯', 'shortcuts', `data-line="${l.id}" data-month="${i + 1}" aria-label="Atalhos ${esc(l.description)} ${months[i]}"`) : '';
-        return `<td>${input}${shortcut}</td>`;
+        return `<td>${input}</td>`;
       }
       const v = values[i][l.id];
       return `<td><span data-value="${l.id}|${i}">${typeof v === 'number' ? fmt(v) : esc(v || '')}</span></td>`;
@@ -140,8 +139,12 @@
     function gridRow(st, l, values, editable) {
       const cells = months.map((_, i) => gridCell(st, l, i, values, editable)).join('');
       const total = l.origin === 'label' ? '' : typeof values[0][l.id] === 'number' ? fmt(values.reduce((n, v) => n + (typeof v[l.id] === 'number' ? v[l.id] : 0), 0)) : 'Erro';
-      const number = l.account_id ? `<small>${esc(st.accountNumbers.get(l.account_id) || '')}</small>` : '';
-      return `<tr class="${l.origin === 'formula' ? 'pl-subtotal' : ''}"><td style="font-weight:${l.style?.bold ? '600' : '400'}">${number}${esc(l.description)}</td>${cells}<td data-total="${l.id}">${total}</td></tr>`;
+      const number = l.account_id ? `<small class="pl-acc-num">${esc(st.accountNumbers.get(l.account_id) || '')}</small>` : '';
+      return `<tr class="${l.origin === 'formula' ? 'pl-subtotal' : ''}"><td style="font-weight:${l.style?.bold ? '600' : '400'}">${number}<span class="pl-acc-name">${esc(l.description)}</span></td>${cells}<td data-total="${l.id}">${total}</td></tr>`;
+    }
+    function gridToolbar(st) {
+      const f = st.form(), locked = st.locked();
+      return `<div class="pl-actions pl-toolbar">${costCenterPicker(st)}${button('Exportar Excel', 'export')}${f.access_mode === 'write' ? button('Integrar no DRE', 'project', off(locked), true) : ''}</div>`;
     }
     function grid(st) {
       const { selectedCC, changes } = st, f = st.form(), locked = st.locked();
@@ -149,9 +152,8 @@
       const values = st.computed();
       const head = months.map((m, i) => `<th>${m}${st.inputMonths().includes(i + 1) ? '' : '<small>Copiado</small>'}</th>`).join('');
       const rows = st.lines().map(l => gridRow(st, l, values, editable)).join('');
-      const toolbar = `<div class="pl-heading">${costCenterPicker(st)}<div class="pl-actions">${button('Exportar Excel', 'export')}${f.access_mode === 'write' ? button('Integrar no DRE', 'project', off(locked), true) : ''}</div></div>`;
       const footer = `<div class="pl-heading pl-footer"><span id="pl-save-state" class="pl-muted">${changes.size ? `${changes.size} alterações não salvas` : 'Valores salvos'}</span><div class="pl-actions">${button('Descartar', 'discard', !changes.size ? 'disabled' : '')}${button('Salvar valores', 'save', !changes.size || !editable ? 'disabled' : '', true)}</div></div>`;
-      return `${toolbar}${selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram a soma em leitura.</p>' : ''}<div class="pl-table-scroll"><table class="pl-grid"><thead><tr><th>Linha</th>${head}<th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>${footer}`;
+      return `${selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram a soma em leitura.</p>' : ''}<div class="pl-table-scroll"><table class="pl-grid"><thead><tr><th>Linha</th>${head}<th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>${footer}`;
     }
 
     return { fmt, button, field, textInput, steps, wizard, scenario };
