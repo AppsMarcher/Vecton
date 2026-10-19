@@ -77,7 +77,7 @@
       return `<h2>Integrações do cenário</h2><p class="pl-muted">Cada execução atualiza todos os formulários, usando somente valores salvos.</p><div class="pl-table-scroll"><table><thead><tr><th>Início</th><th>Status</th><th>Linhas publicadas</th><th>Detalhes</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }
     function scenarioHome(st) {
-      const tabs = tabButtons([['forms', 'Formulários'], ...(st.admin() ? [['sources', 'Fontes dos meses'], ['runs', 'Integrações no DRE']] : [])], 'tab', st.admin() ? st.tab : 'forms');
+      const tabs = st.admin() ? tabButtons([['forms', 'Formulários'], ['sources', 'Fontes dos meses'], ['runs', 'Integrações no DRE']], 'tab', st.tab) : '';
       const body = !st.admin() || st.tab === 'forms' ? formsList(st) : st.tab === 'sources' ? sourcesList(st) : runsList(st);
       return `<nav class="pl-tabs">${tabs}${button('Ver DRE', 'dre')}</nav>${body}`;
     }
@@ -91,7 +91,7 @@
     function formView(st, f) {
       const tabs = [['input', 'Preenchimento'], ...(st.admin() ? [['structure', 'Estrutura'], ['access', 'Acessos']] : [])];
       const body = st.formTab === 'input' ? grid(st) : st.formTab === 'structure' ? structure(st) : access(st);
-      return `<div class="pl-heading">${button('← Formulários', 'index')}${st.formTab === 'input' ? button('Exportar Excel', 'export') : ''}</div><div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO ${esc(f.code)}</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div><div class="pl-tabrow">${tabs.length > 1 ? `<nav class="pl-tabs">${tabButtons(tabs, 'form-tab', st.formTab)}</nav>` : ''}${st.formTab === 'input' ? gridToolbar(st) : ''}</div>${body}`;
+      return `<div class="pl-heading">${button('← Formulários', 'index')}${st.formTab === 'input' ? `<div class="pl-actions">${f.access_mode === 'write' ? button('Integrar no DRE', 'project', off(st.locked()), true) : ''}${button('Exportar Excel', 'export')}</div>` : ''}</div><div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO ${esc(f.code)}</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div><div class="pl-tabrow">${tabs.length > 1 ? `<nav class="pl-tabs">${tabButtons(tabs, 'form-tab', st.formTab)}</nav>` : ''}${st.formTab === 'input' ? gridToolbar(st) : ''}</div>${body}`;
     }
     // Contas digitadas também em outro formulário do cenário: os valores se somam no DRE.
     function sharedAccountsNote(st) {
@@ -144,7 +144,7 @@
     }
     function gridToolbar(st) {
       const f = st.form(), locked = st.locked();
-      return `<div class="pl-actions pl-toolbar">${costCenterPicker(st)}${f.access_mode === 'write' ? button('Integrar no DRE', 'project', off(locked), true) : ''}</div>`;
+      return `<div class="pl-actions pl-toolbar">${costCenterPicker(st)}</div>`;
     }
     function grid(st) {
       const { selectedCC, changes } = st, f = st.form(), locked = st.locked();
