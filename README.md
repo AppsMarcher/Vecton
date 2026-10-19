@@ -22,8 +22,9 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
    - dados 100% de fontes reais do Supabase (sem massa de demonstração); ver [docs/cockpit-gestao.md](docs/cockpit-gestao.md).
 
 3. **Planejamento**
-   - criação e manutenção de cenários de forecast;
-   - combinação de realizado, budget e meses replanejados;
+   - **repositório único de cenários** (Budget, Forecast, revisões), com o **ano no nome** ("Budget 2026", "Fcst 5+7 2026"); o Budget é um cenário como os demais — ver [Cenários versionados por ano](#cenários-versionados-por-ano);
+   - combinação de realizado e meses replanejados;
+   - **estrela global**: um cenário favorito por organização é o comparativo padrão;
    - consultas de DRE, OPEX e Headcount por cenário.
 
 4. **Fluxo de Caixa**
@@ -101,6 +102,7 @@ src/
 │   ├── appearance.js  tema Claro/Dark
 │   ├── constants.js
 │   ├── pwa.js
+│   ├── scenarioSources.js  fontes dos seletores: "Real {ano}" + cenários, nome com ano, fonte padrão
 │   ├── storage.js
 │   └── utils.js
 └── modules/
@@ -200,12 +202,29 @@ Exceção já aplicada: o RPC `comercial_margens_itens` (Evolutivo de Margens) v
 
 ## Relatórios financeiros
 
+### Cenários versionados por ano
+
+Todo dado de planejamento do DRE/OPEX (Budget, Forecast, revisões) vive num **repositório único**: `forecast_scenarios` + `forecast_ledger_entries` (+ `forecast_monthly_account_totals`, mantido por trigger) e `forecast_headcount_entries` para o Headcount planejado. O Real continua em `actuals_*`.
+
+Regras:
+
+- O **ano faz parte do nome** do cenário, no banco e na tela ("Budget 2026", "Fcst 5+7 2026"). O nome é **único por organização**; ao criar um cenário o sistema acrescenta o ano de `reference_year` (sem duplicar se já digitado).
+- O **toggle do cabeçalho controla só o Real**. Os seletores "Comparar com" (DRE Real, OPEX Real) e "Fonte" (DRE/OPEX/Headcount "Meta") listam fontes de **qualquer ano** e leem os dados **no ano da própria fonte** (cenário de 2026 continua lendo 2026 com o toggle em 2027). Dá para comparar Real × Real.
+- Valores de fonte: `real:{ano}` (só anos com Real carregado, via RPC `list_actuals_reference_years`) e `scenario:{id}`. O valor legado `budget` é lido como o cenário "Budget {ano do toggle}".
+- A **estrela** (`is_default`) é única por organização e define o comparativo padrão (DRE, Dashboard, Cockpit). Sem estrela, o padrão é "Budget {ano}".
+- **Cargas**: o destino é sempre um cenário do ano da competência ("Budget {ano}" vem pré-selecionado). Carga completa sobre mês com dados pede confirmação e sobrescreve; nunca cria cenário duplicado. Cada carga grava uma linha em `scenario_load_log` (histórico simplificado, sem as linhas do arquivo e sem "desfazer lote").
+- O **Comercial** (meta de vendas) usa os mesmos cenários: o Budget comercial também é o cenário "Budget {ano}" (`scenario_id` das tabelas `comercial_planejado_*`).
+
+Pontos de código: `src/core/scenarioSources.js` (funções puras: `withYearSuffix`, `buildSourceOptions`, `parseSource`, `resolveDefaultSource`, `chooseSource`, `loadTargetsForYear`, `pickDefaultLoadTarget`) e, no `app.js`, o bloco `rowsForSource`/`resolveSourceRef`/`ledgerFullFetcherForSource` (entre os marcadores `BEGIN/END rowsForSource`), `fetchAllScenarios` e `fetchRealYears`.
+
+Budget antigo: `budget_ledger_entries` e `budget_monthly_account_totals` foram copiados para o cenário "Budget 2026" (migration `272`) e estão **somente leitura** (trigger da `276`); nenhuma tela lê mais essas tabelas. `budget_import_batches`/`budget_import_rows` seguem como área de staging/validação da carga. Apagar as tabelas antigas é uma decisão à parte. Especificação e plano: `docs/superpowers/specs/2026-10-19-versionamento-cenarios-por-ano-design.md` e `docs/superpowers/plans/2026-10-19-versionamento-cenarios-por-ano.md`.
+
 ### DRE
 
 - DRE Societário: estrutura baseada no plano de contas.
 - DRE Gerencial: linhas gerenciais calculadas por grupos de contas.
 - DRE DFs: apresentação baseada no modelo de demonstrações financeiras.
-- As versões Budget podem usar o budget oficial ou um cenário de forecast.
+- Os relatórios "Meta" (Budget) escolhem a fonte entre os cenários do repositório (inclusive "Budget {ano}"); os relatórios Real têm o seletor "Comparar com" (Real de outro ano ou cenário).
 
 Percentuais mensais são calculados contra a Receita Líquida do próprio mês. Na coluna `TOTAL`, o cálculo correto é ponderado:
 
@@ -220,7 +239,8 @@ Essa regra é usada nos percentuais do DRE Gerencial e nas linhas `%RL` do DRE D
 - Perfis restritos recebem filtros por gestão e centros de custos.
 - O drill-down deve usar o mesmo recorte da tabela principal.
 - O dashboard pode mostrar visão consolidada, mas o drill-down respeita as concessões do usuário.
-- Budget e Forecast usam seletores de fonte nos relatórios aplicáveis.
+- OPEX e Headcount "Meta" usam seletores de fonte com os cenários do repositório; o OPEX Real compara com Real de outro ano ou cenário. O OPEX Meta consolidado (Marcher, sem restrição de CC) lê o resumo conta × mês do cenário; gestão específica, acesso parcial ou perfil restrito leem o ledger por CC.
+- O **Headcount planejado** vive no cenário (`forecast_headcount_entries`), no ano do cenário. O tipo "orçado" avulso (`headcount_entries`, `load_type=orcado`) foi descontinuado: as linhas de 2026 eram cópia do realizado e foram removidas (migration `275`). A carga de Headcount planejado também tem sempre um cenário como destino.
 - A lista de contas do Headcount (`HC_PESSOAL_ACCOUNTS`, `app.js`) é fixa no código: 105 contas, incluindo `4220100003033` (COM_PRO-LABORE).
 - A mesma conta `4220100003033` está no OPEX, grupo "DESPESAS COM PESSOAL - COM", via `report_account_assignments` (banco), sem duplicar. Atribuições feitas em Parâmetros > Plano de Contas são aplicadas por cima das listas fixas (`applyReportAccountAssignments`).
 
@@ -230,7 +250,7 @@ Essa regra é usada nos percentuais do DRE Gerencial e nas linhas `%RL` do DRE D
 
 - linhas e colunas configuráveis;
 - filtros por conta, CC e gestão;
-- fontes de realizado e planejado;
+- fontes de realizado (`actual`, `hc_real`) e de cenários (`scenario:{id}`, `hcscenario:{id}`); o Budget é o cenário "Budget {ano}" e as fontes salvas com os valores antigos `budget`/`hc_budget` são resolvidas para ele;
 - fórmulas e formatos numéricos;
 - persistência em `custom_reports`.
 
@@ -249,6 +269,7 @@ Principais tabelas:
 - `comercial_realizado_import_batches`, `comercial_realizado_import_rows` e `comercial_realizado_ledger_entries`;
 - `comercial_planejado_import_batches`, `comercial_planejado_import_rows` e `comercial_planejado_ledger_entries`;
 - tabelas de auditoria correspondentes;
+- a meta (planejado) é sempre de um cenário: `comercial_planejado_import_batches.scenario_id` / `comercial_planejado_ledger_entries.scenario_id` apontam para `forecast_scenarios`; o Budget comercial é o cenário "Budget {ano}" (antes era `scenario_id` nulo; migration `277`). O Painel de Vendas, o mobile, os relatórios comerciais e a carga listam só cenários do ano;
 - `comercial_municipios_geo` para o mapa;
 - `garantia_ativacoes` para a carga recorrente/aditiva (upsert) das ativações exportadas do AltForce.
 
@@ -319,7 +340,7 @@ O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano 
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `266` (270 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `277` (281 arquivos numerados + 10 scripts `_diag_*`/utilitários avulsos).
 
 Resumo por fase:
 
@@ -373,6 +394,13 @@ Resumo por fase:
 | `257–258` | código do cliente nas Ativações de Garantia; detalhe do Evolutivo de Margens |
 | `259–265` | carga automática de vendas e DRE e envio semanal do Painel de Vendas (robô): `carga_automatica_config`/`carga_automatica_log`, mapa `comercial_regioes_municipio` (+ carga inicial), avisos de carga aplicada e de erro, pedidos "Carregar agora" (`carga_automatica_pedido`) |
 | `266` | `notification_settings.sort_order` — ordem dos cartões da tela Parâmetros → Notificações (arrastar para reordenar, por organização) |
+| `271` | cenários versionados por ano: ano no nome, nome único por organização, estrela global (`set_default_forecast_scenario` ignora o ano) |
+| `272` | copia o Budget (`budget_ledger_entries`) para o cenário "Budget {ano}" (idempotente) |
+| `273` | RPC `list_actuals_reference_years` (anos com Real carregado, para as opções "Real {ano}") |
+| `274` | `scenario_load_log` — histórico simplificado de cargas por cenário |
+| `275` | remove o headcount "orçado" de 2026 (cópia do realizado) de `headcount_entries` e seus lotes |
+| `276` | trava a escrita em `budget_ledger_entries`/`budget_monthly_account_totals` (somente leitura); aplicar depois do deploy do app |
+| `277` | Budget comercial (`scenario_id` nulo) vira o cenário "Budget {ano}"; `comercial_pecas_geo_evolucao_mensal` lê a meta desse cenário |
 
 ### Divergências conhecidas do schema
 
@@ -489,7 +517,7 @@ Get-ChildItem .\src -Recurse -Filter *.js | ForEach-Object { node --check $_.Ful
 
 ### Testes
 
-`tests/` tem 21 arquivos, cada um executável isoladamente com `node tests/<arquivo>.test.js` (sem framework — usam `assert` puro e `vm.runInNewContext` para carregar o módulo sob teste isolado do resto do app; massa de dados em `tests/fixtures/`). Os arquivos `*.browser.test.js` sobem uma página real via Playwright (precisa de `npx playwright install` uma vez). Cobrem principalmente: Cockpit (`cockpit.test.js`, `cockpitService.test.js`), Fluxo de Caixa (`fcDashboard.*.test.js`, `fcPlan.*.test.js`, `fcImport.sql.test.js`), tema Claro/Dark (`appearance*.test.js`), RPS (`rpsConcurrency.test.js`, `rpsLayout.test.js`), Mensagens (`messagesAppearance.test.js`, `messagesPresencePicker.test.js`) e mapas (`mapAppearance.test.js`, `floatingScrollbar.browser.test.js`). Ainda não há um runner único nem integração com CI — rode os arquivos relevantes à mudança manualmente.
+`tests/` tem 27 arquivos, cada um executável isoladamente com `node tests/<arquivo>.test.js` (sem framework — usam `assert` puro e `vm.runInNewContext` para carregar o módulo sob teste isolado do resto do app; massa de dados em `tests/fixtures/`). Os arquivos `*.browser.test.js` sobem uma página real via Playwright (precisa de `npx playwright install` uma vez). Cobrem principalmente: Cockpit (`cockpit.test.js`, `cockpitService.test.js`), Fluxo de Caixa (`fcDashboard.*.test.js`, `fcPlan.*.test.js`, `fcImport.sql.test.js`), tema Claro/Dark (`appearance*.test.js`), RPS (`rpsConcurrency.test.js`, `rpsLayout.test.js`), Mensagens (`messagesAppearance.test.js`, `messagesPresencePicker.test.js`), mapas (`mapAppearance.test.js`, `floatingScrollbar.browser.test.js`) e cenários versionados por ano (`scenarioSources.test.js`, `reportsSources.test.js`, `budgetScenarioTarget.test.js`, `comercialScenarioSource.test.js`, `reportsBuilderBudget.test.js`; além de `opexPlannedManagement.test.js` e `cockpitService.test.js`, ajustados). Os SQL de verificação das migrations ficam em `supabase/tests/` (somente leitura: `271`, `272`, `275`, `277`). Ainda não há um runner único nem integração com CI — rode os arquivos relevantes à mudança manualmente.
 
 **Robô de cargas** (`robo-cargas/`): `npm test` na pasta roda 34 testes (`node --test`): território, janela de meses, montagem do SQL, normalização de DRE/vendas, agrupamento de erros, agenda semanal e um teste com **navegador real** (Edge/Chrome) contra uma página de teste, que prova a injeção da sessão e a leitura do HTML. Não precisam de banco nem de Protheus.
 
@@ -506,8 +534,10 @@ Também confira:
 
 - `app.js` ainda concentra grande parte da aplicação e deve ser alterado em etapas pequenas.
 - A arquitetura depende de globais `window.VECTON_*` e da ordem manual dos scripts.
-- O app web não tem package manager (`package.json`), bundler ou linter (o robô `robo-cargas/` tem o seu `package.json`). Há uma suíte de testes (`tests/`, 21 arquivos), mas sem runner único nem CI — ver [Testes](#testes).
+- O app web não tem package manager (`package.json`), bundler ou linter (o robô `robo-cargas/` tem o seu `package.json`). Há uma suíte de testes (`tests/`, 27 arquivos), mas sem runner único nem CI — ver [Testes](#testes).
 - Parte do schema de Headcount não está versionada nas migrations deste checkout.
+- `budget_ledger_entries` e `budget_monthly_account_totals` ficaram congeladas (somente leitura, migration `276`) e sem leitores no app; podem ser apagadas quando o histórico não for mais necessário.
+- Opex "Meta" por gestão contra um cenário grande (ex.: Forecast com ~46 mil lançamentos) pagina o ledger inteiro e pode levar alguns segundos.
 - A tela "Perfis de Acesso" é principalmente descritiva; contadores e botões "Ver usuários" ainda não possuem integração própria.
 - O XLSX é carregado por CDN externa.
 - As regras de leitura por perfil ainda precisam ser reforçadas no banco (ver [Atenção de segurança](#atenção-de-segurança)).
@@ -522,8 +552,9 @@ Também confira:
 | autenticação | `authSession.js`, Edge Functions e templates de e-mail |
 | usuários/RBAC | `usersModule.js`, helpers do `app.js`, migrations `018–020`, `027` e `054` |
 | realizado | `actualsModule.js` e migrations `011–015`, `028–029` |
-| budget | `budgetModule.js` e migrations `016`, `022`, `028`, `030` |
-| forecast | `forecastModule.js`, `reportsDreModule.js` e migration `026` |
+| budget (carga de planejado) | `budgetModule.js` (destino sempre um cenário; staging em `budget_import_*`), migrations `016`, `022`, `028`, `030`, `274` |
+| forecast / cenários | `forecastModule.js` (Repositório de Cenários), `reportsDreModule.js` e migrations `026`, `056`, `057`, `271`, `272` |
+| cenários versionados por ano | `src/core/scenarioSources.js`, bloco `rowsForSource` em `app.js`, `reportsDreModule.js`, `reportsOpexModule.js`, `cockpitService.js`, migrations `271–277`, [Cenários versionados por ano](#cenários-versionados-por-ano) |
 | DRE/OPEX/HC | `app.js` e `src/modules/reports/` |
 | dashboard | `src/modules/dashboard/` e migration `024` |
 | Cockpit de Gestão | `src/modules/cockpit/` (`cockpitAggregate.js`, `cockpitService.js`, `cockpitModule.js`, `cockpitWidgets.js`), migration `088` |
