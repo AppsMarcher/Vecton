@@ -1175,7 +1175,7 @@
         const orgId = await resolveOrganizationId();
         const rows = await fetchSupabaseRowsSafe(
           "forecast_scenarios",
-          `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name,color,icon,reference_year`
+          `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=*`
         );
         availableScenarios = rows || [];
         availableScenariosYear = year;

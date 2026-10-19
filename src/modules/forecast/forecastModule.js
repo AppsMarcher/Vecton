@@ -19,6 +19,11 @@
     let scenarios    = null;   // null = not yet loaded
     let selectedId   = null;
     let isCreating   = false;
+    const planning = window.VECTON_PLANNING?.createPlanningModule(deps);
+    const planningBack = container => () => {
+      selectedId = null; isCreating = false; scenarios = null;
+      void renderGrid(container);
+    };
 
     const PRESET_COLORS = [
       "#6366f1", "#8b5cf6", "#ec4899", "#ef4444",
@@ -43,7 +48,11 @@
         `organization_id=eq.${orgId}&order=reference_year.desc,sort_order.asc,created_at.asc&select=id,name,color,icon,reference_year,cutoff_month,is_default,created_at`
       );
       scenarios = rows;
-      return rows;
+      if (planning && await planning.ensure()) {
+        const data = await callSupabaseRpc('planning_context', { p_org: orgId });
+        scenarios = data.scenarios;
+      }
+      return scenarios;
     }
 
     async function createScenario({ name, color, icon, referenceYear, cutoffMonth }) {
@@ -207,6 +216,7 @@
     // ── Render ────────────────────────────────────────────────────────────────
     function renderPlanningView(container) {
       if (!container) return;
+      if (planning?.isActive()) { planning.render(); return; }
       if (isCreating) {
         renderNewForm(container);
       } else if (selectedId) {
@@ -260,7 +270,7 @@
             ${canEdit ? `<span class="fc-card-menu-btn" role="button" data-fc-menu="${escapeHtml(s.id)}" aria-label="Opções" tabindex="-1">${gearSvg}</span>` : ""}
           </div>
           <strong>${escapeHtml(s.name)}</strong>
-          <span class="rrc-subtitle">Corte: ${escapeHtml(MONTH_LABELS[(s.cutoff_month || 1) - 1])} · ${s.reference_year}</span>
+          <span class="rrc-subtitle">${s.planning_version ? `Formulários · ${s.status === 'locked' ? 'Bloqueado' : 'Aberto'} · ${s.reference_year}` : `Corte: ${escapeHtml(MONTH_LABELS[(s.cutoff_month || 1) - 1])} · ${s.reference_year}`}</span>
         </button>`;
       }).join("");
 
@@ -277,7 +287,8 @@
           </div>
         </div>`;
 
-      container.querySelector("#fc-new-btn")?.addEventListener("click", () => {
+      container.querySelector("#fc-new-btn")?.addEventListener("click", async () => {
+        if (planning && await planning.ensure()) { await planning.startWizard(container, planningBack(container)); return; }
         isCreating = true;
         renderNewForm(container);
       });
@@ -304,6 +315,10 @@
         const card = e.target.closest("[data-scenario-id]");
         if (!card) return;
         const id = card.dataset.scenarioId;
+        const targetScenario = (scenarios || []).find(s => s.id === id);
+        if (targetScenario?.planning_version && planning) {
+          void planning.open(container, targetScenario, planningBack(container)); return;
+        }
         selectedId = id;
         renderDetail(container, (scenarios || []).find(s => s.id === selectedId));
       });
@@ -313,6 +328,11 @@
     // RPC valida admin no BD.
     async function setDefaultScenario(scenarioId, container) {
       try {
+        if (planning && await planning.ensure()) {
+          const target = scenarioId || (scenarios || []).find(s => s.is_default)?.id;
+          if (target) await planning.favorite(target, !!scenarioId);
+          scenarios = null; await renderGrid(container); return;
+        }
         const orgId = await resolveOrganizationId();
         const year = Number((scenarios || []).find(s => s.id === scenarioId)?.reference_year
           || state.currentPeriod?.year || 2026);
@@ -482,7 +502,7 @@
       const left = Math.min(rect.left, window.innerWidth - 160);
       pop.style.left = `${left}px`;
 
-      pop.querySelector("[data-fc-action='edit']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); renderEditForm(container, scenario); });
+      pop.querySelector("[data-fc-action='edit']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); if (scenario.planning_version && planning) { void planning.open(container, scenario, planningBack(container)); } else { renderEditForm(container, scenario); } });
       pop.querySelector("[data-fc-action='copy']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); handleCopyScenario(container, scenario); });
       pop.querySelector("[data-fc-action='remove']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); handleRemoveScenario(container, scenario); });
 
@@ -588,6 +608,7 @@
     }
 
     async function handleCopyScenario(container, scenario) {
+      if (planning && await planning.ensure()) { await planning.startWizard(container, planningBack(container), scenario); return; }
       const year = Number(state.currentPeriod?.year || 2026);
       try {
         await createScenario({
@@ -619,7 +640,8 @@
         pop.remove();
         try {
           const orgId = await resolveOrganizationId();
-          await deleteSupabaseRows("forecast_scenarios", `id=eq.${scenario.id}&organization_id=eq.${orgId}`);
+          if (scenario.planning_version && planning) { await planning.remove(scenario); }
+          else { await deleteSupabaseRows("forecast_scenarios", `id=eq.${scenario.id}&organization_id=eq.${orgId}`); }
           invalidateScenarioCachesFor?.(scenario.id);
           scenarios = null;
           const year = Number(state.currentPeriod?.year || 2026);
@@ -682,6 +704,7 @@
     }
 
     function resetState() {
+      planning?.reset();
       selectedId  = null;
       isCreating  = false;
       scenarios   = null;

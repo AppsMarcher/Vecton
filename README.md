@@ -22,6 +22,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
    - dados 100% de fontes reais do Supabase (sem massa de demonstração); ver [docs/cockpit-gestao.md](docs/cockpit-gestao.md).
 
 3. **Planejamento**
+   - módulo participativo em `src/modules/planning/`: wizard, construtor de formulários, acessos por pessoa, digitação por CC e integração do cenário inteiro no DRE; requer a migration `278` em homologação — ver [Planejamento participativo](docs/planejamento-participativo.md);
    - **repositório único de cenários** (Budget, Forecast, revisões), com o **ano no nome** ("Budget 2026", "Fcst 5+7 2026"); o Budget é um cenário como os demais — ver [Cenários versionados por ano](#cenários-versionados-por-ano);
    - combinação de realizado e meses replanejados;
    - **estrela global**: um cenário favorito por organização é o comparativo padrão;

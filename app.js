@@ -8079,7 +8079,7 @@ async function fetchAllScenarios() {
     `${supabaseConfig.projectUrl}/rest/v1/forecast_scenarios` +
     `?organization_id=eq.${orgId}` +
     `&order=reference_year.desc,sort_order.asc,created_at.asc` +
-    `&select=id,name,color,icon,reference_year,cutoff_month,is_default`
+    `&select=*`
   );
   const rows = res.ok ? await res.json() : [];
   scenarioIndex.clear();

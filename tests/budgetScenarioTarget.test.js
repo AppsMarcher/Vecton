@@ -28,6 +28,7 @@ assert.equal(
   'sem Budget do ano, usa o primeiro cenário do ano'
 );
 assert.equal(pickDefaultLoadTarget(scenarios, 2030), '', 'sem cenário no ano, destino vazio');
+assert.equal(loadTargetsForYear([{id:'built',reference_year:2026,planning_version:1,kind:'built'}],2026).length,0,'formulários não recebem carga direta');
 
 // ── A tela de carga não oferece mais o "Budget" legado como destino ─────────
 const budget = read('src/modules/budget/budgetModule.js');

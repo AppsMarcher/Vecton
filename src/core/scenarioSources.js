@@ -64,7 +64,7 @@ function chooseSource({ scenarios = [], realYears = [], current, toggleYear, inc
 // Destinos possíveis da carga: cenários do ano da competência (o ano do cenário
 // e o da competência coincidem, então os lotes continuam listados no período).
 function loadTargetsForYear(scenarios = [], year) {
-  return scenarios.filter((s) => Number(s.reference_year) === Number(year));
+  return scenarios.filter((s) => Number(s.reference_year) === Number(year) && !s.planning_version && s.kind !== 'built');
 }
 
 // Destino pré-selecionado: "Budget {ano}" se existir; senão o primeiro do ano; senão "".
