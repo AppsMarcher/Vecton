@@ -7701,17 +7701,20 @@ table th,
 }
 
 .fc-new-btn {
-  font-size: 0.74rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
   padding: 5px 12px;
   background: transparent;
-  color: var(--text-soft);
+  color: var(--text-muted);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background .12s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.fc-new-btn:hover { background: var(--hover); }
+.fc-new-btn:hover { background: var(--theme-surface-tint, var(--hover)); color: var(--text); }
 
 .fc-action-menu {
   position: fixed;
