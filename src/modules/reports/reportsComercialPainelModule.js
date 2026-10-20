@@ -418,13 +418,15 @@
       const { grao, pec, fatv, graoVal, pecVal } = companyTotals(coords, tipos);
       const qtyRow = (o) => METRICS.map((m) => `<td>${nf(o[m])}</td>`).join("");
       const ttlRow = () => METRICS.map((m) => `<td>${nf(grao[m] + pec[m])}</td>`).join("");
-      const valRow = (o) => METRICS.map((m) => `<td>${fmtR$(o[m])}</td>`).join("");
+      // Sem o sufixo " mil": no YTD/Ano as colunas estouravam a largura do card.
+      const fmtHero = (v) => fmtR$(v).replace(/ mil$/, "");
+      const valRow = (o) => METRICS.map((m) => `<td>${fmtHero(o[m])}</td>`).join("");
       // Faturado Total = tudo (fatv já soma Grão + Pecuária + peças/transgrain/
       // acessórios) — Fatur. Grão/Fatur. Pecuária acima são só o detalhamento
       // de máquinas, não substituem os demais componentes do total.
       const fatTotal = fatv;
       // Ticket do hero: Faturado INTEIRO (fatv, inclui pecas/transgrain/acessorios) / TTL qtd maquinas.
-      const tktRow = () => METRICS.map((m) => { const q = grao[m] + pec[m]; return `<td>${q > 0 ? fmtR$(fatv[m] / q) : "—"}</td>`; }).join("");
+      const tktRow = () => METRICS.map((m) => { const q = grao[m] + pec[m]; return `<td>${q > 0 ? fmtHero(fatv[m] / q) : "—"}</td>`; }).join("");
       // Drill do consolidado da empresa inteira (todas as coordenacoes/linhas).
       const heroScope = { label: "Marcher Brasil", linhas: ["Grão", "Pecuária"], tipos: true };
       // Atingimento de meta da empresa inteira: Fat.+Cart. (fatv.cart JA é o
