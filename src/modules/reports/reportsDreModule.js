@@ -142,6 +142,12 @@
       return sel?.selectedOptions?.[0]?.textContent || "Cenário";
     }
 
+    // Nome do cenário selecionado no toggle "Fonte" dos DREs de Meta (cabeçalho da tabela).
+    function sourceLabelFor(detailPanel) {
+      const sel = detailPanel.querySelector("#vp-dre-src-sel");
+      return sel?.selectedOptions?.[0]?.textContent || "Meta";
+    }
+
     // Falha no comparativo vira aviso visível acima da tabela — antes o erro era
     // engolido pelo catch e as colunas simplesmente não apareciam.
     function friendlyError(e, fallback) {
@@ -338,7 +344,7 @@
           const rows = await getSourceRows(year);
           const report = buildDreGerRealReport(year, rows);
           if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado de cenário disponivel para ${year}.</div>`; return; }
-          tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted());
+          tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted(), null, null, sourceLabelFor(detailPanel));
           initAllReportTableResizers();
           if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, rows, year, _budgetSource);
         } catch (e) {
@@ -370,7 +376,7 @@
         }
         const report = buildDreSocRealReport(year, rows);
         if (!report.rows.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhuma linha de DRE disponivel para ${year}.</div>`; return; }
-        tableWrap.innerHTML = buildDreSocRealTableMarkup(report);
+        tableWrap.innerHTML = buildDreSocRealTableMarkup(report, null, null, sourceLabelFor(detailPanel));
         initAllReportTableResizers();
         if (!isAccessRestricted()) {
           const drill = initDreSocDrilldown(tableWrap, year, _budgetSource);
@@ -403,7 +409,7 @@
         const gerReport = buildDreGerRealReport(year, rows);
         const report = buildDreDfsRealReport(year, rows, gerReport);
         if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado disponivel para ${year}.</div>`; return; }
-        tableWrap.innerHTML = buildDreDfsRealTableMarkup(report);
+        tableWrap.innerHTML = buildDreDfsRealTableMarkup(report, null, null, sourceLabelFor(detailPanel));
         initAllReportTableResizers();
       }
     }

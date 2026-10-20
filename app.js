@@ -3529,9 +3529,9 @@ function buildDreSocRealTableMarkup(report, compareReport = null, month = null, 
           <th class="col-frozen col-frozen-1" rowspan="2">Cod Conta${R}</th>
           <th class="col-frozen col-frozen-2" rowspan="2">Desc Conta Contabil${R}</th>
           <th class="col-frozen col-frozen-3" rowspan="2">Classe${R}</th>
-          ${hasCompare ? `${MONTH_LABELS.map((label) => `<th rowspan="2">${escapeHtml(label)}${R}</th>`).join("")}<th rowspan="2">Total${R}</th>${cmp.row1Extra}` : `<th colspan="13" class="dre-cmp-group">Meta</th>`}
+          <th colspan="13" class="dre-cmp-group">${month ? "Realizado" : escapeHtml(compareLabel || "Meta")}</th>${hasCompare ? cmp.row1Extra : ""}
         </tr>
-        ${hasCompare ? cmp.row2 : `<tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>Total${R}</th></tr>`}
+        <tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>Total${R}</th>${hasCompare ? cmp.row2Cells : ""}</tr>
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -3997,9 +3997,9 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true, compareReport
       <thead>
         <tr>
           <th class="col-frozen col-frozen-1" rowspan="2">Linha Gerencial${R}</th>
-          ${hasCompare ? `${MONTH_LABELS.map((label) => `<th rowspan="2">${escapeHtml(label)}${R}</th>`).join("")}<th rowspan="2">TOTAL${R}</th>${cmp.row1Extra}` : `<th colspan="13" class="dre-cmp-group">Meta</th>`}
+          <th colspan="13" class="dre-cmp-group">${month ? "Realizado" : escapeHtml(compareLabel || "Meta")}</th>${hasCompare ? cmp.row1Extra : ""}
         </tr>
-        ${hasCompare ? cmp.row2 : `<tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>TOTAL${R}</th></tr>`}
+        <tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>TOTAL${R}</th>${hasCompare ? cmp.row2Cells : ""}</tr>
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -4333,9 +4333,9 @@ function buildDreDfsRealTableMarkup(report, compareReport = null, month = null, 
       <thead>
         <tr>
           <th class="col-frozen col-frozen-1" rowspan="2">Linha DFs${R}</th>
-          ${hasCompare ? `${MONTH_LABELS.map((label) => `<th rowspan="2">${escapeHtml(label)}${R}</th>`).join("")}<th rowspan="2">Total${R}</th>${cmp.row1Extra}` : `<th colspan="13" class="dre-cmp-group">Meta</th>`}
+          <th colspan="13" class="dre-cmp-group">${month ? "Realizado" : escapeHtml(compareLabel || "Meta")}</th>${hasCompare ? cmp.row1Extra : ""}
         </tr>
-        ${hasCompare ? cmp.row2 : `<tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>Total${R}</th></tr>`}
+        <tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>Total${R}</th>${hasCompare ? cmp.row2Cells : ""}</tr>
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -5744,6 +5744,7 @@ function dreCompareHeaderRows(compareLabel) {
       <th rowspan="2" class="dre-cmp-gap"></th>
       <th colspan="4" class="dre-cmp-group">Acumulado</th>
     `,
+    row2Cells: `${sub()}${sub()}`,
     row2: `<tr class="dre-cmp-subrow">${sub()}${sub()}</tr>`
   };
 }
