@@ -4363,9 +4363,25 @@ function renderOpexBudgetReport(detailPanel) {
   const { selectedMgmt, locked: mgmtLocked, allowedMgmts, partialMgmts } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
   const mgmtOptions = mgmtLocked ? [selectedMgmt] : (allowedMgmts ? [...allowedMgmts] : baseMgmtOptions);
 
-  const opexSlot = document.querySelector("#opex-gestao-slot");
+  // Mesmo layout do OPEX Real: Gestão + Ocultar zeros ficam na barra do painel
+  // (à esquerda do seletor de fonte); o slot do header é escondido.
+  const headerSlot = document.querySelector("#opex-gestao-slot");
+  if (headerSlot) {
+    headerSlot.hidden = true;
+    headerSlot.innerHTML = "";
+  }
+  detailPanel.classList.add("dre-cmp-shell");
+  detailPanel.innerHTML = `
+    <div class="vp-source-bar dre-cmp-bar">
+      <div id="opex-budget-bar-filter-slot"></div>
+      <span class="vp-source-label">Fonte</span>
+      <select class="vp-source-sel" id="opex-budget-source-sel">
+        <option value="">Carregando…</option>
+      </select>
+    </div>
+    <div id="opex-budget-content"></div>`;
+  const opexSlot = detailPanel.querySelector("#opex-budget-bar-filter-slot");
   if (opexSlot) {
-    opexSlot.hidden = false;
     opexSlot.innerHTML = `
       <div class="opex-header-filter" style="display:flex;align-items:center;gap:10px">
         <select class="opex-filter-select" id="opex-budget-mgmt-select-header" ${mgmtLocked ? "disabled" : ""}>
@@ -4389,15 +4405,6 @@ function renderOpexBudgetReport(detailPanel) {
     });
   }
 
-  // Barra de fonte no detailPanel (fora do slot do header)
-  detailPanel.innerHTML = `
-    <div class="vp-source-bar">
-      <span class="vp-source-label">Fonte</span>
-      <select class="vp-source-sel" id="opex-budget-source-sel">
-        <option value="">Carregando…</option>
-      </select>
-    </div>
-    <div id="opex-budget-content"></div>`;
   const contentDiv = detailPanel.querySelector("#opex-budget-content");
 
   const srcSel = detailPanel.querySelector("#opex-budget-source-sel");
