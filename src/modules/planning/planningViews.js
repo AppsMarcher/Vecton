@@ -96,8 +96,7 @@
     function reportCards(st) {
       const name = esc(st.scenario.name), canView = id => (typeof canSeeReport === 'function' ? canSeeReport(id) : true);
       const card = (id, label, color, rgb, icon) => canView(id) ? `<button class="reports-report-card fc-scenario-card" type="button" data-pl="report" data-report="${id}" style="border-top-color:${color}"><div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(${rgb},0.12);border-color:rgba(${rgb},0.22);color:${color}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${icon}"></use></svg></span></div><strong>${label}</strong><span class="rrc-subtitle">${name}</span></button>` : '';
-      const soon = (label, icon) => `<div class="reports-report-card reports-report-card--soon"><div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${icon}"></use></svg></span></div><strong>${label}</strong><span class="rrc-subtitle">Em breve</span></div>`;
-      return `<div class="reports-card-grid pl-reports">${card('dreSocBudget', 'DRE Societário', '#4f7cff', '79,124,255', 'vp-icon-cost')}${card('opexBudget', 'Opex', '#f59e0b', '245,158,11', 'vp-icon-pie')}${card('headcountBudget', 'Headcount', '#14b8a6', '20,184,166', 'vp-icon-users')}${soon('Balanço Patrimonial', 'vp-icon-reports')}${soon('Fluxo de Caixa', 'vp-icon-trend-up')}</div>`;
+      return `<div class="reports-card-grid pl-reports">${card('dreSocBudget', 'DRE Societário', '#4f7cff', '79,124,255', 'vp-icon-cost')}${card('opexBudget', 'Opex', '#f59e0b', '245,158,11', 'vp-icon-pie')}${card('headcountBudget', 'Headcount', '#14b8a6', '20,184,166', 'vp-icon-users')}</div>`;
     }
 
     // ── Formulário: preenchimento, estrutura e acessos ─────────────────────

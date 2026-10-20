@@ -754,16 +754,6 @@
                 <strong>Headcount</strong>
                 <span class="rrc-subtitle">${escapeHtml(scenario.name)}</span>
               </button>` : ""}
-              <div class="reports-report-card reports-report-card--soon">
-                <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-reports"></use></svg></span></div>
-                <strong>Balanço Patrimonial</strong>
-                <span class="rrc-subtitle">Em breve</span>
-              </div>
-              <div class="reports-report-card reports-report-card--soon">
-                <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-trend-up"></use></svg></span></div>
-                <strong>Fluxo de Caixa</strong>
-                <span class="rrc-subtitle">Em breve</span>
-              </div>
             </div>
           </div>
         </div>`;
