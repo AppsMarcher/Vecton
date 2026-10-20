@@ -759,7 +759,15 @@
       scenarios   = null;
     }
 
-    return { renderPlanningView, resetPlanningState: resetState };
+    // Antes de sair do Planejamento pela sidebar: com valores não salvos, pede confirmação e, ao confirmar, apaga o rascunho.
+    async function confirmLeavePlanning() {
+      if (!planning?.hasUnsaved?.()) return true;
+      const ok = await window.VECTON_DIALOGS.appConfirm("Há valores não salvos no Planejamento. Sair agora descarta essas alterações.", "warn");
+      if (ok) planning.discardDraft();
+      return !!ok;
+    }
+
+    return { renderPlanningView, resetPlanningState: resetState, confirmLeavePlanning };
   }
 
   window.VECTON_FORECAST = { createForecastModule };

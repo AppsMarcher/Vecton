@@ -1265,7 +1265,7 @@ function openScenarioDreReport(scenarioId) {
   renderReportsView();
 }
 
-const { renderPlanningView, resetPlanningState } = createForecastModule
+const { renderPlanningView, resetPlanningState, confirmLeavePlanning } = createForecastModule
   ? createForecastModule({
       escapeHtml,
       state,
@@ -1280,7 +1280,7 @@ const { renderPlanningView, resetPlanningState } = createForecastModule
       callSupabaseRpc,
       onDefaultScenarioChanged: handleDefaultScenarioChanged,
     })
-  : { renderPlanningView: () => {}, resetPlanningState: () => {} };
+  : { renderPlanningView: () => {}, resetPlanningState: () => {}, confirmLeavePlanning: async () => true };
 
 const rpsModule = createRpsModule
   ? createRpsModule({
@@ -1418,6 +1418,7 @@ const shellEventsModule = createShellEventsModule({
   renderStrategic,
   resetStrategicView,
   resetPlanningState,
+  confirmLeavePlanning,
   getPlanningContainer: () => document.querySelector("#planning-view"),
 });
 const editorEventsModule = createEditorEventsModule({

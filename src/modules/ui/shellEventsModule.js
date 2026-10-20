@@ -51,6 +51,7 @@
       renderRps,
       renderRpsComercial,
       resetPlanningState,
+      confirmLeavePlanning,
       getPlanningContainer,
     } = deps;
 
@@ -124,10 +125,11 @@
 
 
       menuButtons.forEach((button) => {
-        button.addEventListener("click", () => {
+        button.addEventListener("click", async () => {
           if (!button.dataset.view) {
             return;
           }
+          if (!(await confirmLeavePlanning())) return;
           closePeriodPicker();
           closeSidebarDrawerIfNarrow();
           if (button.dataset.view === "reports") {
@@ -169,6 +171,7 @@
         button.addEventListener("click", async (event) => {
           closePeriodPicker();
           if (!button.dataset.view) return;
+          if (!(await confirmLeavePlanning())) { event.preventDefault(); return; }
           closeSidebarDrawerIfNarrow();
 
           if (button.dataset.view === "actualsLoad") {
