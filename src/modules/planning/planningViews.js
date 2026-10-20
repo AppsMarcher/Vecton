@@ -113,7 +113,7 @@
     function structure(st) {
       const { context } = st, f = st.form(), disabled = off(st.locked());
       const origins = { input: 'Digitado', formula: 'Fórmula', label: 'Linha normal' };
-      const rows = st.lines().map(l => `<tr><td>${l.seq}</td><td>${esc(l.description)}</td><td>${origins[l.origin]}</td><td>${esc(l.account_id ? context.accounts.find(a => a.id === l.account_id)?.account_number || '' : l.formula_text || '')}</td><td>${button('Editar', 'edit-line', `data-id="${l.id}" ${disabled}`)}</td></tr>`).join('');
+      const rows = st.lines().map(l => `<tr class="pl-line-row" data-line-row="${l.id}" ${st.locked() ? '' : 'draggable="true"'}><td>${l.seq}</td><td>${esc(l.description)}</td><td>${origins[l.origin]}</td><td>${esc(l.account_id ? context.accounts.find(a => a.id === l.account_id)?.account_number || '' : l.formula_text || '')}</td><td>${button('Editar', 'edit-line', `data-id="${l.id}" ${disabled}`)}</td></tr>`).join('');
       const header = `<div class="pl-heading"><h3>Construtor de formulário</h3><div class="pl-actions">${button(f.status === 'released' ? 'Voltar à construção' : 'Liberar', 'release', disabled)}${button('Importar contas DRE', 'import', disabled)}${button('Copiar estrutura', 'copy-form', disabled)}${button('+ Adicionar linha', 'new-line', disabled, true)}</div></div>`;
       return `${header}<div class="pl-actions">${button('Editar nome e código', 'edit-form', disabled)}${button('Apagar valores', 'clear', disabled)}</div>${sharedAccountsNote(st)}<div class="pl-table-scroll"><table><thead><tr><th>Seq.</th><th>Descrição</th><th>Origem</th><th>Conta / fórmula</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }

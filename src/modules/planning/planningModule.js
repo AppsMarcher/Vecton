@@ -58,6 +58,28 @@
         catch (_) { /* Partial input is validated on blur. */ }
       };
       root.onpaste = paste;
+      // Reordenar linhas da Estrutura arrastando a linha inteira; ao soltar, a sequência é renumerada no banco.
+      const clearDrop = () => root.querySelectorAll('.pl-drop-before,.pl-drop-after,.pl-row-drag').forEach(n => n.classList.remove('pl-drop-before', 'pl-drop-after', 'pl-row-drag'));
+      root.ondragstart = e => {
+        const tr = e.target.closest?.('tr[data-line-row]'); if (!tr || tr.draggable === false) return;
+        dragLine = tr.dataset.lineRow; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragLine); tr.classList.add('pl-row-drag');
+      };
+      root.ondragover = e => {
+        const tr = e.target.closest?.('tr[data-line-row]'); if (!dragLine || !tr) return;
+        e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+        root.querySelectorAll('.pl-drop-before,.pl-drop-after').forEach(n => n.classList.remove('pl-drop-before', 'pl-drop-after'));
+        const r = tr.getBoundingClientRect(); tr.classList.add(e.clientY > r.top + r.height / 2 ? 'pl-drop-after' : 'pl-drop-before');
+      };
+      root.ondrop = e => {
+        const tr = e.target.closest?.('tr[data-line-row]'); if (!dragLine || !tr) return;
+        e.preventDefault();
+        const after = tr.classList.contains('pl-drop-after'), from = dragLine, target = tr.dataset.lineRow; dragLine = null; clearDrop();
+        const ids = lines().slice().sort((a, b) => a.seq - b.seq).map(l => l.id).filter(id => id !== from);
+        const at = ids.indexOf(target) + (after ? 1 : 0); ids.splice(at, 0, from);
+        if (ids.every((id, i) => id === lines().slice().sort((a, b) => a.seq - b.seq)[i].id)) return;
+        void run(async () => { await rpc('planning_reorder_lines', { p_org: org, p_scenario: scenario.id, p_form: formId, p_order: ids }); await refresh(); await readForm(); render(); });
+      };
+      root.ondragend = () => { dragLine = null; clearDrop(); };
       // Tooltip padrão do app (.cockpit-tip), nunca o title nativo.
       root.onpointerover = e => { const n = e.target.closest?.('[data-tip-text]'); if (n) showTip(n.dataset.tipText, e); };
       root.onpointermove = e => { if (e.target.closest?.('[data-tip-text]')) moveTip(e); };
@@ -254,7 +276,7 @@
         el.value = fmt(changes.get(el.dataset.cell).amount); updateGrid();
       }
     }
-    let tipEl = null;
+    let tipEl = null, dragLine = null;
     function showTip(text, e) {
       if (!tipEl || !document.body.contains(tipEl)) { tipEl = document.createElement('div'); tipEl.className = 'cockpit-tip'; document.body.appendChild(tipEl); }
       tipEl.innerHTML = `<div class="cockpit-tip-row"><strong>${esc(text)}</strong></div>`; tipEl.hidden = false; moveTip(e);
