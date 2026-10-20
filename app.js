@@ -1256,6 +1256,8 @@ function openBudgetLoadCatalog() {
 // detalhe do cenário em Planejamento). Reusa o relatório DRE Budget, que já
 // sabe ler forecast_ledger_entries via fonte "scenario:<id>".
 function openScenarioDreReport(scenarioId) {
+  // Mesmo controle do menu de relatórios: sem permissão no DRE Societário Budget, não abre por aqui.
+  if (!canSeeReport("dreSocBudget")) return;
   reportsDreModule.setBudgetSource(scenarioId ? `scenario:${scenarioId}` : "budget");
   selectedReportId = "dreSocBudget";
   activeView = "reports";
