@@ -217,7 +217,6 @@
         case 'edit-line': return lineDialog(lines().find(l => l.id === d.id));
         case 'delete-line': return modal('Excluir linha?', '<p>A operação será recusada se houver valores ou fórmulas dependentes.</p>', async () => { await write('delete_line', { form_id: formId, id: d.id }); close(); await refresh(); render(); });
         case 'release': await write('save_form', { ...form(), status: form().status === 'draft' ? 'released' : 'draft' }); await refresh(); return render();
-        case 'save-access': { const access = [...root.querySelectorAll('[data-access]')].filter(e => e.value !== 'none').map(e => ({ user_id: e.dataset.access, access_mode: e.value })); await write('save_access', { form_id: formId, access }); await refresh(); return render(); }
         case 'save': return save();
         case 'discard': storage('removeItem', draftKey()); changes.clear(); return render();
         case 'project': return modal('Integrar todos os formulários no DRE?', `<p>Esta operação substitui a consolidação anterior do cenário inteiro, usando somente valores salvos. Formulários em construção não são integrados.</p>${changes.size ? '<p class="pl-note">Sua digitação não salva não será incluída.</p>' : ''}`, async () => {
@@ -239,6 +238,12 @@
       else if (el.dataset.month !== undefined) wizard.months[Number(el.dataset.month)] = core.sourcePayload(el.value);
       else if (el.name === 'pl-values') wizard.values = el.value === 'copy';
       else if (el.name === 'pl-release') wizard.release = el.value === 'released';
+      else if (el.dataset.access !== undefined) {
+        // Acessos salvam ao alterar, sem botão: grava o conjunto e avisa com um toast rápido.
+        const access = [...root.querySelectorAll('[data-access]')].filter(e => e.value !== 'none').map(e => ({ user_id: e.dataset.access, access_mode: e.value }));
+        try { await write('save_access', { form_id: formId, access }); global.VECTON_DIALOGS?.showToast?.('Acesso atualizado', 'success', { duration: 2200 }); await refresh(); }
+        catch (err) { await refresh(); render(); throw err; }
+      }
       else if (el.dataset.cc) { const next = el.checked ? [...selectedCC, el.dataset.cc] : selectedCC.filter(id => id !== el.dataset.cc); await leave(async () => { changes.clear(); selectedCC = next; await readForm(); render(); }); }
       else if (el.dataset.cell && !el.disabled) {
         try { setChange(el.dataset.cell, core.parseAmount(el.value)); } catch (err) { el.value = fmt(changes.get(el.dataset.cell)?.amount ?? entry(el.dataset.cell)?.amount ?? 0); throw err; }

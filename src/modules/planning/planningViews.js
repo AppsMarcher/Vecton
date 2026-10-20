@@ -121,7 +121,7 @@
     function access(st) {
       const { context, formId } = st, disabled = off(st.locked());
       const rows = context.users.map(u => `<label class="pl-list-row"><span class="pl-grow">${esc(u.full_name || 'Usuário')}<small>${esc(u.management || '')}</small></span><select class="pl-input" data-access="${u.user_id}" ${disabled}>${accessOptions(context.access.find(a => a.form_id === formId && a.user_id === u.user_id)?.access_mode || 'none')}</select></label>`).join('');
-      return `<h3>Pessoas com acesso a este formulário</h3><p class="pl-muted">Os centros de custo continuam limitados pelo perfil de cada pessoa.</p><div class="pl-list">${rows}</div>${button('Salvar acessos', 'save-access', disabled, true)}<p class="pl-note">Visualizar não permite integrar. Lançar valores permite consolidar o cenário inteiro.</p>`;
+      return `<h3>Pessoas com acesso a este formulário</h3><p class="pl-muted">Os centros de custo continuam limitados pelo perfil de cada pessoa.</p><div class="pl-list">${rows}</div>`;
     }
 
     // ── Grade de preenchimento ─────────────────────────────────────────────
