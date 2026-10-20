@@ -7776,6 +7776,11 @@ table th,
   max-width: 240px;
 }
 
+/* Seletor de fonte/comparativo dos DREs (Real e Meta): ~20 caracteres. */
+.dre-cmp-bar .vp-source-sel {
+  width: 20ch;
+}
+
 .vp-source-sel:focus {
   outline: none;
   border-color: var(--blue);
