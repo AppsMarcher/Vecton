@@ -19,3 +19,6 @@
 .pl-back:hover{color:var(--blue)}
 .pl-grid thead th:not(:first-child){text-align:center;font-weight:700}
 .pl-tabrow--bare{border-bottom:0;margin:0}
+.pl-grid{min-width:1800px}
+.pl-grid th:not(:first-child),.pl-grid td:not(:first-child){width:112px}
+.pl-grid th:last-child,.pl-grid td:last-child{width:130px}
