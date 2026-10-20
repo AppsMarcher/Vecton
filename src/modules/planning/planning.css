@@ -18,3 +18,4 @@
 .pl-back{display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;background:transparent;color:var(--pl-muted);cursor:pointer;border-radius:50%;line-height:0}
 .pl-back:hover{color:var(--blue)}
 .pl-grid thead th:not(:first-child){text-align:center;font-weight:700}
+.pl-tabrow--bare{border-bottom:0;margin:0}
