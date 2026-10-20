@@ -3226,7 +3226,7 @@ const REPORT_TITLES = {
   dreGerReal:    "DRE Gerencial Realizado",
   dreDfsReal:    "DRE DFs Realizado",
   dreSocBudget:  "DRE Societário Budget",
-  dreGerBudget:  "DRE Gerencial Budget",
+  dreGerBudget:  "DRE Gerencial Meta",
   dreDfsBudget:  "DRE DFs Budget",
   opexReal:      "OPEX Realizado",
   opexBudget:    "OPEX Planejado",
@@ -3986,7 +3986,7 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true, compareReport
     `;
   }).join("");
 
-  const cmp = hasCompare ? dreCompareHeaderRows(compareLabel) : null;
+  const cmp = hasCompare ? dreCompareHeaderRows(compareLabel, { singleRow: true }) : null;
 
   return `
     <table class="reports-dre-table reports-ger-table" data-resizable-cols>
@@ -3998,9 +3998,9 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true, compareReport
       </colgroup>
       <thead>
         <tr>
-          <th class="col-frozen col-frozen-1"${hasCompare ? ' rowspan="2"' : ""}>Linha Gerencial${R}</th>
-          ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
-          <th${hasCompare ? ' rowspan="2"' : ""}>TOTAL${R}</th>
+          <th class="col-frozen col-frozen-1">Linha Gerencial${R}</th>
+          ${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}
+          <th>TOTAL${R}</th>
           ${cmp ? cmp.row1Extra : ""}
         </tr>
         ${cmp ? cmp.row2 : ""}
@@ -5740,8 +5740,17 @@ function dreCompareCellsMarkup(cell) {
 // Cabecalho dos 2 blocos de comparacao (Mes/Acumulado x Real/Cenario/Var R$/Var %),
 // reaproveitado pelas 3 tabelas DRE Real. `R` = span do resizer (deixado de fora
 // destas colunas de proposito, ver nota em buildDreSocRealTableMarkup).
-function dreCompareHeaderRows(compareLabel) {
+function dreCompareHeaderRows(compareLabel, { singleRow = false } = {}) {
   const label = escapeHtml(compareLabel || "Cenário");
+  // Cabeçalho de 1 linha só (DRE Gerencial Real, igual ao Meta): o grupo
+  // Mês/Acumulado vira prefixo de cada coluna em vez de uma linha acima.
+  if (singleRow) {
+    const cols = (p) => `<th>${p} Real</th><th>${p} ${label}</th><th>${p} Var R$</th><th>${p} Var %</th>`;
+    return {
+      row1Extra: `<th class="dre-cmp-gap"></th>${cols("Mês")}<th class="dre-cmp-gap"></th>${cols("Acum.")}`,
+      row2: ""
+    };
+  }
   const sub = () => `<th>Real</th><th>${label}</th><th>Var R$</th><th>Var %</th>`;
   return {
     row1Extra: `

@@ -191,7 +191,7 @@
         { label: "DRE Gerencial Real", sub: "Relatorio", target: { view: "reports", reportId: "dreGerReal" } },
         { label: "DRE DFs Real", sub: "Relatorio", target: { view: "reports", reportId: "dreDfsReal" } },
         { label: "DRE Societario Budget", sub: "Relatorio", target: { view: "reports", reportId: "dreSocBudget" } },
-        { label: "DRE Gerencial Budget", sub: "Relatorio", target: { view: "reports", reportId: "dreGerBudget" } },
+        { label: "DRE Gerencial Meta", sub: "Relatorio", target: { view: "reports", reportId: "dreGerBudget" } },
         { label: "DRE DFs Budget", sub: "Relatorio", target: { view: "reports", reportId: "dreDfsBudget" } },
         { label: "OPEX Real", sub: "Relatorio", target: { view: "reports", reportId: "opexReal" } },
         { label: "Headcount Realizado", sub: "Relatorio", target: { view: "reports", reportId: "headcountReal" } },
