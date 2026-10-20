@@ -13206,3 +13206,5 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .mc-note { font-size: .74rem; color: var(--text-faint); margin: 10px 0 0; }
 .mc-clean { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: .84rem; color: var(--text-soft); line-height: 1.5; }
 @media (max-width: 1100px) { .mc-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mc-grid2 { grid-template-columns: minmax(0, 1fr); } }
+.fc-action-menu { background: var(--panel, #fff); }
+.fc-action-menu-swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px; min-width: 150px; }

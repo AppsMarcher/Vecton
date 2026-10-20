@@ -256,7 +256,8 @@
           ${canEdit ? `role="button" tabindex="-1"` : ""} data-fc-star="${escapeHtml(key)}"
           title="${isFav ? "Comparativo padrão da organização" : (canEdit ? "Definir como comparativo padrão" : "")}">${starSvg}</span>`;
 
-      const cards = (scenarios || []).map(s => {
+      // Cenário bloqueado some para quem não é Admin/Super Admin.
+      const cards = (scenarios || []).filter(s => canEdit || !isScenarioLocked(s)).map(s => {
         const color = s.color || "#6366f1";
         return `
         <button class="reports-report-card fc-scenario-card" type="button"
@@ -486,13 +487,20 @@
       document.querySelector(".fc-action-menu")?.remove();
     }
 
+    // Cenário de planejamento bloqueado (status ou data de bloqueio já vencida).
+    const isScenarioLocked = s => !!s.planning_version && (s.status === 'locked' || (s.lock_at && new Date(s.lock_at) <= new Date()));
+
     function openScenarioMenu(anchor, scenario, container) {
       closeScenarioMenu();
+      const managed = !!(scenario.planning_version && planning);
+      const locked = isScenarioLocked(scenario);
       const pop = document.createElement("div");
       pop.className = "fc-action-menu";
       pop.innerHTML = `
         <button class="fc-action-menu-item" type="button" data-fc-action="edit">Editar</button>
+        <button class="fc-action-menu-item" type="button" data-fc-action="color">Cor</button>
         <button class="fc-action-menu-item" type="button" data-fc-action="copy">Copiar</button>
+        ${managed ? `<button class="fc-action-menu-item" type="button" data-fc-action="lock">${locked ? "Desbloquear" : "Bloquear"}</button>` : ""}
         <button class="fc-action-menu-item fc-action-menu-item--danger" type="button" data-fc-action="remove">Remover</button>
       `;
       document.body.appendChild(pop);
@@ -505,6 +513,25 @@
       pop.querySelector("[data-fc-action='edit']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); if (scenario.planning_version && planning) { void planning.open(container, scenario, planningBack(container), { manage: true }); } else { renderEditForm(container, scenario); } });
       pop.querySelector("[data-fc-action='copy']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); handleCopyScenario(container, scenario); });
       pop.querySelector("[data-fc-action='remove']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); handleRemoveScenario(container, scenario); });
+      pop.querySelector("[data-fc-action='lock']")?.addEventListener("click", async e => {
+        e.stopPropagation(); closeScenarioMenu();
+        try { await planning.lock(scenario, !locked); scenarios = null; await renderGrid(container); }
+        catch (err) { console.error("Erro ao bloquear cenário:", err); window.VECTON_DIALOGS?.showToast?.(err.message || "Não foi possível alterar o bloqueio", "error"); }
+      });
+      // Cor: troca o conteúdo do próprio menu por uma grade de cores.
+      pop.querySelector("[data-fc-action='color']").addEventListener("click", e => {
+        e.stopPropagation();
+        const active = (scenario.color || "").toLowerCase();
+        pop.innerHTML = `<div class="fc-action-menu-swatches">${PRESET_COLORS.map(c => `<button type="button" class="fc-swatch${c.toLowerCase() === active ? " fc-active" : ""}" data-color="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div>`;
+        pop.querySelectorAll("[data-color]").forEach(btn => btn.addEventListener("click", async ev => {
+          ev.stopPropagation(); closeScenarioMenu();
+          try {
+            if (managed) await planning.setColor(scenario, btn.dataset.color);
+            else await upsertSupabaseRows("forecast_scenarios", [{ id: scenario.id, organization_id: await resolveOrganizationId(), name: scenario.name, color: btn.dataset.color, icon: scenario.icon, reference_year: scenario.reference_year, cutoff_month: scenario.cutoff_month }], ["id"]);
+            scenarios = null; await renderGrid(container);
+          } catch (err) { console.error("Erro ao trocar a cor:", err); window.VECTON_DIALOGS?.showToast?.(err.message || "Não foi possível trocar a cor", "error"); }
+        }));
+      });
 
       setTimeout(() => {
         document.addEventListener("click", (ev) => { if (!pop.contains(ev.target)) closeScenarioMenu(); }, { once: true });
