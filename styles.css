@@ -3419,6 +3419,10 @@ thead .col-frozen-3 {
 .reports-dre-table tr.is-synthetic td {
   background: rgba(79, 124, 255, 0.06);
 }
+/* DRE Societário: contas sintéticas em negrito. */
+.reports-dre-table tr.soc-synthetic td {
+  font-weight: 700;
+}
 .reports-dre-table tr.is-synthetic .col-frozen {
   background: var(--theme-surface, #111a2e);
 }

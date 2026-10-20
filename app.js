@@ -3503,10 +3503,9 @@ function buildDreSocRealTableMarkup(report, compareReport = null, month = null, 
       ? `<td class="dre-cmp-gap"></td>${dreCompareCellsMarkup(computeDreCompareCell(row, compareByCode.get(row.code), month))}`
       : "";
     return `
-      <tr class="${row.class === "Sintetica" ? "is-synthetic" : "is-analytic"}">
+      <tr class="${row.class === "Sintetica" ? "is-synthetic soc-synthetic" : "is-analytic"}">
         <td class="reports-code-cell col-frozen col-frozen-1">${escapeHtml(row.code)}</td>
         <td class="reports-label-cell soc-label-col col-frozen col-frozen-2" style="--depth:${row.depth}"><span>${escapeHtml(row.name)}</span></td>
-        <td class="reports-class-cell col-frozen col-frozen-3">${escapeHtml(row.class)}</td>
         ${valueCells}
         <td class="reports-value-cell reports-total-cell">${escapeHtml(formatSignedCurrency(row.total))}</td>
         ${compareCells}
@@ -3521,7 +3520,6 @@ function buildDreSocRealTableMarkup(report, compareReport = null, month = null, 
       <colgroup>
         <col style="width:110px">
         <col style="width:340px">
-        <col style="width:90px">
         ${MONTH_LABELS.map(() => '<col style="width:110px">').join("")}
         <col style="width:110px">
         ${hasCompare ? dreCompareColgroupExtra() : ""}
@@ -3530,7 +3528,6 @@ function buildDreSocRealTableMarkup(report, compareReport = null, month = null, 
         <tr>
           <th class="col-frozen col-frozen-1" rowspan="2">Cod Conta${R}</th>
           <th class="col-frozen col-frozen-2" rowspan="2">Desc Conta Contabil${R}</th>
-          <th class="col-frozen col-frozen-3" rowspan="2">Classe${R}</th>
           <th colspan="13" class="dre-cmp-group">${month ? "Realizado" : escapeHtml(compareLabel || "Meta")}</th>${hasCompare ? cmp.row1Extra : ""}
         </tr>
         <tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>Total${R}</th>${hasCompare ? cmp.row2Cells : ""}</tr>
