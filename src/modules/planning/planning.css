@@ -14,3 +14,6 @@
 .pl-tabrow .pl-toolbar{margin-left:auto}
 .pl-cc{position:relative}
 .pl-cc-list{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:20;min-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.pl-title{display:flex;align-items:center;gap:10px}
+.pl-back{display:inline-flex;align-items:center;justify-content:center;padding:0;border:0;background:transparent;color:var(--pl-muted);cursor:pointer;border-radius:50%;line-height:0}
+.pl-back:hover{color:var(--blue)}

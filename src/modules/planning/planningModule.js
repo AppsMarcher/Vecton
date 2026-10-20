@@ -50,7 +50,7 @@
       if (!active) return;
       const body = wizard ? views.wizard(st) : views.scenario(st);
       container.innerHTML = `<section class="pl-app"><div class="pl-error" role="alert" hidden></div>${body}<dialog class="pl-dialog"></dialog></section>`;
-      root = container.querySelector('.pl-app'); root.onclick = e => { const el = e.target.closest('[data-pl]'); if (el && !el.disabled) void run(() => action(el.dataset.pl, el)); };
+      root = container.querySelector('.pl-app'); root.onclick = e => { hideTip(); const el = e.target.closest('[data-pl]'); if (el && !el.disabled) void run(() => action(el.dataset.pl, el)); };
       root.onchange = e => void run(() => change(e.target));
       root.oninput = e => {
         if (!e.target.dataset.cell || e.target.disabled) return;
@@ -58,6 +58,10 @@
         catch (_) { /* Partial input is validated on blur. */ }
       };
       root.onpaste = paste;
+      // Tooltip padrão do app (.cockpit-tip), nunca o title nativo.
+      root.onpointerover = e => { const n = e.target.closest?.('[data-tip-text]'); if (n) showTip(n.dataset.tipText, e); };
+      root.onpointermove = e => { if (e.target.closest?.('[data-tip-text]')) moveTip(e); };
+      root.onpointerout = e => { if (e.target.closest?.('[data-tip-text]') && !e.relatedTarget?.closest?.('[data-tip-text]')) hideTip(); };
       root.oncontextmenu = e => {
         const cell = e.target.closest?.('[data-cell]');
         if (!cell || cell.disabled) return;
@@ -250,6 +254,13 @@
         el.value = fmt(changes.get(el.dataset.cell).amount); updateGrid();
       }
     }
+    let tipEl = null;
+    function showTip(text, e) {
+      if (!tipEl || !document.body.contains(tipEl)) { tipEl = document.createElement('div'); tipEl.className = 'cockpit-tip'; document.body.appendChild(tipEl); }
+      tipEl.innerHTML = `<div class="cockpit-tip-row"><strong>${esc(text)}</strong></div>`; tipEl.hidden = false; moveTip(e);
+    }
+    function moveTip(e) { if (!tipEl) return; tipEl.style.left = `${Math.min(e.clientX + 14, innerWidth - (tipEl.offsetWidth || 120) - 8)}px`; tipEl.style.top = `${Math.max(e.clientY - 44, 8)}px`; }
+    function hideTip() { if (tipEl) tipEl.hidden = true; }
     // Menu de clique direito da célula: repetir até dezembro, distribuir e colar valor.
     function closeCellMenu() { document.querySelector('.pl-ctx')?.remove(); }
     async function clipboardAmount() {
