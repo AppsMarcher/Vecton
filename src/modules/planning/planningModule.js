@@ -3,7 +3,7 @@
   function createPlanningModule(deps) {
     const { escapeHtml: esc, callSupabaseRpc: rpc, resolveOrganizationId, openScenarioDreReport, invalidateScenarioCachesFor, onDefaultScenarioChanged } = deps;
     const core = global.VECTON_PLANNING_CORE, months = deps.MONTH_LABELS;
-    const views = global.VECTON_PLANNING_VIEWS.createPlanningViews({ escapeHtml: esc, months });
+    const views = global.VECTON_PLANNING_VIEWS.createPlanningViews({ escapeHtml: esc, months, canSeeReport: deps.canSeeReport });
     const { fmt, button, field, textInput, steps } = views;
     let org, available, context, container, root, wizard, scenario, formId, tab = 'forms', formTab = 'input', selectedCC = [], entries = [], copied = [], entryIndex = new Map(), copiedIndex = new Map(), accountNumbers = new Map(), changes = new Map(), revision = 0, generation = 0, busy = false, dialogAction, back, active = false;
     const form = () => context?.forms.find(f => f.id === formId);
@@ -232,6 +232,7 @@
         case 'copy-scenario': return leave(() => startWizard(container, back, scenario));
         case 'lock': return modal(locked() ? 'Desbloquear cenário?' : 'Bloquear cenário', locked() ? '<p>O cenário voltará a aceitar alterações autorizadas.</p>' : `<p>Deixe a data vazia para bloquear imediatamente ou programe o bloqueio.</p>${field('Data e hora do bloqueio', textInput('pl-lock-at', '', 'type="datetime-local"'))}`, async () => { const date = root.querySelector('#pl-lock-at')?.value; await write('lock', { locked: locked() ? false : !date, lock_at: date ? new Date(date).toISOString() : null }); close(); await refresh(); render(); });
         case 'tab': tab = d.tab; return render();
+        case 'report': return leave(() => { active = false; deps.openScenarioReport(scenario.id, d.report); });
         case 'dre': return leave(() => { active = false; openScenarioDreReport(scenario.id); });
         case 'new-form': return openFormDialog();
         case 'edit-form': return openFormDialog(form());

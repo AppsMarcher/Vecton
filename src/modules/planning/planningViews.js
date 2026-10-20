@@ -2,7 +2,7 @@
   'use strict';
   // Telas do Planejamento: só montam HTML a partir do estado recebido (`st`),
   // sem tocar no DOM nem no servidor. O estado e as ações ficam em planningModule.js.
-  function createPlanningViews({ escapeHtml: esc, months }) {
+  function createPlanningViews({ escapeHtml: esc, months, canSeeReport }) {
     const fmt = n => Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const button = (text, action, attrs = '', primary = false) => `<button type="button" class="pl-button ${primary ? 'pl-primary' : ''}" data-pl="${action}" ${attrs}>${text}</button>`;
     const field = (label, html) => `<label class="pl-field">${label}${html}</label>`;
@@ -88,7 +88,16 @@
       const badge = `<span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span>`;
       // No modo gerenciar o selo de status vai junto dos botões, na mesma linha do título.
       const right = adminActions ? `<div class="pl-actions">${adminActions}${badge}</div>` : badge;
-      return `<div class="pl-heading"><h1 class="pl-title"><button type="button" class="pl-back" data-pl="${f ? 'index' : 'exit'}" data-tip-text="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}" aria-label="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M13 8l-4 4 4 4M9 12h7"/></svg></button>${esc(st.scenario.name)}</h1>${right}</div>${locked ? '<p class="pl-note pl-note--lock" role="status"><strong>Cenário bloqueado.</strong> Os formulários continuam disponíveis para consulta, mas não aceitam alterações.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
+      const cutoff = Number(st.scenario.cutoff_month) || 0;
+      const subtitle = `${cutoff > 0 ? 'Realizado até ' + months[cutoff - 1] : 'Sem meses realizados'} · ${st.scenario.reference_year}`;
+      return `<div class="pl-heading"><div><h1 class="pl-title"><button type="button" class="pl-back" data-pl="${f ? 'index' : 'exit'}" data-tip-text="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}" aria-label="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M13 8l-4 4 4 4M9 12h7"/></svg></button>${esc(st.scenario.name)}</h1><span class="pl-subtitle">${esc(subtitle)}</span></div>${right}</div>${locked ? '<p class="pl-note pl-note--lock" role="status"><strong>Cenário bloqueado.</strong> Os formulários continuam disponíveis para consulta, mas não aceitam alterações.</p>' : ''}${f ? formView(st, f) : reportCards(st) + scenarioHome(st)}`;
+    }
+    // Relatórios do cenário: mesmos cards do detalhe dos cenários legados; só aparecem os que o usuário pode ver.
+    function reportCards(st) {
+      const name = esc(st.scenario.name), canView = id => (typeof canSeeReport === 'function' ? canSeeReport(id) : true);
+      const card = (id, label, color, rgb, icon) => canView(id) ? `<button class="reports-report-card fc-scenario-card" type="button" data-pl="report" data-report="${id}" style="border-top-color:${color}"><div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(${rgb},0.12);border-color:rgba(${rgb},0.22);color:${color}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${icon}"></use></svg></span></div><strong>${label}</strong><span class="rrc-subtitle">${name}</span></button>` : '';
+      const soon = (label, icon) => `<div class="reports-report-card reports-report-card--soon"><div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${icon}"></use></svg></span></div><strong>${label}</strong><span class="rrc-subtitle">Em breve</span></div>`;
+      return `<div class="reports-card-grid pl-reports">${card('dreSocBudget', 'DRE Societário', '#4f7cff', '79,124,255', 'vp-icon-cost')}${card('opexBudget', 'Opex', '#f59e0b', '245,158,11', 'vp-icon-pie')}${card('headcountBudget', 'Headcount', '#14b8a6', '20,184,166', 'vp-icon-users')}${soon('Balanço Patrimonial', 'vp-icon-reports')}${soon('Fluxo de Caixa', 'vp-icon-trend-up')}</div>`;
     }
 
     // ── Formulário: preenchimento, estrutura e acessos ─────────────────────
