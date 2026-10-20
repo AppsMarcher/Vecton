@@ -3526,14 +3526,12 @@ function buildDreSocRealTableMarkup(report, compareReport = null, month = null, 
       </colgroup>
       <thead>
         <tr>
-          <th class="col-frozen col-frozen-1"${hasCompare ? ' rowspan="2"' : ""}>Cod Conta${R}</th>
-          <th class="col-frozen col-frozen-2"${hasCompare ? ' rowspan="2"' : ""}>Desc Conta Contabil${R}</th>
-          <th class="col-frozen col-frozen-3"${hasCompare ? ' rowspan="2"' : ""}>Classe${R}</th>
-          ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
-          <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
-          ${cmp ? cmp.row1Extra : ""}
+          <th class="col-frozen col-frozen-1" rowspan="2">Cod Conta${R}</th>
+          <th class="col-frozen col-frozen-2" rowspan="2">Desc Conta Contabil${R}</th>
+          <th class="col-frozen col-frozen-3" rowspan="2">Classe${R}</th>
+          ${hasCompare ? `${MONTH_LABELS.map((label) => `<th rowspan="2">${escapeHtml(label)}${R}</th>`).join("")}<th rowspan="2">Total${R}</th>${cmp.row1Extra}` : `<th colspan="13" class="dre-cmp-group">Meta</th>`}
         </tr>
-        ${cmp ? cmp.row2 : ""}
+        ${hasCompare ? cmp.row2 : `<tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>Total${R}</th></tr>`}
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -3986,7 +3984,7 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true, compareReport
     `;
   }).join("");
 
-  const cmp = hasCompare ? dreCompareHeaderRows(compareLabel, { singleRow: true }) : null;
+  const cmp = hasCompare ? dreCompareHeaderRows(compareLabel) : null;
 
   return `
     <table class="reports-dre-table reports-ger-table" data-resizable-cols>
@@ -3998,12 +3996,10 @@ function buildDreGerRealTableMarkup(report, allowDrilldown = true, compareReport
       </colgroup>
       <thead>
         <tr>
-          <th class="col-frozen col-frozen-1">Linha Gerencial${R}</th>
-          ${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}
-          <th>TOTAL${R}</th>
-          ${cmp ? cmp.row1Extra : ""}
+          <th class="col-frozen col-frozen-1" rowspan="2">Linha Gerencial${R}</th>
+          ${hasCompare ? `${MONTH_LABELS.map((label) => `<th rowspan="2">${escapeHtml(label)}${R}</th>`).join("")}<th rowspan="2">TOTAL${R}</th>${cmp.row1Extra}` : `<th colspan="13" class="dre-cmp-group">Meta</th>`}
         </tr>
-        ${cmp ? cmp.row2 : ""}
+        ${hasCompare ? cmp.row2 : `<tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>TOTAL${R}</th></tr>`}
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -4336,12 +4332,10 @@ function buildDreDfsRealTableMarkup(report, compareReport = null, month = null, 
       </colgroup>
       <thead>
         <tr>
-          <th class="col-frozen col-frozen-1"${hasCompare ? ' rowspan="2"' : ""}>Linha DFs${R}</th>
-          ${MONTH_LABELS.map((label) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(label)}${R}</th>`).join("")}
-          <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
-          ${cmp ? cmp.row1Extra : ""}
+          <th class="col-frozen col-frozen-1" rowspan="2">Linha DFs${R}</th>
+          ${hasCompare ? `${MONTH_LABELS.map((label) => `<th rowspan="2">${escapeHtml(label)}${R}</th>`).join("")}<th rowspan="2">Total${R}</th>${cmp.row1Extra}` : `<th colspan="13" class="dre-cmp-group">Meta</th>`}
         </tr>
-        ${cmp ? cmp.row2 : ""}
+        ${hasCompare ? cmp.row2 : `<tr class="dre-cmp-subrow">${MONTH_LABELS.map((label) => `<th>${escapeHtml(label)}${R}</th>`).join("")}<th>Total${R}</th></tr>`}
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
@@ -5740,17 +5734,8 @@ function dreCompareCellsMarkup(cell) {
 // Cabecalho dos 2 blocos de comparacao (Mes/Acumulado x Real/Cenario/Var R$/Var %),
 // reaproveitado pelas 3 tabelas DRE Real. `R` = span do resizer (deixado de fora
 // destas colunas de proposito, ver nota em buildDreSocRealTableMarkup).
-function dreCompareHeaderRows(compareLabel, { singleRow = false } = {}) {
+function dreCompareHeaderRows(compareLabel) {
   const label = escapeHtml(compareLabel || "Cenário");
-  // Cabeçalho de 1 linha só (DRE Gerencial Real, igual ao Meta): o grupo
-  // Mês/Acumulado vira prefixo de cada coluna em vez de uma linha acima.
-  if (singleRow) {
-    const cols = (p) => `<th>${p} Real</th><th>${p} ${label}</th><th>${p} Var R$</th><th>${p} Var %</th>`;
-    return {
-      row1Extra: `<th class="dre-cmp-gap"></th>${cols("Mês")}<th class="dre-cmp-gap"></th>${cols("Acum.")}`,
-      row2: ""
-    };
-  }
   const sub = () => `<th>Real</th><th>${label}</th><th>Var R$</th><th>Var %</th>`;
   return {
     row1Extra: `
