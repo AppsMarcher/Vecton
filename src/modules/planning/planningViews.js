@@ -88,7 +88,7 @@
       const badge = `<span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span>`;
       // No modo gerenciar o selo de status vai junto dos botões, na mesma linha do título.
       const right = adminActions ? `<div class="pl-actions">${adminActions}${badge}</div>` : badge;
-      return `<div class="pl-heading"><h1 class="pl-title"><button type="button" class="pl-back" data-pl="exit" data-tip-text="Voltar para os cenários" aria-label="Voltar para os cenários"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M13 8l-4 4 4 4M9 12h7"/></svg></button>${esc(st.scenario.name)}</h1>${right}</div>${locked ? '<p class="pl-note">Cenário bloqueado: somente leitura para todos.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
+      return `<div class="pl-heading"><h1 class="pl-title"><button type="button" class="pl-back" data-pl="${f ? 'index' : 'exit'}" data-tip-text="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}" aria-label="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M13 8l-4 4 4 4M9 12h7"/></svg></button>${esc(st.scenario.name)}</h1>${right}</div>${locked ? '<p class="pl-note">Cenário bloqueado: somente leitura para todos.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
     }
 
     // ── Formulário: preenchimento, estrutura e acessos ─────────────────────
@@ -157,7 +157,7 @@
       const head = months.map((m, i) => `<th>${m}${st.inputMonths().includes(i + 1) ? '' : '<small>Copiado</small>'}</th>`).join('');
       const rows = st.lines().map(l => gridRow(st, l, values, editable)).join('');
       const footer = `<div class="pl-heading pl-footer"><span id="pl-save-state" class="pl-muted">${changes.size ? `${changes.size} alterações não salvas` : 'Valores salvos'}</span><div class="pl-actions">${button('Descartar', 'discard', !changes.size ? 'disabled' : '')}${button('Salvar valores', 'save', !changes.size || !editable ? 'disabled' : '', true)}</div></div>`;
-      return `${selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram a soma em leitura.</p>' : ''}<div class="pl-table-scroll"><table class="pl-grid"><thead><tr><th>Linha</th>${head}<th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>${footer}`;
+      return `${selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram a soma em leitura.</p>' : ''}<div class="pl-table-scroll"><table class="pl-grid"><thead><tr><th></th>${head}<th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>${footer}`;
     }
 
     return { fmt, button, field, textInput, steps, wizard, scenario };
