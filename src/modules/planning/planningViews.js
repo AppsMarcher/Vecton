@@ -62,7 +62,8 @@
     // ── Cenário: formulários, fontes e integrações ─────────────────────────
     function formsList(st) {
       const { context } = st, admin = st.admin(), locked = st.locked();
-      const rows = context.forms.map(f => `<div class="pl-list-row"><span class="pl-code">${esc(f.code)}</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(f.access_mode === 'write' ? 'Lançar valores' : 'Visualizar')}</small></div>${statusBadge(f)}${admin ? button('Configurar', 'configure', `data-id="${f.id}"`) : ''}${button('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`).join('');
+      // Formulário não liberado só aparece no modo gerenciar (engrenagem do cenário).
+      const rows = context.forms.filter(f => admin || f.status === 'released').map(f => `<div class="pl-list-row"><span class="pl-code">${esc(f.code)}</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(f.access_mode === 'write' ? 'Lançar valores' : 'Visualizar')}</small></div>${statusBadge(f)}${admin ? button('Configurar', 'configure', `data-id="${f.id}"`) : ''}${button('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`).join('');
       return `<div class="pl-heading"><h2>Formulários do cenário</h2>${admin ? button('+ Novo formulário', 'new-form', off(locked), true) : ''}</div><div class="pl-list">${rows || '<p class="pl-note">Nenhum formulário disponível. O administrador pode construir um novo formulário.</p>'}</div>`;
     }
     function sourcesList(st) {
@@ -128,7 +129,7 @@
       const { context, selectedCC } = st;
       const summary = selectedCC.length === 1 ? esc(context.cost_centers.find(c => c.id === selectedCC[0])?.cost_center_name || '') : `${selectedCC.length} centros marcados (soma)`;
       const items = context.cost_centers.map(c => `<label class="pl-choice"><input type="checkbox" data-cc="${c.id}" ${selectedCC.includes(c.id) ? 'checked' : ''}>${esc(c.cost_center_number)} · ${esc(c.cost_center_name)}</label>`).join('');
-      return `<details class="pl-cc"><summary>${summary}</summary>${items}</details>`;
+      return `<details class="pl-cc"><summary>${summary}</summary><div class="pl-cc-list">${items}</div></details>`;
     }
     function gridCell(st, l, i, values, editable) {
       if (l.origin === 'label') return '<td></td>';

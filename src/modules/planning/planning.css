@@ -12,3 +12,5 @@
 .pl-ctx button:hover:not(:disabled){background:var(--panel-alt);color:var(--blue)}
 .pl-ctx button:disabled{opacity:.45;cursor:not-allowed}
 .pl-tabrow .pl-toolbar{margin-left:auto}
+.pl-cc{position:relative}
+.pl-cc-list{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:20;min-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.18)}
