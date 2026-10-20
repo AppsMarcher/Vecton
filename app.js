@@ -3229,7 +3229,7 @@ const REPORT_TITLES = {
   dreGerBudget:  "DRE Gerencial Meta",
   dreDfsBudget:  "DRE DFs Meta",
   opexReal:      "OPEX Realizado",
-  opexBudget:    "OPEX Planejado",
+  opexBudget:    "OPEX Meta",
   headcountReal: "Headcount Realizado",
   headcountBudget: "Headcount Planejado",
   comercialPainel: "Painel de Vendas",
@@ -4475,7 +4475,8 @@ function renderOpexScenario(contentDiv, year, scenarioId, selectedMgmt = "Marche
       if (allowedCcs && !allowedCcs.has(number)) return false;
       return matchesOpexCostCenterFilter(mgmtFilter, r.cost_center_id ?? r.costCenterId, number);
     });
-    inner.innerHTML = buildOpexRealTableMarkup(scopedRows, null, opexHideZeros);
+    const srcLabel = document.querySelector("#opex-budget-source-sel")?.selectedOptions?.[0]?.textContent;
+    inner.innerHTML = buildOpexRealTableMarkup(scopedRows, null, opexHideZeros, null, null, null, srcLabel);
     initAllReportTableResizers();
   }).catch(() => {
     if (!contentDiv.isConnected || contentDiv.opexScenarioRequestId !== requestId) return;
@@ -4630,7 +4631,6 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false, 
   });
 
   const cmp = hasCompare ? dreCompareHeaderRows(compareLabel) : null;
-
   return `
     <table class="reports-dre-table reports-opex-table" data-resizable-cols>
       <colgroup>
@@ -4642,13 +4642,12 @@ function buildOpexRealTableMarkup(ledgerRows, validCcFilter, hideZeros = false, 
       </colgroup>
       <thead>
         <tr>
-          <th class="col-frozen col-frozen-1"${hasCompare ? ' rowspan="2"' : ""}># Conta${R}</th>
-          <th class="col-frozen col-frozen-2"${hasCompare ? ' rowspan="2"' : ""}>Descritivo${R}</th>
-          ${MONTH_LABELS.map((l) => `<th${hasCompare ? ' rowspan="2"' : ""}>${escapeHtml(l)}${R}</th>`).join("")}
-          <th${hasCompare ? ' rowspan="2"' : ""}>Total${R}</th>
-          ${cmp ? cmp.row1Extra : ""}
+          <th class="col-frozen col-frozen-1" rowspan="2"># Conta${R}</th>
+          <th class="col-frozen col-frozen-2" rowspan="2">Descritivo${R}</th>
+          <th colspan="13" class="dre-cmp-group">${month ? "Realizado" : escapeHtml(compareLabel || "Meta")}</th>
+          ${hasCompare ? cmp.row1Extra : ""}
         </tr>
-        ${cmp ? cmp.row2 : ""}
+        <tr class="dre-cmp-subrow">${MONTH_LABELS.map((l) => `<th>${escapeHtml(l)}${R}</th>`).join("")}<th>Total${R}</th>${hasCompare ? cmp.row2Cells : ""}</tr>
       </thead>
       <tbody>${bodyRows}</tbody>
     </table>
