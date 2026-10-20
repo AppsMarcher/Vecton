@@ -84,7 +84,10 @@
     function scenario(st) {
       const f = st.form(), locked = st.locked();
       const adminActions = st.admin() ? button('Copiar cenário', 'copy-scenario') + button(locked ? 'Desbloquear' : 'Bloquear', 'lock') : '';
-      return `${adminActions ? `<div class="pl-heading"><div class="pl-actions" style="margin-left:auto">${adminActions}</div></div>` : ''}<div class="pl-heading"><h1>${esc(st.scenario.name)}</h1><span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span></div>${locked ? '<p class="pl-note">Cenário bloqueado: somente leitura para todos.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
+      const badge = `<span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span>`;
+      // No modo gerenciar o selo de status fica na linha dos botões; fora dele, ao lado do título.
+      const top = adminActions ? `<div class="pl-heading"><div class="pl-actions" style="margin-left:auto">${adminActions}${badge}</div></div>` : '';
+      return `${top}<div class="pl-heading"><h1>${esc(st.scenario.name)}</h1>${adminActions ? '' : badge}</div>${locked ? '<p class="pl-note">Cenário bloqueado: somente leitura para todos.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
     }
 
     // ── Formulário: preenchimento, estrutura e acessos ─────────────────────
