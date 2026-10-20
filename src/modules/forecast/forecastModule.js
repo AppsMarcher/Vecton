@@ -267,7 +267,7 @@
             <span class="rrc-icon-wrap" style="background:${hexToRgba(color, 0.12)};border-color:${hexToRgba(color, 0.25)};color:${escapeHtml(color)}">
               ${iconSvg(s.icon)}
             </span>
-            ${starBtn(s.id, !!s.is_default)}
+            ${s.is_default ? starBtn(s.id, true) : ""}
             ${canEdit ? `<span class="fc-card-menu-btn" role="button" data-fc-menu="${escapeHtml(s.id)}" aria-label="Opções" tabindex="-1">${gearSvg}</span>` : ""}
           </div>
           <strong>${escapeHtml(s.name)}</strong>
@@ -490,6 +490,7 @@
     // Ícones do menu do cenário (traço 1.7, 15px), alinhados à direita de cada item.
     const menuSvg = inner => `<svg class="fc-action-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">${inner}</svg>`;
     const MENU_ICONS = {
+      star: menuSvg('<path d="M12 2.6l2.87 5.82 6.42.93-4.65 4.53 1.1 6.4L12 17.26l-5.74 3.02 1.1-6.4L2.71 9.35l6.42-.93z"/>').replace('<svg ', '<svg style="color:#e0a800" '),
       edit: menuSvg(`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>`),
       color: menuSvg('<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.5-1.9-.3-1 .4-2.1 1.5-2.1H17a4 4 0 0 0 4-4c0-5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1"/><circle cx="11" cy="7" r="1"/><circle cx="16" cy="8.5" r="1"/>'),
       copy: menuSvg('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'),
@@ -510,6 +511,7 @@
       const pop = document.createElement("div");
       pop.className = "fc-action-menu";
       pop.innerHTML = `
+        <button class="fc-action-menu-item" type="button" data-fc-action="favorite"><span>${scenario.is_default ? "Remover favorito" : "Tornar favorito"}</span>${MENU_ICONS.star}</button>
         <button class="fc-action-menu-item" type="button" data-fc-action="edit"><span>Editar</span>${MENU_ICONS.edit}</button>
         <button class="fc-action-menu-item" type="button" data-fc-action="color"><span>Cor</span>${MENU_ICONS.color}</button>
         <button class="fc-action-menu-item" type="button" data-fc-action="copy"><span>Copiar</span>${MENU_ICONS.copy}</button>
@@ -524,6 +526,7 @@
       pop.style.left = `${left}px`;
 
       pop.querySelector("[data-fc-action='edit']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); if (scenario.planning_version && planning) { void planning.open(container, scenario, planningBack(container), { manage: true }); } else { renderEditForm(container, scenario); } });
+      pop.querySelector("[data-fc-action='favorite']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); void setDefaultScenario(scenario.is_default ? null : scenario.id, container); });
       pop.querySelector("[data-fc-action='copy']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); handleCopyScenario(container, scenario); });
       pop.querySelector("[data-fc-action='remove']").addEventListener("click", e => { e.stopPropagation(); closeScenarioMenu(); handleRemoveScenario(container, scenario); });
       pop.querySelector("[data-fc-action='lock']")?.addEventListener("click", async e => {

@@ -3077,8 +3077,8 @@ body.can-edit-reports [data-custom-report="true"] .fc-card-menu-btn { display: i
   transition: color 120ms, background 120ms;
 }
 .fc-star-btn svg { width: 15px; height: 15px; pointer-events: none; fill: none; }
-.fc-star-btn.is-fav { color: var(--theme-ink-amber, #f59e0b); }
-.fc-star-btn.is-fav svg { fill: currentColor; }
+.fc-star-btn.is-fav { color: #f5c518; }
+.fc-star-btn.is-fav svg { fill: currentColor; stroke: #e0a800; }
 .fc-star-btn.fc-star-editable { cursor: pointer; }
 .fc-star-btn.fc-star-editable:hover { color: var(--theme-ink-amber, #fbbf24); background: var(--theme-surface-tint, rgba(255, 255, 255, 0.08)); }
 /* Gear divide o canto com a estrela nos cards de cenário */
