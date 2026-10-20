@@ -282,7 +282,7 @@
             ${canEdit ? `<span class="fc-card-menu-btn" role="button" data-fc-menu="${escapeHtml(s.id)}" aria-label="Opções" tabindex="-1">${gearSvg}</span>` : ""}
           </div>
           <strong>${escapeHtml(s.name)}</strong>
-          <span class="rrc-subtitle">${s.planning_version ? `Formulários · ${s.status === 'locked' ? 'Bloqueado' : 'Aberto'} · ${s.reference_year}` : `${s.cutoff_month > 0 ? `Corte: ${escapeHtml(MONTH_LABELS[s.cutoff_month - 1])}` : "Sem meses realizados"} · ${s.reference_year}`}</span>
+          <span class="rrc-subtitle">${s.planning_version ? `Formulários · ${s.status === 'locked' ? 'Bloqueado' : 'Aberto'} · ${s.reference_year}` : `${s.cutoff_month > 0 ? `Corte: ${escapeHtml(MONTH_LABELS[s.cutoff_month - 1])}` : "12 meses"} · ${s.reference_year}`}</span>
         </button>`;
       }).join("");
 
@@ -734,7 +734,7 @@
                 <button class="fc-detail-back" id="fc-detail-back" type="button" data-tip-text="Voltar para os cenários" aria-label="Voltar para os cenários"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M13 8l-4 4 4 4M9 12h7"/></svg></button>
                 <div>
                   <h2 class="fc-detail-name">${escapeHtml(scenario.name)}</h2>
-                  <span class="fc-detail-meta">${scenario.cutoff_month > 0 ? `Realizado até ${escapeHtml(MONTH_LABELS[scenario.cutoff_month - 1])}` : "Sem meses realizados"} · ${scenario.reference_year}</span>
+                  <span class="fc-detail-meta">${scenario.cutoff_month > 0 ? `Realizado até ${escapeHtml(MONTH_LABELS[scenario.cutoff_month - 1])}` : "12 meses"} · ${scenario.reference_year}</span>
                 </div>
               </div>
             </div>
