@@ -10,6 +10,8 @@
       deleteSupabaseRows,
       isAdmin,
       openScenarioDreReport,
+      openScenarioReport,
+      canSeeReport,
       invalidateScenarioCachesFor,
       callSupabaseRpc,
       onDefaultScenarioChanged,
@@ -720,14 +722,15 @@
 
     function renderDetail(container, scenario) {
       if (!scenario) { selectedId = null; renderGrid(container); return; }
+      // Só mostra o card do relatório a quem tem acesso a ele (mesma regra do menu de relatórios).
+      const canView = id => (typeof canSeeReport === "function" ? canSeeReport(id) : true);
 
       container.innerHTML = `
         <div class="reports-layout">
           <div class="reports-catalog-card">
             <div class="fc-detail-header">
-              <button class="fc-back-btn" id="fc-detail-back" type="button">← Cenários</button>
               <div class="fc-detail-title-row">
-                <span class="fc-detail-icon" style="background:${escapeHtml(scenario.color || "#6366f1")};color:#fff">${iconSvg(scenario.icon)}</span>
+                <button class="fc-detail-back" id="fc-detail-back" type="button" data-tip-text="Voltar para os cenários" aria-label="Voltar para os cenários"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M13 8l-4 4 4 4M9 12h7"/></svg></button>
                 <div>
                   <h2 class="fc-detail-name">${escapeHtml(scenario.name)}</h2>
                   <span class="fc-detail-meta">Realizado até ${escapeHtml(MONTH_LABELS[(scenario.cutoff_month || 1) - 1])} · ${scenario.reference_year}</span>
@@ -735,11 +738,21 @@
               </div>
             </div>
             <div class="reports-card-grid">
-              <button class="reports-report-card fc-scenario-card" type="button" data-fc-report="dreSoc" style="border-top-color:#4f7cff">
+              ${canView("dreSocBudget") ? `<button class="reports-report-card fc-scenario-card" type="button" data-fc-report="dreSoc" style="border-top-color:#4f7cff">
                 <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(79,124,255,0.12);border-color:rgba(79,124,255,0.22);color:var(--theme-ink-blue, #4f7cff)"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg></span></div>
                 <strong>DRE Societário</strong>
                 <span class="rrc-subtitle">${escapeHtml(scenario.name)}</span>
-              </button>
+              </button>` : ""}
+              ${canView("opexBudget") ? `<button class="reports-report-card fc-scenario-card" type="button" data-fc-report="opex" style="border-top-color:#f59e0b">
+                <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.22);color:#f59e0b"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-pie"></use></svg></span></div>
+                <strong>Opex</strong>
+                <span class="rrc-subtitle">${escapeHtml(scenario.name)}</span>
+              </button>` : ""}
+              ${canView("headcountBudget") ? `<button class="reports-report-card fc-scenario-card" type="button" data-fc-report="headcount" style="border-top-color:#14b8a6">
+                <div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(20,184,166,0.12);border-color:rgba(20,184,166,0.22);color:#14b8a6"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-users"></use></svg></span></div>
+                <strong>Headcount</strong>
+                <span class="rrc-subtitle">${escapeHtml(scenario.name)}</span>
+              </button>` : ""}
               <div class="reports-report-card reports-report-card--soon">
                 <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-reports"></use></svg></span></div>
                 <strong>Balanço Patrimonial</strong>
@@ -754,11 +767,25 @@
           </div>
         </div>`;
 
+      // Tooltip padrão do app (.cockpit-tip), nunca o title nativo.
+      const backBtn = container.querySelector("#fc-detail-back");
+      let tipEl = null;
+      const hideTip = () => { if (tipEl) tipEl.hidden = true; };
+      backBtn.addEventListener("pointerenter", e => {
+        if (!tipEl || !document.body.contains(tipEl)) { tipEl = document.createElement("div"); tipEl.className = "cockpit-tip"; document.body.appendChild(tipEl); }
+        tipEl.innerHTML = `<div class="cockpit-tip-row"><strong>${escapeHtml(backBtn.dataset.tipText)}</strong></div>`; tipEl.hidden = false;
+        tipEl.style.left = `${e.clientX + 14}px`; tipEl.style.top = `${Math.max(e.clientY - 44, 8)}px`;
+      });
+      backBtn.addEventListener("pointermove", e => { if (tipEl) { tipEl.style.left = `${e.clientX + 14}px`; tipEl.style.top = `${Math.max(e.clientY - 44, 8)}px`; } });
+      backBtn.addEventListener("pointerleave", hideTip);
+      backBtn.addEventListener("click", hideTip);
       container.querySelector("#fc-detail-back").addEventListener("click", () => {
         selectedId = null;
         renderGrid(container);
       });
 
+      container.querySelector('[data-fc-report="opex"]')?.addEventListener("click", () => openScenarioReport?.(scenario.id, "opexBudget"));
+      container.querySelector('[data-fc-report="headcount"]')?.addEventListener("click", () => openScenarioReport?.(scenario.id, "headcountBudget"));
       container.querySelector('[data-fc-report="dreSoc"]')?.addEventListener("click", () => {
         if (typeof openScenarioDreReport === "function") openScenarioDreReport(scenario.id);
       });

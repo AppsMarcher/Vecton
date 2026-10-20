@@ -13226,3 +13226,6 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 .fc-cp-hue { -webkit-appearance: none; appearance: none; height: 10px; border-radius: 6px; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); outline: 0; margin: 0; }
 .fc-cp-hue::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,.35); cursor: pointer; }
 .fc-cp-apply { border: 0; border-radius: 8px; background: var(--blue, #3565dc); color: #fff; font-size: 0.78rem; padding: 7px 10px; cursor: pointer; }
+
+.fc-detail-back { display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; color: var(--text-soft, #697486); cursor: pointer; border-radius: 50%; line-height: 0; flex-shrink: 0; }
+.fc-detail-back:hover { color: var(--blue, #3565dc); }

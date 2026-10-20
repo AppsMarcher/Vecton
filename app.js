@@ -1255,11 +1255,17 @@ function openBudgetLoadCatalog() {
 // Abre o DRE Societário com um cenário de Forecast como fonte (card no
 // detalhe do cenário em Planejamento). Reusa o relatório DRE Budget, que já
 // sabe ler forecast_ledger_entries via fonte "scenario:<id>".
-function openScenarioDreReport(scenarioId) {
-  // Mesmo controle do menu de relatórios: sem permissão no DRE Societário Budget, não abre por aqui.
-  if (!canSeeReport("dreSocBudget")) return;
-  reportsDreModule.setBudgetSource(scenarioId ? `scenario:${scenarioId}` : "budget");
-  selectedReportId = "dreSocBudget";
+function openScenarioDreReport(scenarioId) { openScenarioReport(scenarioId, "dreSocBudget"); }
+
+// Abre um relatório Budget (DRE, OPEX ou Headcount) já com o cenário como fonte. Segue o mesmo controle de
+// acesso do menu de relatórios: sem permissão no relatório, não abre por aqui.
+function openScenarioReport(scenarioId, reportId) {
+  if (!canSeeReport(reportId)) return;
+  const source = scenarioId ? `scenario:${scenarioId}` : "";
+  if (reportId === "dreSocBudget") reportsDreModule.setBudgetSource(scenarioId ? source : "budget");
+  else if (reportId === "opexBudget") _opexBudgetSource = source;
+  else if (reportId === "headcountBudget") _hcBudgetSource = source;
+  selectedReportId = reportId;
   activeView = "reports";
   renderNavigation();
   renderReportsView();
@@ -1276,6 +1282,8 @@ const { renderPlanningView, resetPlanningState, confirmLeavePlanning } = createF
       deleteSupabaseRows,
       isAdmin,
       openScenarioDreReport,
+      openScenarioReport,
+      canSeeReport,
       invalidateScenarioCachesFor,
       callSupabaseRpc,
       onDefaultScenarioChanged: handleDefaultScenarioChanged,
