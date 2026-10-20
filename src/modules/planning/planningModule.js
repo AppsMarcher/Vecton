@@ -98,7 +98,7 @@
     function friendly(error) { try { return JSON.parse(error.message).message || error.message; } catch (_) { return error.message || String(error); } }
     function modal(title, body, callback) {
       const dialog = root.querySelector('dialog'); dialogAction = callback;
-      dialog.innerHTML = `<h2>${esc(title)}</h2>${body}<div class="pl-actions">${button('Cancelar', 'dismiss')}${button('Confirmar', 'confirm', '', true)}</div><div class="pl-modal-error" role="alert"></div>`;
+      dialog.innerHTML = `<div class="pl-dialog-head"><h2>${esc(title)}</h2><button type="button" class="pl-dialog-x" data-pl="dismiss" aria-label="Fechar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>${body}<div class="pl-actions">${button('Cancelar', 'dismiss')}${button('Confirmar', 'confirm', '', true)}</div><div class="pl-modal-error" role="alert"></div>`;
       dialog.showModal();
     }
     function close() { root.querySelector('dialog')?.close(); dialogAction = null; }

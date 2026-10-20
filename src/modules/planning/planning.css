@@ -22,3 +22,7 @@
 .pl-grid{min-width:1800px}
 .pl-grid th:not(:first-child),.pl-grid td:not(:first-child){width:112px}
 .pl-grid th:last-child,.pl-grid td:last-child{width:130px}
+.pl-dialog-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-24px -24px 12px;padding:20px 24px 10px;background:var(--panel)}
+.pl-dialog-head h2{margin:0}
+.pl-dialog-x{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--pl-muted);cursor:pointer;flex-shrink:0}
+.pl-dialog-x:hover{background:var(--panel-alt);color:var(--text)}
