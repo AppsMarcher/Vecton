@@ -166,6 +166,8 @@ let opexHideZeros = false;
 // ou Budget se nao houver (mesmo padrao do _compareSource dos DRE Real).
 // Troca manual no select vale so para a sessao.
 let _opexBudgetSource = null;
+// Nome do cenário da Fonte do OPEX Meta (grupo do cabeçalho); atualizado quando o select é preenchido/trocado.
+let _opexBudgetLabel = "";
 let _hcBudgetSource = null;
 const loadingHeadcountBatchIds = new Set();
 const hcDashCache = new Map();
@@ -4417,9 +4419,11 @@ function renderOpexBudgetReport(detailPanel) {
       _opexBudgetSource = value || "";
       if (wasUnresolved && selectedReportId === "opexBudget") { renderReportsView(); return; }
       if (value) srcSel.value = value;
+      syncOpexBudgetLabel(detailPanel, srcSel);
     });
     srcSel.addEventListener("change", () => {
       _opexBudgetSource = srcSel.value;
+      _opexBudgetLabel = srcSel.selectedOptions?.[0]?.textContent || "";
       renderOpexScenario(contentDiv, sourceYearSync(_opexBudgetSource, year), _opexBudgetSource.slice("scenario:".length), selectedMgmt, partialMgmts);
     });
   }
@@ -4439,6 +4443,14 @@ function renderOpexBudgetReport(detailPanel) {
 
   // Cenário selecionado (lê o ano do próprio cenário)
   renderOpexScenario(contentDiv, sourceYearSync(_opexBudgetSource, year), _opexBudgetSource.slice("scenario:".length), selectedMgmt, partialMgmts);
+}
+
+// Guarda o nome do cenário selecionado e repinta o grupo do cabeçalho caso a
+// tabela já tenha sido desenhada antes de o select terminar de carregar.
+function syncOpexBudgetLabel(detailPanel, srcSel) {
+  _opexBudgetLabel = srcSel.selectedOptions?.[0]?.value ? srcSel.selectedOptions[0].textContent : "";
+  const group = detailPanel.querySelector(".reports-opex-table .dre-cmp-group");
+  if (group && _opexBudgetLabel) group.textContent = _opexBudgetLabel;
 }
 
 function renderOpexScenario(contentDiv, year, scenarioId, selectedMgmt = "Marcher", partialMgmts = null) {
@@ -4475,7 +4487,7 @@ function renderOpexScenario(contentDiv, year, scenarioId, selectedMgmt = "Marche
       if (allowedCcs && !allowedCcs.has(number)) return false;
       return matchesOpexCostCenterFilter(mgmtFilter, r.cost_center_id ?? r.costCenterId, number);
     });
-    const srcLabel = document.querySelector("#opex-budget-source-sel")?.selectedOptions?.[0]?.textContent;
+    const srcLabel = _opexBudgetLabel;
     inner.innerHTML = buildOpexRealTableMarkup(scopedRows, null, opexHideZeros, null, null, null, srcLabel);
     initAllReportTableResizers();
   }).catch(() => {
