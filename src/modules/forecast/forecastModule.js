@@ -487,6 +487,19 @@
       document.querySelector(".fc-action-menu")?.remove();
     }
 
+    // Ícones do menu do cenário (traço 1.7, 15px), alinhados à direita de cada item.
+    const menuSvg = inner => `<svg class="fc-action-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">${inner}</svg>`;
+    const MENU_ICONS = {
+      edit: menuSvg(`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>`),
+      color: menuSvg('<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.9 1.5-1.9-.3-1 .4-2.1 1.5-2.1H17a4 4 0 0 0 4-4c0-5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1"/><circle cx="11" cy="7" r="1"/><circle cx="16" cy="8.5" r="1"/>'),
+      copy: menuSvg('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'),
+      lock: menuSvg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+      unlock: menuSvg('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/>'),
+      remove: menuSvg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>')
+    };
+    const hexToHsv = hex => { const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), d = mx - Math.min(r, g, b); let h = 0; if (d) h = mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [h * 60, mx ? d / mx : 0, mx]; };
+    const hsvToHex = (h, sat, v) => { const f = n => { const k = (n + h / 60) % 6; return v - v * sat * Math.max(0, Math.min(k, 4 - k, 1)); }; return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join(''); };
+
     // Cenário de planejamento bloqueado (status ou data de bloqueio já vencida).
     const isScenarioLocked = s => !!s.planning_version && (s.status === 'locked' || (s.lock_at && new Date(s.lock_at) <= new Date()));
 
@@ -497,11 +510,11 @@
       const pop = document.createElement("div");
       pop.className = "fc-action-menu";
       pop.innerHTML = `
-        <button class="fc-action-menu-item" type="button" data-fc-action="edit">Editar</button>
-        <button class="fc-action-menu-item" type="button" data-fc-action="color">Cor</button>
-        <button class="fc-action-menu-item" type="button" data-fc-action="copy">Copiar</button>
-        ${managed ? `<button class="fc-action-menu-item" type="button" data-fc-action="lock">${locked ? "Desbloquear" : "Bloquear"}</button>` : ""}
-        <button class="fc-action-menu-item fc-action-menu-item--danger" type="button" data-fc-action="remove">Remover</button>
+        <button class="fc-action-menu-item" type="button" data-fc-action="edit"><span>Editar</span>${MENU_ICONS.edit}</button>
+        <button class="fc-action-menu-item" type="button" data-fc-action="color"><span>Cor</span>${MENU_ICONS.color}</button>
+        <button class="fc-action-menu-item" type="button" data-fc-action="copy"><span>Copiar</span>${MENU_ICONS.copy}</button>
+        ${managed ? `<button class="fc-action-menu-item" type="button" data-fc-action="lock"><span>${locked ? "Desbloquear" : "Bloquear"}</span>${locked ? MENU_ICONS.unlock : MENU_ICONS.lock}</button>` : ""}
+        <button class="fc-action-menu-item fc-action-menu-item--danger" type="button" data-fc-action="remove"><span>Remover</span>${MENU_ICONS.remove}</button>
       `;
       document.body.appendChild(pop);
 
@@ -518,19 +531,43 @@
         try { await planning.lock(scenario, !locked); scenarios = null; await renderGrid(container); }
         catch (err) { console.error("Erro ao bloquear cenário:", err); window.VECTON_DIALOGS?.showToast?.(err.message || "Não foi possível alterar o bloqueio", "error"); }
       });
-      // Cor: troca o conteúdo do próprio menu por uma grade de cores.
+      // Cor: troca o conteúdo do próprio menu por cores prontas + um seletor livre (multicolor), que só abre ao clicar nele.
       pop.querySelector("[data-fc-action='color']").addEventListener("click", e => {
         e.stopPropagation();
         const active = (scenario.color || "").toLowerCase();
-        pop.innerHTML = `<div class="fc-action-menu-swatches">${PRESET_COLORS.map(c => `<button type="button" class="fc-swatch${c.toLowerCase() === active ? " fc-active" : ""}" data-color="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}</div>`;
-        pop.querySelectorAll("[data-color]").forEach(btn => btn.addEventListener("click", async ev => {
-          ev.stopPropagation(); closeScenarioMenu();
+        const applyColor = async color => {
+          closeScenarioMenu();
           try {
-            if (managed) await planning.setColor(scenario, btn.dataset.color);
-            else await upsertSupabaseRows("forecast_scenarios", [{ id: scenario.id, organization_id: await resolveOrganizationId(), name: scenario.name, color: btn.dataset.color, icon: scenario.icon, reference_year: scenario.reference_year, cutoff_month: scenario.cutoff_month }], ["id"]);
+            if (managed) await planning.setColor(scenario, color);
+            else await upsertSupabaseRows("forecast_scenarios", [{ id: scenario.id, organization_id: await resolveOrganizationId(), name: scenario.name, color, icon: scenario.icon, reference_year: scenario.reference_year, cutoff_month: scenario.cutoff_month }], ["id"]);
             scenarios = null; await renderGrid(container);
           } catch (err) { console.error("Erro ao trocar a cor:", err); window.VECTON_DIALOGS?.showToast?.(err.message || "Não foi possível trocar a cor", "error"); }
-        }));
+        };
+        pop.innerHTML = `<div class="fc-action-menu-swatches">${PRESET_COLORS.map(c => `<button type="button" class="fc-swatch${c.toLowerCase() === active ? " fc-active" : ""}" data-color="${c}" style="background:${c}" aria-label="Cor ${c}"></button>`).join("")}<button type="button" class="fc-swatch fc-swatch--multi" data-fc-custom aria-label="Outra cor"></button></div><div class="fc-color-picker" hidden></div>`;
+        pop.querySelectorAll("[data-color]").forEach(btn => btn.addEventListener("click", ev => { ev.stopPropagation(); void applyColor(btn.dataset.color); }));
+        pop.querySelector("[data-fc-custom]").addEventListener("click", ev => {
+          ev.stopPropagation();
+          const box = pop.querySelector(".fc-color-picker");
+          if (!box.hidden) { box.hidden = true; return; }
+          let [h, sat, v] = hexToHsv(/^#[0-9a-f]{6}$/i.test(active) ? active : PRESET_COLORS[0]);
+          box.innerHTML = `<label class="fc-cp-hex"><span>#</span><input type="text" maxlength="6" spellcheck="false"></label><div class="fc-cp-sv"><i></i></div><input class="fc-cp-hue" type="range" min="0" max="360" step="1"><button type="button" class="fc-cp-apply">Aplicar</button>`;
+          box.hidden = false;
+          const hex = box.querySelector(".fc-cp-hex input"), svEl = box.querySelector(".fc-cp-sv"), dot = svEl.firstElementChild, hue = box.querySelector(".fc-cp-hue");
+          const paint = () => {
+            const cur = hsvToHex(h, sat, v);
+            svEl.style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, ${hsvToHex(h, 1, 1)})`;
+            dot.style.left = `${sat * 100}%`; dot.style.top = `${(1 - v) * 100}%`; dot.style.background = cur;
+            hue.value = h; hex.value = cur.slice(1).toUpperCase();
+          };
+          const pick = ev2 => { const r = svEl.getBoundingClientRect(); sat = Math.min(1, Math.max(0, (ev2.clientX - r.left) / r.width)); v = 1 - Math.min(1, Math.max(0, (ev2.clientY - r.top) / r.height)); paint(); };
+          svEl.addEventListener("pointerdown", ev2 => { svEl.setPointerCapture(ev2.pointerId); pick(ev2); svEl.onpointermove = pick; });
+          svEl.addEventListener("pointerup", () => { svEl.onpointermove = null; });
+          hue.addEventListener("input", () => { h = Number(hue.value); paint(); });
+          hex.addEventListener("input", () => { if (/^[0-9a-f]{6}$/i.test(hex.value)) { [h, sat, v] = hexToHsv("#" + hex.value); const keep = hex.value; paint(); hex.value = keep.toUpperCase(); } });
+          hex.addEventListener("keydown", ev2 => { if (ev2.key === "Enter") box.querySelector(".fc-cp-apply").click(); });
+          box.querySelector(".fc-cp-apply").addEventListener("click", ev2 => { ev2.stopPropagation(); void applyColor(hsvToHex(h, sat, v)); });
+          paint();
+        });
       });
 
       setTimeout(() => {
