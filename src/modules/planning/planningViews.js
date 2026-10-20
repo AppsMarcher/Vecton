@@ -165,7 +165,7 @@
       const head = months.map((m, i) => `<th>${m}${st.inputMonths().includes(i + 1) ? '' : '<small>Copiado</small>'}</th>`).join('');
       const rows = st.lines().map(l => gridRow(st, l, values, editable)).join('');
       const footer = `<div class="pl-heading pl-footer"><span id="pl-save-state" class="pl-muted">${changes.size ? `${changes.size} alterações não salvas` : 'Valores salvos'}</span><div class="pl-actions">${button('Descartar', 'discard', !changes.size ? 'disabled' : '')}${button('Salvar valores', 'save', !changes.size || !editable ? 'disabled' : '', true)}</div></div>`;
-      return `${selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram a soma em leitura.</p>' : ''}<div class="pl-table-scroll"><table class="pl-grid"><thead><tr><th></th>${head}<th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>${footer}`;
+      return `${selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram a soma em leitura.</p>' : ''}<div class="pl-table-scroll pl-grid-scroll"><table class="pl-grid"><thead><tr><th></th>${head}<th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>${footer}`;
     }
 
     return { fmt, button, field, textInput, steps, wizard, scenario };
