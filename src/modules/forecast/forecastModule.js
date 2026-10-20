@@ -282,7 +282,7 @@
             ${canEdit ? `<span class="fc-card-menu-btn" role="button" data-fc-menu="${escapeHtml(s.id)}" aria-label="Opções" tabindex="-1">${gearSvg}</span>` : ""}
           </div>
           <strong>${escapeHtml(s.name)}</strong>
-          <span class="rrc-subtitle">${s.planning_version ? `Formulários · ${s.status === 'locked' ? 'Bloqueado' : 'Aberto'} · ${s.reference_year}` : `${s.cutoff_month > 0 ? `Corte: ${escapeHtml(MONTH_LABELS[s.cutoff_month - 1])}` : "12 meses"} · ${s.reference_year}`}</span>
+          <span class="rrc-subtitle">${s.planning_version ? `${s.status === 'locked' || (s.lock_at && Date.parse(s.lock_at) <= Date.now()) ? '12 meses' : 'Bud em andamento'} · ${s.reference_year}` : `${s.cutoff_month > 0 ? `Corte: ${escapeHtml(MONTH_LABELS[s.cutoff_month - 1])}` : "12 meses"} · ${s.reference_year}`}</span>
         </button>`;
       }).join("");
 
