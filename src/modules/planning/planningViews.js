@@ -63,7 +63,7 @@
     function formsList(st) {
       const { context } = st, admin = st.admin(), locked = st.locked();
       // Formulário não liberado só aparece no modo gerenciar (engrenagem do cenário).
-      const rows = context.forms.filter(f => admin || f.status === 'released').map(f => `<div class="pl-list-row"><span class="pl-code">${esc(f.code)}</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(f.access_mode === 'write' ? 'Lançar valores' : 'Visualizar')}</small></div>${statusBadge(f)}${admin ? button('Configurar', 'configure', `data-id="${f.id}"`) : ''}${button('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`).join('');
+      const rows = context.forms.filter(f => admin || f.status === 'released').map(f => `<div class="pl-list-row"><span class="pl-code">${esc(f.code)}</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(locked ? 'Somente leitura' : f.access_mode === 'write' ? 'Lançar valores' : 'Visualizar')}</small></div>${statusBadge(f)}${admin ? button('Configurar', 'configure', `data-id="${f.id}"`) : ''}${button('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`).join('');
       return `<div class="pl-heading"><h2>Formulários do cenário</h2>${admin ? button('+ Novo formulário', 'new-form', off(locked), true) : ''}</div><div class="pl-list">${rows || '<p class="pl-note">Nenhum formulário disponível. O administrador pode construir um novo formulário.</p>'}</div>`;
     }
     function sourcesList(st) {
@@ -88,7 +88,7 @@
       const badge = `<span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span>`;
       // No modo gerenciar o selo de status vai junto dos botões, na mesma linha do título.
       const right = adminActions ? `<div class="pl-actions">${adminActions}${badge}</div>` : badge;
-      return `<div class="pl-heading"><h1 class="pl-title"><button type="button" class="pl-back" data-pl="${f ? 'index' : 'exit'}" data-tip-text="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}" aria-label="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M13 8l-4 4 4 4M9 12h7"/></svg></button>${esc(st.scenario.name)}</h1>${right}</div>${locked ? '<p class="pl-note">Cenário bloqueado: somente leitura para todos.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
+      return `<div class="pl-heading"><h1 class="pl-title"><button type="button" class="pl-back" data-pl="${f ? 'index' : 'exit'}" data-tip-text="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}" aria-label="${f ? 'Voltar para o cenário' : 'Voltar para os cenários'}"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M13 8l-4 4 4 4M9 12h7"/></svg></button>${esc(st.scenario.name)}</h1>${right}</div>${locked ? '<p class="pl-note pl-note--lock" role="status"><strong>Cenário bloqueado.</strong> Os formulários continuam disponíveis para consulta, mas não aceitam alterações.</p>' : ''}${f ? formView(st, f) : scenarioHome(st)}`;
     }
 
     // ── Formulário: preenchimento, estrutura e acessos ─────────────────────

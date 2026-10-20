@@ -265,8 +265,8 @@
           ${canEdit ? `role="button" tabindex="-1"` : ""} data-fc-star="${escapeHtml(key)}"
           title="${isFav ? "Comparativo padrão da organização" : (canEdit ? "Definir como comparativo padrão" : "")}">${starSvg}</span>`;
 
-      // Cenário bloqueado some para quem não é Admin/Super Admin.
-      const cards = (scenarios || []).filter(s => canEdit || !isScenarioLocked(s)).map(s => {
+      // Cenário bloqueado continua visível para todos: os formulários ficam só para consulta (aviso dentro do cenário).
+      const cards = (scenarios || []).map(s => {
         const color = s.color || "#6366f1";
         return `
         <button class="reports-report-card fc-scenario-card" type="button"
