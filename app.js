@@ -3493,16 +3493,17 @@ function renderReportsView() {
   colorizeNegativeCells(detailPanel);
 }
 
-// Relatórios de CAPEX (Central de Relatórios, seção CAPEX). Por ora só o card "Capex Meta" existe;
-// o conteúdo do relatório ainda será definido.
+// Relatórios de CAPEX (Central de Relatórios, seção CAPEX): hoje só o "Capex Meta".
+const reportsCapexModule = window.VECTON_REPORTS_CAPEX.createReportsCapexModule({
+  escapeHtml,
+  callSupabaseRpc,
+  resolveOrganizationId,
+  fetchAllScenarios,
+  exportRowsToExcel,
+  exportButtonHtml
+});
 function renderCapexReport(detailPanel, reportId) {
-  if (reportId !== "capexBudget") return false;
-  detailPanel.classList.remove("dre-cmp-shell");
-  detailPanel.innerHTML = `<div class="reports-detail-empty">
-      <strong>Capex Meta</strong>
-      <p>Relatório em construção.</p>
-    </div>`;
-  return true;
+  return reportsCapexModule.renderSelectedCapexReport(detailPanel, reportId);
 }
 
 function buildDreSocRealTableMarkup(report, compareReport = null, month = null, compareLabel = null) {
@@ -8514,7 +8515,7 @@ function ensureScenarioFresh(scenarioId) {
 }
 
 // Ao voltar para a aba/janela: se algum cenário de planejamento foi integrado, atualiza o relatório aberto.
-const SCENARIO_REPORT_IDS = new Set(["dreGerReal", "dreSocReal", "dreDfsReal", "dreGerBudget", "dreSocBudget", "dreDfsBudget", "opexReal", "opexBudget", "headcountBudget"]);
+const SCENARIO_REPORT_IDS = new Set(["dreGerReal", "dreSocReal", "dreDfsReal", "dreGerBudget", "dreSocBudget", "dreDfsBudget", "opexReal", "opexBudget", "headcountBudget", "capexBudget"]);
 let scenarioStampCheckAt = 0;
 async function refreshScenarioStampsOnReturn() {
   if (document.hidden || activeView !== "reports" || !SCENARIO_REPORT_IDS.has(selectedReportId)) return;

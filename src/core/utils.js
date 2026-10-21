@@ -313,7 +313,7 @@ global.vpFriendlyError = vpFriendlyError;
 
 // Exporta uma <table> renderizada (cabeçalhos agrupados, subtotais e valores) para .xlsx via ExcelJS.
 // Usada pelo botão "Exportar Excel" dos DREs e dos OPEX; nameParts compõe o nome do arquivo.
-function vpExportTableToExcel(table, title, nameParts = []) {
+function vpExportTableToExcel(table, title, nameParts = [], extraTables = []) {
   const toast = (msg, kind) => global.VECTON_DIALOGS?.showToast?.(msg, kind);
   if (!table) { toast("A tabela ainda está carregando.", "warning"); return; }
   if (!global.ExcelJS) { toast("Biblioteca de Excel não carregou. Recarregue a página e tente de novo.", "warning"); return; }
@@ -328,10 +328,11 @@ function vpExportTableToExcel(table, title, nameParts = []) {
     return undefined;
   };
   const workbook = new global.ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet(title.slice(0, 31));
+  const writeSheet = (tbl, sheetTitle) => {
+  const sheet = workbook.addWorksheet(sheetTitle.slice(0, 31));
   const taken = new Set();
-  const headRows = table.tHead ? table.tHead.rows.length : 0;
-  [...table.rows].forEach((tr, r) => {
+  const headRows = tbl.tHead ? tbl.tHead.rows.length : 0;
+  [...tbl.rows].forEach((tr, r) => {
     let c = 0;
     [...tr.cells].forEach((cell) => {
       while (taken.has(`${r}:${c}`)) c++;
@@ -352,6 +353,9 @@ function vpExportTableToExcel(table, title, nameParts = []) {
   sheet.getColumn(2).width = 42;
   for (let i = 3; i <= sheet.columnCount; i++) sheet.getColumn(i).width = 16;
   sheet.views = [{ state: "frozen", xSplit: 2, ySplit: headRows }];
+  };
+  writeSheet(table, title);
+  extraTables.forEach((extra) => { if (extra?.table) writeSheet(extra.table, extra.title || "Planilha"); });
   const name = [title, ...nameParts].filter(Boolean).join(" - ").replace(/[\/:*?"<>|]/g, "").trim() || "Relatorio";
   workbook.xlsx.writeBuffer().then((buffer) => {
     const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
