@@ -3523,6 +3523,13 @@ thead .col-frozen-3 {
   background: transparent;
   border-bottom: none;
 }
+/* Controles da barra (Gestão, Ocultar zeros, Comparar com, Excel): mesma altura e fonte. */
+.vp-source-bar.dre-cmp-bar .opex-filter-select,
+.vp-source-bar.dre-cmp-bar .vp-source-sel,
+.vp-source-bar.dre-cmp-bar .vp-export-btn,
+.vp-source-bar.dre-cmp-bar #opex-hide-zeros-btn,
+.vp-source-bar.dre-cmp-bar #opex-budget-hide-zeros-btn { height: 32px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; font-size: 0.75rem; }
+.vp-source-bar.dre-cmp-bar .opex-filter-select { padding-right: 24px; }
 /* A .reports-table-card tem um box-shadow inset no topo (destaque sutil de
    card, usado em varias telas) — com o fundo da barra "Comparar com" agora
    transparente, essa linha ficava exposta sozinha. Desliga so quando o
