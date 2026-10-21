@@ -2603,15 +2603,25 @@ function getAllowedCcNumbers() {
 // Retorna { selectedMgmt, locked, allowedMgmts, partialMgmts } para uso nos filtros de gestão.
 // allowedMgmts: array de gestões visíveis no dropdown; null = sem restrição (admin) ou locked total.
 // partialMgmts: Map<mgmt, ccId[]> com gestões de acesso parcial via extra_cc_ids.
-function getCockpitManagementAccess(previous = "Marcher") {
+function getCockpitManagementAccess(previous = "Marcher", customIds = null) {
   const registered = [...new Set([...(state.managements || []).map(row => row.name), ...state.costCenters.map(cc => cc.management)].map(name => String(name || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
   const base = ["Marcher", ...registered.filter(name => name !== "Marcher")];
   const access = resolveManagementFilter(previous, base, "Marcher");
   const options = [...new Set(access.locked ? [access.selectedMgmt] : access.allowedMgmts || base)];
   const partial = access.partialMgmts?.get(access.selectedMgmt);
   const selectedCenters = state.costCenters.filter(cc => (cc.management || "").trim() === access.selectedMgmt && (!partial || partial.map(String).includes(String(cc.id))));
+  // Seleção de CCs do seletor (multi-seleção): só vale dentro do que o acesso do usuário já permite.
+  const tree = window.VECTON_OPEX_CC_PICKER.buildTree(state.costCenters, options, access.partialMgmts);
+  const allowedIds = new Set(tree.flatMap(group => group.ccs.map(cc => cc.id)));
+  const picked = (customIds || []).map(String).filter(id => allowedIds.has(id));
+  if (picked.length) {
+    const pickedSet = new Set(picked);
+    const first = tree.find(group => group.ccs.some(cc => pickedSet.has(cc.id)))?.mgmt;
+    return { options, selected: access.selectedMgmt === "Marcher" ? first : access.selectedMgmt, locked: access.locked, partial: false,
+      centers: state.costCenters.filter(cc => pickedSet.has(String(cc.id))), customIds: picked, tree };
+  }
   return { options, selected: access.selectedMgmt, locked: access.locked, partial: !!partial,
-    centers: access.selectedMgmt === "Marcher" ? null : selectedCenters };
+    centers: access.selectedMgmt === "Marcher" ? null : selectedCenters, customIds: null, tree };
 }
 
 function resolveManagementFilter(prevMgmt, mgmtOptions, allOption) {

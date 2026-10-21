@@ -16,6 +16,9 @@
 .cockpit-management::after { content: ""; position: absolute; right: 12px; top: 50%; width: 6px; height: 6px; border-right: 1.5px solid var(--text-soft); border-bottom: 1.5px solid var(--text-soft); transform: translateY(-65%) rotate(45deg); pointer-events: none; }
 .cockpit-management:has(select:open)::after { transform: translateY(-35%) rotate(225deg); }
 .cockpit-management option:checked { background: var(--blue-strong); color: var(--text); }
+.cockpit-gestao { display: flex; align-items: center; gap: 7px; height: 34px; color: var(--text-soft); font-size: 11px; }
+.cockpit-gestao > span { white-space: nowrap; }
+.cockpit-gestao .opex-cc-trigger { height: 34px; box-sizing: border-box; min-width: 168px; padding: 0 28px 0 10px; font-size: 12px; border-radius: 8px; background-color: var(--panel-hover); }
 .cockpit-period-types { display: flex; align-items: stretch; height: 34px; box-sizing: border-box; gap: 2px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
 /* Mesmo visual do toggle Mês/YTD/Ano do Painel de Vendas (.cvp-seg). */
 .cockpit-period-types .period-month-button { height: auto; padding: 6px 12px; font-size: 12px; font-weight: 500; font-family: inherit; border: none; border-radius: 6px; background: transparent; color: var(--text-soft); cursor: pointer; }

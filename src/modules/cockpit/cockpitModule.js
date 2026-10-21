@@ -3,7 +3,7 @@
   function createCockpitModule({ getActiveView, getPeriod, canAccess, service, getManagementAccess, syncHeaderPeriod, setSelectedReportId, setActiveView, renderNavigation, renderReportsView }) {
     const F = window.VECTON_COCKPIT_FORMAT;
     const W = window.VECTON_COCKPIT_WIDGETS;
-    let management = "Marcher", periodType = "month", lastKey = "", requestId = 0;
+    let management = "Marcher", customIds = null, periodType = "month", lastKey = "", requestId = 0; // customIds: CCs escolhidos no seletor (multi-seleção)
     let scenarioId = "", scenariosLoaded = false; // "" = favorito da organização (padrão do service)
     let controls, root, body, status, mobileHost, home, controlsHome, periodHome, hideTrendTip, lastData, drillPopover, hcPopover;
     let hcSortKey = "colab", hcSortDir = 1;
@@ -23,12 +23,11 @@
       controls = document.createElement("div");
       controls.id = "cockpit-header-filters";
       controls.className = "cockpit-header-filters";
-      controls.innerHTML = `<label class="cockpit-management"><span hidden></span><select class="vp-source-sel" aria-label="Gestão"></select></label><div class="cockpit-period-types" role="group" aria-label="Tipo de período">${[["month", "Mês"], ["YTD", "YTD"], ["year", "Ano"]].map(([value, label]) => `<button type="button" class="period-month-button" data-period="${value}" aria-pressed="${value === periodType}">${label}</button>`).join("")}</div><label class="cockpit-management cockpit-compare"><span>Comparar com</span><select class="vp-source-sel" aria-label="Comparar com"></select></label>`;
+      controls.innerHTML = `<div class="cockpit-gestao"><span hidden></span><div class="cockpit-cc-slot"></div></div><div class="cockpit-period-types" role="group" aria-label="Tipo de período">${[["month", "Mês"], ["YTD", "YTD"], ["year", "Ano"]].map(([value, label]) => `<button type="button" class="period-month-button" data-period="${value}" aria-pressed="${value === periodType}">${label}</button>`).join("")}</div><label class="cockpit-management cockpit-compare"><span>Comparar com</span><select class="vp-source-sel" aria-label="Comparar com"></select></label>`;
       // Gestão + Mês/YTD/Ano ficam no cabeçalho local do Cockpit, dentro de
       // .cockpit-heading-actions — colados entre si e encostados na direita,
       // em vez de espalhados pelo justify-content:space-between do cabeçalho.
       root.querySelector(".cockpit-heading-actions").append(controls);
-      controls.querySelector(".cockpit-management:not(.cockpit-compare) select").addEventListener("change", event => { management = event.target.value; render(); });
       controls.querySelector(".cockpit-compare select").addEventListener("change", event => { scenarioId = event.target.value; render(); });
       controls.querySelectorAll("[data-period]").forEach(button => button.addEventListener("click", () => {
         periodType = button.dataset.period;
@@ -96,7 +95,7 @@
           renderNavigation?.();
           void Promise.resolve().then(() => {
             const detailPanel = document.querySelector("#reports-view .reports-table-card");
-            if (detailPanel) { detailPanel.dataset.opexMgmt = management || "Marcher"; delete detailPanel.dataset.opexCc; }
+            if (detailPanel) { detailPanel.dataset.opexMgmt = management || "Marcher"; window.VECTON_OPEX_CC_PICKER.writeCustom(detailPanel, customIds); }
             renderReportsView?.();
           });
           return;
@@ -209,7 +208,7 @@
       setTimeout(() => document.addEventListener("click", onDocClickCloseHcPopover, true), 0);
       let detail;
       try {
-        detail = await service.loadHeadcountDetail({ management: data.management, year: data.year, month: data.month });
+        detail = await service.loadHeadcountDetail({ management: data.management, ccIds: data.ccIds, year: data.year, month: data.month });
       } catch (error) {
         if (hcPopover !== popover) return;
         popover.innerHTML = `<div class="gap-header"><span class="gap-title">Headcount Realizado</span><button class="gap-close" type="button" aria-label="Fechar">✕</button></div><div class="hc-pop-loading">Não foi possível carregar os colaboradores.</div>`;
@@ -305,6 +304,7 @@
         // cabeçalho normalmente até o usuário sair e entrar de novo.
         entered = true;
         management = "Marcher";
+        customIds = null;
         periodType = "month";
         scenarioId = "";
         scenariosLoaded = false; // repopula o "Comparar com" com o favorito atual
@@ -314,14 +314,19 @@
         lastMonth.setMonth(lastMonth.getMonth() - 1);
         syncHeaderPeriod?.(lastMonth.getFullYear(), lastMonth.getMonth() + 1);
       }
-      const access = getManagementAccess(management);
+      const access = getManagementAccess(management, customIds);
       management = access.selected;
-      const select = controls.querySelector(".cockpit-management:not(.cockpit-compare) select");
-      const optionsKey = JSON.stringify([access.options, access.selected, access.locked]);
-      if (select.dataset.optionsKey !== optionsKey) {
-        select.innerHTML = access.options.map(name => `<option value="${F.escape(name)}"${name === management ? " selected" : ""}>${F.escape(name)}</option>`).join("");
-        select.disabled = access.locked;
-        select.dataset.optionsKey = optionsKey;
+      customIds = access.customIds || null;
+      const picker = window.VECTON_OPEX_CC_PICKER;
+      const ccSlot = controls.querySelector(".cockpit-cc-slot");
+      const optionsKey = JSON.stringify([access.options, access.selected, access.locked, customIds, access.partial]);
+      const ccLabel = customIds ? picker.customLabel(access.tree, customIds) : management;
+      if (ccSlot.dataset.optionsKey !== optionsKey) {
+        ccSlot.dataset.optionsKey = optionsKey;
+        picker.mount(ccSlot, {
+          tree: access.tree, canAll: access.options.includes("Marcher"), selectedMgmt: ccLabel, customIds, partial: access.partial, ariaLabel: "Gestão",
+          onApply: result => { management = result.mgmt; customIds = result.customIds; render(); }
+        });
       }
       const compareSelect = controls.querySelector(".cockpit-compare select");
       if (!scenariosLoaded) {
@@ -337,15 +342,15 @@
           compareSelect.value = scenarioId;
         } catch { scenariosLoaded = false; }
       }
-      const managementLabel = controls.querySelector(".cockpit-management:not(.cockpit-compare) > span");
+      const managementLabel = controls.querySelector(".cockpit-gestao > span");
       if (managementLabel) { managementLabel.textContent = access.partial ? "Parcial" : ""; managementLabel.hidden = !access.partial; }
       // Título segue o filtro de Gestão selecionado (ex.: "Controladoria"), em vez
       // de um texto fixo — antes sempre dizia "Diretoria de Controladoria e
       // Finanças" mesmo com outra gestão escolhida no dropdown.
-      root.querySelector(".cockpit-heading h1").textContent = management;
+      root.querySelector(".cockpit-heading h1").textContent = ccLabel;
       const period = getPeriod();
-      const filters = { management, year: Number(period.year), month: Number(period.month), periodType, scenarioId };
-      const key = JSON.stringify([filters, access]);
+      const filters = { management, ccIds: customIds, year: Number(period.year), month: Number(period.month), periodType, scenarioId };
+      const key = JSON.stringify([filters, access.options, access.selected, access.locked, access.partial, access.centers?.map(cc => cc.id)]);
       if (key === lastKey) return;
       lastKey = key;
       closeGroupDrilldown();

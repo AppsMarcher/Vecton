@@ -55,6 +55,7 @@ close(D.aggregate({ ...filters, management: 'Marcher' }, source).headcountByArea
     await page.setContent(html);
     await page.addStyleTag({ path: path.join(root, 'styles.css') });
     for (const file of ['cockpitAggregate', 'cockpitFormat', 'cockpitWidgets', 'cockpitModule']) await page.addScriptTag({ path: path.join(root, `src/modules/cockpit/${file}.js`) });
+    await page.addScriptTag({ path: path.join(root, 'src/modules/reports/opexCcPicker.js') });
     await page.addScriptTag({ path: path.join(root, 'tests/fixtures/cockpitSource.js') });
     await page.evaluate(() => {
       document.querySelector('#auth-shell').classList.remove('active');
@@ -70,7 +71,11 @@ close(D.aggregate({ ...filters, management: 'Marcher' }, source).headcountByArea
       window.testView = 'cockpit';
       window.testModule = VECTON_COCKPIT.createCockpitModule({
         getActiveView: () => testView, getPeriod: () => testPeriod, canAccess: () => true,
-        getManagementAccess: selected => ({ options: ['Controladoria', 'Industrial', 'Comercial'], selected, locked: false }),
+        getManagementAccess: selected => {
+          const options = ['Controladoria', 'Industrial', 'Comercial'];
+          const centers = options.flatMap((management, i) => [1, 2].map(n => ({ id: `${i}${n}`, number: `${i}0${n}`, name: `CC ${management} ${n}`, management })));
+          return { options, selected, locked: false, customIds: null, tree: VECTON_OPEX_CC_PICKER.buildTree(centers, options, new Map()) };
+        },
         service: VECTON_COCKPIT_DATA.createService(async filters => {
           if (testMode === 'error') throw new Error('test');
           await new Promise(resolve => setTimeout(resolve, filters.management === 'Comercial' ? 100 : 10));
@@ -80,16 +85,26 @@ close(D.aggregate({ ...filters, management: 'Marcher' }, source).headcountByArea
       testModule.render();
     });
     await page.waitForSelector('.cockpit-areas-panel .cockpit-table');
+    const pickGestao = async name => {
+      await page.click('[aria-label="Gestão"]');
+      await page.evaluate(wanted => {
+        const boxes = () => [...document.querySelectorAll('.opex-cc-pop input[data-g]')];
+        let other; while ((other = boxes().find(box => box.checked && box.dataset.g !== wanted))) other.click();
+        const target = boxes().find(box => box.dataset.g === wanted);
+        if (!target.checked) target.click();
+      }, name);
+      await page.click('.opex-cc-pop [data-apply]');
+    };
     assert.equal(await page.locator('[aria-label="Gestão"]').count(), 1);
     assert.equal(await page.locator('.cockpit-kpis .kpi-card').count(), 4);
-    await page.selectOption('[aria-label="Gestão"]', 'Comercial');
-    await page.selectOption('[aria-label="Gestão"]', 'Industrial');
+    await pickGestao('Comercial');
+    await pickGestao('Industrial');
     await page.waitForTimeout(140);
     assert.match(await page.locator('.cockpit-kpis').innerText(), /Industrial/);
     assert.match(await page.locator('[data-cockpit-widget="areas"]').innerText(), /Produção/);
     await page.locator('.cockpit-trend g[tabindex]').first().focus();
     assert.match(await page.locator('#cockpit-tip').innerText(), /Real.*Forecast favorito.*%/s);
-    await page.selectOption('[aria-label="Gestão"]', 'Controladoria');
+    await pickGestao('Controladoria');
     await page.waitForTimeout(30);
     await page.screenshot({ path: path.join(root, 'artifacts/cockpit-desktop.png'), fullPage: false });
     await page.evaluate(async () => { testPeriod.year = 2025; await testModule.render(); });

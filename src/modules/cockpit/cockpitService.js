@@ -77,7 +77,7 @@
     }
     async function load(filters) {
       if (!deps.isConfigured()) throw new Error("Supabase não configurado");
-      const access = deps.getManagementAccess(filters.management);
+      const access = deps.getManagementAccess(filters.management, filters.ccIds);
       if (!access.options.includes(filters.management)) throw new Error("Gestão não autorizada");
       const org = await deps.resolveOrganizationId(), state = deps.getState();
       const groups = deps.getOpexStructure().flatMap(section => section.groups.map(group => ({ name: group.label, accounts: [...group.accounts] })));
@@ -127,7 +127,7 @@
     // ano inteiro que load() usa para a tendência.
     async function loadHeadcountDetail(filters) {
       if (!deps.isConfigured()) throw new Error("Supabase não configurado");
-      const access = deps.getManagementAccess(filters.management);
+      const access = deps.getManagementAccess(filters.management, filters.ccIds);
       if (!access.options.includes(filters.management)) throw new Error("Gestão não autorizada");
       const org = await deps.resolveOrganizationId(), state = deps.getState(), centers = access.centers;
       const base = `organization_id=eq.${encodeURIComponent(org)}&reference_year=eq.${filters.year}&reference_month=eq.${filters.month}&load_type=eq.realizado`;

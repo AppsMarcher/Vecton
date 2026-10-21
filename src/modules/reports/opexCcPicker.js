@@ -82,11 +82,11 @@
   // slot: elemento que recebe o botao; o popover vai para o <body> (position: fixed).
   function mount(slot, opts) {
     closeOpen();
-    const { tree, canAll, allOption = ALL, selectedMgmt, customIds, partial, onApply } = opts;
+    const { tree, canAll, allOption = ALL, selectedMgmt, customIds, partial, onApply, ariaLabel } = opts;
     const total = tree.reduce((n, group) => n + group.ccs.length, 0);
     const label = customIds?.length ? selectedMgmt : `${selectedMgmt}${partial ? " · parcial" : ""}`;
     const disabled = !canAll && total <= 1;
-    slot.innerHTML = `<button type="button" class="opex-filter-select opex-cc-trigger" data-opex-mgmt-label aria-haspopup="dialog" aria-expanded="false"${disabled ? " disabled" : ""}>${esc(label)}</button>`;
+    slot.innerHTML = `<button type="button" class="opex-filter-select opex-cc-trigger" data-opex-mgmt-label${ariaLabel ? ` aria-label="${esc(ariaLabel)}"` : ""} aria-haspopup="dialog" aria-expanded="false"${disabled ? " disabled" : ""}>${esc(label)}</button>`;
     const trigger = slot.querySelector("button");
     if (disabled) return;
 
