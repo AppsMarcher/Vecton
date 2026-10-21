@@ -2881,6 +2881,10 @@ body.auth-only .vp-update-banner { display: none; }
 [data-report-id="cashFlow"]:hover { border-color: rgba(139,92,246,0.35); border-top-color: #8b5cf6; }
 [data-report-id="cashFlow"].active { border-color: rgba(139,92,246,0.70); border-top-color: #8b5cf6; }
 [data-report-id="cashFlow"] .rrc-icon-wrap { background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.22); color: var(--theme-ink-violet, #8b5cf6); }
+[data-report-id="capexBudget"] { border-top-color: #8b5cf6; }
+[data-report-id="capexBudget"]:hover { border-color: rgba(139,92,246,0.35); border-top-color: #8b5cf6; }
+[data-report-id="capexBudget"].active { border-color: rgba(139,92,246,0.70); border-top-color: #8b5cf6; }
+[data-report-id="capexBudget"] .rrc-icon-wrap { background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.22); color: var(--theme-ink-violet, #8b5cf6); }
 [data-report-id^="dre"] { border-top-color: #4f7cff; }
 [data-report-id^="dre"]:hover { border-color: rgba(79,124,255,0.35); border-top-color: #4f7cff; }
 [data-report-id^="dre"].active { border-color: rgba(79,124,255,0.70); border-top-color: #4f7cff; }

@@ -20,6 +20,7 @@
       { id: "fallback-dre", name: "DRE" },
       { id: "fallback-opex", name: "OPEX" },
       { id: "fallback-headcount", name: "Headcount" },
+      { id: "fallback-capex", name: "CAPEX" },
       { id: "fallback-personalizados", name: "Personalizados" },
     ];
     const FALLBACK_ITEMS = [
@@ -36,6 +37,7 @@
       { section_id: "fallback-opex", report_id: "opexBudget", sort_order: 1 },
       { section_id: "fallback-headcount", report_id: "headcountReal", sort_order: 0 },
       { section_id: "fallback-headcount", report_id: "headcountBudget", sort_order: 1 },
+      { section_id: "fallback-capex", report_id: "capexBudget", sort_order: 0 },
     ];
 
     let _sections = [];
@@ -140,6 +142,18 @@
         if (commercialSection) commercialSection.after(fcSection);
         else wrap.prepend(fcSection);
         assignedIds.add("cashFlow");
+      }
+      // Organizações com seções já salvas ainda podem não ter a seção CAPEX no banco:
+      // insere-a logo depois de Headcount (a migration 296 grava a seção de verdade).
+      if (cardById.has("capexBudget") && !assignedIds.has("capexBudget")) {
+        const capexSection = buildSectionEl({ id: "fallback-capex", name: "CAPEX" });
+        capexSection.querySelector(".reports-section-body").appendChild(cardById.get("capexBudget"));
+        const headcountSection = [...wrap.querySelectorAll(".reports-section")].find((section) =>
+          section.querySelector(".reports-section-title")?.textContent.trim().toLocaleLowerCase("pt-BR") === "headcount"
+        );
+        if (headcountSection) headcountSection.after(capexSection);
+        else wrap.appendChild(capexSection);
+        assignedIds.add("capexBudget");
       }
       const orphans = cards.filter((c) => !assignedIds.has(c.dataset.reportId));
       if (orphans.length) {

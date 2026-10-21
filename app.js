@@ -2565,7 +2565,7 @@ function roleCanSeeReport(role, reportId) {
 // Relatórios que dependem de escopo (gestão/CC). Quem não é Admin/Gestor/Analista só os vê por
 // concessão se tiver ao menos uma gestão ou CC marcado em Acessos adicionais — sem isso o
 // relatório abriria vazio (isAccessRestricted() sem escopo = nada).
-const SCOPED_REPORT_RE = /^(dre|opex|headcount)/;
+const SCOPED_REPORT_RE = /^(dre|opex|headcount|capex)/;
 function canSeeReport(reportId) {
   if (getAllAccessRoles().some((role) => roleCanSeeReport(role, reportId))) return true;
   if (!getExtraReportIds().includes(reportId)) return false;
@@ -3234,6 +3234,7 @@ const REPORT_TITLES = {
   opexBudget:    "OPEX Meta",
   headcountReal: "Headcount Realizado",
   headcountBudget: "Headcount Planejado",
+  capexBudget: "Capex Meta",
   comercialPainel: "Painel de Vendas",
   comercialMapa: "Mapa de Vendas",
   comercialMapaGeografico: "Ranking Geográfico",
@@ -3278,6 +3279,10 @@ const REPORT_TITLES = {
   }
 
   if (reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId)) {
+    return;
+  }
+
+  if (renderCapexReport(detailPanel, selectedReportId)) {
     return;
   }
 
@@ -3478,13 +3483,26 @@ function renderReportsView() {
     reportsMarcherCampoModule.renderSelectedMarcherCampo(detailPanel, selectedReportId) ||
     reportsDreModule.renderSelectedDreReport(detailPanel, selectedReportId) ||
     reportsOpexModule.renderSelectedOpexReport(detailPanel, selectedReportId) ||
-    reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId);
+    reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId) ||
+    renderCapexReport(detailPanel, selectedReportId);
 
   if (!rendered) {
     reportsDreModule.renderFallbackSocReal(detailPanel);
   }
 
   colorizeNegativeCells(detailPanel);
+}
+
+// Relatórios de CAPEX (Central de Relatórios, seção CAPEX). Por ora só o card "Capex Meta" existe;
+// o conteúdo do relatório ainda será definido.
+function renderCapexReport(detailPanel, reportId) {
+  if (reportId !== "capexBudget") return false;
+  detailPanel.classList.remove("dre-cmp-shell");
+  detailPanel.innerHTML = `<div class="reports-detail-empty">
+      <strong>Capex Meta</strong>
+      <p>Relatório em construção.</p>
+    </div>`;
+  return true;
 }
 
 function buildDreSocRealTableMarkup(report, compareReport = null, month = null, compareLabel = null) {

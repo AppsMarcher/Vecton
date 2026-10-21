@@ -196,6 +196,7 @@
         { label: "OPEX Real", sub: "Relatorio", target: { view: "reports", reportId: "opexReal" } },
         { label: "Headcount Realizado", sub: "Relatorio", target: { view: "reports", reportId: "headcountReal" } },
         { label: "Headcount Planejado", sub: "Relatorio", target: { view: "reports", reportId: "headcountBudget" } },
+        { label: "Capex Meta", sub: "Relatorio", target: { view: "reports", reportId: "capexBudget" } },
         { label: "Empresas", sub: "Parametros", target: { view: "branchPlan" } },
         { label: "Plano de Contas DRE", sub: "Parametros", target: { view: "drePlan" } },
         { label: "Plano de Contas FC", sub: "Parametros", target: { view: "fcPlan" } },
