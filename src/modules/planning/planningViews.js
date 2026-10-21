@@ -175,21 +175,29 @@
 
     function capexParameters(st) {
       const rows = (st.context.capex_types || []).map(t => `<tr><td>${esc(t.name)}</td><td>${fmt(t.annual_rate)}%</td><td>${fmt(100 / Number(t.annual_rate))}</td><td>${t.nature === 'depreciation' ? 'Depreciação' : 'Amortização'}</td><td>${t.active ? 'Ativo' : 'Inativo'}</td><td>${button('Editar', 'capex-type', `data-id="${t.id}" ${off(st.locked())}`)} ${button('Excluir', 'capex-delete-type', `data-id="${t.id}" ${off(st.locked())}`)}</td></tr>`).join('');
-      return `<div class="pl-heading"><h2>Parâmetros CAPEX</h2>${button('+ Novo tipo', 'capex-type', off(st.locked()), true)}</div><div class="pl-table-scroll"><table><thead><tr><th>Tipo de imobilizado</th><th>Taxa anual</th><th>Vida útil (anos)</th><th>Natureza</th><th>Status</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="6">Nenhum tipo cadastrado. Cadastre os tipos e taxas do cenário.</td></tr>'}</tbody></table></div><h3>Destino das contas</h3><div class="pl-table-scroll"><table><thead><tr><th>Centros de custo</th><th>Depreciação</th><th>Amortização</th></tr></thead><tbody><tr><td>Produção · MOD, MOI</td><td>4110220601</td><td>4110220602</td></tr><tr><td>Administrativo · ADM, COM, ENG</td><td>42301001</td><td>42301002</td></tr></tbody></table></div>`;
+      return `<div class="pl-heading"><h2>Parâmetros CAPEX</h2>${button('+ Novo tipo', 'capex-type', off(st.locked()), true)}</div><div class="pl-table-scroll"><table><thead><tr><th>Tipo de imobilizado</th><th>Taxa anual</th><th>Vida útil (anos)</th><th>Natureza</th><th>Status</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="6">Nenhum tipo cadastrado. Cadastre os tipos e taxas do cenário.</td></tr>'}</tbody></table></div><h3>Destino das contas</h3><div class="pl-table-scroll"><table class="pl-capex-destinations"><thead><tr><th>Centros de custo</th><th>Depreciação</th><th>Amortização</th><th></th></tr></thead><tbody>${capexGroups(st).map(g => `<tr class="pl-subtotal"><td colspan="4">${g.name}</td></tr>${g.rows.map(d => `<tr><td>${d.cc_type}</td><td>${esc(d.depreciation_account)}</td><td>${esc(d.amortization_account)}</td><td>${button('Editar', 'capex-destination', `data-id="${d.cc_type}" ${off(st.locked())}`)}</td></tr>`).join('')}`).join('')}</tbody></table></div>`;
+    }
+    // Contas de destino por tipo de centro de custo; sem retorno do banco vale o padrão.
+    function capexGroups(st) {
+      const base = { MOD: ['4110220601', '4110220602'], MOI: ['4110220601', '4110220602'], ADM: ['42301001', '42301002'], COM: ['42301001', '42301002'], ENG: ['42301001', '42301002'] };
+      const saved = new Map((st.context.capex_destinations || []).map(d => [d.cc_type, d]));
+      const row = type => saved.get(type) || { cc_type: type, depreciation_account: base[type][0], amortization_account: base[type][1], row_version: 0 };
+      return [{ name: 'Produção', rows: ['MOD', 'MOI'].map(row) }, { name: 'Administrativo', rows: ['ADM', 'COM', 'ENG'].map(row) }];
     }
     function capexFooter(st) {
       const data = st.capexDepreciation || [], totals = Array(12).fill(0);
       const row = (name, values, cls = '') => `<tr class="${cls}"><td>${esc(name)}</td>${values.map(v => `<td>${fmt(v)}</td>`).join('')}<td>${fmt(values.reduce((a,b) => a+b, 0))}</td></tr>`;
       let body = '';
-      for (const [name, accounts] of [['Produção', ['4110220601','4110220602']], ['Administrativo', ['42301001','42301002']]]) {
+      for (const g of capexGroups(st)) {
         const subtotal = Array(12).fill(0);
-        body += `<tr class="pl-subtotal"><td colspan="14">${name}</td></tr>`;
-        accounts.forEach((account, k) => {
-          const values = months.map((_, i) => data.filter(d => d.account_number === account && d.reference_month === i+1).reduce((sum,d) => sum+Number(d.amount),0));
+        body += `<tr class="pl-subtotal"><td colspan="14">${g.name}</td></tr>`;
+        [['depreciation_account', 'Depreciação'], ['amortization_account', 'Amortização']].forEach(([field, label]) => {
+          const accounts = [...new Set(g.rows.map(d => d[field]))];
+          const values = months.map((_, i) => data.filter(d => accounts.includes(d.account_number) && d.reference_month === i+1).reduce((sum,d) => sum+Number(d.amount),0));
           values.forEach((v,i) => { subtotal[i]+=v;totals[i]+=v; });
-          body += row(`${account} · ${k ? 'Amortização' : 'Depreciação'}`, values);
+          body += row(`${accounts.join(' / ')} · ${label}`, values);
         });
-        body += row(`Subtotal ${name.toLowerCase()}`, subtotal, 'pl-subtotal');
+        body += row(`Subtotal ${g.name.toLowerCase()}`, subtotal, 'pl-subtotal');
       }
       return body+row('Total depreciação e amortização do CAPEX',totals,'pl-subtotal');
     }
@@ -211,7 +219,7 @@
       const config = `<div class="pl-actions">${button(f.status === 'released' ? 'Voltar à construção' : 'Liberar','release',off(st.locked()))}${button('Editar nome','edit-form',off(st.locked()))}</div>`;
       return `${st.formTab === 'input' ? `<div class="pl-heading"><div class="pl-actions" style="margin-left:auto">${f.access_mode === 'write' ? button('Integrar no DRE','project',off(st.locked() || f.status !== 'released'),true) : ''}${button('Exportar Excel','export')}</div></div>` : ''}<div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO CPX</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div>${tabs.length > 1 ? `<nav class="pl-tabs">${tabButtons(tabs,'form-tab',st.formTab)}</nav>` : ''}${st.formTab === 'input' ? `<div class="pl-heading pl-capex-toolbar">${button('+ Investimentos','capex-add',off(!editable || !st.context.capex_types?.some(t=>t.active)))}${costCenterPicker(st)}</div>${!st.context.capex_types?.some(t=>t.active) ? '<p class="pl-note">O administrador precisa cadastrar um tipo ativo nos Parâmetros CAPEX antes de lançar investimentos.</p>' : ''}${capexGrid(st)}` : st.formTab === 'access' ? access(st) : config}`;
     }
-    return { fmt, button, field, textInput, steps, wizard, scenario, capexFooter };
+    return { fmt, button, field, textInput, steps, wizard, scenario, capexFooter, capexGroups };
   }
   global.VECTON_PLANNING_VIEWS = { createPlanningViews };
 })(window);

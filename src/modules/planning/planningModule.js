@@ -265,6 +265,13 @@
       });
       root.querySelector('#pl-type-rate').oninput=()=>{try{const rate=core.parseAmount(root.querySelector('#pl-type-rate').value);root.querySelector('#pl-type-life').value=rate>0?fmt(100/rate):'';}catch(_){root.querySelector('#pl-type-life').value='';}};
     }
+    function capexDestinationDialog(type) {
+      const d = views.capexGroups(st).flatMap(g => g.rows).find(x => x.cc_type === type);
+      modal(`Contas de destino · ${type}`, `${field('Conta de depreciação',textInput('pl-dest-dep',d.depreciation_account,'maxlength="40" inputmode="numeric"'))}${field('Conta de amortização',textInput('pl-dest-amo',d.amortization_account,'maxlength="40" inputmode="numeric"'))}<p class="pl-note">As contas precisam ser analíticas e ativas no plano DRE. O próximo Integrar do Capex regrava a depreciação nas novas contas.</p>`, async()=>{
+        await rpc('planning_capex_destination_save',{p_org:org,p_scenario:scenario.id,p_payload:{cc_type:type,version:d.row_version,depreciation_account:root.querySelector('#pl-dest-dep').value,amortization_account:root.querySelector('#pl-dest-amo').value}});
+        close();await refresh();render();
+      });
+    }
     function capexItemDialog() {
       const types = context.capex_types.filter(t=>t.active);
       modal('Adicionar investimento',`${field('Investimento',textInput('pl-item-name','','maxlength="250"'))}${field('Tipo de imobilizado',`<select class="pl-input" id="pl-item-type">${types.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select>`)}`,async()=>{
@@ -297,6 +304,7 @@
         case 'dre': return leave(() => { active = false; openScenarioDreReport(scenario.id); });
         case 'new-form': return openFormDialog();
         case 'capex-type': return capexTypeDialog(d.id);
+        case 'capex-destination': return capexDestinationDialog(d.id);
         case 'capex-delete-type': return modal('Excluir tipo de imobilizado?','<p>Tipos em uso só podem ser desativados.</p>',async()=>{const t=context.capex_types.find(x=>x.id===d.id);await capexWrite('delete_type',{id:t.id,version:t.row_version});close();await refresh();render();});
         case 'capex-add': return leave(capexItemDialog);
         case 'capex-duplicate': return leave(async()=>{const item=capexItems.find(i=>i.id===d.id);await capexWrite('duplicate_item',{id:item.id,version:item.row_version});await refresh();await readForm();render();});
@@ -418,10 +426,10 @@
       });
       sheet.addRow(['Total de investimentos','','',...sums,sums.reduce((a,b)=>a+b,0)]);sheet.addRow([]);sheet.addRow(['Depreciação e amortização incremental']);sheet.addRow(['Conta / descrição','','',...months,'Total']);
       const grand=Array(12).fill(0);
-      for(const [name,accounts] of [['Produção',['4110220601','4110220602']],['Administrativo',['42301001','42301002']]]){
-        sheet.addRow([name]);const sub=Array(12).fill(0);
-        accounts.forEach((account,k)=>{const vals=months.map((_,i)=>data.depreciation.filter(d=>d.account_number===account&&d.reference_month===i+1).reduce((n,d)=>n+Number(d.amount),0));vals.forEach((v,i)=>{sub[i]+=v;grand[i]+=v;});sheet.addRow([`${account} · ${k?'Amortização':'Depreciação'}`,'','',...vals,vals.reduce((a,b)=>a+b,0)]);});
-        sheet.addRow([`Subtotal ${name.toLowerCase()}`,'','',...sub,sub.reduce((a,b)=>a+b,0)]);
+      for(const g of views.capexGroups(st)){
+        sheet.addRow([g.name]);const sub=Array(12).fill(0);
+        [['depreciation_account','Depreciação'],['amortization_account','Amortização']].forEach(([field,label])=>{const accounts=[...new Set(g.rows.map(d=>d[field]))];const vals=months.map((_,i)=>data.depreciation.filter(d=>accounts.includes(d.account_number)&&d.reference_month===i+1).reduce((n,d)=>n+Number(d.amount),0));vals.forEach((v,i)=>{sub[i]+=v;grand[i]+=v;});sheet.addRow([`${accounts.join(' / ')} · ${label}`,'','',...vals,vals.reduce((a,b)=>a+b,0)]);});
+        sheet.addRow([`Subtotal ${g.name.toLowerCase()}`,'','',...sub,sub.reduce((a,b)=>a+b,0)]);
       }
       sheet.addRow(['Total depreciação e amortização do CAPEX','','',...grand,grand.reduce((a,b)=>a+b,0)]);
       sheet.getColumn(1).width=44;sheet.getColumn(2).width=30;sheet.getColumn(3).width=30;

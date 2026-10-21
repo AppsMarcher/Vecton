@@ -160,6 +160,7 @@ const uuid = () => require('node:crypto').randomUUID();
     await db.exec('reset role;alter table cost_centers add column cost_center_type text;');
     await db.query("update cost_centers set cost_center_type=case when id=$1 then 'ADM' else 'MOD' end",[cc]);
     await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/290_planning_capex.sql'),'utf8'));
+    await db.exec(fs.readFileSync(path.join(__dirname,'../supabase/291_planning_capex_destinations.sql'),'utf8'));
     await as(admin);
     const cs=(await write('create',null,{name:'CAPEX test',year:2035,months:sources,forms:[]})).id;
     const cf=(await ctx(cs)).forms.find(f=>f.form_type==='capex');

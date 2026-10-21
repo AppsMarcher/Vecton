@@ -54,3 +54,4 @@
 .pl-capex-depreciation{min-width:1800px}
 .pl-capex-grid tfoot td:first-child{background:var(--panel-alt)}
 @media(max-width:650px){.pl-capex-toolbar .pl-cc{min-width:0;width:100%}.pl-capex-grid th:first-child,.pl-capex-grid td:first-child,.pl-capex-depreciation th:first-child,.pl-capex-depreciation td:first-child{width:220px}}
+.pl-capex-destinations td:first-child{padding-left:26px}.pl-capex-destinations td:last-child,.pl-capex-destinations th:last-child{width:110px;text-align:right}
