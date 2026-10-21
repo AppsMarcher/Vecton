@@ -348,7 +348,7 @@
         case 'release': await write('save_form', { ...form(), status: form().status === 'draft' ? 'released' : 'draft' }); await refresh(); return render();
         case 'save': return save();
         case 'discard': storage('removeItem', draftKey()); changes.clear(); if(isCapex()){await readForm();} return render();
-        case 'project': return modal(`Integrar ao DRE e OPEX do "${scenario.name}"?`, `<p>Integra os valores projetados nos formulários de OPEX e CAPEX ao DRE e demais relatórios derivados.</p>${changes.size ? '<p class="pl-note">Sua digitação não salva não será incluída.</p>' : ''}`, async () => {
+        case 'project': return modal(`Integrar ao DRE e OPEX do ${scenario.name}?`, `<p>Integra os valores projetados nos formulários de OPEX e CAPEX ao DRE e demais relatórios derivados.</p>${changes.size ? '<p class="pl-note">Sua digitação não salva não será incluída.</p>' : ''}`, async () => {
           const result = await rpc('planning_integrate_all', { p_org: org, p_scenario: scenario.id, p_form: formId });
           invalidateScenarioCachesFor?.(scenario.id, scenario.reference_year);
           if (!result.ok) { await refresh(); throw Error(result.error || 'Falha na integração'); }
