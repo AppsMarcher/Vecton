@@ -70,3 +70,11 @@
 .pl-cc .pl-choice{padding:6px 12px;margin:0;gap:8px;border-radius:0;font-size:12px;cursor:pointer;align-items:center}
 .pl-cc .pl-choice:hover{background:var(--panel-hover)}
 .pl-cc .pl-choice input[type="checkbox"]{width:14px;height:14px;min-width:14px;margin:0;padding:0;flex:0 0 14px;accent-color:var(--blue);cursor:pointer}
+.pl-origin{border:1px solid var(--line);border-radius:8px;margin:10px 0;overflow:hidden}
+.pl-origin--on{border-color:var(--blue)}
+.pl-origin-head{display:flex;gap:12px;align-items:center;padding:15px;cursor:pointer;color:var(--text)}
+.pl-origin-head span{display:flex;flex-direction:column;gap:3px;font-size:13px}
+.pl-origin-head small{color:var(--pl-muted);font-size:12px}
+.pl-origin-body{padding:4px 15px 15px 42px;display:flex;flex-direction:column;gap:10px}
+.pl-sub{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text);cursor:pointer}
+.pl-hint{font-size:12px;color:var(--pl-muted);margin:0}
