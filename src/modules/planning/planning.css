@@ -42,7 +42,6 @@
 
 /* CAPEX has its own item structure and shares the form header / CC picker. */
 .pl-capex-list{margin-top:28px}
-.pl-capex-report{cursor:default}
 .pl-capex-toolbar{margin:24px 0}
 .pl-capex-toolbar .pl-cc{margin-left:auto}
 .pl-capex-grid{min-width:2250px}

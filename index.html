@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20261021capex2">
   <link rel="stylesheet" href="src/modules/cashflow/fcDashboard.css?v=20261014em1">
-  <link rel="stylesheet" href="src/modules/planning/planning.css?v=20261021fs1">
+  <link rel="stylesheet" href="src/modules/planning/planning.css?v=20261021cap1">
   <link rel="stylesheet" href="src/styles/appearance.css?v=20260924maps1">
   <script src="src/core/appearance.js?v=20260924a"></script>
 </head>
@@ -1400,7 +1400,7 @@
                 </div>
                 <span class="ap-user-count" id="ap-count-manager">— usuários</span>
               </div>
-              <p class="ap-description">Visão consolidada no Dashboard, DRE, Fluxo de Caixa e relatórios comerciais. OPEX e Headcount restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil. No A3 Estratégicos, enxerga todas as áreas mas só edita a(s) A3 da própria gestão (mais concessão extra pontual, se configurada).</p>
+              <p class="ap-description">Visão consolidada no Dashboard, DRE, Fluxo de Caixa e relatórios comerciais. OPEX, Headcount e Capex restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil. No A3 Estratégicos, enxerga todas as áreas mas só edita a(s) A3 da própria gestão (mais concessão extra pontual, se configurada).</p>
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--yes">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">DRE consolidado (somente leitura)</li>
@@ -1408,7 +1408,7 @@
                 <li class="ap-perm ap-perm--yes">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças (consolidado + drill-down)</li>
                 <li class="ap-perm ap-perm--yes">Evolutivo de Margens (consolidado + drill-down por código)</li>
                 <li class="ap-perm ap-perm--no">Ativações de Garantia e Marcher no Campo (perfil Marketing)</li>
-                <li class="ap-perm ap-perm--partial">OPEX e Headcount — restrito à gestão própria</li>
+                <li class="ap-perm ap-perm--partial">OPEX, Headcount e Capex — restrito à gestão própria</li>
                 <li class="ap-perm ap-perm--partial">A3 Estratégicos — vê todas as áreas, edita só a da própria gestão (+ extras configuráveis)</li>
                 <li class="ap-perm ap-perm--partial">Gestões e CCs adicionais configuráveis</li>
                 <li class="ap-perm ap-perm--partial">Contas matriciais configuráveis</li>
@@ -1429,14 +1429,14 @@
                 </div>
                 <span class="ap-user-count" id="ap-count-analyst">— usuários</span>
               </div>
-              <p class="ap-description">Sem acesso ao Dashboard, DRE consolidado, Fluxo de Caixa ou relatórios comerciais. OPEX e Headcount restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil.</p>
+              <p class="ap-description">Sem acesso ao Dashboard, DRE consolidado, Fluxo de Caixa ou relatórios comerciais. OPEX, Headcount e Capex restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil.</p>
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--no">DRE consolidado da empresa</li>
                 <li class="ap-perm ap-perm--no">Fluxo de Caixa</li>
                 <li class="ap-perm ap-perm--no">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças</li>
                 <li class="ap-perm ap-perm--no">Evolutivo de Margens</li>
-                <li class="ap-perm ap-perm--partial">OPEX e Headcount — restrito à gestão própria</li>
+                <li class="ap-perm ap-perm--partial">OPEX, Headcount e Capex — restrito à gestão própria</li>
                 <li class="ap-perm ap-perm--partial">Gestões e CCs adicionais configuráveis</li>
                 <li class="ap-perm ap-perm--partial">Contas matriciais configuráveis</li>
                 <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
@@ -1690,7 +1690,7 @@
   <script src="src/modules/reports/reportsDreModule.js?v=20261021ico1"></script>
   <script src="src/modules/reports/reportsOpexModule.js?v=20261021ico1"></script>
   <script src="src/modules/planning/planningCore.js?v=20261019renum1"></script>
-  <script src="src/modules/planning/planningViews.js?v=20261021ico2"></script>
+  <script src="src/modules/planning/planningViews.js?v=20261021cap1"></script>
   <script src="src/modules/planning/planningModule.js?v=20261021all1"></script>
   <script src="src/modules/forecast/forecastModule.js?v=20261020d"></script>
   <script src="src/modules/rps/rpsModule.js?v=20261013rps3"></script>
@@ -1705,7 +1705,7 @@
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsBuilderModule.js?v=20261019a"></script>
   <script src="src/modules/reports/reportsSectionsModule.js?v=20261021capex1"></script>
-  <script src="src/modules/reports/reportsCapexModule.js?v=20261021capex1"></script>
+  <script src="src/modules/reports/reportsCapexModule.js?v=20261021capex3"></script>
   <script src="src/modules/users/usersModule.js?v=20261016mkt4"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
   <script src="src/modules/announcements/announcementsAdminModule.js?v=20260925b"></script>
@@ -1748,6 +1748,6 @@
   <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
   <script src="src/modules/cashflow/fcExport.js?v=20261014em1"></script>
   <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
-  <script src="app.js?v=20261021m"></script>
+  <script src="app.js?v=20261021o"></script>
 </body>
 </html>

@@ -1267,6 +1267,7 @@ function openScenarioReport(scenarioId, reportId) {
   if (reportId === "dreSocBudget") reportsDreModule.setBudgetSource(scenarioId ? source : "budget");
   else if (reportId === "opexBudget") _opexBudgetSource = source;
   else if (reportId === "headcountBudget") _hcBudgetSource = source;
+  else if (reportId === "capexBudget") reportsCapexModule.setSource(scenarioId);
   selectedReportId = reportId;
   activeView = "reports";
   renderNavigation();
@@ -2543,7 +2544,7 @@ function canDrillPainelVendas() {
 //  • manager (Gestor): tudo, incluindo os relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS),
 //    exceto os do perfil Marketing (MARKETING_REPORT_IDS)
 //  • marketing: somente Ativações de Garantia e Marcher no Campo (MARKETING_REPORT_IDS)
-//  • analyst (Analista): somente OPEX e Headcount por gestão/CC
+//  • analyst (Analista): somente OPEX, Headcount e Capex Meta por gestão/CC
 //  • comercial: allowlist fixa dos relatórios comerciais fixos (CORE_COMMERCIAL_REPORT_IDS),
 //    exceto Ativações de Garantia (COMERCIAL_EXCLUDED_REPORT_IDS)
 //  • extra_report_ids (matriz "Acessos adicionais"): concessão ADICIONAL válida para QUALQUER
@@ -2559,7 +2560,7 @@ function roleCanSeeReport(role, reportId) {
   }
   if (role === "manager") return !MARKETING_REPORT_IDS.includes(reportId);
   if (role === "marketing") return MARKETING_REPORT_IDS.includes(reportId);
-  if (role === "analyst") return ["opexReal", "opexBudget", "headcountReal", "headcountBudget"].includes(reportId);
+  if (role === "analyst") return ["opexReal", "opexBudget", "headcountReal", "headcountBudget", "capexBudget"].includes(reportId);
   return false; // rps_gestao e outros perfis sem tela de Relatórios própria
 }
 // Relatórios que dependem de escopo (gestão/CC). Quem não é Admin/Gestor/Analista só os vê por

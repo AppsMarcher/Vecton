@@ -32,10 +32,12 @@
       closePopover();
       detailPanel.innerHTML = `
         <div class="vp-source-bar dre-cmp-bar capex-bar">
-          <select class="opex-filter-select" id="capex-mgmt-sel" aria-label="Gestão"><option value="${ALL}">${ALL}</option></select>
           <div class="capex-seg" id="capex-seg" role="group" aria-label="Agrupar">
             <button type="button" data-mode="gestao">Por gestão</button>
-            <button type="button" data-mode="tipo">Por tipo de imobilizado</button>
+            <button type="button" data-mode="tipo">Por tipo</button>
+          </div>
+          <div class="opex-header-filter" style="display:flex;align-items:center;gap:10px">
+            <select class="opex-filter-select" id="capex-mgmt-sel" aria-label="Gestão"><option value="${ALL}">${ALL}</option></select>
           </div>
           <span class="vp-source-label">Fonte</span>
           <select class="vp-source-sel" id="capex-src-sel"><option value="">Carregando…</option></select>
@@ -104,12 +106,10 @@
           </div>
           <div class="capex-card">
             <h2>Investimentos</h2>
-            <p class="capex-sub">Valores salvos no formulário CAPEX, por mês. Clique em um valor para ver os investimentos que o compõem.</p>
             <div class="capex-scroll"><table class="reports-dre-table" id="capex-t1">${table1(items)}</table></div>
           </div>
           <div class="capex-card">
             <h2>Depreciação e amortização incremental</h2>
-            <p class="capex-sub">Efeito dos investimentos no DRE, a partir do mês seguinte ao lançamento. Passa a valer no DRE e no OPEX após o “Integrar no DRE e OPEX”.</p>
             <div class="capex-scroll"><table class="reports-dre-table" id="capex-t2">${table2(items)}</table></div>
           </div>`;
       }
@@ -275,7 +275,10 @@
       return true;
     }
 
-    return { renderSelectedCapexReport };
+    // Chamado ao abrir o relatório a partir do detalhe do cenário (card Capex em Planejamento).
+    function setSource(scenarioId) { if (scenarioId) _source = scenarioId; }
+
+    return { renderSelectedCapexReport, setSource };
   }
 
   window.VECTON_REPORTS_CAPEX = { createReportsCapexModule };

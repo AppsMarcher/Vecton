@@ -99,7 +99,7 @@
     function reportCards(st) {
       const name = esc(st.scenario.name), canView = id => (typeof canSeeReport === 'function' ? canSeeReport(id) : true);
       const card = (id, label, color, rgb, icon) => canView(id) ? `<button class="reports-report-card fc-scenario-card" type="button" data-pl="report" data-report="${id}" style="border-top-color:${color}"><div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(${rgb},0.12);border-color:rgba(${rgb},0.22);color:${color}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${icon}"></use></svg></span></div><strong>${label}</strong><span class="rrc-subtitle">${name}</span></button>` : '';
-      const capex = st.context.capex_enabled ? `<div class="reports-report-card fc-scenario-card pl-capex-report" style="border-top-color:#8b5cf6"><div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.22);color:#8b5cf6"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-briefcase"></use></svg></span></div><strong>Capex</strong><span class="rrc-subtitle">${name}</span></div>` : '';
+      const capex = st.context.capex_enabled ? card('capexBudget', 'Capex', '#8b5cf6', '139,92,246', 'vp-icon-briefcase') : '';
       return `<div class="reports-card-grid pl-reports">${card('dreSocBudget', 'DRE Societário', '#4f7cff', '79,124,255', 'vp-icon-cost')}${card('opexBudget', 'Opex', '#f59e0b', '245,158,11', 'vp-icon-pie')}${card('headcountBudget', 'Headcount', '#14b8a6', '20,184,166', 'vp-icon-users')}${capex}</div>`;
     }
 

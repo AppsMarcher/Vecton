@@ -49,7 +49,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
       await testModule.open(document.getElementById('planning'),scenario,()=>{},{manage:true});
     });
     assert.deepEqual(await page.locator('.pl-tabs [data-pl="tab"]').allTextContents(),['Formulários','Fontes dos meses','Parâmetros CAPEX','Integrações no DRE']);
-    assert.equal(await page.locator('.pl-capex-report').getAttribute('data-pl'),null);
+    assert.equal(await page.locator('[data-report="capexBudget"]').getAttribute('data-pl'),'report');
     assert.equal(await page.locator('.pl-capex-list .pl-code').innerText(),'CPX');
     assert.equal(await page.locator('.pl-list:not(.pl-capex-list) .pl-list-row').count(),9);
     await page.getByRole('button',{name:'+ Novo formulário',exact:true}).click();assert.equal(await page.locator('#pl-form-code').inputValue(),'10');await page.getByRole('button',{name:'Cancelar',exact:true}).click();
