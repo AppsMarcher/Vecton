@@ -4,6 +4,7 @@
     const F = window.VECTON_COCKPIT_FORMAT;
     const W = window.VECTON_COCKPIT_WIDGETS;
     let management = "Marcher", periodType = "month", lastKey = "", requestId = 0;
+    let scenarioId = "", scenariosLoaded = false; // "" = favorito da organização (padrão do service)
     let controls, root, body, status, mobileHost, home, controlsHome, periodHome, hideTrendTip, lastData, drillPopover, hcPopover;
     let hcSortKey = "colab", hcSortDir = 1;
     const HC_SORT_FIELDS = {
@@ -22,12 +23,13 @@
       controls = document.createElement("div");
       controls.id = "cockpit-header-filters";
       controls.className = "cockpit-header-filters";
-      controls.innerHTML = `<label class="cockpit-management"><span>Gestão</span><select class="vp-source-sel" aria-label="Gestão"></select></label><div class="cockpit-period-types" role="group" aria-label="Tipo de período">${[["month", "Mês"], ["YTD", "YTD"], ["year", "Ano"]].map(([value, label]) => `<button type="button" class="period-month-button" data-period="${value}" aria-pressed="${value === periodType}">${label}</button>`).join("")}</div>`;
+      controls.innerHTML = `<label class="cockpit-management"><span hidden></span><select class="vp-source-sel" aria-label="Gestão"></select></label><div class="cockpit-period-types" role="group" aria-label="Tipo de período">${[["month", "Mês"], ["YTD", "YTD"], ["year", "Ano"]].map(([value, label]) => `<button type="button" class="period-month-button" data-period="${value}" aria-pressed="${value === periodType}">${label}</button>`).join("")}</div><label class="cockpit-management cockpit-compare"><span>Comparar com</span><select class="vp-source-sel" aria-label="Comparar com"></select></label>`;
       // Gestão + Mês/YTD/Ano ficam no cabeçalho local do Cockpit, dentro de
       // .cockpit-heading-actions — colados entre si e encostados na direita,
       // em vez de espalhados pelo justify-content:space-between do cabeçalho.
       root.querySelector(".cockpit-heading-actions").append(controls);
-      controls.querySelector("select").addEventListener("change", event => { management = event.target.value; render(); });
+      controls.querySelector(".cockpit-management:not(.cockpit-compare) select").addEventListener("change", event => { management = event.target.value; render(); });
+      controls.querySelector(".cockpit-compare select").addEventListener("change", event => { scenarioId = event.target.value; render(); });
       controls.querySelectorAll("[data-period]").forEach(button => button.addEventListener("click", () => {
         periodType = button.dataset.period;
         controls.querySelectorAll("[data-period]").forEach(node => node.setAttribute("aria-pressed", String(node.dataset.period === periodType)));
@@ -304,6 +306,8 @@
         entered = true;
         management = "Marcher";
         periodType = "month";
+        scenarioId = "";
+        scenariosLoaded = false; // repopula o "Comparar com" com o favorito atual
         controls.querySelectorAll("[data-period]").forEach(node => node.setAttribute("aria-pressed", String(node.dataset.period === periodType)));
         const lastMonth = new Date();
         lastMonth.setDate(1); // evita estourar o mês ao cair num dia 29-31 que não existe no mês anterior
@@ -312,21 +316,35 @@
       }
       const access = getManagementAccess(management);
       management = access.selected;
-      const select = controls.querySelector("select");
+      const select = controls.querySelector(".cockpit-management:not(.cockpit-compare) select");
       const optionsKey = JSON.stringify([access.options, access.selected, access.locked]);
       if (select.dataset.optionsKey !== optionsKey) {
         select.innerHTML = access.options.map(name => `<option value="${F.escape(name)}"${name === management ? " selected" : ""}>${F.escape(name)}</option>`).join("");
         select.disabled = access.locked;
         select.dataset.optionsKey = optionsKey;
       }
-      const managementLabel = controls.querySelector(".cockpit-management > span");
-      if (managementLabel) managementLabel.textContent = access.partial ? "Gestão · parcial" : "Gestão";
+      const compareSelect = controls.querySelector(".cockpit-compare select");
+      if (!scenariosLoaded) {
+        scenariosLoaded = true;
+        try {
+          const scenarios = await service.listScenarios();
+          const year = Number(getPeriod().year);
+          const favorite = scenarios.find(s => s.is_default) || scenarios.find(s => s.name === `Budget ${year}`);
+          if (!scenarioId) scenarioId = favorite ? String(favorite.id) : "";
+          compareSelect.innerHTML = scenarios.length
+            ? scenarios.map(s => `<option value="${F.escape(String(s.id))}">${F.escape(s.name)}</option>`).join("")
+            : '<option value="">Sem cenário</option>';
+          compareSelect.value = scenarioId;
+        } catch { scenariosLoaded = false; }
+      }
+      const managementLabel = controls.querySelector(".cockpit-management:not(.cockpit-compare) > span");
+      if (managementLabel) { managementLabel.textContent = access.partial ? "Parcial" : ""; managementLabel.hidden = !access.partial; }
       // Título segue o filtro de Gestão selecionado (ex.: "Controladoria"), em vez
       // de um texto fixo — antes sempre dizia "Diretoria de Controladoria e
       // Finanças" mesmo com outra gestão escolhida no dropdown.
       root.querySelector(".cockpit-heading h1").textContent = management;
       const period = getPeriod();
-      const filters = { management, year: Number(period.year), month: Number(period.month), periodType };
+      const filters = { management, year: Number(period.year), month: Number(period.month), periodType, scenarioId };
       const key = JSON.stringify([filters, access]);
       if (key === lastKey) return;
       lastKey = key;
@@ -364,8 +382,7 @@
           lastData = data;
           W.render(body, data);
           const sourceEl = root.querySelector(".cockpit-source");
-          sourceEl.textContent = `Comparativo: ${data.comparisonLabel || "Budget"}`;
-          if (data.opex.realized != null && periodType === "year") sourceEl.textContent += ` · Real até a competência: ${F.formatCompactCurrency(data.opex.realized)}`;
+          sourceEl.textContent = data.opex.realized != null && periodType === "year" ? `Real até a competência: ${F.formatCompactCurrency(data.opex.realized)}` : "";
           // Avisos (ex.: sem Forecast favorito, cobertura incompleta) não viram mais um
           // parágrafo fixo na tela — ficam só no título do resumo (hover) e na região
           // aria-live, pra não poluir o cabeçalho quando tudo carrega normalmente.

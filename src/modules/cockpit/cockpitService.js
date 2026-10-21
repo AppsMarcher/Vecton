@@ -68,6 +68,13 @@
       const coverage = new Set(normalized.map(row => Number(row.reference_month)));
       return deps.buildDreReport(year, normalized).receitaLiquida.map((value, i) => coverage.has(i + 1) ? value : null);
     }
+    // Cenários que o seletor "Comparar com" do Cockpit oferece (qualquer ano);
+    // o favorito da organização (estrela) é o padrão quando nada é escolhido.
+    async function listScenarios() {
+      const org = await deps.resolveOrganizationId();
+      const rows = await cached(`${org}:${generation}:scenarios`, () => deps.readRows("forecast_scenarios", `organization_id=eq.${encodeURIComponent(org)}&select=id,name,cutoff_month,reference_year,is_default`));
+      return [...rows].sort((a, b) => (Number(b.reference_year) - Number(a.reference_year)) || String(a.name).localeCompare(String(b.name), "pt-BR"));
+    }
     async function load(filters) {
       if (!deps.isConfigured()) throw new Error("Supabase não configurado");
       const access = deps.getManagementAccess(filters.management);
@@ -82,7 +89,8 @@
       const orgBase = `organization_id=eq.${encodeURIComponent(org)}`;
       const favorites = await cached(`${org}:${generation}:favorite`, () => deps.readRows("forecast_scenarios", `${orgBase}&is_default=eq.true&select=id,name,cutoff_month,reference_year&limit=1`));
       const budgetName = `Budget ${filters.year}`;
-      const scenario = favorites[0] || (await cached(`${org}:${generation}:budget-scenario:${filters.year}`, () => deps.readRows("forecast_scenarios", `${orgBase}&name=eq.${encodeURIComponent(budgetName)}&select=id,name,cutoff_month,reference_year&limit=1`)))[0];
+      const picked = filters.scenarioId ? (await listScenarios()).find(s => String(s.id) === String(filters.scenarioId)) : null;
+      const scenario = picked || favorites[0] || (await cached(`${org}:${generation}:budget-scenario:${filters.year}`, () => deps.readRows("forecast_scenarios", `${orgBase}&name=eq.${encodeURIComponent(budgetName)}&select=id,name,cutoff_month,reference_year&limit=1`)))[0];
       // Só um Forecast de verdade estima os meses futuros; um cenário "Budget ..." não.
       const isBudgetLike = !!scenario && /^budget(?![a-z])/i.test(scenario.name);
       const hasForecast = !!scenario && !isBudgetLike;
@@ -144,7 +152,7 @@
       const byArea = [...groups.values()].map(group => ({ ...group, count: group.entries.length })).sort((a, b) => b.count - a.count);
       return { total: rows.length, byArea };
     }
-    return { load, invalidate, loadHeadcountDetail };
+    return { load, invalidate, loadHeadcountDetail, listScenarios };
   }
   window.VECTON_COCKPIT_SERVICE = { createCockpitService };
 })(window);
