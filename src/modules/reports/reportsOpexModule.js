@@ -109,10 +109,15 @@
       // "Marcher" (consolidado) só para admin/super_admin ou perfis sem restrição.
       // Gestor/Analista com gestões extras vê só as gestões permitidas — sem "Marcher",
       // pois o OPEX não exibe dados consolidados para perfis restritos.
-      const { selectedMgmt, locked: mgmtLocked, allowedMgmts, partialMgmts } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
-      const mgmtOptions = mgmtLocked ? [selectedMgmt] : (allowedMgmts ? [...allowedMgmts] : baseMgmtOptions);
-      const validCcFilter = buildOpexCostCenterFilter(selectedMgmt);
+      const resolved = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
+      const { locked: mgmtLocked, allowedMgmts } = resolved;
+      const mgmtOptions = mgmtLocked ? [resolved.selectedMgmt] : (allowedMgmts ? [...allowedMgmts] : baseMgmtOptions);
+      // Seletor de gestão + CCs (multi-seleção): uma lista de CCs escolhida vira uma "gestão parcial".
+      const picker = window.VECTON_OPEX_CC_PICKER;
+      const ccTree = picker.buildTree(state.costCenters, mgmtOptions, resolved.partialMgmts, allOption);
+      const { selectedMgmt, partialMgmts, customIds } = picker.applyCustom(resolved, picker.readCustom(detailPanel), ccTree);
       const isPartial = partialMgmts?.has(selectedMgmt);
+      const validCcFilter = isPartial ? buildOpexCcIdsFilter(partialMgmts.get(selectedMgmt)) : buildOpexCostCenterFilter(selectedMgmt);
       const partialCcIds = isPartial ? partialMgmts.get(selectedMgmt) : null;
       const ccCacheKey = `opex-cc-${year}`;
       let ccFetchPromise = null;
@@ -152,7 +157,7 @@
       `;
       const tableInner = detailPanel.querySelector("#opex-table-inner");
       detailPanel.querySelector("[data-opex-export]").addEventListener("click", () => {
-        const mgmt = detailPanel.querySelector(".opex-filter-select")?.selectedOptions?.[0]?.textContent?.trim() || "";
+        const mgmt = detailPanel.querySelector("[data-opex-mgmt-label]")?.textContent?.trim() || "";
         window.vpExportTableToExcel(detailPanel.querySelector(".reports-opex-table"), "OPEX Real", [mgmt]);
       });
 
@@ -161,8 +166,9 @@
         year,
         allOption,
         selectedMgmt,
-        mgmtOptions,
-        locked: mgmtLocked,
+        ccTree,
+        canAll: mgmtOptions.includes(allOption),
+        customIds,
         partialMgmts
       });
 
@@ -256,7 +262,7 @@
       _compareSource = null;
     }
 
-    function renderHeaderSlot({ detailPanel, year, allOption, selectedMgmt, mgmtOptions, locked = false, partialMgmts }) {
+    function renderHeaderSlot({ detailPanel, year, allOption, selectedMgmt, ccTree, canAll, customIds, partialMgmts }) {
       // Gestão + Ocultar zeros ficam na barra "Comparar com" do painel (à
       // esquerda dela), não mais no cabeçalho — o slot do header (compartilhado
       // com Headcount) é escondido aqui.
@@ -270,12 +276,7 @@
 
       opexSlot.innerHTML = `
         <div class="opex-header-filter" style="display:flex;align-items:center;gap:10px">
-          <select class="opex-filter-select" id="opex-mgmt-select-header" ${locked ? "disabled" : ""}>
-            ${mgmtOptions.map((management) => {
-              const label = partialMgmts?.has(management) ? `${management} · parcial` : management;
-              return `<option value="${escapeHtml(management)}" ${management === selectedMgmt ? "selected" : ""} ${locked && management !== selectedMgmt ? "disabled" : ""}>${escapeHtml(label)}</option>`;
-            }).join("")}
-          </select>
+          <div class="opex-cc-slot"></div>
           <button id="opex-hide-zeros-btn" type="button" style="
             height:32px;padding:0 12px;border-radius:8px;font-size:0.74rem;font-weight:500;
             border:1px solid ${getOpexHideZeros() ? "var(--blue)" : "var(--line)"};
@@ -286,16 +287,21 @@
         </div>
       `;
 
-      const headerSel = opexSlot.querySelector("#opex-mgmt-select-header");
-      if (headerSel) {
-        headerSel.addEventListener("change", () => {
-          detailPanel.dataset.opexMgmt = headerSel.value;
-          if (headerSel.value !== allOption) {
-            reportsLedgerCache.delete(`opex-mgmt-${year}-${headerSel.value}`);
-          }
+      const picker = window.VECTON_OPEX_CC_PICKER;
+      picker.mount(opexSlot.querySelector(".opex-cc-slot"), {
+        tree: ccTree,
+        canAll,
+        allOption,
+        selectedMgmt,
+        customIds,
+        partial: !customIds && partialMgmts?.has(selectedMgmt),
+        onApply: ({ mgmt, customIds: ids }) => {
+          detailPanel.dataset.opexMgmt = mgmt;
+          picker.writeCustom(detailPanel, ids);
+          if (!ids && mgmt !== allOption) reportsLedgerCache.delete(`opex-mgmt-${year}-${mgmt}`);
           renderReportsView();
-        });
-      }
+        }
+      });
 
       const hideZerosBtn = opexSlot.querySelector("#opex-hide-zeros-btn");
       if (hideZerosBtn) {

@@ -4369,8 +4369,13 @@ function renderOpexBudgetReport(detailPanel) {
   const allOption = "Marcher";
   const baseMgmtOptions = [allOption, ...managements];
   const prevMgmt = detailPanel.dataset.opexMgmt || allOption;
-  const { selectedMgmt, locked: mgmtLocked, allowedMgmts, partialMgmts } = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
-  const mgmtOptions = mgmtLocked ? [selectedMgmt] : (allowedMgmts ? [...allowedMgmts] : baseMgmtOptions);
+  const resolved = resolveManagementFilter(prevMgmt, baseMgmtOptions, allOption);
+  const { locked: mgmtLocked, allowedMgmts } = resolved;
+  const mgmtOptions = mgmtLocked ? [resolved.selectedMgmt] : (allowedMgmts ? [...allowedMgmts] : baseMgmtOptions);
+  // Seletor de gestão + CCs (multi-seleção): uma lista de CCs escolhida vira uma "gestão parcial".
+  const ccPicker = window.VECTON_OPEX_CC_PICKER;
+  const ccTree = ccPicker.buildTree(state.costCenters, mgmtOptions, resolved.partialMgmts, allOption);
+  const { selectedMgmt, partialMgmts, customIds } = ccPicker.applyCustom(resolved, ccPicker.readCustom(detailPanel), ccTree);
 
   // Mesmo layout do OPEX Real: Gestão + Ocultar zeros ficam na barra do painel
   // (à esquerda do seletor de fonte); o slot do header é escondido.
@@ -4394,9 +4399,7 @@ function renderOpexBudgetReport(detailPanel) {
   if (opexSlot) {
     opexSlot.innerHTML = `
       <div class="opex-header-filter" style="display:flex;align-items:center;gap:10px">
-        <select class="opex-filter-select" id="opex-budget-mgmt-select-header" ${mgmtLocked ? "disabled" : ""}>
-          ${buildMgmtSelectOptions(mgmtOptions, selectedMgmt, mgmtLocked, partialMgmts)}
-        </select>
+        <div class="opex-cc-slot"></div>
         <button id="opex-budget-hide-zeros-btn" type="button" style="
           height:32px;padding:0 12px;border-radius:8px;font-size:0.74rem;font-weight:500;
           border:1px solid ${opexHideZeros ? "var(--blue)" : "var(--line)"};
@@ -4405,9 +4408,18 @@ function renderOpexBudgetReport(detailPanel) {
           cursor:pointer;white-space:nowrap;transition:all .15s
         ">Ocultar zeros</button>
       </div>`;
-    opexSlot.querySelector("#opex-budget-mgmt-select-header")?.addEventListener("change", (e) => {
-      detailPanel.dataset.opexMgmt = e.target.value;
-      renderReportsView();
+    ccPicker.mount(opexSlot.querySelector(".opex-cc-slot"), {
+      tree: ccTree,
+      canAll: mgmtOptions.includes(allOption),
+      allOption,
+      selectedMgmt,
+      customIds,
+      partial: !customIds && partialMgmts?.has(selectedMgmt),
+      onApply: ({ mgmt, customIds: ids }) => {
+        detailPanel.dataset.opexMgmt = mgmt;
+        ccPicker.writeCustom(detailPanel, ids);
+        renderReportsView();
+      }
     });
     opexSlot.querySelector("#opex-budget-hide-zeros-btn")?.addEventListener("click", () => {
       opexHideZeros = !opexHideZeros;
@@ -4417,7 +4429,7 @@ function renderOpexBudgetReport(detailPanel) {
 
   const contentDiv = detailPanel.querySelector("#opex-budget-content");
   detailPanel.querySelector("[data-opex-export]")?.addEventListener("click", () => {
-    const mgmt = detailPanel.querySelector(".opex-filter-select")?.selectedOptions?.[0]?.textContent?.trim() || "";
+    const mgmt = detailPanel.querySelector("[data-opex-mgmt-label]")?.textContent?.trim() || "";
     const source = detailPanel.querySelector("#opex-budget-source-sel")?.selectedOptions?.[0]?.textContent?.trim() || "";
     vpExportTableToExcel(detailPanel.querySelector(".reports-opex-table"), "OPEX Meta", [mgmt, source]);
   });

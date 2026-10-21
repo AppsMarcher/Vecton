@@ -3530,6 +3530,27 @@ thead .col-frozen-3 {
 .vp-source-bar.dre-cmp-bar #opex-hide-zeros-btn,
 .vp-source-bar.dre-cmp-bar #opex-budget-hide-zeros-btn { height: 32px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; font-size: 0.75rem; }
 .vp-source-bar.dre-cmp-bar .opex-filter-select { padding-right: 24px; }
+/* Seletor de gestão + CCs do OPEX (opexCcPicker.js): botão com a cara do select e popover com caixas de seleção. */
+.opex-cc-trigger { min-width: 160px; max-width: 260px; text-align: left; font-family: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.opex-cc-trigger:disabled { cursor: default; opacity: 0.7; }
+.opex-cc-pop { position: fixed; z-index: 2500; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.18); font-size: 12px; color: var(--text); overflow: hidden; }
+.opex-cc-list { max-height: var(--opex-cc-max, 360px); overflow-y: auto; overflow-x: hidden; padding: 4px 0; }
+.opex-cc-row { display: flex; align-items: center; gap: 8px; padding: 6px 12px; cursor: pointer; }
+.opex-cc-row:hover { background: var(--panel-hover); }
+.opex-cc-row input[type="checkbox"] { width: 14px; height: 14px; min-width: 14px; margin: 0; padding: 0; flex: 0 0 14px; cursor: pointer; accent-color: var(--blue); }
+.opex-cc-all { font-weight: 600; border-bottom: 1px solid var(--line); margin-bottom: 2px; }
+.opex-cc-row em { font-style: normal; margin-left: auto; font-size: 11px; color: var(--text-faint); white-space: nowrap; }
+.opex-cc-g { padding: 0 12px; }
+.opex-cc-exp { flex: 1; display: flex; align-items: center; gap: 8px; padding: 6px 0; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; }
+.opex-cc-chev { font-style: normal; color: var(--text-faint); transition: transform .12s; }
+.opex-cc-chev.open { transform: rotate(90deg); }
+.opex-cc-c { padding-left: 38px; }
+.opex-cc-num { color: var(--text-faint); min-width: 38px; }
+.opex-cc-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opex-cc-exp .opex-cc-name { flex: 1; }
+.opex-cc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.opex-cc-count { font-size: 11px; color: var(--text-faint); }
+.opex-cc-apply { height: 28px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--blue); background: var(--blue-soft); color: var(--blue); font-size: 12px; font-weight: 500; cursor: pointer; }
 /* A .reports-table-card tem um box-shadow inset no topo (destaque sutil de
    card, usado em varias telas) — com o fundo da barra "Comparar com" agora
    transparente, essa linha ficava exposta sozinha. Desliga so quando o

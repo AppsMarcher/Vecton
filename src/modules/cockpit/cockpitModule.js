@@ -94,7 +94,7 @@
           renderNavigation?.();
           void Promise.resolve().then(() => {
             const detailPanel = document.querySelector("#reports-view .reports-table-card");
-            if (detailPanel) detailPanel.dataset.opexMgmt = management || "Marcher";
+            if (detailPanel) { detailPanel.dataset.opexMgmt = management || "Marcher"; delete detailPanel.dataset.opexCc; }
             renderReportsView?.();
           });
           return;
