@@ -132,9 +132,9 @@
       finally { busy = false; }
     }
     function friendly(error) { try { return JSON.parse(error.message).message || error.message; } catch (_) { return error.message || String(error); } }
-    function modal(title, body, callback) {
+    function modal(title, body, callback, info = false) {
       const dialog = root.querySelector('dialog'); dialogAction = callback;
-      dialog.innerHTML = `<div class="pl-dialog-head"><h2>${esc(title)}</h2><button type="button" class="pl-dialog-x" data-pl="dismiss" aria-label="Fechar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>${body}<div class="pl-actions">${button('Cancelar', 'dismiss')}${button('Confirmar', 'confirm', '', true)}</div><div class="pl-modal-error" role="alert"></div>`;
+      dialog.innerHTML = `<div class="pl-dialog-head"><h2>${esc(title)}</h2><button type="button" class="pl-dialog-x" data-pl="dismiss" aria-label="Fechar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>${body}<div class="pl-actions">${info ? button('Entendi', 'dismiss', '', true) : `${button('Cancelar', 'dismiss')}${button('Confirmar', 'confirm', '', true)}`}</div><div class="pl-modal-error" role="alert"></div>`;
       dialog.showModal();
     }
     function close() { root.querySelector('dialog')?.close(); dialogAction = null; }
@@ -218,6 +218,7 @@
       if (!result.ok) { modal('Outra pessoa alterou os valores', `<p>Nenhuma célula deste lote foi salva. Os valores na grade serão preservados para revisão.</p><ul>${result.conflicts.map(c => `<li>${esc(lines().find(l => l.id === c.line_id)?.description || '')} · ${months[c.month - 1]}: atual ${fmt(c.current_amount)}, seu valor ${fmt(c.amount)}</li>`).join('')}</ul><p>Confirme para atualizar as versões mantendo sua digitação. Revise e salve novamente para substituir os valores atuais.</p>`, async () => { await readForm(); changes.forEach((c, k) => { c.version = Number(entry(k)?.row_version || 0); }); close(); render(); }); return; }
       snapshot.forEach(c => { const k = key(c.line_id, c.cost_center_id, c.month); if (changes.get(k)?.amount === c.amount) changes.delete(k); });
       if (!changes.size) storage('removeItem', draftKey()); await readForm(); render();
+      modal('Valores salvos', '<p>O conteúdo foi salvo, mas ainda não chegou ao DRE.</p><p>Para atualizar o DRE, clique em <strong>Integrar no DRE</strong>.</p>', null, true);
     }
     async function openFormDialog(f = null) {
       const next = String(Math.max(0,...context.forms.filter(x=>x.form_type!=='capex' && /^\d+$/.test(x.code)).map(x=>Number(x.code)))+1).padStart(2,'0');

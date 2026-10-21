@@ -39,6 +39,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.getByRole('button', { name: 'Abrir →', exact: true }).click();
     await page.getByRole('textbox', { name: 'Software Jan', exact: true }).fill('1.234,56');
     await page.getByRole('button', { name: 'Salvar valores', exact: true }).click();
+    await page.getByRole('button', { name: 'Entendi', exact: true }).click();
     assert.equal(await page.getByRole('textbox', { name: 'Software Jan', exact: true }).inputValue(), '1.234,56');
     assert.equal(await page.locator('[data-value="total|0"]').innerText(), '2.469,12');
     await page.getByRole('button', { name: 'Integrar no DRE', exact: true }).click();

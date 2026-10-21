@@ -63,6 +63,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.waitForFunction(()=>document.querySelector('#pl-capex-preview-state').textContent==='Somente leitura · R$');
     assert.match(await page.locator('#pl-capex-depreciation').innerText(),/1.000,00/);
     await page.getByRole('button',{name:'Salvar valores',exact:true}).click();
+    await page.getByRole('button',{name:'Entendi',exact:true}).click();
     assert.equal(await page.getByRole('textbox',{name:'Centro de usinagem CNC Mar',exact:true}).inputValue(),'120.000,00');
     await page.getByRole('button',{name:'Integrar no DRE',exact:true}).click();await page.getByRole('button',{name:'Confirmar',exact:true}).click();
     assert.equal(await page.evaluate(()=>calls.filter(c=>c.name==='planning_capex_write'&&c.args.p_action==='project').length),1);
