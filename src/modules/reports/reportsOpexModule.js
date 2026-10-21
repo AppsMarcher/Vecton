@@ -146,10 +146,15 @@
           <div id="opex-bar-filter-slot"></div>
           <span class="vp-source-label">Comparar com</span>
           <select class="vp-source-sel" id="opex-real-cmp-sel"><option value="">Carregando…</option></select>
+          <button type="button" class="vp-dre-export-btn" data-opex-export>Exportar Excel</button>
         </div>
         <div class="opex-report-wrap reports-table-wrap"><div id="opex-table-inner">${window.vpSkeletonTable()}</div></div>
       `;
       const tableInner = detailPanel.querySelector("#opex-table-inner");
+      detailPanel.querySelector("[data-opex-export]").addEventListener("click", () => {
+        const mgmt = detailPanel.querySelector(".opex-filter-select")?.selectedOptions?.[0]?.textContent?.trim() || "";
+        window.vpExportTableToExcel(detailPanel.querySelector(".reports-opex-table"), "OPEX Real", [mgmt]);
+      });
 
       renderHeaderSlot({
         detailPanel,

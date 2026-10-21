@@ -13238,3 +13238,18 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 
 .fc-detail-back { display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; color: var(--text-soft, #697486); cursor: pointer; border-radius: 50%; line-height: 0; flex-shrink: 0; }
 .fc-detail-back:hover { color: var(--blue, #3565dc); }
+
+/* Botão "Exportar Excel" da barra dos DREs (Real e Meta), à direita do seletor. */
+.vp-dre-export-btn {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 12px;
+  margin-left: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.vp-dre-export-btn:hover { border-color: var(--blue); color: var(--blue); }

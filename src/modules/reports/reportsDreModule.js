@@ -54,7 +54,13 @@
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
-    function initBudgetShell(detailPanel, wrapId) {
+    // Exporta a tabela exibida (cabeçalhos agrupados, subtotais e valores) para .xlsx.
+    function exportDreTable(detailPanel, wrapId, title) {
+      const source = detailPanel.querySelector(".vp-source-sel")?.selectedOptions?.[0]?.textContent?.trim() || "";
+      window.vpExportTableToExcel(detailPanel.querySelector(`#${wrapId} table`), title, [source]);
+    }
+
+    function initBudgetShell(detailPanel, wrapId, title) {
       detailPanel.classList.add("dre-cmp-shell");
       detailPanel.innerHTML = `
         <div class="vp-source-bar dre-cmp-bar">
@@ -62,10 +68,12 @@
           <select class="vp-source-sel" id="vp-dre-src-sel">
             <option value="">Carregando…</option>
           </select>
+          <button type="button" class="vp-dre-export-btn" data-dre-export>Exportar Excel</button>
         </div>
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
         </div>`;
+      detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
       return detailPanel.querySelector(`#${wrapId}`);
     }
 
@@ -112,7 +120,7 @@
 
     // ── Comparador embutido nos relatorios Real (bloco Mes+Acumulado x Real/Cenario/Var) ──
 
-    function initCompareShell(detailPanel, wrapId) {
+    function initCompareShell(detailPanel, wrapId, title) {
       detailPanel.classList.add("dre-cmp-shell");
       detailPanel.innerHTML = `
         <div class="vp-source-bar dre-cmp-bar">
@@ -120,10 +128,12 @@
           <select class="vp-source-sel" id="vp-dre-cmp-sel">
             <option value="">Carregando…</option>
           </select>
+          <button type="button" class="vp-dre-export-btn" data-dre-export>Exportar Excel</button>
         </div>
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
         </div>`;
+      detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
       return detailPanel.querySelector(`#${wrapId}`);
     }
 
@@ -173,7 +183,7 @@
     function renderDreGerReal(detailPanel) {
       const year = getCurrentYear();
       const month = getCurrentPeriodMonth();
-      const tableWrap = initCompareShell(detailPanel, "reports-ger-table-wrap");
+      const tableWrap = initCompareShell(detailPanel, "reports-ger-table-wrap", "DRE Gerencial Real");
       initFloatingScrollbar(tableWrap);
 
       populateCompareSel(detailPanel, year).then(() => {
@@ -223,7 +233,7 @@
     function renderDreDfsReal(detailPanel) {
       const year = getCurrentYear();
       const month = getCurrentPeriodMonth();
-      const tableWrap = initCompareShell(detailPanel, "reports-dfs-table-wrap");
+      const tableWrap = initCompareShell(detailPanel, "reports-dfs-table-wrap", "DRE DFs Real");
       // Sem scrollbar flutuante aqui: o DFs tem poucas linhas e cabe inteiro
       // na tela sem precisar rolar a página, então a barra própria do card
       // (overflow-x do tableWrap) já fica sempre visível — a flutuante virava
@@ -277,7 +287,7 @@
     function renderDreSocReal(detailPanel) {
       const year = getCurrentYear();
       const month = getCurrentPeriodMonth();
-      const tableWrap = initCompareShell(detailPanel, "reports-dre-table-wrap");
+      const tableWrap = initCompareShell(detailPanel, "reports-dre-table-wrap", "DRE Societário Real");
       initFloatingScrollbar(tableWrap);
       initVerticalScrollBounds(tableWrap);
 
@@ -329,7 +339,7 @@
 
     function renderDreGerBudget(detailPanel) {
       const year = getCurrentYear();
-      const tableWrap = initBudgetShell(detailPanel, "reports-ger-budget-wrap");
+      const tableWrap = initBudgetShell(detailPanel, "reports-ger-budget-wrap", "DRE Gerencial Meta");
       initFloatingScrollbar(tableWrap);
 
       populateSourceSel(detailPanel, year).then(() => {
@@ -355,7 +365,7 @@
 
     function renderDreSocBudget(detailPanel) {
       const year = getCurrentYear();
-      const tableWrap = initBudgetShell(detailPanel, "reports-soc-budget-wrap");
+      const tableWrap = initBudgetShell(detailPanel, "reports-soc-budget-wrap", "DRE Societário Meta");
       initFloatingScrollbar(tableWrap);
       initVerticalScrollBounds(tableWrap);
 
@@ -387,7 +397,7 @@
 
     function renderDreDfsBudget(detailPanel) {
       const year = getCurrentYear();
-      const tableWrap = initBudgetShell(detailPanel, "reports-dfs-budget-wrap");
+      const tableWrap = initBudgetShell(detailPanel, "reports-dfs-budget-wrap", "DRE DFs Meta");
       // Mesmo motivo do DFs Real (ver renderDreDfsReal): tabela curta, a
       // barra própria do card já basta — sem a flutuante duplicada.
 

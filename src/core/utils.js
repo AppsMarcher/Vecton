@@ -311,6 +311,57 @@ function exportButtonHtml(extraAttrs = "") {
 // registrar os listeners (foi o que quebrou o login em 2026-08-03).
 global.vpFriendlyError = vpFriendlyError;
 
+// Exporta uma <table> renderizada (cabeçalhos agrupados, subtotais e valores) para .xlsx via ExcelJS.
+// Usada pelo botão "Exportar Excel" dos DREs e dos OPEX; nameParts compõe o nome do arquivo.
+function vpExportTableToExcel(table, title, nameParts = []) {
+  const toast = (msg, kind) => global.VECTON_DIALOGS?.showToast?.(msg, kind);
+  if (!table) { toast("A tabela ainda está carregando.", "warning"); return; }
+  if (!global.ExcelJS) { toast("Biblioteca de Excel não carregou. Recarregue a página e tente de novo.", "warning"); return; }
+  const parseNumber = (text) => {
+    const t = text.replace(/\s/g, "");
+    if (t === "—" || t === "-") return null;
+    if (/^[-−]?\(?\d{1,3}(\.\d{3})*(,\d+)?\)?$/.test(t) || /^[-−]?\d+(,\d+)?$/.test(t)) {
+      const negative = /^[-−(]/.test(t);
+      const v = Number(t.replace(/[-−()]/g, "").replace(/\./g, "").replace(",", "."));
+      return Number.isFinite(v) ? (negative ? -v : v) : undefined;
+    }
+    return undefined;
+  };
+  const workbook = new global.ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet(title.slice(0, 31));
+  const taken = new Set();
+  const headRows = table.tHead ? table.tHead.rows.length : 0;
+  [...table.rows].forEach((tr, r) => {
+    let c = 0;
+    [...tr.cells].forEach((cell) => {
+      while (taken.has(`${r}:${c}`)) c++;
+      const rs = cell.rowSpan || 1, cs = cell.colSpan || 1;
+      for (let i = 0; i < rs; i++) for (let j = 0; j < cs; j++) taken.add(`${r + i}:${c + j}`);
+      const text = cell.textContent.replace(/\s+/g, " ").trim();
+      const num = r >= headRows ? parseNumber(text) : undefined;
+      const target = sheet.getCell(r + 1, c + 1);
+      target.value = num === undefined ? text : num;
+      if (typeof num === "number") { target.numFmt = "#,##0.00;[Red]-#,##0.00"; target.alignment = { horizontal: "right" }; }
+      if (r < headRows) { target.font = { bold: true }; target.alignment = { horizontal: "center", vertical: "middle", wrapText: true }; target.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF1F3F8" } }; }
+      else if (c < 2 && Number(getComputedStyle(cell).fontWeight) >= 600) target.font = { bold: true };
+      if (rs > 1 || cs > 1) sheet.mergeCells(r + 1, c + 1, r + rs, c + cs);
+      c += cs;
+    });
+  });
+  sheet.getColumn(1).width = 14;
+  sheet.getColumn(2).width = 42;
+  for (let i = 3; i <= sheet.columnCount; i++) sheet.getColumn(i).width = 16;
+  sheet.views = [{ state: "frozen", xSplit: 2, ySplit: headRows }];
+  const name = [title, ...nameParts].filter(Boolean).join(" - ").replace(/[\/:*?"<>|]/g, "").trim() || "Relatorio";
+  workbook.xlsx.writeBuffer().then((buffer) => {
+    const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = `${name}.xlsx`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+}
+global.vpExportTableToExcel = vpExportTableToExcel;
+
 global.VECTON_CORE_UTILS = {
   buildEmptyRow,
   vpFriendlyError,

@@ -4371,6 +4371,7 @@ function renderOpexBudgetReport(detailPanel) {
       <select class="vp-source-sel" id="opex-budget-source-sel">
         <option value="">Carregando…</option>
       </select>
+      <button type="button" class="vp-dre-export-btn" data-opex-export>Exportar Excel</button>
     </div>
     <div id="opex-budget-content"></div>`;
   const opexSlot = detailPanel.querySelector("#opex-budget-bar-filter-slot");
@@ -4399,6 +4400,11 @@ function renderOpexBudgetReport(detailPanel) {
   }
 
   const contentDiv = detailPanel.querySelector("#opex-budget-content");
+  detailPanel.querySelector("[data-opex-export]")?.addEventListener("click", () => {
+    const mgmt = detailPanel.querySelector(".opex-filter-select")?.selectedOptions?.[0]?.textContent?.trim() || "";
+    const source = detailPanel.querySelector("#opex-budget-source-sel")?.selectedOptions?.[0]?.textContent?.trim() || "";
+    vpExportTableToExcel(detailPanel.querySelector(".reports-opex-table"), "OPEX Meta", [mgmt, source]);
+  });
 
   const srcSel = detailPanel.querySelector("#opex-budget-source-sel");
   if (srcSel) {
@@ -4487,6 +4493,7 @@ function renderOpexScenario(contentDiv, year, scenarioId, selectedMgmt = "Marche
     const srcLabel = _opexBudgetLabel;
     inner.innerHTML = buildOpexRealTableMarkup(scopedRows, null, opexHideZeros, null, null, null, srcLabel);
     initAllReportTableResizers();
+    initOpexMetaDrilldown(inner.querySelector(".reports-opex-table"), `scenario:${scenarioId}`, year, mgmtFilter, allowedCcs);
   }).catch(() => {
     if (!contentDiv.isConnected || contentDiv.opexScenarioRequestId !== requestId) return;
     const inner = contentDiv.querySelector("#opex-budget-table-inner");
@@ -4805,6 +4812,49 @@ function initOpexDrilldown(tableEl, ledgerRows, validCcFilter, pendingPromise = 
     positionAuditPopover(_opexPopover);
   });
 
+  document.addEventListener("click", onDocClickCloseOpex, true);
+}
+
+// OPEX Meta: mesmo detalhamento dos DREs Meta (origem · gestão · CC · conta · descrição · valor).
+// mgmtFilter/allowedCcs repetem o escopo da tabela (gestão escolhida e acesso do perfil).
+function initOpexMetaDrilldown(tableEl, source, year, mgmtFilter, allowedCcs) {
+  if (!tableEl) return;
+  let rowsPromise = null;
+  tableEl.addEventListener("click", async (event) => {
+    const td = event.target.closest(".opex-drillable");
+    if (!td) { closeOpexPopover(); return; }
+    const account = td.dataset.account;
+    const monthIdx = Number(td.dataset.monthIdx);
+    if (!account || isNaN(monthIdx)) return;
+    if (_opexPopover?.dataset.account === account && Number(_opexPopover.dataset.monthIdx) === monthIdx) {
+      closeOpexPopover(); return;
+    }
+    closeOpexPopover();
+    _opexActiveCell = td;
+    td.classList.add("opex-drillable-active");
+
+    const accountName = td.closest("tr")?.querySelector(".opex-name-col span")?.textContent || account;
+    const monthLabel = MONTH_LABELS[monthIdx] || String(monthIdx + 1);
+    const loadingPop = buildSocDrillLoadingPopover(accountName, monthLabel, account, monthIdx);
+    _opexPopover = loadingPop;
+    document.body.appendChild(loadingPop);
+    positionAuditPopover(loadingPop);
+
+    rowsPromise ||= fetchMetaDrillData(source, year).catch((e) => { console.warn("Falha ao buscar ledger do cenário para drilldown OPEX", e); return []; });
+    const rows = await rowsPromise;
+    if (!document.body.contains(loadingPop)) return; // usuário fechou durante o carregamento
+    loadingPop.remove();
+    _opexPopover = null;
+
+    const entries = rows.filter((r) => r.code === account && r.month - 1 === monthIdx && r.amount !== 0
+      && (!allowedCcs || allowedCcs.has(r.cc)) && matchesOpexCostCenterFilter(mgmtFilter, r.ccId, r.cc));
+    _opexPopover = entries.length
+      ? buildMetaDrillPopover(accountName, monthLabel, "account", account, entries, entries.reduce((n, r) => n + r.amount, 0), monthIdx)
+      : buildSocDrillEmptyPopover(accountName, monthLabel, account, monthIdx, "Sem lançamentos detalhados para esta conta.");
+    _opexPopover.dataset.account = account;
+    document.body.appendChild(_opexPopover);
+    positionAuditPopover(_opexPopover);
+  });
   document.addEventListener("click", onDocClickCloseOpex, true);
 }
 
@@ -5185,6 +5235,7 @@ async function fetchMetaDrillData(source, year) {
   return rows.map((row) => ({
     code: normalizeCode(row.account_number ?? ""),
     cc: String(row.cost_center_number ?? "").trim(),
+    ccId: String(row.cost_center_id ?? "").trim(),
     month: Number(row.reference_month),
     amount: Number(row.amount),
     origin: metaOriginLabel(row, formLabels)
@@ -8421,7 +8472,7 @@ async function fetchScenarioLedgerFullForYear(scenarioId, year) {
     const res  = await authenticatedFetch(
       `${supabaseConfig.projectUrl}/rest/v1/forecast_ledger_entries` +
       `?organization_id=eq.${orgId}&scenario_id=eq.${scenarioId}&reference_year=eq.${year}` +
-      `&id=gt.${lastId}&select=id,reference_month,account_number,cost_center_number,amount,entry_date,history,planning_form_id` +
+      `&id=gt.${lastId}&select=id,reference_month,account_number,cost_center_id,cost_center_number,amount,entry_date,history,planning_form_id` +
       `&order=id.asc&limit=${pgSize}`
     );
     const page = res.ok ? await res.json() : [];
