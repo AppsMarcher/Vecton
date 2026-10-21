@@ -23,10 +23,22 @@
       const buttons = icons.map((ic, i) => `<button type="button" class="fc-icon-btn${w.icon === ic ? ' fc-active' : ''}" data-pl="wizard-icon" data-icon="${ic}" aria-label="Ícone ${i + 1}" aria-pressed="${w.icon === ic}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${ic}"></use></svg></button>`).join('');
       return `<label class="pl-field">Ícone</label><div class="pl-actions" role="group" aria-label="Ícone do cenário">${buttons}</div>`;
     }
-    const stepIdentity = w => `<h2>Qual é a identidade do cenário?</h2>${field('Nome', textInput('pl-name', w.name, 'maxlength="70" placeholder="Budget, Revisão de julho…"'))}<div class="pl-columns">${field('Ano base', textInput('pl-year', w.year, 'type="number" min="2000" max="2200"'))}${field('Cor', textInput('pl-color', w.color, 'type="color"'))}</div>${iconPicker(w)}`;
+    function yearSelect(w) {
+      const labels = ['ano atual', 'próximo ano', 'daqui a 2 anos'];
+      const years = [0, 1, 2].map(i => w.currentYear + i);
+      if (!years.includes(w.year)) years.unshift(w.year);
+      return `<select id="pl-year" class="pl-input">${years.map(y => option(String(y), `${y}${years.indexOf(y) >= 0 && y >= w.currentYear && y - w.currentYear < 3 ? ' · ' + labels[y - w.currentYear] : ''}`, String(w.year))).join('')}</select>`;
+    }
+    const stepIdentity = w => `<h2>Qual é a identidade do cenário?</h2>${field('Nome', textInput('pl-name', w.name, 'maxlength="70" placeholder="Budget, Revisão de julho…"'))}<div class="pl-columns">${field('Ano do cenário', yearSelect(w))}${field('Cor', textInput('pl-color', w.color, 'type="color"'))}</div>${iconPicker(w)}`;
     const scenarioSelect = (id, current, placeholder, st) => `<select id="${id}" class="pl-input"><option value="">${placeholder}</option>${st.context.scenarios.map(s => option(s.id, esc(s.name), current)).join('')}</select>`;
-    const periodNote = w => (w.from > 1 ? `${months[0]} a ${months[w.from - 2]} de ${w.year} vêm do Real e ficam travados. De ${months[w.from - 1]} a ${months[11]} os meses são editáveis.` : `Os 12 meses de ${w.year} ficam editáveis.`);
-    const stepPeriod = w => `<h2>A partir de qual mês vamos planejar?</h2>${field('Planejar a partir de', `<select id="pl-from" class="pl-input">${months.map((m, i) => option(String(i + 1), `${m} de ${w.year}`, String(w.from))).join('')}</select>`)}<p class="pl-note">${periodNote(w)}</p>`;
+    // Ano do Real que alimenta os meses travados: por padrão o próprio ano do cenário, limitado ao ano atual.
+    const realYearOf = w => w.realYear ?? Math.min(w.year, w.currentYear);
+    const periodNote = w => (w.from > 1 ? `${months[0]} a ${months[w.from - 2]} vêm do Real ${realYearOf(w)} e ficam travados. De ${months[w.from - 1]} a ${months[11]} de ${w.year} os meses são editáveis.` : `Os 12 meses de ${w.year} ficam editáveis.`);
+    function realYearField(w) {
+      const years = [...new Set([w.currentYear, w.currentYear - 1, w.currentYear - 2, realYearOf(w)])].sort((a, b) => b - a);
+      return w.from > 1 ? field('Real de referência', `<select id="pl-real-year" class="pl-input">${years.map(y => option(String(y), `Real ${y}`, String(realYearOf(w)))).join('')}</select>`) : '';
+    }
+    const stepPeriod = w => `<h2>A partir de qual mês vamos planejar?</h2>${field('Planejar a partir de', `<select id="pl-from" class="pl-input">${months.map((m, i) => option(String(i + 1), `${m} de ${w.year}`, String(w.from))).join('')}</select>`)}${realYearField(w)}<p class="pl-note">${periodNote(w)}</p>`;
     const originCard = (on, value, title, desc, body, off = '') => `<div class="pl-origin${on ? ' pl-origin--on' : ''}"><label class="pl-origin-head"><input type="radio" name="pl-origin" value="${value}" ${on ? 'checked' : ''} ${off}><span><b>${title}</b><small>${desc}</small></span></label>${on ? `<div class="pl-origin-body">${body}</div>` : ''}</div>`;
     const subChoice = (name, value, checked, label) => `<label class="pl-sub"><input type="radio" name="${name}" value="${value}" ${checked ? 'checked' : ''}>${label}</label>`;
     const stepOrigin = (st, w) => `<h2>De onde vêm os meses editáveis?</h2>`
@@ -34,7 +46,7 @@
       + originCard(w.origin === 'scenario', 'scenario', 'Partir de um cenário existente', 'Copia os valores e os formulários dele para os meses editáveis.', `${scenarioSelect('pl-base', w.base, 'Escolher um cenário', st)}<p class="pl-hint">A origem não é alterada. Os usuários editam respeitando os acessos de cada formulário.</p>`, st.context.scenarios.length ? '' : 'disabled');
     function stepReview(st, w) {
       const real = w.from - 1, origin = w.base ? `Cenário ${scenarioName(st, w.base)}` : 'Novo';
-      return `<h2>Confira antes de criar</h2><div class="pl-review"><div><small>Cenário</small><strong>${esc(w.name)} · ${w.year}</strong></div><div><small>Meses</small>${real} do Real (travados) · ${12 - real} editáveis</div><div><small>Origem</small>${esc(origin)}</div><div><small>Formulários</small>${st.selectedForms().length} · ${w.base ? 'com valores' : 'sem valores'}</div></div><p class="pl-note">${periodNote(w)} Formulários e acessos são configurados dentro do cenário, que nasce em construção.</p>`;
+      return `<h2>Confira antes de criar</h2><div class="pl-review"><div><small>Cenário</small><strong>${esc(w.name)} · ${w.year}</strong></div><div><small>Meses</small>${real} do Real ${realYearOf(w)} (travados) · ${12 - real} editáveis</div><div><small>Origem</small>${esc(origin)}</div><div><small>Formulários</small>${st.selectedForms().length} · ${w.base ? 'com valores' : 'sem valores'}</div></div><p class="pl-note">${periodNote(w)} Formulários e acessos são configurados dentro do cenário, que nasce em construção.</p>`;
     }
     function wizardBody(st) {
       const w = st.wizard;

@@ -48,7 +48,7 @@
       mount(target, onBack);
       if (!await ensure()) { active = false; container.innerHTML = '<div class="pl-app"><h2>Planejamento participativo</h2><p>A nova criação guiada fica disponível após aplicar a migration 278 em homologação.</p><button class="pl-button" id="pl-unavailable-back">← Cenários</button></div>'; container.querySelector('#pl-unavailable-back').onclick = onBack; return; }
       await refresh(null); scenario = null; formId = null; changes.clear();
-      wizard = { step: 0, name: base ? `Cópia de ${base.name}` : '', year: base?.reference_year || deps.state.currentPeriod.year,
+      wizard = { step: 0, currentYear: deps.state.currentPeriod.year, name: base ? `Cópia de ${base.name}` : '', year: base?.reference_year || deps.state.currentPeriod.year,
         icon: base?.icon || 'vp-icon-cost', color: base?.color || '#4f7cff', base: base?.id || '', origin: base ? 'scenario' : 'new', from: 1, loadForms: false, formsBase: '', forms: [] };
       if (base) await syncForms();
       render();
@@ -319,7 +319,7 @@
           if (wizard.step === 2 && wizard.origin === 'scenario' && !wizard.base) throw Error('Escolha o cenário de origem');
           if (wizard.step < steps.length - 1) { wizard.step++; return render(); }
           const forms = selectedForms().map(f => ({ code: f.code, name: f.name, source_form_id: f.id, copy_values: !!wizard.base, copy_access: true, status: 'draft' }));
-          const result = await write('create', { name: wizard.name, year: wizard.year, color: wizard.color, icon: wizard.icon, months: core.wizardMonths(wizard.year, wizard.from), forms, base_scenario_id: wizard.base || null });
+          const result = await write('create', { name: wizard.name, year: wizard.year, color: wizard.color, icon: wizard.icon, months: core.wizardMonths(wizard.realYear ?? Math.min(wizard.year, wizard.currentYear), wizard.from), forms, base_scenario_id: wizard.base || null });
           wizard = null; await refresh(result.id); scenario = context.scenarios.find(s => s.id === result.id); render(); return;
         }
         case 'copy-scenario': return leave(() => startWizard(container, back, scenario));
@@ -374,6 +374,7 @@
           render();
         } catch(error){render();throw error;}
       }
+      else if (el.id === 'pl-real-year') { wizard.realYear = Number(el.value); render(); }
       else if (el.id === 'pl-from') { wizard.from = Number(el.value); render(); }
       else if (el.id === 'pl-base') { wizard.base = el.value; await syncForms(); render(); }
       else if (el.name === 'pl-origin') { wizard.origin = el.value; if (el.value === 'new') wizard.base = ''; await syncForms(); render(); }
