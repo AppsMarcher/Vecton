@@ -171,7 +171,7 @@
 .cockpit-tip-row strong.kpi-trend { font-size: 0.7rem; }
 .cockpit-table-scroll { overflow-x: auto; }
 #cockpit-view .cockpit-table { min-width: 510px; table-layout: auto; }
-#cockpit-view .cockpit-table th, #cockpit-view .cockpit-table td { padding: 9px 8px; font-size: 12px; }
+#cockpit-view .cockpit-table th, #cockpit-view .cockpit-table td { padding: 9px 8px; font-size: 10.5px; }
 /* .data-table th vem com fundo quase transparente (rgba branco 2%) — funciona
    quando a tabela rola a página inteira, mas aqui o cabeçalho fica sticky
    DENTRO de um contêiner com scroll próprio (.cockpit-table-scroll), então as
