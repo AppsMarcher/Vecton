@@ -29,6 +29,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
           if (name === 'planning_context') return JSON.parse(JSON.stringify(fixture));
           if (name === 'planning_read_form') return { entries: JSON.parse(JSON.stringify(entries)), copied: [] };
           if (args.p_action === 'save_entries') { entries = args.p_payload.cells.map(c => ({ ...c, reference_month: c.month, row_version: c.version + 1 })); return { ok: true }; }
+          if (name === 'planning_integrate_all') return { ok: true, rows_written: 1, notes: [] };
           if (args.p_action === 'project') return { ok: true, rows_written: 1 };
           if (args.p_action === 'create') return { id: 'scenario' };
           return { ok: true };
@@ -44,7 +45,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.equal(await page.locator('[data-value="total|0"]').innerText(), '2.469,12');
     await page.getByRole('button', { name: 'Integrar no DRE e OPEX', exact: true }).click();
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
-    assert.equal(await page.evaluate(() => calls.filter(c => c.args?.p_action === 'project').length), 1);
+    assert.equal(await page.evaluate(() => calls.filter(c => c.name === 'planning_integrate_all').length), 1);
     // Mudar a sequência de uma linha não invalida as fórmulas que a usam (renumeradas junto).
     await page.getByRole('button', { name: 'Estrutura', exact: true }).click();
     await page.getByRole('button', { name: 'Editar', exact: true }).first().click();

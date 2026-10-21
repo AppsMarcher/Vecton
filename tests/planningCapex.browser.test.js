@@ -30,6 +30,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
           const value=Number(preview.find(c=>c.line_id==='asset'&&c.month===3)?.amount??entries.find(c=>c.line_id==='asset'&&c.reference_month===3)?.amount??0);
           return{revision:form.revision,items:JSON.parse(JSON.stringify(scoped)),entries:JSON.parse(JSON.stringify(scopedEntries)),depreciation:scoped.length?Array.from({length:9},(_,i)=>({cost_center_id:'production',account_number:'4110220601',reference_month:i+4,amount:value/120})):[]};
         }
+        if(name==='planning_integrate_all')return{ok:true,rows_written:1,notes:[]};
         const p=args.p_payload||{};
         if(name==='planning_capex_write'){
           if(args.p_action==='save_values')entries=p.cells.map(c=>({...c,reference_month:c.month,row_version:c.version+1}));
@@ -66,7 +67,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.getByRole('button',{name:'Entendi',exact:true}).click();
     assert.equal(await page.getByRole('textbox',{name:'Centro de usinagem CNC Mar',exact:true}).inputValue(),'120.000,00');
     await page.getByRole('button',{name:'Integrar no DRE e OPEX',exact:true}).click();await page.getByRole('button',{name:'Confirmar',exact:true}).click();
-    assert.equal(await page.evaluate(()=>calls.filter(c=>c.name==='planning_capex_write'&&c.args.p_action==='project').length),1);
+    assert.equal(await page.evaluate(()=>calls.filter(c=>c.name==='planning_integrate_all').length),1);
     await page.getByRole('button',{name:'Exportar Excel',exact:true}).click();await page.waitForFunction(()=>exported.length>5);assert.equal(await page.evaluate(()=>exported.some(r=>r[0]==='Total depreciação e amortização do CAPEX')),true);
     await page.getByRole('button',{name:'+ Investimentos',exact:true}).click();await page.locator('#pl-item-name').fill('Bancada');await page.getByRole('button',{name:'Confirmar',exact:true}).click();assert.equal(await page.locator('[data-capex-field="description"]').count(),2);
     await page.locator('[data-capex-field="description"]').first().fill('Bancada revisada');await page.locator('[data-capex-field="description"]').first().press('Tab');await page.waitForFunction(()=>calls.some(c=>c.args?.p_action==='save_item'&&c.args.p_payload.description==='Bancada revisada'));
