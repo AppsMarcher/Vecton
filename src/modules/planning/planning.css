@@ -60,3 +60,5 @@
 .pl-capex-toggle{font:inherit;font-size:inherit;font-weight:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}.pl-capex-toggle:hover{color:var(--blue)}.pl-table-scroll[hidden]{display:none}
 .pl-icon-button{display:inline-flex;align-items:center;justify-content:center;width:32px;height:30px;margin-left:4px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:0}.pl-icon-button:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}.pl-icon-button:disabled{opacity:.45;cursor:not-allowed}.pl-capex-row-actions{text-align:center}
 .pl-actions .pl-export{min-height:35px}
+/* Grades dos formulários (OPEX e CAPEX, incluindo a tabela de depreciação): 10,5px, como os relatórios. */
+.pl-grid th,.pl-grid td,.pl-grid td:first-child,.pl-grid td small,.pl-grid td small.pl-acc-num,.pl-grid th small,.pl-grid .pl-cell,.pl-grid .pl-input,.pl-grid select,.pl-capex-grid th .pl-button,.pl-capex-grid .pl-capex-row-actions .pl-button{font-size:10.5px}
