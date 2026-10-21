@@ -74,5 +74,9 @@
     if (value.startsWith('scenario:')) return { type: 'scenario', scenario_id: value.slice(9) };
     throw Error('Fonte inválida');
   }
-  global.VECTON_PLANNING_CORE = { parseFormula, references, evaluate, compile, parseAmount, distribute, sourcePayload, renumberReferences };
+  // 12 meses do ano civil: antes de "planejar a partir de" vêm do Real (travados); do mês em diante são formulários.
+  function wizardMonths(year, from) {
+    return Array.from({ length: 12 }, (_, i) => (i + 1 < from ? { type: 'real', year } : { type: 'forms' }));
+  }
+  global.VECTON_PLANNING_CORE = { parseFormula, references, evaluate, compile, parseAmount, distribute, sourcePayload, renumberReferences, wizardMonths };
 })(window);

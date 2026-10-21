@@ -13,42 +13,31 @@
 
     // ── Criação guiada ─────────────────────────────────────────────────────
     const icons = ['cost', 'trend-up', 'activity', 'dollar', 'pie', 'target', 'layers', 'sliders', 'briefcase', 'reports', 'planning', 'dashboard'].map(k => 'vp-icon-' + k);
-    const steps = ['Identidade', 'Ponto de partida', 'Fontes dos meses', 'Valores iniciais', 'Liberação', 'Revisão'];
+    const steps = ['Identidade', 'Período', 'Origem', 'Revisão'];
 
-    const sourceValue = m => (m.type === 'forms' ? 'forms' : m.type === 'real' ? 'real:' + m.year : 'scenario:' + m.scenario_id);
     const option = (value, label, current) => `<option value="${value}" ${value === current ? 'selected' : ''}>${label}</option>`;
-    function sourceOptions(st, current) {
-      const { wizard, context } = st;
-      const years = Array.from({ length: 6 }, (_, i) => Number(wizard.year) - i);
-      return option('forms', 'Formulários · preenchimento', current)
-        + years.map(y => option('real:' + y, `Real ${y}`, current)).join('')
-        + context.scenarios.map(s => option('scenario:' + s.id, esc(s.name), current)).join('');
-    }
     const choice = (name, value, checked, label, attrs = '') => `<label class="pl-choice"><input type="radio" name="${name}" value="${value}" ${checked ? 'checked' : ''} ${attrs}>${label}</label>`;
-    const sourceLabel = (st, m) => (m.type === 'forms' ? 'Formulários' : m.type === 'real' ? 'Real ' + m.year : st.context.scenarios.find(s => s.id === m.scenario_id)?.name || '');
+    const scenarioName = (st, id) => st.context.scenarios.find(s => s.id === id)?.name || '';
 
     function iconPicker(w) {
       const buttons = icons.map((ic, i) => `<button type="button" class="fc-icon-btn${w.icon === ic ? ' fc-active' : ''}" data-pl="wizard-icon" data-icon="${ic}" aria-label="Ícone ${i + 1}" aria-pressed="${w.icon === ic}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${ic}"></use></svg></button>`).join('');
       return `<label class="pl-field">Ícone</label><div class="pl-actions" role="group" aria-label="Ícone do cenário">${buttons}</div>`;
     }
     const stepIdentity = w => `<h2>Qual é a identidade do cenário?</h2>${field('Nome', textInput('pl-name', w.name, 'maxlength="70" placeholder="Budget, Revisão de julho…"'))}<div class="pl-columns">${field('Ano base', textInput('pl-year', w.year, 'type="number" min="2000" max="2200"'))}${field('Cor', textInput('pl-color', w.color, 'type="color"'))}</div>${iconPicker(w)}`;
-    const stepBase = (st, w) => `<h2>De onde vamos partir?</h2>${choice('pl-base', '', !w.base, 'Começar do zero')}<label class="pl-field">Usar um cenário como base<select id="pl-base" class="pl-input"><option value="">Escolher uma base</option>${st.context.scenarios.map(s => option(s.id, esc(s.name), w.base)).join('')}</select></label><p class="pl-note">A origem não será alterada. Revise o que deseja aproveitar nas próximas etapas.</p>`;
-    const stepMonths = (st, w) => `<h2>Qual é a fonte de cada mês?</h2><div class="pl-actions">${button('Todos para preenchimento', 'zero-months')}${button('Real até maio + formulários', 'mixed-months')}</div><div class="pl-months">${w.months.map((m, i) => field(months[i], `<select class="pl-input" data-month="${i}">${sourceOptions(st, sourceValue(m))}</select>`)).join('')}</div><p class="pl-note">Meses copiados ficam em leitura. As fontes não mudam após criar o cenário.</p>`;
-    const stepValues = w => `<h2>Como começam os valores?</h2>${choice('pl-values', 'zero', !w.values, 'Formulários zerados')}${choice('pl-values', 'copy', w.values, 'Copiar valores salvos dos formulários', w.mode !== 'copy' ? 'disabled' : '')}<p class="pl-note">A cópia de inputs afeta apenas meses de formulários; os snapshots dos outros meses são preservados.</p>`;
-    const stepRelease = w => `<h2>Quando liberar o preenchimento?</h2>${choice('pl-release', 'draft', !w.release, 'Manter os formulários em construção')}${choice('pl-release', 'released', w.release, 'Liberar formulários copiados com linhas')}<p class="pl-note">Formulários novos começam em construção. O cenário nasce aberto e não altera a estrela global.</p>`;
+    const scenarioSelect = (id, current, placeholder, st) => `<select id="${id}" class="pl-input"><option value="">${placeholder}</option>${st.context.scenarios.map(s => option(s.id, esc(s.name), current)).join('')}</select>`;
+    const periodNote = w => (w.from > 1 ? `${months[0]} a ${months[w.from - 2]} de ${w.year} vêm do Real e ficam travados. De ${months[w.from - 1]} a ${months[11]} os meses são editáveis.` : `Os 12 meses de ${w.year} ficam editáveis.`);
+    const stepPeriod = w => `<h2>A partir de qual mês vamos planejar?</h2>${field('Planejar a partir de', `<select id="pl-from" class="pl-input">${months.map((m, i) => option(String(i + 1), `${m} de ${w.year}`, String(w.from))).join('')}</select>`)}<p class="pl-note">${periodNote(w)}</p>`;
+    const stepOrigin = (st, w) => `<h2>De onde vêm os meses editáveis?</h2>${choice('pl-origin', '', !w.base, 'Novo')}<label class="pl-field">Partir de um cenário existente${scenarioSelect('pl-base', w.base, 'Escolher um cenário', st)}</label>${w.base ? '<p class="pl-note">Os valores e os formulários do cenário escolhido são copiados. Os meses editáveis seguem os acessos de cada formulário.</p>' : `<div class="pl-field">${choice('pl-forms', 'none', !w.loadForms, 'Começar sem formulários')}${choice('pl-forms', 'load', w.loadForms, 'Carregar os formulários de um cenário, sem valores')}${w.loadForms ? scenarioSelect('pl-forms-base', w.formsBase, 'Escolher um cenário', st) : ''}</div>`}`;
     function stepReview(st, w) {
-      const own = w.months.filter(m => m.type === 'forms').length;
-      const monthsGrid = w.months.map((m, i) => `<div><b>${months[i]}</b><small>${esc(sourceLabel(st, m))}</small></div>`).join('');
-      return `<h2>Confira antes de criar</h2><div class="pl-review"><div><small>Cenário</small><strong>${esc(w.name)} · ${w.year}</strong></div><div><small>Meses</small>${own} para preenchimento · ${w.months.length - own} copiados</div><div><small>Formulários copiados da base</small>${st.selectedForms().length} · ${w.values ? 'com valores' : 'zerados'}</div><div><small>Liberação</small>${w.release ? 'Liberar copiados' : 'Em construção'}</div></div><div class="pl-months">${monthsGrid}</div><p class="pl-note">Configure formulários e acessos dentro do cenário. Os inputs só compõem o DRE após integrar. Meses copiados compõem a base na criação.</p>`;
+      const real = w.from - 1, origin = w.base ? `Cenário ${scenarioName(st, w.base)}` : 'Novo';
+      return `<h2>Confira antes de criar</h2><div class="pl-review"><div><small>Cenário</small><strong>${esc(w.name)} · ${w.year}</strong></div><div><small>Meses</small>${real} do Real (travados) · ${12 - real} editáveis</div><div><small>Origem</small>${esc(origin)}</div><div><small>Formulários</small>${st.selectedForms().length} · ${w.base ? 'com valores' : 'sem valores'}</div></div><p class="pl-note">${periodNote(w)} Formulários e acessos são configurados dentro do cenário, que nasce em construção.</p>`;
     }
     function wizardBody(st) {
       const w = st.wizard;
       switch (w.step) {
         case 0: return stepIdentity(w);
-        case 1: return stepBase(st, w);
-        case 2: return stepMonths(st, w);
-        case 3: return stepValues(w);
-        case 4: return stepRelease(w);
+        case 1: return stepPeriod(w);
+        case 2: return stepOrigin(st, w);
         default: return stepReview(st, w);
       }
     }
@@ -56,7 +45,7 @@
       const w = st.wizard, last = w.step === steps.length - 1;
       const nav = steps.map((s, i) => `<button class="pl-step ${i === w.step ? 'selected' : ''}" data-pl="step" data-index="${i}" ${i > w.step ? 'disabled' : ''}><span>${i < w.step ? '✓' : i + 1}</span>${s}</button>`).join('');
       const footer = `<footer class="pl-heading pl-footer">${button(w.step ? 'Voltar' : 'Cancelar', w.step ? 'prev' : 'exit')}${button(last ? 'Criar cenário' : 'Continuar →', 'next', '', true)}</footer>`;
-      return `<div class="pl-heading">${button('← Cenários', 'exit')}<span class="pl-badge">Criação guiada</span></div><h1>Novo cenário</h1><p class="pl-muted">Defina a base e os meses. Formulários e acessos serão configurados dentro do cenário.</p><div class="pl-wizard"><nav aria-label="Etapas de criação">${nav}</nav><section class="pl-panel"><small class="pl-muted">ETAPA ${w.step + 1} DE ${steps.length}</small>${wizardBody(st)}${footer}</section></div>`;
+      return `<div class="pl-heading">${button('← Cenários', 'exit')}<span class="pl-badge">Criação guiada</span></div><h1>Novo cenário</h1><p class="pl-muted">Defina o período e a origem. Formulários e acessos serão configurados dentro do cenário.</p><div class="pl-wizard"><nav aria-label="Etapas de criação">${nav}</nav><section class="pl-panel"><small class="pl-muted">ETAPA ${w.step + 1} DE ${steps.length}</small>${wizardBody(st)}${footer}</section></div>`;
     }
 
     // ── Cenário: formulários, fontes e integrações ─────────────────────────

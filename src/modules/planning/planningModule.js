@@ -49,9 +49,8 @@
       if (!await ensure()) { active = false; container.innerHTML = '<div class="pl-app"><h2>Planejamento participativo</h2><p>A nova criação guiada fica disponível após aplicar a migration 278 em homologação.</p><button class="pl-button" id="pl-unavailable-back">← Cenários</button></div>'; container.querySelector('#pl-unavailable-back').onclick = onBack; return; }
       await refresh(null); scenario = null; formId = null; changes.clear();
       wizard = { step: 0, name: base ? `Cópia de ${base.name}` : '', year: base?.reference_year || deps.state.currentPeriod.year,
-        icon: base?.icon || 'vp-icon-cost', color: base?.color || '#4f7cff', base: base?.id || '', months: Array.from({ length: 12 }, () => ({ type: 'forms' })),
-        mode: base ? 'copy' : 'new', forms: [], values: false, release: false };
-      if (base) await useBase(base.id);
+        icon: base?.icon || 'vp-icon-cost', color: base?.color || '#4f7cff', base: base?.id || '', from: 1, loadForms: false, formsBase: '', forms: [] };
+      if (base) await syncForms();
       render();
     }
     async function open(target, s, onBack, opts = {}) { mount(target, onBack); manage = !!opts.manage; scenario = s; wizard = null; formId = null; changes.clear(); tab = 'forms'; await refresh(s.id); render(); }
@@ -145,9 +144,10 @@
     function exit() { active = false; generation++; previewRequest++; clearTimeout(previewTimer); changes.clear(); back?.(); }
     function selectedForms() { return context.forms.filter(f => wizard.forms.includes(f.id)); }
     function captureWizard() { if (wizard?.step === 0) { wizard.name = root.querySelector('#pl-name').value.trim(); wizard.year = Number(root.querySelector('#pl-year').value); wizard.color = root.querySelector('#pl-color').value; } }
-    async function useBase(id) {
-      wizard.base = id; wizard.forms = []; wizard.mode = 'new'; wizard.values = false; wizard.release = false; wizard.months = Array.from({ length: 12 }, () => ({ type: 'forms' }));
-      if (id) { const data = await rpc('planning_context', { p_org: org, p_scenario: id }); wizard.months = data.months.length === 12 ? data.months.map(m => ({ type: m.source_type, ...(m.source_type === 'real' ? { year: m.source_year } : m.source_type === 'scenario' ? { scenario_id: m.source_scenario_id } : {}) })) : wizard.months; wizard.forms = data.forms.map(f => f.id); wizard.mode = data.forms.length ? 'copy' : 'new'; }
+    // Formulários vêm da base (com valores) ou, num cenário novo, de um cenário escolhido (sem valores).
+    async function syncForms() {
+      const source = wizard.base || (wizard.loadForms ? wizard.formsBase : '');
+      wizard.forms = source ? (await rpc('planning_context', { p_org: org, p_scenario: source })).forms.map(f => f.id) : [];
     }
     function key(l, cc, m) { return [l, cc, m].join('|'); }
     function entry(k) { return entryIndex.get(k); }
@@ -317,12 +317,10 @@
         case 'next': {
           captureWizard(); if (!wizard.name || !Number.isInteger(wizard.year) || wizard.year < 2000 || wizard.year > 2200) throw Error('Informe nome e ano válidos');
           if (wizard.step < steps.length - 1) { wizard.step++; return render(); }
-          const forms = selectedForms().map(f => ({ code: f.code, name: f.name, source_form_id: f.id, copy_values: wizard.values, copy_access: true, status: wizard.release ? 'released' : 'draft' }));
-          const result = await write('create', { name: wizard.name, year: wizard.year, color: wizard.color, icon: wizard.icon, months: wizard.months, forms, base_scenario_id: wizard.base || null });
+          const forms = selectedForms().map(f => ({ code: f.code, name: f.name, source_form_id: f.id, copy_values: !!wizard.base, copy_access: true, status: 'draft' }));
+          const result = await write('create', { name: wizard.name, year: wizard.year, color: wizard.color, icon: wizard.icon, months: core.wizardMonths(wizard.year, wizard.from), forms, base_scenario_id: wizard.base || null });
           wizard = null; await refresh(result.id); scenario = context.scenarios.find(s => s.id === result.id); render(); return;
         }
-        case 'zero-months': wizard.months = Array.from({ length: 12 }, () => ({ type: 'forms' })); return render();
-        case 'mixed-months': wizard.months = months.map((_, i) => i < 5 ? { type: 'real', year: wizard.year } : { type: 'forms' }); return render();
         case 'copy-scenario': return leave(() => startWizard(container, back, scenario));
         case 'lock': return modal(locked() ? 'Desbloquear cenário?' : 'Bloquear cenário', locked() ? '<p>O cenário voltará a aceitar alterações autorizadas.</p>' : `<p>Deixe a data vazia para bloquear imediatamente ou programe o bloqueio.</p>${field('Data e hora do bloqueio', textInput('pl-lock-at', '', 'type="datetime-local"'))}`, async () => { const date = root.querySelector('#pl-lock-at')?.value; await write('lock', { locked: locked() ? false : !date, lock_at: date ? new Date(date).toISOString() : null }); close(); await refresh(); render(); });
         case 'tab': tab = d.tab; return render();
@@ -375,11 +373,11 @@
           render();
         } catch(error){render();throw error;}
       }
-      else if (el.id === 'pl-base') { await useBase(el.value); render(); }
-      else if (el.name === 'pl-base') { await useBase(''); render(); }
-      else if (el.dataset.month !== undefined) wizard.months[Number(el.dataset.month)] = core.sourcePayload(el.value);
-      else if (el.name === 'pl-values') wizard.values = el.value === 'copy';
-      else if (el.name === 'pl-release') wizard.release = el.value === 'released';
+      else if (el.id === 'pl-from') { wizard.from = Number(el.value); render(); }
+      else if (el.id === 'pl-base') { wizard.base = el.value; await syncForms(); render(); }
+      else if (el.name === 'pl-origin') { wizard.base = ''; await syncForms(); render(); }
+      else if (el.name === 'pl-forms') { wizard.loadForms = el.value === 'load'; if (wizard.loadForms && !wizard.formsBase) wizard.formsBase = context.scenarios[0]?.id || ''; await syncForms(); render(); }
+      else if (el.id === 'pl-forms-base') { wizard.formsBase = el.value; await syncForms(); render(); }
       else if (el.dataset.access !== undefined) {
         // Acessos salvam ao alterar, sem botão: grava o conjunto e avisa com um toast rápido.
         const access = [...root.querySelectorAll('[data-access]')].filter(e => e.value !== 'none').map(e => ({ user_id: e.dataset.access, access_mode: e.value }));

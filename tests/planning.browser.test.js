@@ -60,14 +60,13 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.getByRole('button', { name: 'Abrir →', exact: true }).click();
     assert.equal(await page.getByRole('button', { name: 'Integrar no DRE e OPEX', exact: true }).count(), 0);
     assert.equal(await page.getByRole('textbox', { name: 'Software Jan', exact: true }).isDisabled(), true);
-    // Wizard serializes the user's month choices, rather than a fixed 5+7 template.
+    // Wizard serializes the user's month choices, from the chosen start month.
     await page.evaluate(async () => { fixture.is_admin = true; await testModule.startWizard(document.getElementById('planning'), () => {}); });
     await page.getByLabel('Nome', { exact: true }).fill('Revisão');
     await page.getByRole('button', { name: 'Ícone 4', exact: true }).click();
     await page.getByRole('button', { name: 'Continuar →', exact: true }).click();
-    await page.getByRole('button', { name: 'Continuar →', exact: true }).click();
-    await page.getByRole('button', { name: 'Real até maio + formulários', exact: true }).click();
-    for (let i = 0; i < 3; i++) await page.getByRole('button', { name: 'Continuar →', exact: true }).click();
+    await page.locator('#pl-from').selectOption('6');
+    for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Continuar →', exact: true }).click();
     await page.getByRole('button', { name: 'Criar cenário', exact: true }).click();
     const created = await page.evaluate(() => calls.find(c => c.args?.p_action === 'create').args.p_payload);
     assert.equal(created.icon, 'vp-icon-dollar');
