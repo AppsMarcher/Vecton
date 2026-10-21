@@ -4843,6 +4843,7 @@ function initDreGerDrilldown(tableWrap, ledgerRows, year, source = "real") {
 
   // Linhas ricas com CC — buscadas sob demanda só quando o perfil é restrito
   // (Gestor/Analista), para filtrar o drilldown pelos CCs da gestão.
+  let metaRows = null, metaPromise = null;
   let richRows = null;
   let richFetched = false;
   const ensureRich = async () => {
@@ -4888,6 +4889,39 @@ function initDreGerDrilldown(tableWrap, ledgerRows, year, source = "real") {
 
     // Drill-down respeita o acesso: Gestor/Analista só veem os CCs da sua gestão.
     const allowedCcs = getAllowedCcNumbers();
+
+    // DRE Meta: lançamentos com origem (formulário), gestão e CC.
+    if (isMetaDrillSource(source)) {
+      let loadingPop = null;
+      if (!metaRows) {
+        loadingPop = buildSocDrillLoadingPopover(lineName, monthLabel, lineId, monthIdx);
+        loadingPop.dataset.lineId = lineId;
+        _auditPopover = loadingPop;
+        document.body.appendChild(loadingPop);
+        positionAuditPopover(loadingPop);
+      }
+      metaPromise ||= fetchMetaDrillData(source, year).catch((e) => { console.warn("Falha ao buscar ledger do cenário para drilldown", e); return []; });
+      metaRows = await metaPromise;
+      if (loadingPop) {
+        if (!document.body.contains(loadingPop)) return;
+        loadingPop.remove();
+        _auditPopover = null;
+      }
+      const metaEntries = metaRows.filter((r) => r.month - 1 === monthIdx && codes.includes(r.code) && r.amount !== 0 && (!allowedCcs || allowedCcs.has(r.cc)));
+      if (!metaEntries.length) {
+        _auditPopover = buildSocDrillEmptyPopover(lineName, monthLabel, lineId, monthIdx, allowedCcs ? "Esta linha não possui lançamentos nos seus centros de custo." : "Sem lançamentos detalhados para esta linha.");
+        _auditPopover.dataset.lineId = lineId;
+        document.body.appendChild(_auditPopover);
+        positionAuditPopover(_auditPopover, rect);
+        return;
+      }
+      // Mesmo sinal do cálculo do DRE Gerencial (neg()).
+      const display = metaEntries.map((r) => ({ ...r, amount: -r.amount }));
+      _auditPopover = buildMetaDrillPopover(lineName, monthLabel, "lineId", lineId, display, display.reduce((n, r) => n + r.amount, 0), monthIdx);
+      document.body.appendChild(_auditPopover);
+      positionAuditPopover(_auditPopover, rect);
+      return;
+    }
 
     const byCode = new Map();
     if (allowedCcs) {
@@ -4988,6 +5022,7 @@ function initDreSocDrilldown(tableWrap, year, source = "real") {
   let richRows = normalized;
   let richFetched = false;
   let richFetchPromise = null;
+  let metaRows = null, metaPromise = null;
 
   const ensureRichRows = async (year) => {
     if (richFetched) return;
@@ -5032,6 +5067,34 @@ function initDreSocDrilldown(tableWrap, year, source = "real") {
     const lineName = td.closest("tr")?.querySelector(".soc-label-col span")?.textContent || code;
     const monthLabel = MONTH_LABELS[monthIdx] || String(monthIdx + 1);
     const rect = td.getBoundingClientRect();
+
+    // DRE Meta: lançamentos com origem (formulário), gestão e CC.
+    if (isMetaDrillSource(source)) {
+      let metaLoading = null;
+      if (!metaRows) {
+        metaLoading = buildSocDrillLoadingPopover(lineName, monthLabel, code, monthIdx);
+        _socPopover = metaLoading;
+        document.body.appendChild(_socPopover);
+        positionAuditPopover(_socPopover, rect);
+      }
+      metaPromise ||= fetchMetaDrillData(source, year).catch((e) => { console.warn("Falha ao buscar ledger do cenário para drilldown societário", e); return []; });
+      metaRows = await metaPromise;
+      if (metaLoading) {
+        if (!document.body.contains(metaLoading)) return;
+        metaLoading.remove();
+        _socPopover = null;
+      }
+      const allowed = getAllowedCcNumbers();
+      const metaEntries = metaRows.filter((r) => r.code === code && r.month - 1 === monthIdx && (!allowed || allowed.has(r.cc)));
+      if (!metaEntries.length) {
+        _socPopover = buildSocDrillEmptyPopover(lineName, monthLabel, code, monthIdx, allowed ? "Este valor não possui lançamentos nos seus centros de custo." : "Sem lançamentos detalhados para esta linha.");
+      } else {
+        _socPopover = buildMetaDrillPopover(lineName, monthLabel, "code", code, metaEntries, metaEntries.reduce((n, r) => n + r.amount, 0), monthIdx);
+      }
+      document.body.appendChild(_socPopover);
+      positionAuditPopover(_socPopover, rect);
+      return;
+    }
 
     // Abre loading imediatamente — usuário sabe que a ação foi disparada
     let loadingPop = null;
@@ -5081,6 +5144,117 @@ function initDreSocDrilldown(tableWrap, year, source = "real") {
 
   return { prefetch: () => ensureRichRows(year) };
 }
+
+// ─── DRILL-DOWN DOS DREs META: origem · gestão · CC · conta · descrição · valor ───
+function isMetaDrillSource(source) {
+  const value = String(source || "real");
+  return value !== "real" && !value.startsWith("real:");
+}
+
+// Rótulos dos formulários do cenário (best-effort: quem não tem acesso ao formulário cai no histórico).
+async function fetchPlanningFormLabels(scenarioId) {
+  const labels = new Map();
+  try {
+    const res = await authenticatedFetch(
+      `${supabaseConfig.projectUrl}/rest/v1/planning_forms?scenario_id=eq.${scenarioId}&select=id,code,name,form_type`
+    );
+    if (res.ok) (await res.json()).forEach((f) => labels.set(f.id, f.form_type === "capex" ? String(f.name || "CAPEX") : `${f.code} · ${f.name}`));
+  } catch (_) { /* sem acesso: usa o histórico */ }
+  return labels;
+}
+
+function metaOriginLabel(row, formLabels) {
+  const byForm = row.planning_form_id && formLabels.get(row.planning_form_id);
+  if (byForm) return byForm;
+  const history = String(row.history || "").trim();
+  let m = history.match(/^Planejamento:\s*(.+)$/);
+  if (m) return `Formulário ${m[1]}`;
+  if (/^CAPEX:/.test(history)) return "CAPEX";
+  m = history.match(/^Snapshot Real (\d{4})/);
+  if (m) return `Real ${m[1]}`;
+  if (/^Snapshot cen[aá]rio/i.test(history)) return "Cenário base";
+  return history || "—";
+}
+
+async function fetchMetaDrillData(source, year) {
+  const ref = await resolveSourceRef(source, year);
+  const [rows, formLabels] = await Promise.all([
+    ledgerFullFetcherForSource(source)(year),
+    ref?.kind === "scenario" ? fetchPlanningFormLabels(ref.id) : Promise.resolve(new Map())
+  ]);
+  return rows.map((row) => ({
+    code: normalizeCode(row.account_number ?? ""),
+    cc: String(row.cost_center_number ?? "").trim(),
+    month: Number(row.reference_month),
+    amount: Number(row.amount),
+    origin: metaOriginLabel(row, formLabels)
+  })).filter((r) => r.code && r.month >= 1 && r.month <= 12 && Number.isFinite(r.amount));
+}
+
+// datasetKey: "lineId" (Gerencial) ou "code" (Societário) — cada um fecha o popover pelo seu próprio atributo.
+function buildMetaDrillPopover(lineName, monthLabel, datasetKey, keyValue, entries, total, monthIdx) {
+  const fmt = (v) => formatSignedCurrency(v);
+  const ccByNumber = new Map((state.costCenters || []).map((c) => [String(c.number || "").trim(), c]));
+  const accountName = new Map((state.accounts || []).map((a) => [normalizeCode(a.number), a.name || ""]));
+  const rows = entries.map((r) => {
+    const cc = ccByNumber.get(r.cc);
+    return { ...r, mgmt: (cc?.management || "").trim(), ccLabel: cc?.name ? `${r.cc} · ${cc.name}` : (r.cc || "—"), name: accountName.get(r.code) || "—" };
+  });
+  const cols = [["origin", "Origem", "left"], ["mgmt", "Gestão", "left"], ["ccLabel", "CC", "left"], ["code", "Conta", "left"], ["name", "Descrição", "left"], ["amount", "Valor", "right"]];
+  let sortKey = "origin", sortDir = 1;
+  const sorted = () => rows.slice().sort((a, b) => (sortKey === "amount" ? a.amount - b.amount : String(a[sortKey] || "").localeCompare(String(b[sortKey] || ""), "pt-BR", { numeric: true })) * sortDir || a.code.localeCompare(b.code));
+  const renderThead = () => cols.map(([key, label, align]) => {
+    const active = sortKey === key, dir = active ? (sortDir === 1 ? " ↑" : " ↓") : "";
+    return `<th data-sort="${key}" style="padding:3px 8px 6px;font-size:0.62rem;color:${active ? "var(--blue)" : "var(--text-faint)"};text-align:${align};font-weight:500;white-space:nowrap;cursor:pointer;user-select:none">${label}${dir}</th>`;
+  }).join("");
+  const cell = (v, extra = "") => `<td style="padding:4px 8px;font-size:0.72rem;color:var(--text-soft);white-space:nowrap;${extra}">${escapeHtml(v || "—")}</td>`;
+  const renderRows = () => sorted().map((r) => `<tr>${cell(r.origin)}${cell(r.mgmt)}${cell(r.ccLabel)}${cell(r.code, "font-family:monospace;color:var(--text-faint)")}${cell(r.name, "max-width:240px;overflow:hidden;text-overflow:ellipsis")}<td style="padding:4px 0 4px 8px;font-size:0.72rem;color:${r.amount < 0 ? "var(--neg)" : "var(--text)"};text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${escapeHtml(fmt(r.amount))}</td></tr>`).join("");
+
+  const pop = document.createElement("div");
+  pop.dataset[datasetKey] = keyValue;
+  pop.dataset.monthIdx = String(monthIdx);
+  pop.style.cssText = "position:fixed;z-index:9800;background:var(--panel);border:0.5px solid var(--line);border-radius:12px;padding:16px 20px;width:960px;max-width:92vw;max-height:80vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,0.55)";
+  pop.innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <p style="font-size:0.65rem;color:var(--text-faint);letter-spacing:0.07em;text-transform:uppercase;margin:0 0 3px">${escapeHtml(monthLabel)}</p>
+        <h4 style="font-size:0.9rem;font-weight:600;color:var(--text);margin:0">${escapeHtml(lineName)}</h4>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        ${rows.length ? exportButtonHtml() : ""}
+        <button class="vp-meta-close" style="background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:18px;padding:0;line-height:1">×</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:0.5px solid var(--line)">
+      <span style="font-size:1.1rem;font-weight:700;color:var(--text)">${escapeHtml(fmt(total))}</span>
+      <span style="font-size:0.72rem;color:var(--text-faint);margin-left:8px">${rows.length} lançamento(s)</span>
+    </div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr style="border-bottom:0.5px solid var(--line)">${renderThead()}</tr></thead><tbody>${renderRows()}</tbody></table></div>`;
+
+  pop.addEventListener("click", (e) => {
+    if (e.target.closest(".vp-meta-close")) { pop.remove(); return; }
+    const th = e.target.closest("th[data-sort]");
+    if (!th || !pop.contains(th)) return;
+    e.stopPropagation();
+    sortDir = th.dataset.sort === sortKey ? -sortDir : 1;
+    sortKey = th.dataset.sort;
+    pop.querySelector("thead tr").innerHTML = renderThead();
+    pop.querySelector("tbody").innerHTML = renderRows();
+  });
+  pop.querySelector(".vp-export-btn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    exportRowsToExcel(sorted(), [
+      { label: "Origem", value: (r) => r.origin || "" },
+      { label: "Gestão", value: (r) => r.mgmt || "" },
+      { label: "CC", value: (r) => r.ccLabel || "" },
+      { label: "Conta", value: (r) => r.code },
+      { label: "Descrição", value: (r) => r.name },
+      { label: "Valor", value: (r) => Number(r.amount) || 0 },
+    ], `Detalhamento_${lineName}_${monthLabel}`);
+  });
+  return pop;
+}
+// ─── FIM DRILL-DOWN META ──────────────────────────────────────────────────────
 
 let _socPopover = null;
 
@@ -8247,7 +8421,7 @@ async function fetchScenarioLedgerFullForYear(scenarioId, year) {
     const res  = await authenticatedFetch(
       `${supabaseConfig.projectUrl}/rest/v1/forecast_ledger_entries` +
       `?organization_id=eq.${orgId}&scenario_id=eq.${scenarioId}&reference_year=eq.${year}` +
-      `&id=gt.${lastId}&select=id,reference_month,account_number,cost_center_number,amount,entry_date,history` +
+      `&id=gt.${lastId}&select=id,reference_month,account_number,cost_center_number,amount,entry_date,history,planning_form_id` +
       `&order=id.asc&limit=${pgSize}`
     );
     const page = res.ok ? await res.json() : [];
