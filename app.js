@@ -4913,7 +4913,7 @@ function initDreGerDrilldown(tableWrap, ledgerRows, year, source = "real") {
     }
   };
 
-  tableWrap.addEventListener("click", async (event) => {
+  const onDrillClick = async (event) => {
     const td = event.target.closest(".ger-drillable");
     if (!td) {
       closeAuditPopover();
@@ -5035,7 +5035,12 @@ function initDreGerDrilldown(tableWrap, ledgerRows, year, source = "real") {
     _auditPopover = buildAuditPopover(lineName, monthLabel, displayRows, displayTotal, lineId, monthIdx);
     document.body.appendChild(_auditPopover);
     positionAuditPopover(_auditPopover, rect);
-  });
+  };
+  // O wrap é reaproveitado a cada render (troca de fonte): um único listener por vez, senão os
+  // anteriores continuam ativos e um deles fecha o popover que o outro acabou de abrir.
+  if (tableWrap._gerDrillHandler) tableWrap.removeEventListener("click", tableWrap._gerDrillHandler);
+  tableWrap._gerDrillHandler = onDrillClick;
+  tableWrap.addEventListener("click", onDrillClick);
 
   // Fecha ao clicar fora
   document.addEventListener("click", onDocClickCloseAudit, true);
@@ -5100,7 +5105,7 @@ function initDreSocDrilldown(tableWrap, year, source = "real") {
     return richFetchPromise;
   };
 
-  tableWrap.addEventListener("click", async (event) => {
+  const onDrillClick = async (event) => {
     const td = event.target.closest(".soc-drillable");
     if (!td) { closeSocPopover(); return; }
 
@@ -5188,7 +5193,11 @@ function initDreSocDrilldown(tableWrap, year, source = "real") {
     _socPopover = buildSocDrillPopover(lineName, monthLabel, code, entries, total, monthIdx);
     document.body.appendChild(_socPopover);
     positionAuditPopover(_socPopover, rect);
-  });
+  };
+  // Um único listener por wrap (ver initDreGerDrilldown).
+  if (tableWrap._socDrillHandler) tableWrap.removeEventListener("click", tableWrap._socDrillHandler);
+  tableWrap._socDrillHandler = onDrillClick;
+  tableWrap.addEventListener("click", onDrillClick);
 
   document.addEventListener("click", onDocClickCloseSoc, true);
 
