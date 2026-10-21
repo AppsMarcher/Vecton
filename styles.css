@@ -13260,8 +13260,8 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 
 /* ── Relatório Capex Meta ───────────────────────────────────────────────────────────────────── */
 .capex-bar { gap: 10px; flex-wrap: wrap; }
-.capex-seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
-.capex-seg button { font: inherit; font-size: 12px; color: var(--text-soft); background: transparent; border: 0; padding: 5px 12px; cursor: pointer; }
+.capex-seg { display: inline-flex; height: 32px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.capex-seg button { font: inherit; font-size: 12px; color: var(--text-soft); background: transparent; border: 0; padding: 0 12px; cursor: pointer; }
 .capex-seg button.on { background: var(--blue); color: #fff; }
 .capex-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 4px 0 18px; }
 .capex-kpi { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid #8b5cf6; border-radius: 14px; padding: 14px 16px; min-width: 0; }
