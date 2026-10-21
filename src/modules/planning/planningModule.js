@@ -265,11 +265,36 @@
       });
       root.querySelector('#pl-type-rate').oninput=()=>{try{const rate=core.parseAmount(root.querySelector('#pl-type-rate').value);root.querySelector('#pl-type-life').value=rate>0?fmt(100/rate):'';}catch(_){root.querySelector('#pl-type-life').value='';}};
     }
+    // Árvore do plano DRE: só contas analíticas são selecionáveis, com o nome ao lado.
+    function accountTree(name, selected) {
+      const nodes = context.capex_account_tree || [], byParent = new Map();
+      nodes.forEach(n => { const k = nodes.some(p => p.id === n.parent) ? n.parent : ''; byParent.set(k, [...(byParent.get(k) || []), n]); });
+      const build = n => {
+        const kids = (byParent.get(n.id) || []).map(build).filter(Boolean);
+        if (n.class === 'Analitica' && n.account_number) return { html: `<label class="pl-tree-leaf" data-text="${esc((n.account_number + ' ' + n.name).toLowerCase())}"><input type="radio" name="${name}" value="${esc(n.account_number)}" ${n.account_number === selected ? 'checked' : ''}><span>${esc(n.account_number)} · ${esc(n.name)}</span></label>`, has: n.account_number === selected };
+        if (!kids.length) return null;
+        const has = kids.some(k => k.has);
+        return { html: `<details ${has ? 'open' : ''}><summary>${esc(n.code)} · ${esc(n.name)}</summary><div class="pl-tree-kids">${kids.map(k => k.html).join('')}</div></details>`, has };
+      };
+      return `<div class="pl-tree">${(byParent.get('') || []).map(build).filter(Boolean).map(k => k.html).join('') || '<p class="pl-note">Plano de contas DRE indisponível.</p>'}</div>`;
+    }
     function capexDestinationDialog(type) {
       const d = views.capexGroups(st).flatMap(g => g.rows).find(x => x.cc_type === type);
-      modal(`Contas de destino · ${type}`, `${field('Conta de depreciação',textInput('pl-dest-dep',d.depreciation_account,'maxlength="40" inputmode="numeric"'))}${field('Conta de amortização',textInput('pl-dest-amo',d.amortization_account,'maxlength="40" inputmode="numeric"'))}<p class="pl-note">As contas precisam ser analíticas e ativas no plano DRE. O próximo Integrar do Capex regrava a depreciação nas novas contas.</p>`, async()=>{
-        await rpc('planning_capex_destination_save',{p_org:org,p_scenario:scenario.id,p_payload:{cc_type:type,version:d.row_version,depreciation_account:root.querySelector('#pl-dest-dep').value,amortization_account:root.querySelector('#pl-dest-amo').value}});
+      const pick = (id, label, name, value) => `<div class="pl-field"><span>${label}</span>${textInput(id + '-search', '', 'placeholder="Buscar por número ou nome" autocomplete="off"')}${accountTree(name, value)}</div>`;
+      modal(`Contas de destino · ${type}`, `${pick('pl-dest-dep', 'Conta de depreciação', 'pl-dest-dep', d.depreciation_account)}${pick('pl-dest-amo', 'Conta de amortização', 'pl-dest-amo', d.amortization_account)}<p class="pl-note">Só contas analíticas e ativas do plano DRE. O próximo Integrar do Capex regrava a depreciação nas novas contas.</p>`, async()=>{
+        const chosen = n => root.querySelector(`input[name="${n}"]:checked`)?.value;
+        const dep = chosen('pl-dest-dep'), amo = chosen('pl-dest-amo');
+        if (!dep || !amo) throw Error('Escolha as contas de depreciação e amortização na árvore');
+        await rpc('planning_capex_destination_save',{p_org:org,p_scenario:scenario.id,p_payload:{cc_type:type,version:d.row_version,depreciation_account:dep,amortization_account:amo}});
         close();await refresh();render();
+      });
+      ['pl-dest-dep','pl-dest-amo'].forEach(id => {
+        const box = root.querySelector('#' + id + '-search'), tree = box.parentElement.querySelector('.pl-tree');
+        box.oninput = () => {
+          const q = box.value.trim().toLowerCase();
+          tree.querySelectorAll('.pl-tree-leaf').forEach(l => { l.hidden = !!q && !l.dataset.text.includes(q); });
+          tree.querySelectorAll('details').forEach(x => { const any = !!x.querySelector('.pl-tree-leaf:not([hidden])'); x.hidden = !any; if (q) x.open = any; });
+        };
       });
     }
     function capexItemDialog() {

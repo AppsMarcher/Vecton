@@ -54,4 +54,6 @@
 .pl-capex-depreciation{min-width:1800px}
 .pl-capex-grid tfoot td:first-child{background:var(--panel-alt)}
 @media(max-width:650px){.pl-capex-toolbar .pl-cc{min-width:0;width:100%}.pl-capex-grid th:first-child,.pl-capex-grid td:first-child,.pl-capex-depreciation th:first-child,.pl-capex-depreciation td:first-child{width:220px}}
-.pl-capex-destinations td:first-child{padding-left:26px}.pl-capex-destinations td:last-child,.pl-capex-destinations th:last-child{width:110px;text-align:right}
+.pl-capex-destinations td:first-child{padding-left:26px}.pl-capex-destinations td:last-child:not([colspan]),.pl-capex-destinations th:last-child{width:110px;text-align:right}.pl-capex-destinations td[colspan]{text-align:left}
+.pl-tree{border:1px solid var(--line);border-radius:8px;max-height:210px;overflow:auto;padding:6px 8px;color:var(--text)}.pl-tree summary{cursor:pointer;padding:5px 0;font-size:12px;font-weight:600}.pl-tree-kids{margin-left:16px}.pl-tree-leaf{display:flex;gap:8px;align-items:center;padding:5px 0;font-size:12px;cursor:pointer}
+.pl-tree [hidden]{display:none}
