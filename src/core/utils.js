@@ -362,30 +362,14 @@ function vpExportTableToExcel(table, title, nameParts = []) {
 }
 global.vpExportTableToExcel = vpExportTableToExcel;
 
-// Botão só com o ícone de exportar (barras dos DREs e OPEX). A dica usa o tooltip padrão do app
-// (.cockpit-tip), nunca o title nativo; um único conjunto de listeners no document atende todos.
+// Botão "↓ Excel" das barras dos DREs e OPEX: mesmo visual do botão dos popovers de detalhamento.
 function vpExportIconButtonHtml(extraAttrs = "") {
-  return `<button type="button" class="vp-dre-export-btn" aria-label="Exportar Excel" data-vp-tip="Exportar Excel" ${extraAttrs}>
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg>
+  return `<button type="button" class="vp-export-btn vp-bar-export" aria-label="Exportar Excel" ${extraAttrs}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg>
+    <span>Excel</span>
   </button>`;
 }
 global.vpExportIconButtonHtml = vpExportIconButtonHtml;
-(() => {
-  let tipEl = null;
-  const place = (e) => { if (tipEl) { tipEl.style.left = `${e.clientX + 14}px`; tipEl.style.top = `${Math.max(e.clientY - 44, 8)}px`; } };
-  const hide = () => { if (tipEl) tipEl.hidden = true; };
-  document.addEventListener("pointerover", (e) => {
-    const el = e.target.closest?.("[data-vp-tip]");
-    if (!el) return;
-    if (!tipEl || !document.body.contains(tipEl)) { tipEl = document.createElement("div"); tipEl.className = "cockpit-tip"; document.body.appendChild(tipEl); }
-    tipEl.innerHTML = `<div class="cockpit-tip-row"><strong>${escapeHtml(el.dataset.vpTip)}</strong></div>`;
-    tipEl.hidden = false;
-    place(e);
-  });
-  document.addEventListener("pointermove", (e) => { if (e.target.closest?.("[data-vp-tip]")) place(e); });
-  document.addEventListener("pointerout", (e) => { if (e.target.closest?.("[data-vp-tip]") && !e.relatedTarget?.closest?.("[data-vp-tip]")) hide(); });
-  document.addEventListener("click", (e) => { if (e.target.closest?.("[data-vp-tip]")) hide(); }, true);
-})();
 
 global.VECTON_CORE_UTILS = {
   buildEmptyRow,
