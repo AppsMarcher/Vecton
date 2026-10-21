@@ -4371,7 +4371,7 @@ function renderOpexBudgetReport(detailPanel) {
       <select class="vp-source-sel" id="opex-budget-source-sel">
         <option value="">Carregando…</option>
       </select>
-      <button type="button" class="vp-dre-export-btn" data-opex-export>Exportar Excel</button>
+      ${vpExportIconButtonHtml("data-opex-export")}
     </div>
     <div id="opex-budget-content"></div>`;
   const opexSlot = detailPanel.querySelector("#opex-budget-bar-filter-slot");
@@ -5274,7 +5274,7 @@ function buildMetaDrillPopover(lineName, monthLabel, datasetKey, keyValue, entri
   const pop = document.createElement("div");
   pop.dataset[datasetKey] = keyValue;
   pop.dataset.monthIdx = String(monthIdx);
-  pop.style.cssText = "position:fixed;z-index:9800;background:var(--panel);border:0.5px solid var(--line);border-radius:12px;padding:16px 20px;width:960px;max-width:92vw;max-height:80vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,0.55)";
+  pop.style.cssText = "position:fixed;z-index:9800;background:var(--panel);border:0.5px solid var(--line);border-radius:12px;padding:16px 20px;width:max-content;min-width:720px;max-width:96vw;max-height:80vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,0.55)";
   pop.innerHTML = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
       <div>

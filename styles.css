@@ -13241,9 +13241,12 @@ body.mobile-shell-active .msn-janela:not(.msn-config-janela) [data-action="fecha
 
 /* Botão "Exportar Excel" da barra dos DREs (Real e Meta), à direita do seletor. */
 .vp-dre-export-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font: inherit;
   font-size: 12px;
-  padding: 5px 12px;
+  padding: 5px 9px;
   margin-left: 6px;
   border-radius: 8px;
   border: 1px solid var(--line);

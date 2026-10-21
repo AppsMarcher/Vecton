@@ -59,3 +59,4 @@
 .pl-tree [hidden]{display:none}
 .pl-capex-toggle{font:inherit;font-size:inherit;font-weight:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}.pl-capex-toggle:hover{color:var(--blue)}.pl-table-scroll[hidden]{display:none}
 .pl-icon-button{display:inline-flex;align-items:center;justify-content:center;width:32px;height:30px;margin-left:4px;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:pointer;padding:0}.pl-icon-button:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}.pl-icon-button:disabled{opacity:.45;cursor:not-allowed}.pl-capex-row-actions{text-align:center}
+.pl-actions .pl-icon-button{height:35px;width:38px;margin-left:0}

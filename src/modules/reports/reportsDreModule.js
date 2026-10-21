@@ -68,7 +68,7 @@
           <select class="vp-source-sel" id="vp-dre-src-sel">
             <option value="">Carregando…</option>
           </select>
-          <button type="button" class="vp-dre-export-btn" data-dre-export>Exportar Excel</button>
+          ${window.vpExportIconButtonHtml("data-dre-export")}
         </div>
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
@@ -128,7 +128,7 @@
           <select class="vp-source-sel" id="vp-dre-cmp-sel">
             <option value="">Carregando…</option>
           </select>
-          <button type="button" class="vp-dre-export-btn" data-dre-export>Exportar Excel</button>
+          ${window.vpExportIconButtonHtml("data-dre-export")}
         </div>
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
