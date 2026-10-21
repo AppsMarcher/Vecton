@@ -8,7 +8,7 @@
     let org, available, context, container, root, wizard, scenario, formId, tab = 'forms', formTab = 'input', selectedCC = [], entries = [], copied = [], entryIndex = new Map(), copiedIndex = new Map(), accountNumbers = new Map(), changes = new Map(), revision = 0, generation = 0, busy = false, dialogAction, back, active = false;
     const form = () => context?.forms.find(f => f.id === formId);
     const isCapex = () => form()?.form_type === 'capex';
-    let capexItems = [], capexDepreciation = [], capexSort = { field: 'description', direction: 1 }, previewTimer, previewRequest = 0;
+    let capexDepOpen = false, capexItems = [], capexDepreciation = [], capexSort = { field: 'description', direction: 1 }, previewTimer, previewRequest = 0;
     const costCenters = () => isCapex() ? context.capex_cost_centers || context.cost_centers : context.cost_centers;
     const sortedCapexItems = () => capexItems.slice().sort((a,b) => {
       const value = item => capexSort.field === 'type' ? context.capex_types.find(t => t.id === item.type_id)?.name || '' : item.description;
@@ -25,7 +25,7 @@
       get wizard() { return wizard; }, get context() { return context; }, get scenario() { return scenario; }, get formId() { return formId; },
       get tab() { return tab; }, get formTab() { return formTab; }, get selectedCC() { return selectedCC; }, get changes() { return changes; },
       get accountNumbers() { return accountNumbers; },
-      get costCenters() { return costCenters(); }, get capexItems() { return sortedCapexItems(); }, get capexDepreciation() { return capexDepreciation; },
+      get costCenters() { return costCenters(); }, get capexItems() { return sortedCapexItems(); }, get capexDepreciation() { return capexDepreciation; }, get capexDepOpen() { return capexDepOpen; },
       locked, admin, form, lines, inputMonths, key: (l, cc, m) => key(l, cc, m), computed: savedOnly => computed(savedOnly), selectedForms: () => selectedForms()
     };
     const draftKey = () => `vecton-planning:${org}:${context.user_id}:${scenario.id}:${formId}:${selectedCC.join(',')}`;
@@ -336,7 +336,8 @@
         case 'capex-delete': return leave(()=>modal('Excluir investimento?','<p>O investimento e seus valores serão excluídos. Integre novamente para atualizar o DRE.</p>',async()=>{const item=capexItems.find(i=>i.id===d.id);await capexWrite('delete_item',{id:item.id,version:item.row_version});close();await refresh();await readForm();render();}));
         case 'capex-sort': capexSort={field:d.sort,direction:capexSort.field===d.sort?-capexSort.direction:1};return render();
         case 'edit-form': return openFormDialog(form());
-        case 'open-form': return loadForm(d.id);
+        case 'capex-toggle-dep': capexDepOpen = !capexDepOpen; return render();
+        case 'open-form': capexDepOpen = false; return loadForm(d.id);
         case 'configure': return loadForm(d.id, 'structure');
         case 'index': return leave(() => { formId = null; render(); });
         case 'form-tab': return leave(async () => { changes.clear(); formTab = d.tab; await readForm(); render(); });
