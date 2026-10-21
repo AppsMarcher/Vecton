@@ -27,6 +27,7 @@
 
     let dashOpexMgmt = "Marcher";
     let dashHcMgmt = "Marcher";
+    let dashHcCcIds = null; // CCs escolhidos no seletor do card (multi-seleção); null = gestão inteira ou todas
     let opexCcLoadingYear = null;
     let hcDashLoadingKey = null;
     let _opexAccum = false;
@@ -337,25 +338,32 @@
     }
 
     function renderDashHcCard(year, monthIdx, allRealRows, pessoalAccounts, mgmtOptions, partialMgmts = new Map()) {
+      const picker = window.VECTON_OPEX_CC_PICKER;
+      const hcTree = picker.buildTree(state.costCenters, mgmtOptions, partialMgmts);
+      if (dashHcCcIds) {
+        const valid = new Set(hcTree.flatMap((group) => group.ccs.map((cc) => cc.id)));
+        dashHcCcIds = dashHcCcIds.filter((id) => valid.has(id));
+        if (!dashHcCcIds.length) dashHcCcIds = null;
+      }
       const filterSlot = document.querySelector("#dash-hc-filter");
       if (filterSlot) {
-        const existing = filterSlot.querySelector("select");
-        if (!existing || existing.dataset.opts !== mgmtOptions.join(",")) {
-          filterSlot.innerHTML = `<select class="dash-opex-filter-select">
-            ${mgmtOptions.map((mgmt) => {
-              const label = partialMgmts.has(mgmt) ? `${mgmt} · parcial` : mgmt;
-              return `<option value="${escapeHtml(mgmt)}" ${mgmt === dashHcMgmt ? "selected" : ""}>${escapeHtml(label)}</option>`;
-            }).join("")}
-          </select>`;
-          const selectEl = filterSlot.querySelector("select");
-          selectEl.dataset.opts = mgmtOptions.join(",");
-          selectEl.addEventListener("change", (event) => {
-            dashHcMgmt = event.target.value;
-            const freshReal = reportsLedgerCache.get(year)?.rows || [];
-            renderDashHcCard(year, monthIdx, freshReal, pessoalAccounts, mgmtOptions, partialMgmts);
+        const slotKey = JSON.stringify([mgmtOptions, dashHcMgmt, dashHcCcIds, [...partialMgmts.keys()]]);
+        if (filterSlot.dataset.slotKey !== slotKey) {
+          filterSlot.dataset.slotKey = slotKey;
+          picker.mount(filterSlot, {
+            tree: hcTree,
+            canAll: mgmtOptions.includes("Marcher"),
+            selectedMgmt: dashHcCcIds ? picker.customLabel(hcTree, dashHcCcIds) : dashHcMgmt,
+            customIds: dashHcCcIds,
+            partial: !dashHcCcIds && partialMgmts.has(dashHcMgmt),
+            ariaLabel: "Gestão",
+            onApply: ({ mgmt, customIds }) => {
+              dashHcMgmt = mgmt;
+              dashHcCcIds = customIds;
+              const freshReal = reportsLedgerCache.get(year)?.rows || [];
+              renderDashHcCard(year, monthIdx, freshReal, pessoalAccounts, mgmtOptions, partialMgmts);
+            }
           });
-        } else {
-          existing.value = dashHcMgmt;
         }
       }
 
@@ -364,8 +372,8 @@
       let pessoalSource = allRealRows;
       if (dashHcMgmt !== "Marcher") {
         const mgmtCcFilter = buildOpexCostCenterFilter(dashHcMgmt);
-        const ccIds = [...(mgmtCcFilter?.ids || [])];
-        const hcMgmtCacheKey = `dash-hc-cc-${year}-${dashHcMgmt}`;
+        const ccIds = dashHcCcIds ? [...dashHcCcIds] : [...(mgmtCcFilter?.ids || [])];
+        const hcMgmtCacheKey = dashHcCcIds ? `dash-hc-cc-${year}-ccs-${[...dashHcCcIds].sort().join(",")}` : `dash-hc-cc-${year}-${dashHcMgmt}`;
         const hcMgmtCached = reportsLedgerCache.get(hcMgmtCacheKey);
         if (hcMgmtCached) {
           pessoalSource = hcMgmtCached.rows;
@@ -431,6 +439,11 @@
       const kpiPartialMgmts = getPartialManagements();
       const filtered = (() => {
         if (dashHcMgmt === "Marcher") return enriched;
+        if (dashHcCcIds) {
+          const pickedIds = new Set(dashHcCcIds);
+          const pickedNums = new Set((state.costCenters || []).filter((cc) => pickedIds.has(String(cc.id))).map((cc) => String(cc.number)));
+          return enriched.filter((row) => pickedNums.has(String(row.cost_center_number)));
+        }
         if (kpiPartialMgmts.has(dashHcMgmt)) {
           const partialCcUuids = new Set((kpiPartialMgmts.get(dashHcMgmt) || []).map(String));
           const partialCcNums = new Set(
@@ -492,7 +505,7 @@
           // Gestor/Analista com gestão plena: filtra pelas gestões permitidas.
           // Admin: usa tudo.
           let drillSource;
-          if (isRestricted && kpiPartialMgmts.has(dashHcMgmt)) {
+          if (isRestricted && (dashHcCcIds || kpiPartialMgmts.has(dashHcMgmt))) {
             drillSource = filtered;
           } else if (isRestricted && allowedHcMgmts && allowedHcMgmts.length > 0) {
             drillSource = filtered.filter((row) => allowedHcMgmts.includes((row.management || "").trim()));

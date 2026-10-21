@@ -14,7 +14,8 @@
 
     let _source = null;   // id do cenário
     let _mode = "gestao"; // "gestao" | "tipo"
-    let _mgmt = ALL;
+    let _mgmt = ALL;      // gestão escolhida no seletor ("Marcher" = todas)
+    let _ccSel = null;    // lista de CCs (números) quando a seleção mistura CCs; null = gestão inteira ou todas
     let _collapsed = new Set();
     let _popover = null;
     let _docListener = false;
@@ -37,7 +38,7 @@
             <button type="button" data-mode="tipo">Por tipo</button>
           </div>
           <div class="opex-header-filter" style="display:flex;align-items:center;gap:10px">
-            <select class="opex-filter-select" id="capex-mgmt-sel" aria-label="Gestão"><option value="${ALL}">${ALL}</option></select>
+            <div class="opex-cc-slot" id="capex-cc-slot"></div>
           </div>
           <span class="vp-source-label">Fonte</span>
           <select class="vp-source-sel" id="capex-src-sel"><option value="">Carregando…</option></select>
@@ -51,8 +52,31 @@
       const syncSeg = () => segButtons().forEach((b) => b.classList.toggle("on", b.dataset.mode === _mode));
       syncSeg();
 
-      const mgmtSel = detailPanel.querySelector("#capex-mgmt-sel");
-      mgmtSel.addEventListener("change", () => { _mgmt = mgmtSel.value; paint(); });
+      const ccSlot = detailPanel.querySelector("#capex-cc-slot");
+      const picker = window.VECTON_OPEX_CC_PICKER;
+      // Árvore gestão -> CCs a partir dos próprios investimentos (a RPC já aplica o escopo do perfil).
+      function ccTree() {
+        const byMgmt = new Map();
+        (data?.items || []).forEach((i) => {
+          if (!i.management) return;
+          if (!byMgmt.has(i.management)) byMgmt.set(i.management, new Map());
+          byMgmt.get(i.management).set(String(i.cc_number), { id: String(i.cc_number), number: String(i.cc_number), name: i.cc_name || "" });
+        });
+        return [...byMgmt.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"))
+          .map(([mgmt, ccs]) => ({ mgmt, ccs: [...ccs.values()].sort((a, b) => a.number.localeCompare(b.number, "pt-BR", { numeric: true })) }));
+      }
+      function mountCc() {
+        const tree = ccTree();
+        const valid = new Set(tree.flatMap((g) => g.ccs.map((c) => c.id)));
+        if (_mgmt !== ALL && !tree.some((g) => g.mgmt === _mgmt)) _mgmt = ALL;
+        if (_ccSel) { _ccSel = _ccSel.filter((id) => valid.has(id)); if (!_ccSel.length) _ccSel = null; }
+        picker.mount(ccSlot, {
+          tree, canAll: !!tree.length, allOption: ALL, ariaLabel: "Gestão",
+          selectedMgmt: _ccSel ? picker.customLabel(tree, _ccSel) : _mgmt, customIds: _ccSel, partial: false,
+          onApply: ({ mgmt, customIds }) => { _mgmt = mgmt; _ccSel = customIds; _collapsed = new Set(); mountCc(); paint(); }
+        });
+      }
+      mountCc();
       detailPanel.querySelector("#capex-seg").addEventListener("click", (e) => {
         const b = e.target.closest("button[data-mode]");
         if (!b || b.dataset.mode === _mode) return;
@@ -61,7 +85,7 @@
       detailPanel.querySelector("[data-capex-export]").addEventListener("click", () => {
         const t1 = body.querySelector("#capex-t1"), t2 = body.querySelector("#capex-t2");
         const srcName = detailPanel.querySelector("#capex-src-sel")?.selectedOptions?.[0]?.textContent?.trim() || "";
-        window.vpExportTableToExcel(t1, "Capex Meta", [_mgmt, srcName], t2 ? [{ table: t2, title: "Depreciação" }] : []);
+        window.vpExportTableToExcel(t1, "Capex Meta", [ccSlot.querySelector("button")?.textContent?.trim() || _mgmt, srcName], t2 ? [{ table: t2, title: "Depreciação" }] : []);
       });
       body.addEventListener("click", (e) => {
         const tg = e.target.closest("[data-toggle]");
@@ -78,10 +102,12 @@
 
       function scoped() {
         const items = (data?.items || []).map((i) => ({ ...i, values: i.values.map(Number), dep: i.dep.map(Number), grp: groupOf(i.cc_type) }));
+        if (_ccSel) { const picked = new Set(_ccSel); return items.filter((i) => picked.has(String(i.cc_number))); }
         return _mgmt === ALL ? items : items.filter((i) => (i.management || "") === _mgmt);
       }
       function scopedDep() {
         const rows = data?.depreciation || [];
+        if (_ccSel) { const picked = new Set(_ccSel); return rows.filter((r) => picked.has(String(r.cc_number))); }
         return _mgmt === ALL ? rows : rows.filter((r) => (r.management || "") === _mgmt);
       }
 
@@ -89,7 +115,7 @@
         if (!data) return;
         const items = scoped();
         if (!(data.items || []).length) {
-          body.innerHTML = `<div class="actuals-empty">Nenhum investimento lançado no CAPEX deste cenário${_mgmt !== ALL ? "" : " dentro do seu escopo"}.</div>`;
+          body.innerHTML = `<div class="actuals-empty">Nenhum investimento lançado no CAPEX deste cenário${_mgmt !== ALL || _ccSel ? "" : " dentro do seu escopo"}.</div>`;
           return;
         }
         const arr = monthSums(items, "values"), dep = monthSums(items, "dep");
@@ -252,10 +278,7 @@
             try {
               const org = await resolveOrganizationId();
               data = await callSupabaseRpc("planning_capex_report", { p_org: org, p_scenario: _source });
-              const mgmts = [...new Set((data.items || []).map((i) => i.management).filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-              mgmtSel.innerHTML = [ALL, ...mgmts].map((g) => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("");
-              if (_mgmt !== ALL && !mgmts.includes(_mgmt)) _mgmt = ALL;
-              mgmtSel.value = _mgmt;
+              mountCc();
               paint();
             } catch (e) {
               body.innerHTML = `<div class="actuals-empty">${escapeHtml(window.vpFriendlyError ? window.vpFriendlyError(e, "Não foi possível carregar o CAPEX.") : "Não foi possível carregar o CAPEX.")}</div>`;

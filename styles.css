@@ -1946,6 +1946,8 @@ body.auth-only .vp-update-banner { display: none; }
   transition: border-color 120ms ease;
 }
 
+.dash-opex-filter .opex-cc-trigger { height: 32px; box-sizing: border-box; min-width: 0; max-width: 200px; padding: 0 28px 0 12px; border-radius: 8px; background-color: var(--panel-alt); font-size: 0.74rem; }
+
 .dash-opex-filter select:hover,
 .dash-opex-filter-select:hover {
   border-color: rgba(79,124,255,0.45);
