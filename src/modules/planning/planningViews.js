@@ -63,8 +63,11 @@
     function formsList(st) {
       const { context } = st, admin = st.admin(), locked = st.locked();
       // Formulário não liberado só aparece no modo gerenciar (engrenagem do cenário).
-      const rows = context.forms.filter(f => admin || f.status === 'released').map(f => `<div class="pl-list-row"><span class="pl-code">${esc(f.code)}</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(locked ? 'Somente leitura' : f.access_mode === 'write' ? 'Lançar valores' : 'Visualizar')}</small></div>${statusBadge(f)}${admin ? button('Configurar', 'configure', `data-id="${f.id}"`) : ''}${button('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`).join('');
-      return `<div class="pl-heading"><h2>Formulários do cenário</h2>${admin ? button('+ Novo formulário', 'new-form', off(locked), true) : ''}</div><div class="pl-list">${rows || '<p class="pl-note">Nenhum formulário disponível. O administrador pode construir um novo formulário.</p>'}</div>`;
+      const visible = context.forms.filter(f => admin || f.status === 'released');
+      const row = f => `<div class="pl-list-row"><span class="pl-code">${esc(f.form_type === 'capex' ? 'CPX' : f.code)}</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(locked ? 'Somente leitura' : f.form_type === 'capex' ? 'Planejar investimentos' : f.access_mode === 'write' ? 'Lançar valores' : 'Visualizar')}</small></div>${statusBadge(f)}${admin ? button('Configurar', 'configure', `data-id="${f.id}"`) : ''}${button('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`;
+      const rows = visible.filter(f => f.form_type !== 'capex').sort((a,b) => a.code.localeCompare(b.code, 'pt-BR', { numeric: true })).map(row).join('');
+      const capex = visible.filter(f => f.form_type === 'capex').map(row).join('');
+      return `<div class="pl-heading"><h2>Formulários do cenário</h2>${admin ? button('+ Novo formulário', 'new-form', off(locked), true) : ''}</div><div class="pl-list">${rows || '<p class="pl-note">Nenhum formulário disponível. O administrador pode construir um novo formulário.</p>'}</div>${capex ? `<div class="pl-list pl-capex-list">${capex}</div>` : ''}`;
     }
     function sourcesList(st) {
       const cards = st.context.months.map(m => {
@@ -74,17 +77,17 @@
       return `<div class="pl-months">${cards}</div>`;
     }
     function runsList(st) {
-      const rows = st.context.runs.map(r => `<tr><td>${new Date(r.started_at).toLocaleString('pt-BR')}</td><td>${r.status === 'ok' ? 'Concluída' : 'Erro'}</td><td>${r.rows_written}</td><td>${esc(r.error || '')}</td></tr>`).join('');
-      return `<h2>Integrações do cenário</h2><p class="pl-muted">Cada execução atualiza todos os formulários, usando somente valores salvos.</p><div class="pl-table-scroll"><table><thead><tr><th>Início</th><th>Status</th><th>Linhas publicadas</th><th>Detalhes</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      const rows = st.context.runs.map(r => `<tr><td>${new Date(r.started_at).toLocaleString('pt-BR')}</td><td>${r.details?.form_type === 'capex' ? 'CAPEX' : 'OPEX'}</td><td>${r.status === 'ok' ? 'Concluída' : 'Erro'}</td><td>${r.rows_written}</td><td>${esc(r.error || (r.details?.skipped_items ? `${r.details.skipped_items} itens incompletos ignorados` : ''))}</td></tr>`).join('');
+      return `<h2>Integrações do cenário</h2><p class="pl-muted">OPEX e CAPEX são integrados separadamente, com os valores salvos de todos os centros de custo.</p><div class="pl-table-scroll"><table><thead><tr><th>Início</th><th>Origem</th><th>Status</th><th>Linhas publicadas</th><th>Detalhes</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }
     function scenarioHome(st) {
-      const tabs = st.admin() ? tabButtons([['forms', 'Formulários'], ['sources', 'Fontes dos meses'], ['runs', 'Integrações no DRE']], 'tab', st.tab) : '';
-      const body = !st.admin() || st.tab === 'forms' ? formsList(st) : st.tab === 'sources' ? sourcesList(st) : runsList(st);
+      const tabs = st.admin() ? tabButtons([['forms', 'Formulários'], ['sources', 'Fontes dos meses'], ...(st.context.capex_enabled ? [['capex-parameters', 'Parâmetros CAPEX']] : []), ['runs', 'Integrações no DRE']], 'tab', st.tab) : '';
+      const body = !st.admin() || st.tab === 'forms' ? formsList(st) : st.tab === 'sources' ? sourcesList(st) : st.tab === 'capex-parameters' ? capexParameters(st) : runsList(st);
       return `${st.admin() ? `<nav class="pl-tabs">${tabs}</nav>` : ''}${body}`;
     }
     function scenario(st) {
       const f = st.form(), locked = st.locked();
-      const adminActions = st.admin() ? button('Copiar cenário', 'copy-scenario') + button(locked ? 'Desbloquear' : 'Bloquear', 'lock') : '';
+      const adminActions = st.admin() && !f ? button('Copiar cenário', 'copy-scenario') + button(locked ? 'Desbloquear' : 'Bloquear', 'lock') : '';
       const badge = `<span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span>`;
       // No modo gerenciar o selo de status vai junto dos botões, na mesma linha do título.
       const right = adminActions ? `<div class="pl-actions">${adminActions}${badge}</div>` : badge;
@@ -96,11 +99,13 @@
     function reportCards(st) {
       const name = esc(st.scenario.name), canView = id => (typeof canSeeReport === 'function' ? canSeeReport(id) : true);
       const card = (id, label, color, rgb, icon) => canView(id) ? `<button class="reports-report-card fc-scenario-card" type="button" data-pl="report" data-report="${id}" style="border-top-color:${color}"><div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(${rgb},0.12);border-color:rgba(${rgb},0.22);color:${color}"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${icon}"></use></svg></span></div><strong>${label}</strong><span class="rrc-subtitle">${name}</span></button>` : '';
-      return `<div class="reports-card-grid pl-reports">${card('dreSocBudget', 'DRE Societário', '#4f7cff', '79,124,255', 'vp-icon-cost')}${card('opexBudget', 'Opex', '#f59e0b', '245,158,11', 'vp-icon-pie')}${card('headcountBudget', 'Headcount', '#14b8a6', '20,184,166', 'vp-icon-users')}</div>`;
+      const capex = st.context.capex_enabled ? `<div class="reports-report-card fc-scenario-card pl-capex-report" style="border-top-color:#8b5cf6"><div class="rrc-top"><span class="rrc-icon-wrap" style="background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.22);color:#8b5cf6"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-briefcase"></use></svg></span></div><strong>Capex</strong><span class="rrc-subtitle">${name}</span></div>` : '';
+      return `<div class="reports-card-grid pl-reports">${card('dreSocBudget', 'DRE Societário', '#4f7cff', '79,124,255', 'vp-icon-cost')}${card('opexBudget', 'Opex', '#f59e0b', '245,158,11', 'vp-icon-pie')}${card('headcountBudget', 'Headcount', '#14b8a6', '20,184,166', 'vp-icon-users')}${capex}</div>`;
     }
 
     // ── Formulário: preenchimento, estrutura e acessos ─────────────────────
     function formView(st, f) {
+      if (f.form_type === 'capex') return capexForm(st, f);
       const tabs = [['input', 'Preenchimento'], ...(st.admin() ? [['structure', 'Estrutura'], ['access', 'Acessos']] : [])];
       const body = st.formTab === 'input' ? grid(st) : st.formTab === 'structure' ? structure(st) : access(st);
       return `${st.formTab === 'input' ? `<div class="pl-heading"><div class="pl-actions" style="margin-left:auto">${f.access_mode === 'write' ? button('Integrar no DRE', 'project', off(st.locked()), true) : ''}${button('Exportar Excel', 'export')}</div></div>` : ''}<div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO ${esc(f.code)}</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div><div class="pl-tabrow${tabs.length > 1 ? '' : ' pl-tabrow--bare'}">${tabs.length > 1 ? `<nav class="pl-tabs">${tabButtons(tabs, 'form-tab', st.formTab)}</nav>` : ''}${st.formTab === 'input' ? gridToolbar(st) : ''}</div>${body}`;
@@ -134,7 +139,7 @@
 
     // ── Grade de preenchimento ─────────────────────────────────────────────
     function costCenterPicker(st) {
-      const { context, selectedCC } = st;
+      const { selectedCC } = st, context = { cost_centers: st.costCenters || st.context.cost_centers };
       const summary = selectedCC.length === 1 ? esc(context.cost_centers.find(c => c.id === selectedCC[0])?.cost_center_name || '') : `${selectedCC.length} centros marcados (soma)`;
       const items = context.cost_centers.map(c => `<label class="pl-choice"><input type="checkbox" data-cc="${c.id}" ${selectedCC.includes(c.id) ? 'checked' : ''}>${esc(c.cost_center_number)} · ${esc(c.cost_center_name)}</label>`).join('');
       return `<details class="pl-cc"><summary>${summary}</summary><div class="pl-cc-list">${items}</div></details>`;
@@ -168,7 +173,45 @@
       return `${selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram a soma em leitura.</p>' : ''}<div class="pl-table-scroll pl-grid-scroll"><table class="pl-grid"><thead><tr><th></th>${head}<th>Total</th></tr></thead><tbody>${rows}</tbody></table></div>${footer}`;
     }
 
-    return { fmt, button, field, textInput, steps, wizard, scenario };
+    function capexParameters(st) {
+      const rows = (st.context.capex_types || []).map(t => `<tr><td>${esc(t.name)}</td><td>${fmt(t.annual_rate)}%</td><td>${fmt(100 / Number(t.annual_rate))}</td><td>${t.nature === 'depreciation' ? 'Depreciação' : 'Amortização'}</td><td>${t.active ? 'Ativo' : 'Inativo'}</td><td>${button('Editar', 'capex-type', `data-id="${t.id}" ${off(st.locked())}`)} ${button('Excluir', 'capex-delete-type', `data-id="${t.id}" ${off(st.locked())}`)}</td></tr>`).join('');
+      return `<div class="pl-heading"><h2>Parâmetros CAPEX</h2>${button('+ Novo tipo', 'capex-type', off(st.locked()), true)}</div><div class="pl-table-scroll"><table><thead><tr><th>Tipo de imobilizado</th><th>Taxa anual</th><th>Vida útil (anos)</th><th>Natureza</th><th>Status</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="6">Nenhum tipo cadastrado. Cadastre os tipos e taxas do cenário.</td></tr>'}</tbody></table></div><h3>Destino das contas</h3><div class="pl-table-scroll"><table><thead><tr><th>Centros de custo</th><th>Depreciação</th><th>Amortização</th></tr></thead><tbody><tr><td>Produção · MOD, MOI</td><td>4110220601</td><td>4110220602</td></tr><tr><td>Administrativo · ADM, COM, ENG</td><td>42301001</td><td>42301002</td></tr></tbody></table></div>`;
+    }
+    function capexFooter(st) {
+      const data = st.capexDepreciation || [], totals = Array(12).fill(0);
+      const row = (name, values, cls = '') => `<tr class="${cls}"><td>${esc(name)}</td>${values.map(v => `<td>${fmt(v)}</td>`).join('')}<td>${fmt(values.reduce((a,b) => a+b, 0))}</td></tr>`;
+      let body = '';
+      for (const [name, accounts] of [['Produção', ['4110220601','4110220602']], ['Administrativo', ['42301001','42301002']]]) {
+        const subtotal = Array(12).fill(0);
+        body += `<tr class="pl-subtotal"><td colspan="14">${name}</td></tr>`;
+        accounts.forEach((account, k) => {
+          const values = months.map((_, i) => data.filter(d => d.account_number === account && d.reference_month === i+1).reduce((sum,d) => sum+Number(d.amount),0));
+          values.forEach((v,i) => { subtotal[i]+=v;totals[i]+=v; });
+          body += row(`${account} · ${k ? 'Amortização' : 'Depreciação'}`, values);
+        });
+        body += row(`Subtotal ${name.toLowerCase()}`, subtotal, 'pl-subtotal');
+      }
+      return body+row('Total depreciação e amortização do CAPEX',totals,'pl-subtotal');
+    }
+    function capexGrid(st) {
+      const editable = st.form().access_mode === 'write' && !st.locked() && st.selectedCC.length === 1;
+      const values = st.computed(), types = st.context.capex_types || [];
+      const rows = st.capexItems.map(item => {
+        const title = esc(item.description), center = (st.costCenters || []).find(c => c.id === item.cost_center_id);
+        const options = types.filter(t => t.active || t.id === item.type_id).map(t => `<option value="${t.id}" ${t.id === item.type_id ? 'selected' : ''}>${esc(t.name)}${t.active ? '' : ' (inativo)'}</option>`).join('');
+        return `<tr><td><input class="pl-input" data-capex-item="${item.id}" data-capex-field="description" aria-label="Investimento" maxlength="250" value="${title}" ${off(!editable)}>${st.selectedCC.length > 1 ? `<small>${esc(center?.cost_center_number || '')} · ${esc(center?.cost_center_name || '')}</small>` : ''}</td><td><select class="pl-input" aria-label="Tipo de ${title}" data-capex-item="${item.id}" data-capex-field="type_id" ${off(!editable)}>${options}</select></td>${months.map((_,i) => `<td><input class="pl-cell" data-cell="${st.key(item.id,item.cost_center_id,i+1)}" aria-label="${title} ${months[i]}" value="${fmt(values[i][item.id])}" ${off(!editable || !st.inputMonths().includes(i+1))}></td>`).join('')}<td data-total="${item.id}">${fmt(values.reduce((n,v)=>n+v[item.id],0))}</td><td class="pl-capex-row-actions">${button('Duplicar','capex-duplicate',`data-id="${item.id}" ${off(!editable)}`)}${button('Excluir','capex-delete',`data-id="${item.id}" ${off(!editable)}`)}</td></tr>`;
+      }).join('');
+      const sums = months.map((_,i)=>st.capexItems.reduce((n,item)=>n+values[i][item.id],0));
+      const head = months.map((m,i)=>`<th>${m}${st.inputMonths().includes(i+1)?'':'<small>Copiado</small>'}</th>`).join('');
+      return `${st.selectedCC.length !== 1 ? '<p class="pl-note">Selecione um centro para preencher. Vários centros mostram os investimentos em leitura.</p>' : ''}<div class="pl-table-scroll"><table class="pl-grid pl-capex-grid"><thead><tr><th>${button('Investimento ↕','capex-sort','data-sort="description"')}</th><th>${button('Tipo de imobilizado ↕','capex-sort','data-sort="type"')}</th>${head}<th>Total</th><th>Ações</th></tr></thead><tbody>${rows || '<tr><td colspan="16">Nenhum investimento neste centro de custo.</td></tr>'}</tbody><tfoot><tr class="pl-subtotal"><td colspan="2">Total de investimentos</td>${sums.map((v,i)=>`<td data-capex-sum="${i}">${fmt(v)}</td>`).join('')}<td data-capex-grand>${fmt(sums.reduce((a,b)=>a+b,0))}</td><td></td></tr></tfoot></table></div><div class="pl-heading pl-footer"><span id="pl-save-state" class="pl-muted">${st.changes.size ? `${st.changes.size} alterações não salvas` : 'Valores salvos'}</span><div class="pl-actions">${button('Descartar','discard',off(!st.changes.size))}${button('Salvar valores','save',off(!st.changes.size || !editable),true)}</div></div><div class="pl-heading"><h2>Depreciação e amortização incremental</h2><small class="pl-muted" id="pl-capex-preview-state" aria-live="polite">Somente leitura · R$</small></div><div class="pl-table-scroll"><table class="pl-grid pl-capex-depreciation"><thead><tr><th>Conta / descrição</th>${head}<th>Total</th></tr></thead><tbody id="pl-capex-depreciation">${capexFooter(st)}</tbody></table></div>`;
+    }
+    function capexForm(st, f) {
+      const tabs = [['input','Preenchimento'],...(st.admin() ? [['structure','Configuração'],['access','Acessos']] : [])];
+      const editable = f.access_mode === 'write' && !st.locked() && st.selectedCC.length === 1;
+      const config = `<div class="pl-actions">${button(f.status === 'released' ? 'Voltar à construção' : 'Liberar','release',off(st.locked()))}${button('Editar nome','edit-form',off(st.locked()))}</div>`;
+      return `${st.formTab === 'input' ? `<div class="pl-heading"><div class="pl-actions" style="margin-left:auto">${f.access_mode === 'write' ? button('Integrar no DRE','project',off(st.locked() || f.status !== 'released'),true) : ''}${button('Exportar Excel','export')}</div></div>` : ''}<div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO CPX</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div>${tabs.length > 1 ? `<nav class="pl-tabs">${tabButtons(tabs,'form-tab',st.formTab)}</nav>` : ''}${st.formTab === 'input' ? `<div class="pl-heading pl-capex-toolbar">${button('+ Investimentos','capex-add',off(!editable || !st.context.capex_types?.some(t=>t.active)))}${costCenterPicker(st)}</div>${!st.context.capex_types?.some(t=>t.active) ? '<p class="pl-note">O administrador precisa cadastrar um tipo ativo nos Parâmetros CAPEX antes de lançar investimentos.</p>' : ''}${capexGrid(st)}` : st.formTab === 'access' ? access(st) : config}`;
+    }
+    return { fmt, button, field, textInput, steps, wizard, scenario, capexFooter };
   }
   global.VECTON_PLANNING_VIEWS = { createPlanningViews };
 })(window);

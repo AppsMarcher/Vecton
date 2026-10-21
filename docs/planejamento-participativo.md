@@ -55,6 +55,7 @@ node tests/planningCore.test.js
 $env:PLANNING_PGLITE_TEST_LIB = 'caminho/para/@electric-sql/pglite'
 node tests/planning.sql.test.js
 node tests/planning.browser.test.js
+node tests/planningCapex.browser.test.js
 node tests/scenarioSources.test.js
 node tests/budgetScenarioTarget.test.js
 node tests/reportsSources.test.js
@@ -62,6 +63,20 @@ node tests/comercialScenarioSource.test.js
 ```
 
 O teste de navegador abre um perfil isolado do Edge, carrega os módulos reais e usa RPCs simuladas em memória; ele não acessa o Supabase. O teste SQL usa PostgreSQL WASM real e verifica as funções/policies da migration.
+
+### CAPEX (migration 290)
+
+Aplicar `290_planning_capex.sql` antes de publicar os assets do CAPEX. A migration cria um formulário **CPX**, em construção e sem acessos atribuídos, em cada cenário participativo existente. Novos cenários também recebem o CPX; os demais formulários continuam a numeração independente. Se já existir um formulário OPEX com código CPX, renomeá-lo antes da migration.
+
+No modo gerenciar, o administrador cadastra tipos e taxas em **Parâmetros CAPEX**, libera o CPX em **Configuração** e atribui a matriz de **Acessos**. O cartão Capex é apenas visual; o relatório consolidado ainda não foi criado. O formulário é aberto pela lista e não exibe a faixa de alterações não integradas, conforme o mockup aprovado.
+
+Os investimentos pertencem ao CC. Um único CC permite edição; vários mostram os itens em leitura. Nome e tipo são salvos ao alterar; os valores mensais usam **Salvar valores**, com rascunho local e controle de versão por célula. Zero limpa o valor; negativos são recusados. Duplicação e exclusão são independentes da estrutura OPEX. Tipos desativados continuam nos itens existentes e no cálculo, mas impedem novas gravações nesses itens até escolher um tipo ativo.
+
+O rodapé é calculado no servidor, inclusive para prévias de valores ainda não salvos. A exportação considera os valores salvos e os CCs selecionados. Nenhuma taxa é devolvida a usuários que não sejam administradores, nem há acesso direto às tabelas CAPEX via Data API. Auditoria de tipos, itens e valores fica no histórico administrativo.
+
+A depreciação começa no mês seguinte, considera apenas lançamentos e destinos com fonte formulário e é arredondada após agrupar por CC, conta e mês. A integração do CAPEX processa todos os CCs e preserva o OPEX; a integração do OPEX preserva o CAPEX. Erros na publicação mantêm o ledger anterior e registram a tentativa em `planning_runs`. Itens incompletos ignorados são informados no retorno e no histórico. O investimento em si não é publicado no DRE nem no fluxo de caixa.
+
+Parâmetros são copiados da base explícita ou do cenário participativo anterior; o primeiro começa vazio. A cópia do CPX remapeia os tipos, copia itens e acessos e respeita a escolha de copiar valores. Nenhum saldo de depreciação é transportado entre exercícios nesta versão.
 
 ## Limites desta entrega
 

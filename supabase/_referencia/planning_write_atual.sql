@@ -1,9 +1,5 @@
 -- REFERÊNCIA, NÃO É MIGRATION. Versão vigente de public.planning_write.
--- Idêntica à definida em 284_planning_renumera_formulas.sql (a última que a recria).
--- As migrations 278, 280, 282, 283 e 284 recriam esta função; só a última vale no banco.
--- Para mudar a função: edite este arquivo, copie o resultado para uma migration nova
--- (begin; ... commit;) e atualize esta referência junto, com o número da migration abaixo.
--- Última migration que recria a função: 284
+-- Última migration que recria a função: 290_planning_capex.sql
 create or replace function public.planning_write(p_org uuid,p_action text,p_scenario uuid default null,p_payload jsonb default '{}') returns jsonb
 language plpgsql security definer set search_path=public as $$
 declare s public.forecast_scenarios; f public.planning_forms; oldline public.planning_form_lines;
@@ -23,6 +19,11 @@ begin
    insert into public.forecast_scenarios(id,organization_id,name,color,icon,reference_year,cutoff_month,created_by,planning_version,kind)
    values(sid,p_org,nm,coalesce(p_payload->>'color','#4f7cff'),coalesce(nullif(p_payload->>'icon',''),'vp-icon-cost'),yr,0,auth.uid(),1,
     case when exists(select 1 from jsonb_array_elements(p_payload->'months') x where x->>'type'='forms') then 'built' else 'imported' end);
+   -- Explicit base wins; otherwise inherit the latest planning scenario in this org.
+   source_id:=nullif(p_payload->>'base_scenario_id','')::uuid;
+   if source_id is null then select id into source_id from public.forecast_scenarios where organization_id=p_org and planning_version=1 and id<>sid order by created_at desc,id limit 1;end if;
+   if source_id is not null and not exists(select 1 from public.forecast_scenarios where id=source_id and organization_id=p_org) then raise exception 'Cenário base inválido';end if;
+   perform public.planning_capex_inherit(p_org,sid,source_id);
    mo:=0;
    for m in select * from jsonb_array_elements(p_payload->'months') loop
      mo:=mo+1;source_id:=null;src_year:=null;
@@ -55,6 +56,9 @@ begin
        end loop;
      end if;
    end loop;
+   if not exists(select 1 from public.planning_forms where scenario_id=sid and form_type='capex') then
+     insert into public.planning_forms(organization_id,scenario_id,code,name,form_type) values(p_org,sid,'CPX','CAPEX · Investimentos','capex');
+   end if;
    insert into public.planning_audit_log(organization_id,scenario_id,actor,action) values(p_org,sid,auth.uid(),'created');
    return jsonb_build_object('id',sid);
  end if;
@@ -88,7 +92,9 @@ begin
    else
      fid:=coalesce(nullif(p_payload->>'id','')::uuid,gen_random_uuid());
      if exists(select 1 from public.planning_forms where id=fid and (organization_id<>p_org or scenario_id<>sid)) then raise exception 'Formulário inválido'; end if;
-     if p_payload->>'status'='released' and not exists(select 1 from public.planning_form_lines where form_id=fid and origin='input') then raise exception 'Adicione linhas digitadas antes de liberar'; end if;
+     if upper(trim(p_payload->>'code'))='CPX' and not exists(select 1 from public.planning_forms where id=fid and form_type='capex') then raise exception 'Código CPX reservado ao CAPEX';end if;
+     if exists(select 1 from public.planning_forms where id=fid and form_type='capex') and p_payload->>'code' is distinct from 'CPX' then raise exception 'CAPEX usa código CPX';end if;
+     if p_payload->>'status'='released' and not exists(select 1 from public.planning_forms where id=fid and form_type='capex') and not exists(select 1 from public.planning_form_lines where form_id=fid and origin='input') then raise exception 'Adicione linhas digitadas antes de liberar'; end if;
      insert into public.planning_forms(id,organization_id,scenario_id,code,name,status) values(fid,p_org,sid,trim(p_payload->>'code'),trim(p_payload->>'name'),coalesce(p_payload->>'status','draft'))
      on conflict(id) do update set code=excluded.code,name=excluded.name,status=excluded.status,revision=planning_forms.revision+1;
    end if;
@@ -96,6 +102,7 @@ begin
    fid:=(p_payload->>'form_id')::uuid;
    select * into f from public.planning_forms where id=fid and scenario_id=sid and organization_id=p_org;
    if not found then raise exception 'Formulário inválido'; end if;
+   if f.form_type='capex' and p_action not in ('save_access') then raise exception 'Use as operações autorizadas do CAPEX';end if;
    if p_action='save_entries' then
      if public.planning_form_mode(fid) is distinct from 'write' then raise exception 'Sem permissão de lançamento'; end if;
      if (p_payload->>'form_revision')::integer is distinct from f.revision then raise exception 'A estrutura ou os acessos do formulário mudaram; reabra o formulário antes de salvar'; end if;
@@ -125,13 +132,13 @@ begin
      if public.planning_form_mode(fid) is distinct from 'write' then raise exception 'Sem permissão para integrar'; end if;
      started:=clock_timestamp();run_id:=gen_random_uuid();
      begin
-       delete from public.forecast_ledger_entries where scenario_id=sid and planning_form_id is not null;
+       delete from public.forecast_ledger_entries where scenario_id=sid and planning_form_id in(select id from public.planning_forms where scenario_id=sid and form_type='opex');
        insert into public.forecast_ledger_entries(organization_id,scenario_id,reference_year,reference_month,account_number,cost_center_id,cost_center_number,amount,history,planning_form_id)
        select p_org,sid,s.reference_year,e.reference_month,a.account_number,c.id,c.cost_center_number,sum(e.amount),'Planejamento: '||pf.code,pf.id
        from public.planning_entries e join public.planning_forms pf on pf.id=e.form_id join public.planning_form_lines l on l.id=e.line_id
        join public.accounts a on a.id=l.account_id join public.cost_centers c on c.id=e.cost_center_id
        join public.planning_scenario_months m on m.scenario_id=sid and m.reference_month=e.reference_month and m.source_type='forms'
-       where pf.scenario_id=sid and pf.status='released' and e.organization_id=p_org and l.origin='input'
+       where pf.scenario_id=sid and pf.form_type='opex' and pf.status='released' and e.organization_id=p_org and l.origin='input'
        group by e.reference_month,a.account_number,c.id,c.cost_center_number,pf.id,pf.code having sum(e.amount)<>0;
        get diagnostics affected=row_count;
      exception when others then err:=sqlerrm;

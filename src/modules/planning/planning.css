@@ -36,6 +36,21 @@
 .pl-note--lock{display:flex;gap:6px;align-items:baseline;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.1);color:var(--text)}
 
 /* Grade dos formulários: rolagem própria limitada à altura da tela, assim a barra horizontal fica sempre visível e o cabeçalho acompanha. */
-.pl-grid-scroll{max-height:calc(100vh - 150px)}
+.pl-grid-scroll{max-height:calc(100vh - 150px)} /* valor de partida; o JS (fitGrid) ajusta até o rodapé da janela */
 .pl-grid-scroll .pl-grid thead th{position:sticky;top:0;z-index:3;background:var(--panel)}
 .pl-grid-scroll .pl-grid thead th:first-child{z-index:4}
+
+/* CAPEX has its own item structure and shares the form header / CC picker. */
+.pl-capex-list{margin-top:28px}
+.pl-capex-report{cursor:default}
+.pl-capex-toolbar{margin:24px 0}
+.pl-capex-toolbar .pl-cc{margin-left:auto}
+.pl-capex-grid{min-width:2250px}
+.pl-capex-grid th:nth-child(2),.pl-capex-grid td:nth-child(2){width:220px;text-align:left}
+.pl-capex-grid th:last-child,.pl-capex-grid td:last-child{width:180px}
+.pl-capex-grid .pl-input{font-size:11px}
+.pl-capex-grid .pl-capex-row-actions .pl-button,.pl-capex-grid th .pl-button{position:static;padding:5px 7px;min-height:28px;font-size:11px}
+.pl-capex-row-actions{white-space:nowrap}
+.pl-capex-depreciation{min-width:1800px}
+.pl-capex-grid tfoot td:first-child{background:var(--panel-alt)}
+@media(max-width:650px){.pl-capex-toolbar .pl-cc{min-width:0;width:100%}.pl-capex-grid th:first-child,.pl-capex-grid td:first-child,.pl-capex-depreciation th:first-child,.pl-capex-depreciation td:first-child{width:220px}}
