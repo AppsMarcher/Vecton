@@ -223,9 +223,9 @@
           compareError = e;
         }
         if (compareIsStale(tableWrap, src)) return;
-        tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted(), compareReport, month, compareLabelFor(detailPanel));
+        tableWrap.innerHTML = buildDreGerRealTableMarkup(report, true, compareReport, month, compareLabelFor(detailPanel));
         initAllReportTableResizers();
-        if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
+        initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
         if (compareError) showCompareError(tableWrap, compareError);
       }
     }
@@ -354,9 +354,9 @@
           const rows = await getSourceRows(year);
           const report = buildDreGerRealReport(year, rows);
           if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado de cenário disponivel para ${year}.</div>`; return; }
-          tableWrap.innerHTML = buildDreGerRealTableMarkup(report, !isAccessRestricted(), null, null, sourceLabelFor(detailPanel));
+          tableWrap.innerHTML = buildDreGerRealTableMarkup(report, true, null, null, sourceLabelFor(detailPanel));
           initAllReportTableResizers();
-          if (!isAccessRestricted()) initDreGerDrilldown(tableWrap, rows, year, _budgetSource);
+          initDreGerDrilldown(tableWrap, rows, year, _budgetSource);
         } catch (e) {
           tableWrap.innerHTML = `<div class="actuals-empty">${escapeHtml(friendlyError(e, "Não foi possível carregar o cenário."))}</div>`;
         }
@@ -388,10 +388,8 @@
         if (!report.rows.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhuma linha de DRE disponivel para ${year}.</div>`; return; }
         tableWrap.innerHTML = buildDreSocRealTableMarkup(report, null, null, sourceLabelFor(detailPanel));
         initAllReportTableResizers();
-        if (!isAccessRestricted()) {
-          const drill = initDreSocDrilldown(tableWrap, year, _budgetSource);
-          setTimeout(() => drill.prefetch(), 300);
-        }
+        const drill = initDreSocDrilldown(tableWrap, year, _budgetSource);
+        setTimeout(() => drill.prefetch(), 300);
       }
     }
 
