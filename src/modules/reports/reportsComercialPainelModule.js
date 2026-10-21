@@ -60,11 +60,11 @@
         .cvp-h1 { font-size:20px; font-weight:600; margin:0; }
         .cvp-kicker { font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--cvp-faint); margin:0 0 4px; }
         .cvp-controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-        .cvp-period { display:flex; align-items:center; gap:8px; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:8px; padding:2px; box-sizing:border-box; height:34px; }
+        .cvp-period { display:flex; align-items:center; gap:8px; background:var(--theme-surface-tint, rgba(255,255,255,0.05)); border:1px solid var(--cvp-line); border-radius:8px; padding:2px; box-sizing:border-box; height:34px; }
         .cvp-period select { background:transparent; border:none; color:var(--cvp-text); font-size:13px; font-family:inherit; padding:0 8px; height:100%; outline:none; }
         .cvp-period select option { background:var(--theme-surface, #121317); color:var(--theme-ink, #fff); }
         .cvp-period.cvp-period-seg { background:none; border:none; border-radius:0; padding:0; }
-        .cvp-seg { display:flex; box-sizing:border-box; height:34px; gap:2px; background:var(--cvp-bg-soft); border:1px solid var(--cvp-line); border-radius:8px; padding:2px; }
+        .cvp-seg { display:flex; box-sizing:border-box; height:34px; gap:2px; background:var(--theme-surface-tint, rgba(255,255,255,0.05)); border:1px solid var(--cvp-line); border-radius:8px; padding:2px; }
         .cvp-seg button { border:none; background:transparent; color:var(--cvp-soft); font-size:12px; font-family:inherit; font-weight:500; padding:6px 12px; border-radius:6px; cursor:pointer; }
         .cvp-seg button.active { background:#4f7cff; color:#fff; }
         .cvp-tabs { display:flex; gap:6px; margin-bottom:16px; }
