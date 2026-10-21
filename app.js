@@ -5238,7 +5238,8 @@ async function fetchMetaDrillData(source, year) {
     ccId: String(row.cost_center_id ?? "").trim(),
     month: Number(row.reference_month),
     amount: Number(row.amount),
-    origin: metaOriginLabel(row, formLabels)
+    origin: metaOriginLabel(row, formLabels),
+    user: String(row.launched_by_name ?? "").trim()
   })).filter((r) => r.code && r.month >= 1 && r.month <= 12 && Number.isFinite(r.amount));
 }
 
@@ -5251,7 +5252,7 @@ function buildMetaDrillPopover(lineName, monthLabel, datasetKey, keyValue, entri
     const cc = ccByNumber.get(r.cc);
     return { ...r, mgmt: (cc?.management || "").trim(), ccLabel: cc?.name ? `${r.cc} · ${cc.name}` : (r.cc || "—"), name: accountName.get(r.code) || "—" };
   });
-  const cols = [["origin", "Origem", "left"], ["mgmt", "Gestão", "left"], ["ccLabel", "CC", "left"], ["code", "Conta", "left"], ["name", "Descrição", "left"], ["amount", "Valor", "right"]];
+  const cols = [["origin", "Origem", "left"], ["mgmt", "Gestão", "left"], ["ccLabel", "CC", "left"], ["code", "Conta", "left"], ["name", "Descrição", "left"], ["amount", "Valor", "right"], ["user", "User", "left"]];
   let sortKey = "origin", sortDir = 1;
   const sorted = () => rows.slice().sort((a, b) => (sortKey === "amount" ? a.amount - b.amount : String(a[sortKey] || "").localeCompare(String(b[sortKey] || ""), "pt-BR", { numeric: true })) * sortDir || a.code.localeCompare(b.code));
   const renderThead = () => cols.map(([key, label, align]) => {
@@ -5259,7 +5260,7 @@ function buildMetaDrillPopover(lineName, monthLabel, datasetKey, keyValue, entri
     return `<th data-sort="${key}" style="padding:3px 8px 6px;font-size:0.62rem;color:${active ? "var(--blue)" : "var(--text-faint)"};text-align:${align};font-weight:500;white-space:nowrap;cursor:pointer;user-select:none">${label}${dir}</th>`;
   }).join("");
   const cell = (v, extra = "") => `<td style="padding:4px 8px;font-size:0.72rem;color:var(--text-soft);white-space:nowrap;${extra}">${escapeHtml(v || "—")}</td>`;
-  const renderRows = () => sorted().map((r) => `<tr>${cell(r.origin)}${cell(r.mgmt)}${cell(r.ccLabel)}${cell(r.code, "font-family:monospace;color:var(--text-faint)")}${cell(r.name, "max-width:240px;overflow:hidden;text-overflow:ellipsis")}<td style="padding:4px 0 4px 8px;font-size:0.72rem;color:${r.amount < 0 ? "var(--neg)" : "var(--text)"};text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${escapeHtml(fmt(r.amount))}</td></tr>`).join("");
+  const renderRows = () => sorted().map((r) => `<tr>${cell(r.origin)}${cell(r.mgmt)}${cell(r.ccLabel)}${cell(r.code, "font-family:monospace;color:var(--text-faint)")}${cell(r.name, "max-width:240px;overflow:hidden;text-overflow:ellipsis")}<td style="padding:4px 0 4px 8px;font-size:0.72rem;color:${r.amount < 0 ? "var(--neg)" : "var(--text)"};text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${escapeHtml(fmt(r.amount))}</td>${cell(r.user)}</tr>`).join("");
 
   const pop = document.createElement("div");
   pop.dataset[datasetKey] = keyValue;
@@ -5301,6 +5302,7 @@ function buildMetaDrillPopover(lineName, monthLabel, datasetKey, keyValue, entri
       { label: "Conta", value: (r) => r.code },
       { label: "Descrição", value: (r) => r.name },
       { label: "Valor", value: (r) => Number(r.amount) || 0 },
+      { label: "User", value: (r) => r.user || "" },
     ], `Detalhamento_${lineName}_${monthLabel}`);
   });
   return pop;
@@ -8394,6 +8396,7 @@ function handleDefaultScenarioChanged() {
 }
 
 async function fetchScenarioLedgerForYear(scenarioId, year) {
+  await ensureScenarioFresh(scenarioId);
   const cacheKey = `fc-ledger-${scenarioId}-${year}`;
   if (reportsLedgerCache.has(cacheKey)) return reportsLedgerCache.get(cacheKey).rows;
   const orgId  = await resolveOrganizationId();
@@ -8421,6 +8424,7 @@ async function fetchScenarioLedgerForYear(scenarioId, year) {
 // mesma otimização dos DREs Real/Budget: os relatórios não precisam do ledger
 // completo. Fallback para o ledger enquanto a migration não rodou/backfillou.
 async function fetchScenarioReportRowsForYear(scenarioId, year) {
+  await ensureScenarioFresh(scenarioId);
   const cacheKey = `fc-rows-${scenarioId}-${year}`;
   if (reportsLedgerCache.has(cacheKey)) return reportsLedgerCache.get(cacheKey).rows;
   const organizationId = await resolveOrganizationId();
@@ -8451,6 +8455,55 @@ async function fetchScenarioReportRowsForYear(scenarioId, year) {
 
 // Invalida os caches de um cenário após qualquer escrita no seu ledger/headcount
 // (carga por lote, cópia de meses, exclusão). year opcional = todos os anos.
+// Carimbo de versão: forecast_scenarios.integrated_at muda a cada "Integrar" bem-sucedido
+// (formulários OPEX e CAPEX alimentam o DRE e o OPEX do mesmo ledger). Antes de usar o cache de um
+// cenário o app confere o carimbo e descarta o cache se outra pessoa/aba integrou depois.
+const scenarioStampSeen = new Map(); // id -> integrated_at (null se nunca integrou)
+const scenarioStampInflight = new Map(); // id -> { at, promise } (evita várias consultas seguidas)
+
+// true quando o carimbo mudou desde a última leitura (e o cache do cenário foi descartado).
+function applyScenarioStamp(scenarioId, stamp) {
+  const next = stamp ?? null;
+  const prev = scenarioStampSeen.get(scenarioId);
+  scenarioStampSeen.set(scenarioId, next);
+  if (prev === undefined || prev === next) return false;
+  invalidateScenarioCachesFor(scenarioId);
+  return true;
+}
+
+function ensureScenarioFresh(scenarioId) {
+  const hit = scenarioStampInflight.get(scenarioId);
+  if (hit && Date.now() - hit.at < 3000) return hit.promise;
+  const promise = (async () => {
+    try {
+      const res = await authenticatedFetch(`${supabaseConfig.projectUrl}/rest/v1/forecast_scenarios?id=eq.${scenarioId}&select=integrated_at`);
+      if (!res.ok) return false;
+      const [row] = await res.json();
+      return applyScenarioStamp(scenarioId, row?.integrated_at);
+    } catch (_) { return false; }
+  })();
+  scenarioStampInflight.set(scenarioId, { at: Date.now(), promise });
+  return promise;
+}
+
+// Ao voltar para a aba/janela: se algum cenário de planejamento foi integrado, atualiza o relatório aberto.
+const SCENARIO_REPORT_IDS = new Set(["dreGerReal", "dreSocReal", "dreDfsReal", "dreGerBudget", "dreSocBudget", "dreDfsBudget", "opexReal", "opexBudget", "headcountBudget"]);
+let scenarioStampCheckAt = 0;
+async function refreshScenarioStampsOnReturn() {
+  if (document.hidden || activeView !== "reports" || !SCENARIO_REPORT_IDS.has(selectedReportId)) return;
+  if (Date.now() - scenarioStampCheckAt < 10000) return;
+  scenarioStampCheckAt = Date.now();
+  try {
+    const res = await authenticatedFetch(`${supabaseConfig.projectUrl}/rest/v1/forecast_scenarios?planning_version=gt.0&select=id,integrated_at`);
+    if (!res.ok) return;
+    const rows = await res.json();
+    const changed = rows.filter((row) => applyScenarioStamp(row.id, row.integrated_at));
+    if (changed.length && activeView === "reports" && SCENARIO_REPORT_IDS.has(selectedReportId)) renderReportsView();
+  } catch (_) { /* sem rede: mantém o que está na tela */ }
+}
+document.addEventListener("visibilitychange", () => { void refreshScenarioStampsOnReturn(); });
+window.addEventListener("focus", () => { void refreshScenarioStampsOnReturn(); });
+
 function invalidateScenarioCachesFor(scenarioId, year = null) {
   cockpitService?.invalidate();
   const suffix = year ? `-${year}` : "";
@@ -8472,7 +8525,7 @@ async function fetchScenarioLedgerFullForYear(scenarioId, year) {
     const res  = await authenticatedFetch(
       `${supabaseConfig.projectUrl}/rest/v1/forecast_ledger_entries` +
       `?organization_id=eq.${orgId}&scenario_id=eq.${scenarioId}&reference_year=eq.${year}` +
-      `&id=gt.${lastId}&select=id,reference_month,account_number,cost_center_id,cost_center_number,amount,entry_date,history,planning_form_id` +
+      `&id=gt.${lastId}&select=id,reference_month,account_number,cost_center_id,cost_center_number,amount,entry_date,history,planning_form_id,launched_by_name` +
       `&order=id.asc&limit=${pgSize}`
     );
     const page = res.ok ? await res.json() : [];

@@ -65,7 +65,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.getByRole('button',{name:'Salvar valores',exact:true}).click();
     await page.getByRole('button',{name:'Entendi',exact:true}).click();
     assert.equal(await page.getByRole('textbox',{name:'Centro de usinagem CNC Mar',exact:true}).inputValue(),'120.000,00');
-    await page.getByRole('button',{name:'Integrar no DRE',exact:true}).click();await page.getByRole('button',{name:'Confirmar',exact:true}).click();
+    await page.getByRole('button',{name:'Integrar no DRE e OPEX',exact:true}).click();await page.getByRole('button',{name:'Confirmar',exact:true}).click();
     assert.equal(await page.evaluate(()=>calls.filter(c=>c.name==='planning_capex_write'&&c.args.p_action==='project').length),1);
     await page.getByRole('button',{name:'Exportar Excel',exact:true}).click();await page.waitForFunction(()=>exported.length>5);assert.equal(await page.evaluate(()=>exported.some(r=>r[0]==='Total depreciação e amortização do CAPEX')),true);
     await page.getByRole('button',{name:'+ Investimentos',exact:true}).click();await page.locator('#pl-item-name').fill('Bancada');await page.getByRole('button',{name:'Confirmar',exact:true}).click();assert.equal(await page.locator('[data-capex-field="description"]').count(),2);
@@ -75,7 +75,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.getByRole('button',{name:'Voltar para o cenário',exact:true}).click();await page.getByRole('button',{name:'Parâmetros CAPEX',exact:true}).click();assert.match(await page.locator('.pl-app').innerText(),/10,00%/);
     await page.screenshot({path:path.join(__dirname,'../artifacts/capex/parametros.png'),fullPage:true});
     await page.evaluate(async()=>{fixture.is_admin=false;fixture.forms.find(f=>f.form_type==='capex').access_mode='read';fixture.capex_types=fixture.capex_types.map(t=>({id:t.id,name:t.name,active:t.active}));await testModule.open(document.getElementById('planning'),fixture.scenarios[0],()=>{});});
-    await page.locator('.pl-capex-list [data-pl="open-form"]').click();assert.equal(await page.getByRole('button',{name:'Integrar no DRE',exact:true}).count(),0);assert.equal(await page.getByRole('button',{name:'Parâmetros CAPEX',exact:true}).count(),0);assert.equal(await page.locator('[data-capex-field="description"]').first().isDisabled(),true);
+    await page.locator('.pl-capex-list [data-pl="open-form"]').click();assert.equal(await page.getByRole('button',{name:'Integrar no DRE e OPEX',exact:true}).count(),0);assert.equal(await page.getByRole('button',{name:'Parâmetros CAPEX',exact:true}).count(),0);assert.equal(await page.locator('[data-capex-field="description"]').first().isDisabled(),true);
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(__dirname,'../artifacts/capex/mobile.png'),fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
     assert.deepEqual(errors,[]);console.log('CAPEX browser: separated CPX, header, parameters, scoped grid, preview, editing, save, integration, export, read-only and mobile passed.');
   } finally {await browser.close();}

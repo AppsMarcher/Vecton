@@ -42,7 +42,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.getByRole('button', { name: 'Entendi', exact: true }).click();
     assert.equal(await page.getByRole('textbox', { name: 'Software Jan', exact: true }).inputValue(), '1.234,56');
     assert.equal(await page.locator('[data-value="total|0"]').innerText(), '2.469,12');
-    await page.getByRole('button', { name: 'Integrar no DRE', exact: true }).click();
+    await page.getByRole('button', { name: 'Integrar no DRE e OPEX', exact: true }).click();
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
     assert.equal(await page.evaluate(() => calls.filter(c => c.args?.p_action === 'project').length), 1);
     // Mudar a sequência de uma linha não invalida as fórmulas que a usam (renumeradas junto).
@@ -57,7 +57,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     // A read-only user receives no integration control or configuration tabs.
     await page.evaluate(async () => { fixture.is_admin = false; fixture.forms[0].access_mode = 'read'; await testModule.open(document.getElementById('planning'), fixture.scenarios[0], () => {}); });
     await page.getByRole('button', { name: 'Abrir →', exact: true }).click();
-    assert.equal(await page.getByRole('button', { name: 'Integrar no DRE', exact: true }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Integrar no DRE e OPEX', exact: true }).count(), 0);
     assert.equal(await page.getByRole('textbox', { name: 'Software Jan', exact: true }).isDisabled(), true);
     // Wizard serializes the user's month choices, rather than a fixed 5+7 template.
     await page.evaluate(async () => { fixture.is_admin = true; await testModule.startWizard(document.getElementById('planning'), () => {}); });

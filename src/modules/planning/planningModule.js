@@ -218,7 +218,7 @@
       if (!result.ok) { modal('Outra pessoa alterou os valores', `<p>Nenhuma célula deste lote foi salva. Os valores na grade serão preservados para revisão.</p><ul>${result.conflicts.map(c => `<li>${esc(lines().find(l => l.id === c.line_id)?.description || '')} · ${months[c.month - 1]}: atual ${fmt(c.current_amount)}, seu valor ${fmt(c.amount)}</li>`).join('')}</ul><p>Confirme para atualizar as versões mantendo sua digitação. Revise e salve novamente para substituir os valores atuais.</p>`, async () => { await readForm(); changes.forEach((c, k) => { c.version = Number(entry(k)?.row_version || 0); }); close(); render(); }); return; }
       snapshot.forEach(c => { const k = key(c.line_id, c.cost_center_id, c.month); if (changes.get(k)?.amount === c.amount) changes.delete(k); });
       if (!changes.size) storage('removeItem', draftKey()); await readForm(); render();
-      modal('Valores salvos', '<p>O conteúdo foi salvo, mas ainda não chegou ao DRE.</p><p>Para atualizar o DRE, clique em <strong>Integrar no DRE</strong>.</p>', null, true);
+      modal('Valores salvos', '<p>O conteúdo foi salvo, mas ainda não chegou ao DRE nem ao OPEX.</p><p>Para atualizar o DRE e o OPEX, clique em <strong>Integrar no DRE e OPEX</strong>.</p>', null, true);
     }
     async function openFormDialog(f = null) {
       const next = String(Math.max(0,...context.forms.filter(x=>x.form_type!=='capex' && /^\d+$/.test(x.code)).map(x=>Number(x.code)))+1).padStart(2,'0');
@@ -348,7 +348,7 @@
         case 'release': await write('save_form', { ...form(), status: form().status === 'draft' ? 'released' : 'draft' }); await refresh(); return render();
         case 'save': return save();
         case 'discard': storage('removeItem', draftKey()); changes.clear(); if(isCapex()){await readForm();} return render();
-        case 'project': return modal(isCapex() ? 'Integrar CAPEX no DRE?' : 'Integrar todos os formulários OPEX no DRE?', `<p>${isCapex() ? 'Calcula a depreciação e amortização dos investimentos salvos de todos os centros de custo do formulário. Substitui apenas a integração do CAPEX.' : 'Substitui a integração dos formulários OPEX liberados de todos os centros de custo. A integração do CAPEX é preservada.'}</p>${changes.size ? '<p class="pl-note">Sua digitação não salva não será incluída.</p>' : ''}`, async () => {
+        case 'project': return modal(isCapex() ? 'Integrar CAPEX no DRE e no OPEX?' : 'Integrar os formulários no DRE e no OPEX?', `<p>${isCapex() ? 'Calcula a depreciação e amortização dos investimentos salvos de todos os centros de custo do formulário. Substitui apenas a integração do CAPEX.' : 'Substitui a integração dos formulários OPEX liberados de todos os centros de custo. A integração do CAPEX é preservada.'}</p>${changes.size ? '<p class="pl-note">Sua digitação não salva não será incluída.</p>' : ''}`, async () => {
           const result = isCapex() ? await capexWrite('project') : await write('project', { form_id: formId }); if (!result.ok) throw Error(result.error || 'Falha na integração');
           invalidateScenarioCachesFor?.(scenario.id, scenario.reference_year); close(); await refresh(); render();
           global.VECTON_DIALOGS?.showToast?.(`Integração concluída · ${result.rows_written} linhas${result.skipped_items ? ` · ${result.skipped_items} itens incompletos ignorados` : ''}`,result.skipped_items ? 'warning' : 'success');
