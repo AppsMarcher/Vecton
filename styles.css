@@ -181,6 +181,11 @@
 #cockpit-view .cockpit-table thead th { background: var(--panel); }
 #cockpit-view .cockpit-table tbody th { position: static; text-transform: none; letter-spacing: normal; font-weight: 400; background: transparent; }
 #cockpit-view .cockpit-table .ger-row-subtotal th { background: var(--blue-soft); font-weight: 700; border-top: 1px solid var(--blue); }
+/* OPEX por Grupo de Despesa: coluna Grupo larga (nome em uma linha) e as 4 de valores com largura igual. */
+#cockpit-view .cockpit-table.cockpit-table-groups { min-width: 640px; table-layout: fixed; }
+#cockpit-view .cockpit-table-groups th:first-child { width: 36%; }
+#cockpit-view .cockpit-table-groups th:not(:first-child) { width: 16%; }
+#cockpit-view .cockpit-table-groups tbody th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Cabeçalho ordenável (OPEX por Grupo de Despesa) — mesmo padrão ↑/↓ clicável
    dos popovers de auditoria do resto do app. */
 #cockpit-view .cockpit-table th.cockpit-sortable { cursor: pointer; user-select: none; }

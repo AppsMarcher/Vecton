@@ -150,9 +150,9 @@
   // aplica atributos por linha, ex.: pra abrir um drilldown ao clicar; totalAttrs
   // faz o mesmo só pra linha de Total (sem entrar em conflito com a classe
   // "ger-row-subtotal" que essa linha já carrega).
-  function table(caption, headers, rows, total, rowAttrs = [], totalAttrs = "") {
+  function table(caption, headers, rows, total, rowAttrs = [], totalAttrs = "", tableClass = "") {
     const renderRow = (cells, totalRow = false, attrs = "") => `<tr${totalRow ? ' class="ger-row-subtotal"' : ""}${attrs}>${cells.map((cell, i) => i === 0 ? `<th scope="row">${cell}</th>` : `<td>${cell}</td>`).join("")}</tr>`;
-    return `<div class="reports-table-wrap cockpit-table-scroll" tabindex="0" role="region" aria-label="${e(caption)}"><table class="data-table reports-ger-table cockpit-table"><caption class="cockpit-sr-only">${e(caption)}</caption><thead><tr>${headers.join("")}</tr></thead><tbody>${rows.map((cells, i) => renderRow(cells, false, rowAttrs[i] || "")).join("")}${renderRow(total, true, totalAttrs)}</tbody></table></div>`;
+    return `<div class="reports-table-wrap cockpit-table-scroll" tabindex="0" role="region" aria-label="${e(caption)}"><table class="data-table reports-ger-table cockpit-table${tableClass ? ` ${tableClass}` : ""}"><caption class="cockpit-sr-only">${e(caption)}</caption><thead><tr>${headers.join("")}</tr></thead><tbody>${rows.map((cells, i) => renderRow(cells, false, rowAttrs[i] || "")).join("")}${renderRow(total, true, totalAttrs)}</tbody></table></div>`;
   }
   const th = (label, sortKey, active, dir) => `<th scope="col"${sortKey ? ` data-sort="${sortKey}" class="cockpit-sortable${active ? " cockpit-sort-active" : ""}"` : ""}>${e(label)}${active ? (dir === 1 ? " ↑" : " ↓") : ""}</th>`;
   // Ordenação clicável do cabeçalho (mesmo padrão ↑/↓ dos popovers de
@@ -178,7 +178,7 @@
     // Clique na linha abre o drilldown por conta (lista + Real + comparativo),
     // tratado em cockpitModule.js — aqui só marca a linha.
     const rowAttrs = sorted.map(group => group.accounts.length ? ` class="ger-drillable" data-group="${e(group.name)}"` : "");
-    return table("OPEX por Grupo de Despesa", headers, sorted.map(row), row({ name: "Total", ...data.opex }), rowAttrs);
+    return table("OPEX por Grupo de Despesa", headers, sorted.map(row), row({ name: "Total", ...data.opex }), rowAttrs, "", "cockpit-table-groups");
   }
   // Mesmo padrão de ordenação clicável do "OPEX por Grupo de Despesa"
   // (groupsSort/setGroupsSort/sortGroups acima), estado próprio pra não
