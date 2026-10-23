@@ -5310,13 +5310,17 @@ textarea[disabled] {
 .auto-carga-badge.is-off { color: #d97706; border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.10); }
 .auto-carga-meta { display: grid; gap: 6px; font-size: 0.78rem; line-height: 1.45; color: var(--text-faint); }
 .auto-carga-meta b { color: var(--text); font-weight: 600; }
-.auto-carga-k { display: inline-block; min-width: 86px; color: var(--text-faint); }
+.auto-carga-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); column-gap: 10px; align-items: baseline; min-height: 1.45em; }
+.auto-carga-k { color: var(--text-faint); white-space: nowrap; }
+.auto-carga-v { min-width: 0; }
+.auto-carga-v select { width: auto; min-width: 150px; max-width: 100%; padding: 3px 8px; border-radius: 8px; border: 1px solid var(--theme-border, rgba(128,128,128,0.35)); background: var(--panel); color: var(--text); font: inherit; font-weight: 600; }
 .auto-carga-muted { color: var(--text-faint); font-size: 0.72rem; }
 .auto-carga-status { font-weight: 600; }
 .auto-carga-status--ok   { color: #16a34a; }
 .auto-carga-status--warn { color: #d97706; }
 .auto-carga-status--err  { color: #dc2626; }
-.auto-carga-actions { margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+.auto-carga-actions { margin-top: auto; padding-top: 4px; display: flex; align-items: center; gap: 8px; }
+.auto-carga-run { white-space: nowrap; }
 .auto-carga-run[disabled] { opacity: 0.6; cursor: default; }
 
 /* Notificações em cartões separados e reordenáveis (arrastar pela alça ⋮⋮ ou ↑ ↓ no teclado). */
@@ -13370,5 +13374,3 @@ td.capex-z { color: var(--text-faint); }
   .headcount-load-layout .editor-actions { flex-wrap: wrap; }
   .headcount-load-layout .actuals-rows-toolbar { flex-wrap: wrap; gap: 8px; }
 }
-.auto-carga-month { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; }
-.auto-carga-month select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border, rgba(128,128,128,0.35)); background: var(--surface, transparent); color: var(--text); font: inherit; }

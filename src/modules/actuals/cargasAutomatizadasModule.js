@@ -108,6 +108,9 @@
     const STATUS_TEXT = { ok: "Aplicada", erro: "Erro", bloqueada: "Bloqueada", sem_mudanca: "Sem mudanças", simulacao: "Simulação" };
     const PEDIDO_TEXT = { pendente: "aguardando o robô", executando: "robô executando", concluido: "concluído", erro: "com erro" };
 
+    // Linha padrao do card: rotulo em coluna fixa + valor, igual nas tres cargas.
+    const row = (k, v) => `<div class="auto-carga-row"><span class="auto-carga-k">${k}</span><span class="auto-carga-v">${v}</span></div>`;
+
     function cardHtml(cfg) {
       const meta = JOBS[cfg.job] || {};
       const log = latestBy(data.logs, cfg.job);
@@ -115,7 +118,7 @@
       const open = pedido && (pedido.status === "pendente" || pedido.status === "executando");
       const busy = open || busyJobs.has(cfg.job);
       const onDemandMonth = !!meta.onDemandMonth;
-      const horarios = (cfg.horarios || []).join(" · ") || (onDemandMonth ? "Somente sob demanda" : "—");
+      const horarios = (cfg.horarios || []).join(" · ") || (onDemandMonth ? "Sob demanda" : "—");
 
       let last = '<span class="auto-carga-muted">Nenhuma execução registrada.</span>';
       if (log) {
@@ -125,15 +128,18 @@
         if (log.status !== "ok" && log.mensagem) last += `<br><span class="auto-carga-muted">${escapeHtml(String(log.mensagem).slice(0, 160))}</span>`;
       }
 
-      let pedidoHtml = "";
+      let pedidoHtml = '<span class="auto-carga-muted">Nenhum pedido.</span>';
       if (pedido) {
         const cls = pedido.status === "erro" ? "err" : (pedido.status === "concluido" ? "ok" : "warn");
         const ref = pedido.reference_year ? ` · ref. ${escapeHtml(monthValue(pedido.reference_year, pedido.reference_month))}` : "";
-        pedidoHtml = `<div><span class="auto-carga-k">Último pedido</span> <b>${escapeHtml(formatWhen(pedido.requested_at))}</b>${ref} ·<span class="auto-carga-status auto-carga-status--${cls}">${escapeHtml(PEDIDO_TEXT[pedido.status] || pedido.status)}</span>`
+        pedidoHtml = `<b>${escapeHtml(formatWhen(pedido.requested_at))}</b>${ref} · <span class="auto-carga-status auto-carga-status--${cls}">${escapeHtml(PEDIDO_TEXT[pedido.status] || pedido.status)}</span>`
           + (!open && pedido.resultado ? `<br><span class="auto-carga-muted">${escapeHtml(String(pedido.resultado).slice(0, 200))}</span>` : "")
-          + (open ? '<br><span class="auto-carga-muted">O robô atende o pedido em até 5 minutos.</span>' : "")
-          + "</div>";
+          + (open ? '<br><span class="auto-carga-muted">O robô atende o pedido em até 5 minutos.</span>' : "");
       }
+
+      const monthHtml = onDemandMonth
+        ? `<select data-auto-carga-month="${escapeHtml(cfg.job)}" ${busy ? "disabled" : ""}>${closedMonths().map((v) => `<option value="${v}" ${v === selectedMonth(cfg.job) ? "selected" : ""}>${escapeHtml(monthText(v))}</option>`).join("")}</select>`
+        : `<b>${escapeHtml(windowText(cfg).replace(/^./, (c) => c.toUpperCase()))}</b>`;
 
       return `
         <div class="load-catalog-card load-catalog-card--${meta.color || "blue"} load-catalog-card--static" data-auto-carga="${escapeHtml(cfg.job)}">
@@ -143,12 +149,12 @@
             <span class="auto-carga-badge ${cfg.enabled ? "is-on" : "is-off"}">${cfg.enabled ? "Ligada" : "Pausada"}</span>
           </div>
           <div class="auto-carga-meta">
-            <div><span class="auto-carga-k">Horários</span> <b>${escapeHtml(horarios)}</b> <span class="auto-carga-muted">(${onDemandMonth ? "mês fechado" : escapeHtml(windowText(cfg))})</span></div>
-            <div><span class="auto-carga-k">Última carga</span> ${last}</div>
-            ${pedidoHtml}
+            ${row("Horários", `<b>${escapeHtml(horarios)}</b>`)}
+            ${row("Mês da carga", monthHtml)}
+            ${row("Última carga", last)}
+            ${row("Último pedido", pedidoHtml)}
           </div>
           <div class="auto-carga-actions">
-            ${onDemandMonth ? `<label class="auto-carga-month"><span class="auto-carga-k">Mês da carga</span> <select data-auto-carga-month="${escapeHtml(cfg.job)}" ${busy ? "disabled" : ""}>${closedMonths().map((v) => `<option value="${v}" ${v === selectedMonth(cfg.job) ? "selected" : ""}>${escapeHtml(monthText(v))}</option>`).join("")}</select></label>` : ""}
             <button type="button" class="primary-button auto-carga-run" data-auto-carga-run="${escapeHtml(cfg.job)}" ${busy ? "disabled" : ""}>${busy ? "Pedido em andamento…" : "Carregar agora"}</button>
           </div>
         </div>`;
