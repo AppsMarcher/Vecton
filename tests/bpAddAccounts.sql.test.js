@@ -18,16 +18,20 @@ const { PGlite } = require(process.env.PLANNING_PGLITE_TEST_LIB || '../artifacts
 
     const before=(await db.query('select id,account_code,name,node_class,parent_id,group_key,active from bp_plan_nodes order by id')).rows;
     const migration=fs.readFileSync('supabase/306_bp_add_accounts_marcher.sql','utf8');await db.exec(migration);await db.exec(migration);
+    const next=fs.readFileSync('supabase/307_bp_add_accounts_marcher.sql','utf8');await db.exec(next);await db.exec(next);
     const after=(await db.query('select * from bp_plan_nodes')).rows;
-    assert.equal(after.length,184);assert.equal(after.filter(n=>n.node_class==='Analitica').length,124);
+    assert.equal(after.length,192);assert.equal(after.filter(n=>n.node_class==='Analitica').length,132);
     for(const node of before)assert.deepEqual(Object.fromEntries(Object.keys(node).map(k=>[k,after.find(n=>n.id===node.id)[k]])),node);
     const account=code=>after.find(n=>n.account_code===code);
     assert.equal(account('1.1.5.03.00009').group_key,'Estoques');
     assert.equal(account('2.1.6.01.00008').group_key,'Estoques de Terceiros');
     assert.equal(account('2.1.6.02.010').parent_id,account('2.1.6.02').id);
     assert.equal(account('2.1.6.02').node_class,'Sintetica');assert.equal(account('2.1.6.02').group_key,null);
+    assert.equal(account('1.1.2.01.00002').group_key,'Contas a Receber - Clientes');
+    assert.equal(account('1.1.1.03.012').group_key,'Caixa e equivalente de Caixa');
+    assert.equal(account('2.1.4.01.016').group_key,'Impostos e Contribuições');
     const affected=new Set(after.filter(n=>!before.some(b=>b.id===n.id)).map(n=>n.parent_id));
     for(const parent of affected){const actual=after.filter(n=>n.parent_id===parent).sort((a,b)=>a.sort_order-b.sort_order).map(n=>n.account_code);const expected=(await db.query("select account_code from bp_plan_nodes where parent_id=$1 order by string_to_array(account_code,'.')::numeric[],account_code",[parent])).rows.map(n=>n.account_code);assert.deepEqual(actual,expected);}
-    console.log('BP new accounts: 10 analytic accounts, one synthetic parent, numeric order, original configuration preserved and idempotence OK');
+    console.log('BP new accounts: 18 analytic accounts, one synthetic parent, numeric order, original configuration preserved and idempotence OK');
   }finally{await db.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -129,3 +129,8 @@ A aplicação automática vale para arquivos Realizados e Planejados, como no DR
 ## Proteção de contas com saldo: SQL 307
 
 A migration 307 impede remover do Plano BP uma conta que tenha saldo em lote aplicado ou rascunho; exclua os lotes antes ou inative a conta. Rascunhos agora são sempre gravados com o plano atual, e "Aplicar lote" atualiza o plano do rascunho antes de aplicar, evitando "O Plano BP mudou" após edições no cadastro. O relatório classifica cada lote pelo snapshot do plano vigente na aplicação e ignora, ao montar linhas extras, contas inativas ou fora dos grupos 1.1/1.2/2.1/2.2/2.3 que não tenham saldo.
+
+
+## Inclusão adicional de oito contas: SQL 307
+
+Cadastra três aplicações financeiras em Caixa e equivalente de Caixa, Clientes Consignação em Contas a Receber - Clientes, NFs Devolvidas em Outros Créditos, duas contas de material de consumo em Estoques e Substituição Tributária a Recolher em Impostos e Contribuições. Mantém o vínculo ao ancestral sintético cadastrado mais próximo e ordena numericamente apenas os grupos afetados, sem alterar cargas de saldos.
