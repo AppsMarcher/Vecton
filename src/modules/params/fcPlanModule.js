@@ -40,13 +40,13 @@
       if (mounted) return;
       mounted = true;
       root.innerHTML = `
-        <p class="toolbar-note">Contas do fluxo de caixa por empresa. Sintéticas agrupam e calculam; analíticas recebem os movimentos da carga.</p>
-        <p id="fc-plan-status" role="status" aria-live="polite"></p>
-        <div class="dre-workspace fc-plan-workspace">
+
+
+        <div class="dre-workspace account-plan-workspace fc-plan-workspace">
           <div class="content-card tree-panel">
             <div class="card-toolbar"><button type="button" id="fc-plan-add" class="primary-button compact-button">Adicionar</button><button type="button" id="fc-plan-refresh" class="ghost-button">Atualizar</button></div>
-            <label class="fc-plan-search">Buscar conta<input type="search" id="fc-plan-search" placeholder="Nome ou descrição no arquivo"></label>
-            <p class="toolbar-note">Arraste para uma conta sintética ou altere a conta pai no editor.</p>
+            <label class="account-plan-search fc-plan-search">Buscar conta<input type="search" id="fc-plan-search" placeholder="Buscar conta…"></label>
+            <label class="account-plan-search">Tipo<select id="fc-plan-filter"><option value="">Todas as contas</option><option value="Analitica">Analíticas</option><option value="Sintetica">Sintéticas</option></select></label><p class="toolbar-note account-plan-hint">Arraste para uma conta sintética ou altere a conta pai no editor.</p><p id="fc-plan-status" class="account-plan-status" role="status" aria-live="polite"></p>
             <div id="fc-plan-tree" class="dre-tree"></div>
           </div>
           <div class="dre-resizer" id="fc-plan-resizer" role="separator" aria-label="Largura da árvore" aria-orientation="vertical" tabindex="0"></div>
@@ -75,6 +75,7 @@
       };
       el("#fc-plan-refresh").onclick = () => { if (!busy) { loaded = false; void render(); } };
       el("#fc-plan-search").oninput = drawTree;
+      el("#fc-plan-filter").onchange = drawTree;
       el("#fc-plan-form").onsubmit = async event => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
@@ -120,9 +121,10 @@
     function drawTree() {
       const tree = el("#fc-plan-tree"); tree.innerHTML = "";
       const query = normalize(el("#fc-plan-search").value);
+      const filter = el("#fc-plan-filter").value;
       const visible = new Set();
       for (const node of nodes) {
-        if (!query || normalize(`${node.name} ${node.source_name || ""}`).includes(query)) {
+        if ((!filter || node.node_class === filter) && (!query || normalize(`${node.name} ${node.source_name || ""}`).includes(query))) {
           let item = node;
           while (item && !visible.has(item.id)) { visible.add(item.id); item = nodes.find(n => n.id === item.parent_id); }
         }
@@ -132,7 +134,7 @@
           const wrapper = document.createElement("div"); wrapper.className = "tree-node"; wrapper.style.setProperty("--depth", depth);
           const row = document.createElement("div"); row.className = `tree-row${node.id === selectedId ? " selected" : ""}`;
           const children = nodes.some(n => n.parent_id === node.id);
-          row.innerHTML = `<button type="button" class="tree-toggle ${children ? "" : "empty"}" aria-label="${collapsed.has(node.id) ? "Expandir" : "Recolher"} ${esc(node.name)}" ${children ? `aria-expanded="${!collapsed.has(node.id) || Boolean(query)}"` : "disabled"}>${children ? collapsed.has(node.id) && !query ? "+" : "−" : "·"}</button><span class="tree-bullet ${node.node_class === "Sintetica" ? "synthetic" : "analytic"}"></span><button type="button" class="tree-label fc-plan-select"><strong>${esc(node.name)}</strong><span>${node.node_class === "Sintetica" ? "Sintética · calculada" : "Analítica"}${node.active ? "" : " · Inativa"}</span></button>`;
+          row.innerHTML = `<button type="button" class="tree-toggle ${children ? "" : "empty"}" aria-label="${collapsed.has(node.id) ? "Expandir" : "Recolher"} ${esc(node.name)}" ${children ? `aria-expanded="${!collapsed.has(node.id) || Boolean(query || filter)}"` : "disabled"}>${children ? collapsed.has(node.id) && !query && !filter ? "+" : "−" : "·"}</button><span class="tree-bullet ${node.node_class === "Sintetica" ? "synthetic" : "analytic"}"></span><button type="button" class="tree-label fc-plan-select"><strong>${esc(node.name)}</strong><span>${node.node_class === "Sintetica" ? "Sintética · calculada" : "Analítica"}${node.active ? "" : " · Inativa"}</span></button>`;
           row.querySelector(".tree-toggle").onclick = () => { collapsed.has(node.id) ? collapsed.delete(node.id) : collapsed.add(node.id); drawTree(); };
           row.querySelector(".fc-plan-select").onclick = () => { if (busy) return; selectedId = node.id; draft = null; drawTree(); drawEditor(); };
           row.draggable = !busy;
@@ -142,7 +144,7 @@
           row.ondragleave = () => row.classList.remove("drop-target");
           row.ondrop = event => { event.preventDefault(); row.classList.remove("drop-target"); const moving = nodes.find(n => n.id === dragging); dragging = null; if (moving && !busy) void save({ ...moving, parent_id: node.id }); };
           wrapper.append(row); container.append(wrapper);
-          if (children && (query || !collapsed.has(node.id))) {
+          if (children && (query || filter || !collapsed.has(node.id))) {
             const childContainer = document.createElement("div"); childContainer.className = "tree-children";
             wrapper.append(childContainer); append(node.id, depth + 1, childContainer);
           }

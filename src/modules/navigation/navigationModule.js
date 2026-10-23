@@ -45,7 +45,7 @@
         button.classList.toggle("active", button.dataset.view === activeView);
       });
       const paramsViews = [
-        "branchPlan", "drePlan", "fcPlan", "fcLoad", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles", "notifications", "announcements",
+        "branchPlan", "drePlan", "bpPlan", "bpLoad", "fcPlan", "fcLoad", "managements", "ccPlan", "actualsLoad", "budgetLoad", "headcountLoad", "users", "accessProfiles", "notifications", "announcements",
         "comProdutos", "comClientes", "comTerritorios", "comRegioes", "comCoordenacoes", "comTipos", "comCulturas", "comLinhasNegocio", "comVendedores", "comAtribuicao",
         "comercialVendas", "comercialPlanejado", "garantiaAtivacoesCarga"
       ];
@@ -63,6 +63,8 @@
       const cockpitBtn = document.querySelector(".menu-button[data-view='cockpit']");
       if (cockpitBtn) cockpitBtn.style.display = canAccessDashboard() ? "" : "none";
       void deps.renderCockpit?.();
+      void deps.renderBpPlan?.();
+      void deps.renderBpLoad?.();
       void deps.renderFcPlan?.();
       void deps.renderFcLoad?.();
       void deps.renderAnnouncements?.();

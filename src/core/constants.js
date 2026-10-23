@@ -75,6 +75,8 @@ const VIEW_HEADER_METADATA = {
   reports:   { kicker: "RELATÓRIOS",    title: "Central de relatórios" },
   branchPlan: { kicker: "PARÂMETROS", title: "Empresa / filial" },
   fcLoad: { kicker: "PARÂMETROS", title: "Carga do Fluxo de Caixa" },
+  bpPlan: { kicker: "PARÂMETROS", title: "Plano de Contas BP" },
+  bpLoad: { kicker: "PARÂMETROS", title: "Carga do Balanço Patrimonial" },
   fcPlan: { kicker: "PARÂMETROS", title: "Plano de Contas FC" },
   drePlan:     { kicker: "PARÂMETROS", title: "Plano de Contas DRE" },
   managements: { kicker: "PARÂMETROS", title: "Gestões" },

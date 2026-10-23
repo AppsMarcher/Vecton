@@ -16,6 +16,7 @@
     // ou modo local sem Supabase) — mantém o catálogo organizado mesmo assim.
     const FALLBACK_SECTIONS = [
       { id: "fallback-comercial", name: "Comercial" },
+      { id: "fallback-balance", name: "Balanço Patrimonial" },
       { id: "fallback-cashflow", name: "Fluxo de Caixa" },
       { id: "fallback-dre", name: "DRE" },
       { id: "fallback-opex", name: "OPEX" },
@@ -24,6 +25,7 @@
       { id: "fallback-personalizados", name: "Personalizados" },
     ];
     const FALLBACK_ITEMS = [
+      { section_id: "fallback-balance", report_id: "balanceSheetReal", sort_order: 0 },
       { section_id: "fallback-cashflow", report_id: "cashFlow", sort_order: 0 },
       { section_id: "fallback-comercial", report_id: "comercialPainel", sort_order: 0 },
       { section_id: "fallback-comercial", report_id: "comercialMapa", sort_order: 1 },
@@ -154,6 +156,11 @@
         if (headcountSection) headcountSection.after(capexSection);
         else wrap.appendChild(capexSection);
         assignedIds.add("capexBudget");
+      }
+      if (cardById.has("balanceSheetReal") && !assignedIds.has("balanceSheetReal")) {
+        const section = buildSectionEl({ id: "fallback-balance", name: "Balanço Patrimonial" });
+        section.querySelector(".reports-section-body").appendChild(cardById.get("balanceSheetReal"));
+        wrap.appendChild(section); assignedIds.add("balanceSheetReal");
       }
       const orphans = cards.filter((c) => !assignedIds.has(c.dataset.reportId));
       if (orphans.length) {

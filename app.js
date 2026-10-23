@@ -116,6 +116,7 @@ let currentUser = null;
 let cockpitService = null;
 let fcDashboardModule = null;
 let fcLoadModule = null;
+let bpModule = null;
 let profileDraft = null;
 let periodPickerYear = state.currentPeriod?.year || 2026;
 // ─── Headcount Realizado (relatório) — estado de módulo ──────────────────
@@ -197,6 +198,8 @@ const views = {
   reports: document.querySelector("#reports-view"),
   branchPlan: document.querySelector("#branchPlan-view"),
   drePlan: document.querySelector("#drePlan-view"),
+  bpPlan: document.querySelector("#bpPlan-view"),
+  bpLoad: document.querySelector("#bpLoad-view"),
   fcPlan: document.querySelector("#fcPlan-view"),
   fcLoad: document.querySelector("#fcLoad-view"),
   ccPlan: document.querySelector("#ccPlan-view"),
@@ -265,7 +268,7 @@ const authModule = createAuthModule({
   hydrateFromSupabase,
   buildAuthHeaders,
   supabaseConfig,
-  onLogoutCleanup: () => { organizationIdCache = null; reportCardLabelsCache = {}; cockpitService?.invalidate(); fcDashboardModule?.reset(); fcLoadModule?.reset(); },
+  onLogoutCleanup: () => { organizationIdCache = null; reportCardLabelsCache = {}; cockpitService?.invalidate(); fcDashboardModule?.reset(); fcLoadModule?.reset(); bpModule?.reset(); },
   getCurrentSession: () => currentSession,
   setCurrentSession: (value) => { currentSession = value; },
   getCurrentUser: () => currentUser,
@@ -325,6 +328,16 @@ const branchTreeModule = createBranchTreeModule({
   renderBranchEditorRef: () => renderBranchEditor()
 });
 const dreTreeModule = createDreTreeModule({
+  refreshPlan: async () => {
+    if (!isAdmin() || !currentUser?.id) throw new Error('Acesso restrito aos administradores.');
+    const userId = currentUser.id;
+    const organizationId = await resolveOrganizationId();
+    const rows = await fetchAllSupabaseRows('dre_plan_nodes', `organization_id=eq.${organizationId}&select=id,node_code,node_name,node_class,parent_node_id,sort_order,origin,note&order=sort_order.asc,node_code.asc`);
+    if (currentUser?.id !== userId || !isAdmin()) return;
+    const parents = new Map(rows.map(row => [row.id, row.node_code]));
+    state.dreNodes = rows.map(row => ({ id: row.id, code: row.node_code, name: row.node_name, class: row.node_class, parentCode: parents.get(row.parent_node_id) || null, origin: row.origin || 'estrutura', note: row.note || '' }));
+    if (!state.dreNodes.some(node => node.code === selectedDreCode)) selectedDreCode = state.dreNodes[0]?.code || null;
+  },
   dreTree,
   dreNodeForm,
   ROOT_DRE_NODE,
@@ -359,6 +372,7 @@ const ccTreeModule = createCcTreeModule({
   getManagements: () => state.managements || []
 });
 const actualsModule = createActualsModule({
+  openBpLoad: () => bpModule.open(false),
   openFcLoad: () => { activeView = "fcLoad"; renderNavigation(); },
   ACTUALS_IMPORT_UPSERT_CHUNK_SIZE,
   MAX_BROWSER_TEXT_IMPORT_BYTES,
@@ -570,7 +584,8 @@ try {
     deleteSupabaseRows,
     callSupabaseRpc,
     appConfirm,
-    openComercialPlanejadoCarga
+    openComercialPlanejadoCarga,
+    openBpLoad: () => bpModule.open(true)
   });
 } catch (error) {
   console.error("Falha ao inicializar modulo de budget", error);
@@ -639,7 +654,51 @@ const fcPlanModule = window.VECTON_FC_PLAN.createFcPlanModule({
   },
   confirm: message => window.VECTON_DIALOGS.appConfirm(message, "warn")
 });
+const bpPlanModule = window.VECTON_BP_PLAN.createBpPlanModule({
+  root: views.bpPlan,
+  escapeHtml,
+  isAdmin,
+  getCurrentUserId: () => currentUser?.id || null,
+  getActiveView: () => activeView,
+  resolveOrganizationId,
+  fetch: async org => {
+    const rows = [];
+    for (let offset = 0; ; offset += 1000) {
+      const page = await fetchSupabaseRows("bp_plan_nodes", `organization_id=eq.${org}&select=*&order=sort_order.asc,id.asc&limit=1000&offset=${offset}`);
+      rows.push(...page); if (page.length < 1000) return rows;
+    }
+  },
+  insert: row => insertSupabaseRows("bp_plan_nodes", [row]),
+  update: (org, id, fields) => updateSupabaseRows("bp_plan_nodes", `organization_id=eq.${org}&id=eq.${id}`, fields),
+  remove: async (org, id) => {
+    const response = await deleteSupabaseRows("bp_plan_nodes", `organization_id=eq.${org}&id=eq.${id}`);
+    const rows = await response.json();
+    if (rows.length !== 1) throw new Error("A conta não foi removida. Atualize o plano e confira suas permissões.");
+  },
+  confirm: message => window.VECTON_DIALOGS.appConfirm(message, "warn")
+});
+bpModule = window.VECTON_BP.createModule({
+  root: views.bpLoad, escapeHtml, isAdmin,
+  openPeriod: () => periodTrigger.click(),
+  getUserId: () => currentUser?.id || null,
+  getPeriod: () => state.currentPeriod,
+  getActiveView: () => activeView,
+  resolveOrganizationId, fetch: fetchSupabaseRows, rpc: callSupabaseRpc,
+  confirm: message => appConfirm(message, "warn"),
+  canSeeReport: () => canSeeReport("balanceSheetReal"),
+  getDreResult: async (year, month) => {
+    const rows = await fetchActualsReportRowsForYear(year);
+    if (!rows.some(row => Number(row.referenceMonth ?? row.reference_month) >= 1 && Number(row.referenceMonth ?? row.reference_month) <= month)) return null;
+    const result = buildDreSocRealReport(year, rows).rows.find(row => row.code === "51401001");
+    if (!result) throw new Error("A conta 51401001 não foi encontrada no DRE Societário Realizado.");
+    return result.months.slice(0, month).reduce((sum, value) => sum + Math.round(value * 100), 0) / 100;
+  },
+  isReportActive: () => activeView === "reports" && selectedReportId === "balanceSheetReal",
+  navigate: view => { activeView = view; renderNavigation(); if (view === "actualsLoad") { ensureActualsViewShell(); renderActualsCatalog(); } if (view === "budgetLoad") { ensureBudgetViewShell(); renderBudgetCatalog(); } }
+});
 const navigationModule = createNavigationModule({
+  renderBpPlan: () => bpPlanModule.render(),
+  renderBpLoad: () => bpModule.renderLoad(),
   renderFcPlan: () => fcPlanModule.render(),
   renderFcLoad: () => fcLoadModule.render(),
   renderAnnouncements: () => announcementsAdminModule.render(),
@@ -3231,6 +3290,7 @@ function renderHcReport(kind) {
 const REPORT_TITLES = {
   __new_report__: "Novo relatório",
   cashFlow: "Fluxo de Caixa",
+  balanceSheetReal: "Balanço Patrimonial Real",
   dreSocReal:    "DRE Societário Realizado",
   dreGerReal:    "DRE Gerencial Realizado",
   dreDfsReal:    "DRE DFs Realizado",
@@ -3478,6 +3538,7 @@ function renderReportsView() {
   }
 
   const rendered =
+    bpModule.renderSelected(detailPanel, selectedReportId) ||
     fcDashboardModule.renderSelected(detailPanel, selectedReportId) ||
     reportsBuilderModule.handleBuilderView(detailPanel, selectedReportId) ||
     comercialReportsModule.renderSelectedReport(detailPanel, selectedReportId) ||
@@ -7254,7 +7315,7 @@ function ensureHeadcountViewShell() {
       </div>
     </div>
 
-    <div id="headcount-detail" class="actuals-layout" style="display:none">
+    <div id="headcount-detail" class="actuals-layout headcount-load-layout" style="display:none">
       <div class="content-card actuals-intake-card">
         <div class="actuals-intake-header">
           <div class="actuals-intake-controls">
@@ -7262,7 +7323,7 @@ function ensureHeadcountViewShell() {
               <span class="actuals-period-kicker">Período</span>
               <strong id="hc-period-label">Jun/2026</strong>
             </button>
-            <span id="hc-load-type-label" class="actuals-period-kicker" style="font-size:0.72rem;letter-spacing:0.07em;color:var(--text-faint);padding:0 4px;"></span>
+            <span id="hc-load-type-label" hidden></span>
             <select id="hc-load-mode" name="loadMode" class="actuals-mode-select">
               <option value="complete">Carga completa</option>
               <option value="additional">Carga adicional</option>
@@ -7274,7 +7335,7 @@ function ensureHeadcountViewShell() {
               </select>
             </div>
           </div>
-          <a href="https://jwjnvxshtdekzcprmsyl.supabase.co/storage/v1/object/public/Vecton_Templates/modelo-carga-headcount.xlsx" download="modelo-carga-headcount.xlsx" title="Baixar modelo de carga" style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-alt);color:var(--text-faint);font-size:0.72rem;text-decoration:none;flex-shrink:0;transition:color .15s,border-color .15s" onmouseover="this.style.color='var(--blue)';this.style.borderColor='var(--blue)'" onmouseout="this.style.color='var(--text-faint)';this.style.borderColor='var(--line)'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Modelo</a>
+          <a href="https://jwjnvxshtdekzcprmsyl.supabase.co/storage/v1/object/public/Vecton_Templates/modelo-carga-headcount.xlsx" download="modelo-carga-headcount.xlsx" title="Baixar modelo de carga" class="ghost-button hc-template-button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Modelo</a>
         </div>
         <form id="hc-upload-form" class="form-grid actuals-upload-form">
           <label class="full-span vecton-file-field">
@@ -7330,7 +7391,7 @@ function ensureHeadcountViewShell() {
         <div class="actuals-rows-toolbar">
           <label class="actuals-rows-search">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="hc-rows-search" type="text" placeholder="Buscar por CC, matrícula, colaborador, cargo...">
+            <input id="hc-rows-search" type="search" aria-label="Buscar colaboradores" placeholder="Buscar por CC, matrícula, colaborador, cargo...">
           </label>
           <span id="hc-rows-count" class="actuals-rows-count"></span>
         </div>
@@ -7342,9 +7403,9 @@ function ensureHeadcountViewShell() {
                 <th class="actuals-col-row">#</th>
                 <th class="actuals-col-branch">Empresa</th>
                 <th class="actuals-col-cc">CC</th>
-                <th class="actuals-col-lot">Matrícula</th>
-                <th class="actuals-col-history">Colaborador</th>
-                <th class="actuals-col-history">Cargo</th>
+                <th class="actuals-col-lot hc-col-registration">Matrícula</th>
+                <th class="actuals-col-history hc-col-employee">Colaborador</th>
+                <th class="actuals-col-history hc-col-role">Cargo</th>
                 <th class="actuals-col-status">Status</th>
                 <th class="actuals-col-action">Ação</th>
               </tr>

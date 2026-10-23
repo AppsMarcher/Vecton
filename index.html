@@ -14,7 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261021cc3">
+  <link rel="stylesheet" href="styles.css?v=20261023hc1">
+  <link rel="stylesheet" href="src/modules/balance/bp.css?v=20261022bpworkflow1">
   <link rel="stylesheet" href="src/modules/cashflow/fcDashboard.css?v=20261014em1">
   <link rel="stylesheet" href="src/modules/planning/planning.css?v=20261021cc4">
   <link rel="stylesheet" href="src/styles/appearance.css?v=20260924maps1">
@@ -390,6 +391,7 @@
               <button class="submenu-button" type="button" data-view="branchPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-branch"></use></svg><span>Empresas</span></button>
               <button class="submenu-button" type="button" data-view="drePlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-accounts"></use></svg><span>Plano de Contas DRE</span></button>
               <button class="submenu-button" type="button" data-view="fcPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-accounts"></use></svg><span>Plano de Contas FC</span></button>
+              <button class="submenu-button" type="button" data-view="bpPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-accounts"></use></svg><span>Plano de Contas BP</span></button>
               <button class="submenu-button" type="button" data-view="managements"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-managements"></use></svg><span>Gestões</span></button>
               <button class="submenu-button" type="button" data-view="ccPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg><span>Centro de Custos</span></button>
               <button class="submenu-button" type="button" data-view="actualsLoad"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-upload"></use></svg><span>Carga de Realizado</span></button>
@@ -692,6 +694,11 @@
                 </div>
               </div>
 
+              <div class="reports-section" data-section="balance"><h3 class="reports-section-title">Balanço Patrimonial</h3><div class="reports-section-body reports-card-grid"><button class="reports-report-card" type="button" data-report-id="balanceSheetReal">
+                    <div class="rrc-top"><span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-dollar"></use></svg></span><span class="rrc-fav" role="button" data-fav-id="balanceSheetReal" aria-label="Favoritar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span></div>
+                    <strong class="rrc-label">Balanço Patrimonial Real</strong><span class="rrc-subtitle">Saldos de fechamento por competência</span>
+                    <span class="rrc-edit-btn" role="button" data-edit-card="balanceSheetReal" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+                  </button></div></div>
               <div class="reports-section" data-section="cashflow">
                 <button type="button" class="reports-section-header" data-section-toggle><span class="reports-section-title">Fluxo de Caixa</span></button>
                 <div class="reports-card-grid reports-section-body">
@@ -927,14 +934,20 @@
 
       <section id="fcLoad-view" class="content-view"></section>
       <section id="fcPlan-view" class="content-view"></section>
+      <section id="bpPlan-view" class="content-view"></section>
+      <section id="bpLoad-view" class="content-view"></section>
 
       <section id="drePlan-view" class="content-view">
-        <div class="dre-workspace">
+        <div class="dre-workspace account-plan-workspace">
           <div class="content-card tree-panel">
             <div class="card-toolbar">
               <button id="dre-add-node" class="primary-button compact-button" type="button">Adicionar</button>
-              <span class="toolbar-note">Arraste um item para realocar na arvore</span>
+              <button id="dre-plan-refresh" class="ghost-button" type="button">Atualizar</button>
             </div>
+            <label class="account-plan-search">Buscar conta<input type="search" id="dre-plan-search" placeholder="Buscar conta…"></label>
+            <label class="account-plan-search">Tipo<select id="dre-plan-filter"><option value="">Todas as contas</option><option value="Analitica">Analíticas</option><option value="Sintetica">Sintéticas</option></select></label>
+            <p class="toolbar-note account-plan-hint">Arraste para uma conta sintética para reorganizar a hierarquia.</p>
+            <p id="dre-plan-status" class="account-plan-status" role="status" aria-live="polite"></p>
             <div id="dre-tree" class="dre-tree"></div>
           </div>
 
@@ -1672,18 +1685,18 @@
   <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <script src="src/core/pwa.js?v=20260902a"></script>
-  <script src="src/core/constants.js?v=20260924ann1"></script>
+  <script src="src/core/constants.js?v=20261022bp1"></script>
   <script src="src/core/utils.js?v=20261021xl3"></script>
   <script src="src/core/storage.js?v=20260719r"></script>
   <script src="src/core/scenarioSources.js?v=20261019planning1"></script>
   <script src="src/modules/auth/authSession.js?v=20260902b"></script>
   <script src="src/modules/actuals/cargasAutomatizadasModule.js?v=20261016c"></script>
-  <script src="src/modules/actuals/actualsModule.js?v=20261016b"></script>
-  <script src="src/modules/budget/budgetModule.js?v=20261019planning1"></script>
-  <script src="src/modules/navigation/navigationModule.js?v=20261019a"></script>
-  <script src="src/modules/ui/headerModule.js?v=20261021capex1"></script>
+  <script src="src/modules/actuals/actualsModule.js?v=20261022bp1"></script>
+  <script src="src/modules/budget/budgetModule.js?v=20261022bp1"></script>
+  <script src="src/modules/navigation/navigationModule.js?v=20261022bp1"></script>
+  <script src="src/modules/ui/headerModule.js?v=20261022bp1"></script>
   <script src="src/modules/ui/branchTreeModule.js?v=20260719r"></script>
-  <script src="src/modules/ui/dreTreeModule.js?v=20260719r"></script>
+  <script src="src/modules/ui/dreTreeModule.js?v=20261023plan1"></script>
   <script src="src/modules/ui/ccTreeModule.js?v=20260731a"></script>
   <script src="src/modules/ui/renderModule.js?v=20260922a"></script>
   <script src="src/modules/ui/profileDialogModule.js?v=20260924a"></script>
@@ -1699,13 +1712,13 @@
   <script src="src/modules/strategic/strategicDataModule.js?v=20260909b"></script>
   <script src="src/modules/strategic/strategicModule.js?v=20260924clear2"></script>
   <script src="src/modules/reports/reportsHeadcountModule.js?v=20260719r"></script>
-  <script src="src/modules/headcount/headcountRenderModule.js?v=20260719r"></script>
+  <script src="src/modules/headcount/headcountRenderModule.js?v=20261023hc1"></script>
   <script src="src/modules/ui/shellEventsModule.js?v=20261020a"></script>
   <script src="src/modules/ui/editorEventsModule.js?v=20260731a"></script>
   <script src="src/modules/ui/dialogs.js?v=20260924clear2"></script>
   <script src="src/modules/reports/reportsHelpersModule.js?v=20260719r"></script>
   <script src="src/modules/reports/reportsBuilderModule.js?v=20261019a"></script>
-  <script src="src/modules/reports/reportsSectionsModule.js?v=20261021capex1"></script>
+  <script src="src/modules/reports/reportsSectionsModule.js?v=20261022bp1"></script>
   <script src="src/modules/reports/reportsCapexModule.js?v=20261021cc3"></script>
   <script src="src/modules/users/usersModule.js?v=20261016mkt4"></script>
   <script src="src/modules/params/managementsModule.js?v=20260719r"></script>
@@ -1742,13 +1755,18 @@
   <script src="src/modules/dashboard/dashboardModule.js?v=20261019a"></script>
   <script src="src/modules/dashboard/dashboardVisuals.js?v=20260924clear1"></script>
   <script src="src/modules/dashboard/marketTicker.js?v=20260826c"></script>
-  <script src="src/modules/params/fcPlanModule.js?v=20260921a"></script>
+  <script src="src/modules/params/bpPlanModule.js?v=20261023plan1"></script>
+  <script src="src/modules/balance/bpModel.js?v=20261022bpimports1"></script>
+  <script src="src/modules/balance/bpReportModel.js?v=20261022bpreport2"></script>
+  <script src="src/modules/balance/bpReportModule.js?v=20261022bpreport3"></script>
+  <script src="src/modules/balance/bpModule.js?v=20261022bpworkflow1"></script>
+  <script src="src/modules/params/fcPlanModule.js?v=20261023plan1"></script>
   <script src="src/modules/cashflow/fcStructure.js?v=20260921b"></script>
   <script src="src/modules/cashflow/fcModel.js?v=20260921h"></script>
   <script src="src/modules/cashflow/fcService.js?v=20260921w"></script>
   <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
   <script src="src/modules/cashflow/fcExport.js?v=20261014em1"></script>
   <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
-  <script src="app.js?v=20261021cc2"></script>
+  <script src="app.js?v=20261023hc1"></script>
 </body>
 </html>

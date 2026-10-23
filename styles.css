@@ -13317,3 +13317,56 @@ td.capex-z { color: var(--text-faint); }
 .capex-pill { display: inline-block; font-size: 9.5px; color: #8b5cf6; background: rgba(139,92,246,0.1); border-radius: 6px; padding: 1px 6px; font-weight: 600; }
 .capex-acct { color: var(--text-faint); font-family: ui-monospace, Menlo, monospace; margin-right: 6px; }
 @media (max-width: 900px) { .capex-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Controles e hierarquia compartilhados pelos planos DRE, FC e BP. */
+.account-plan-workspace .account-plan-search {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--text-faint);
+  font-size: .75rem;
+}
+.account-plan-workspace .account-plan-search input { width: 100%; min-height: 36px; box-sizing: border-box; }
+.account-plan-workspace .card-toolbar > button { min-height: 36px; padding: 8px 12px; font-size: .82rem; }
+.account-plan-workspace .account-plan-hint { margin: 0 0 12px; line-height: 1.5; }
+.account-plan-workspace .account-plan-status { margin: 0 0 12px; color: var(--text-faint); font-size: .8rem; }
+.account-plan-workspace .account-plan-status:empty { display: none; }
+.account-plan-workspace .account-plan-status[role="alert"] { color: var(--red); }
+.account-plan-workspace .tree-panel, .account-plan-workspace .editor-panel { min-width: 0; }
+.account-plan-workspace .dre-tree { max-height: 65vh; overflow: auto; }
+.account-plan-workspace .tree-bullet.synthetic { background: var(--text-soft); }
+.account-plan-workspace .tree-bullet.analytic, .account-plan-workspace .tree-bullet.actual { background: var(--blue); }
+.account-plan-workspace .tree-label { padding: 0; min-width: 0; }
+.account-plan-workspace .tree-label strong { overflow-wrap: anywhere; }
+
+/* Cargas de Headcount Realizado e Planejado: mesmo padrão de controles. */
+.headcount-load-layout > .content-card { min-width: 0; }
+.headcount-load-layout .actuals-intake-header { flex-wrap: wrap; gap: 12px; }
+.headcount-load-layout .actuals-intake-controls { flex: 1 1 auto; flex-wrap: wrap; min-width: 0; }
+.headcount-load-layout .actuals-mode-select { width: auto; min-width: 148px; max-width: 100%; font-size: .82rem; }
+.headcount-load-layout .budget-target-wrap { flex: 1 1 180px; max-width: 260px; min-width: 0; }
+.headcount-load-layout .budget-target-wrap select { width: 100%; }
+.headcount-load-layout .actuals-intake-header > .hc-template-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+.headcount-load-layout .actuals-intake-header > .hc-template-button,
+.headcount-load-layout .editor-actions > button,
+.headcount-load-layout .actuals-detail-actions > button { min-height: 36px; padding: 8px 12px; font-size: .82rem; }
+.headcount-load-layout .actuals-summary-card { min-width: 0; }
+.headcount-load-layout .actuals-summary-card strong { overflow-wrap: anywhere; }
+.headcount-load-layout .actuals-table { width: 100%; min-width: 1000px; }
+.headcount-load-layout .actuals-table th { font-size: .64rem; white-space: nowrap; }
+.headcount-load-layout .actuals-table td,
+.headcount-load-layout .actuals-field { font-size: .72rem; }
+.headcount-load-layout .actuals-field { min-height: 32px; box-sizing: border-box; }
+.headcount-load-layout .actuals-col-branch { min-width: 60px; }
+.headcount-load-layout .actuals-col-cc { min-width: 80px; }
+.headcount-load-layout .hc-col-registration { width: 90px; min-width: 90px; max-width: none; }
+.headcount-load-layout .hc-col-employee { min-width: 240px; }
+.headcount-load-layout .hc-col-role { min-width: 220px; }
+.headcount-load-layout .actuals-rows-search { max-width: min(340px, 100%); box-sizing: border-box; }
+.headcount-load-layout .actuals-rows-search input { min-width: 0; }
+@media (max-width: 767px) {
+  .headcount-load-layout .actuals-intake-controls { flex-basis: 100%; }
+  .headcount-load-layout .budget-target-wrap { max-width: none; }
+  .headcount-load-layout .editor-actions { flex-wrap: wrap; }
+  .headcount-load-layout .actuals-rows-toolbar { flex-wrap: wrap; gap: 8px; }
+}

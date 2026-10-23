@@ -96,19 +96,19 @@
 
       title.textContent = `Ano ${batch.referenceYear} • ${formatMonthLabel(batch.referenceMonth)} • ${batch.sourceType === "manual" ? "Lote manual" : (batch.sourceFileName || "Lote importado")}`;
       caption.textContent = batch.errorRows > 0
-        ? `${batch.errorRows} linha(s) com erro bloqueando a importacao.`
-        : `Lote com ${batch.validRows} linha(s) validas.`;
+        ? `${batch.errorRows} linha(s) com erro bloqueando a importação.`
+        : `Lote com ${batch.validRows} linha(s) válidas.`;
       applyButton.disabled = batch.totalRows === 0 || batch.errorRows > 0;
       addRowButton.disabled = false;
       deleteBatchButton.disabled = false;
 
       [
         { label: "Ano base", value: String(batch.referenceYear) },
-        { label: "Mes da carga", value: formatMonthLabel(batch.referenceMonth) },
+        { label: "Mês da carga", value: formatMonthLabel(batch.referenceMonth) },
         { label: "Tipo", value: batch.loadMode === "complete" ? "Carga completa" : "Carga adicional" },
         { label: "Origem", value: batch.sourceType === "manual" ? "Manual" : batch.sourceFileName || "Arquivo" },
         { label: "Linhas", value: String(batch.totalRows) },
-        { label: "Validas", value: String(batch.validRows) },
+        { label: "Válidas", value: String(batch.validRows) },
         { label: "Erros", value: String(batch.errorRows) },
         { label: "Status", value: formatActualsStatus(batch.status) }
       ].forEach((item) => {
@@ -131,7 +131,7 @@
       }
 
       if (batch.errorRows === 0) {
-        container.innerHTML = `<div class="actuals-success-box">Lote sem erros. O resumo fica concentrado no cabecalho do lote.</div>`;
+        container.innerHTML = `<div class="actuals-success-box">Lote sem erros. O resumo fica concentrado no cabeçalho do lote.</div>`;
         return;
       }
 
@@ -199,9 +199,9 @@
           <td class="actuals-col-row">${row.rowNumber}</td>
           <td class="actuals-col-branch"><input class="actuals-field actuals-field-branch" data-field="branchCode" type="text" inputmode="numeric" maxlength="10" value="${escapeHtml(row.branchCode || "")}"></td>
           <td class="actuals-col-cc"><input class="actuals-field actuals-field-cc" data-field="costCenterNumber" type="text" inputmode="numeric" maxlength="10" value="${escapeHtml(row.costCenterNumber || "")}"></td>
-          <td class="actuals-col-lot"><input class="actuals-field actuals-field-lot" data-field="matricula" type="text" maxlength="20" value="${escapeHtml(row.matricula || "")}"></td>
-          <td class="actuals-col-history"><input class="actuals-field actuals-field-history" data-field="colab" type="text" maxlength="80" value="${escapeHtml(row.colab || "")}"></td>
-          <td class="actuals-col-history"><input class="actuals-field actuals-field-history" data-field="cargo" type="text" maxlength="80" value="${escapeHtml(row.cargo || "")}"></td>
+          <td class="actuals-col-lot hc-col-registration"><input class="actuals-field actuals-field-lot" data-field="matricula" type="text" maxlength="20" value="${escapeHtml(row.matricula || "")}"></td>
+          <td class="actuals-col-history hc-col-employee"><input class="actuals-field actuals-field-history" data-field="colab" type="text" maxlength="80" value="${escapeHtml(row.colab || "")}"></td>
+          <td class="actuals-col-history hc-col-role"><input class="actuals-field actuals-field-history" data-field="cargo" type="text" maxlength="80" value="${escapeHtml(row.cargo || "")}"></td>
           <td class="actuals-col-status">${statusCell}</td>
           <td class="actuals-col-action"><button class="table-icon-button table-icon-button-only" type="button" data-delete-row="${row.id}" aria-label="Excluir linha"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-trash"></use></svg></button></td>
         `;
@@ -221,7 +221,7 @@
       nav.className = "rows-pagination-inner";
       const info = document.createElement("span");
       info.className = "rows-pagination-info";
-      info.textContent = `Pagina ${currentPage} de ${totalPages}`;
+      info.textContent = `Página ${currentPage} de ${totalPages}`;
       nav.append(info);
 
       const controls = document.createElement("div");

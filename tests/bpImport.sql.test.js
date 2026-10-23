@@ -1,0 +1,87 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const {randomUUID:uuid}=require('node:crypto');
+const {PGlite}=require(process.env.PLANNING_PGLITE_TEST_LIB||'../artifacts/bp-test-deps/node_modules/@electric-sql/pglite');
+(async()=>{
+ const db=new PGlite();
+ try{
+  const org='0070482f-c2d5-4766-b20a-0549a7984e94',other=uuid(),admin=uuid(),manager=uuid(),analyst=uuid(),extra=uuid(),additional=uuid(),foreign=uuid(),branch=uuid(),scenario=uuid(),scenario2=uuid(),scenarioForeign=uuid();
+  await db.exec(`create role authenticated;create role anon;create schema auth;
+   create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('test.user',true),'')::uuid$$;
+   create table organizations(id uuid primary key,name text);
+   create table user_profiles(organization_id uuid,user_id uuid,access_role text,is_active boolean default true,additional_access_roles text[] default '{}',extra_report_ids text[] default '{}');
+   create function is_org_member(o uuid) returns boolean language sql stable security definer as $$select exists(select 1 from user_profiles where organization_id=o and user_id=auth.uid() and is_active)$$;
+   create table branches(id uuid primary key,organization_id uuid);
+   create table forecast_scenarios(id uuid primary key,organization_id uuid,reference_year integer);
+   insert into organizations values('${org}','Marcher Brasil'),('${other}','Outra');
+   insert into user_profiles(organization_id,user_id,access_role,additional_access_roles,extra_report_ids) values
+    ('${org}','${admin}','admin','{}','{}'),('${org}','${manager}','manager','{}','{}'),('${org}','${analyst}','analyst','{}','{}'),
+    ('${org}','${extra}','analyst','{}','{balanceSheetReal}'),('${org}','${additional}','analyst','{admin}','{}'),('${other}','${foreign}','admin','{}','{}');
+   insert into branches values('${branch}','${org}');
+   insert into forecast_scenarios values('${scenario}','${org}',2026),('${scenario2}','${org}',2026),('${scenarioForeign}','${other}',2026);
+   grant usage on schema public,auth to authenticated;select set_config('test.user','${admin}',false);`);
+  for(const file of ['301_bp_account_plan.sql','302_seed_bp_plan_marcher.sql'])await db.exec(fs.readFileSync('supabase/'+file,'utf8'));
+  const snapshot=async()=>(await db.query('select * from bp_plan_nodes where organization_id=$1 order by id',[org])).rows;
+  const original=await snapshot();
+  const migration=fs.readFileSync('supabase/303_bp_imports.sql','utf8');await db.exec(migration);await db.exec(migration);
+  const workflow=fs.readFileSync('supabase/304_bp_load_workflow.sql','utf8');await db.exec(workflow);await db.exec(workflow);
+  assert.deepEqual(await snapshot(),original); // Não altera uma conta sequer do cadastro já instalado.
+  const as=async user=>db.exec(`reset role;select set_config('test.user','${user}',false);set role authenticated;`);
+  await as(admin);
+  let plan=await snapshot();
+  const account=plan.find(n=>n.node_class==='Analitica').id;
+  const amounts=amount=>plan.filter(n=>n.active&&n.node_class==='Analitica').map(n=>({account_id:n.id,amount:n.id===account?amount:0}));
+  const apply=async(changes={})=>{
+   const p={org,branch:null,year:2026,month:10,source:'actual',scenario:null,file:'balancete.xlsx',rows:amounts(100.25),plan,...changes};
+   return(await db.query('select bp_apply_import($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb) id',[p.org,p.branch,p.year,p.month,p.source,p.scenario,p.file,JSON.stringify(p.rows),JSON.stringify(p.plan)])).rows[0].id;
+  };
+  const current=async(source='actual',month=10)=>(await db.query('select * from bp_import_batches where source_type=$1 and reference_month=$2 and superseded_at is null',[source,month])).rows;
+  const first=await apply();assert.equal((await current())[0].id,first);assert.equal((await current())[0].branch_id,null);
+  assert.equal((await current())[0].rows.length,114);assert.equal((await current())[0].applied_by,admin);
+  const second=await apply({rows:amounts(-20.5)});assert.equal((await current())[0].id,second);
+  assert.equal((await current())[0].rows.find(r=>r.account_id===account).amount,-20.5);
+  assert.equal((await db.query('select count(*)::int n from bp_import_batches where superseded_at is not null')).rows[0].n,0);
+  await assert.rejects(apply({branch}),/consolidada/);
+  await assert.rejects(apply({scenario}),/Destino/);
+  await assert.rejects(apply({source:'planned'}),/Destino/);
+  await assert.rejects(apply({source:'planned',scenario:scenarioForeign}),/outro ano/);
+  await assert.rejects(apply({source:'planned',scenario,year:2027}),/outro ano/);
+  await assert.rejects(apply({source:'unknown'}),/Fonte/);
+  await assert.rejects(apply({month:0}),/Competência/);
+  await assert.rejects(apply({rows:[]}),/vazia/);
+  await assert.rejects(apply({rows:amounts(1).slice(1)}),/todas as contas/);
+  const duplicate=amounts(1);duplicate[1]=duplicate[0];await assert.rejects(apply({rows:duplicate}),/duplicidades/);
+  for(const invalid of [null,1.234,1e13,'NaN'])await assert.rejects(apply({rows:amounts(invalid)}),/inválido/);
+  const synthetic=amounts(1);synthetic[0].account_id=plan.find(n=>n.node_class==='Sintetica').id;await assert.rejects(apply({rows:synthetic}),/inválido/);
+  const unknown=amounts(1);unknown[0].account_id=uuid();await assert.rejects(apply({rows:unknown}),/inválido/);
+  assert.equal((await current())[0].id,second); // Falhas não substituem o fechamento vigente.
+  await apply({source:'planned',scenario});await apply({source:'planned',scenario:scenario2});
+  assert.equal((await current('planned')).length,2);assert.equal((await current())[0].id,second);
+  await apply({month:9});await apply({year:2025,month:12});assert.equal((await current())[0].id,second);
+  await db.query('update bp_plan_nodes set group_key=$1 where id=$2',['Nova chave',account]);
+  await assert.rejects(apply(),/Plano BP mudou/);
+  plan=await snapshot();await apply({month:11});
+  assert.notEqual((await current())[0].plan_snapshot.find(n=>n.id===account).group_key,'Nova chave');
+  await assert.rejects(db.exec('delete from bp_import_batches'),/permission denied/);
+  const stage=async(rows=amounts(50),id=null,revision=null)=> (await db.query(`select bp_save_draft($1,$2,$3,2026,10,'actual',null,'manual',$4::jsonb,$5::jsonb) id`,[org,id,revision,JSON.stringify(rows),JSON.stringify(plan)])).rows[0].id;
+  const draft=await stage([]);
+  await assert.rejects(db.query('select bp_apply_draft($1,$2,1)',[org,draft]),/vazia/);
+  assert.equal((await current())[0].id,second);
+  await stage(amounts(60),draft,1);
+  await assert.rejects(stage(amounts(70),draft,1),/lote mudou/);
+  await assert.rejects(db.query('select bp_apply_draft($1,$2,1)',[org,draft]),/lote mudou/);
+  const replacement=(await db.query('select bp_apply_draft($1,$2,2) id',[org,draft])).rows[0].id;
+  assert.equal((await current())[0].id,replacement);
+  assert.equal((await db.query(`select count(*)::int n from bp_import_batches where reference_year=2026 and reference_month=10 and source_type='actual'`)).rows[0].n,1);
+  assert.equal((await db.query('select count(*)::int n from bp_import_drafts')).rows[0].n,0);
+  const removed=await stage([]);await db.query('select bp_delete_batch($1,$2,true,1)',[org,removed]);
+  await assert.rejects(db.query('select bp_delete_batch($1,$2,true,1)',[org,removed]),/lote mudou/);
+  await as(additional);await apply({month:8});
+  await as(manager);assert.equal((await current()).length,1);assert.equal((await current('planned')).length,0);await assert.rejects(apply(),/administradores/);
+  await as(analyst);assert.equal((await current()).length,0);await assert.rejects(apply(),/administradores/);
+  await as(extra);assert.equal((await current()).length,1);assert.equal((await current('planned')).length,0);
+  await as(foreign);assert.equal((await current()).length,0);await assert.rejects(apply(),/administradores/);
+  await db.exec('reset role;set role anon;');await assert.rejects(db.query('select * from bp_import_batches'),/permission denied/);await assert.rejects(apply(),/permission denied/);
+  console.log('BP imports SQL: independent/idempotent migration, intact 173-account plan, 114 analytic balances, physical replacement, editable drafts and revision guards, Real/Meta isolation, snapshot guards and RLS OK');
+ }finally{await db.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

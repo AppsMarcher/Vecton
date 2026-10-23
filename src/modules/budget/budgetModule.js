@@ -128,7 +128,7 @@
               </span>
               <strong>DRE</strong>
             </button>
-            <button class="load-catalog-card load-catalog-card--purple load-catalog-card--soon" type="button" disabled>
+            <button class="load-catalog-card load-catalog-card--purple" type="button" data-bp-load>
               <span class="lcc-icon-wrap">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
               </span>
@@ -280,6 +280,7 @@
           openComercialPlanejadoCarga?.();
           return;
         }
+        if (event.target.closest("[data-bp-load]")) { deps.openBpLoad?.(); return; }
         const card = event.target.closest("[data-budget-load-type]");
         if (card && !card.disabled) {
           selectedLoadType = card.dataset.budgetLoadType;

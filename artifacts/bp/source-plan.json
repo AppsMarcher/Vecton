@@ -1,0 +1,1213 @@
+[
+  {
+    "code": "1",
+    "name": "ATIVO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": null
+  },
+  {
+    "code": "1.1",
+    "name": "ATIVO CIRCULANTE",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1"
+  },
+  {
+    "code": "1.1.1",
+    "name": "DISPONIVEL",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1"
+  },
+  {
+    "code": "1.1.1.02",
+    "name": "BANCOS CONTA MOVIMENTO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.1"
+  },
+  {
+    "code": "1.1.1.02.002",
+    "name": "BANCO ITAU - CTA 11112-3",
+    "type": "ANALITICA",
+    "group_key": "Caixa e equivalente de Caixa",
+    "parent_code": "1.1.1.02"
+  },
+  {
+    "code": "1.1.1.03",
+    "name": "APLICACOES FINANCEIRAS LIQUIDEZ IMEDIATA",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.1"
+  },
+  {
+    "code": "1.1.1.03.001",
+    "name": "BB - CURTO PRAZO AUTOMATICO",
+    "type": "ANALITICA",
+    "group_key": "Caixa e equivalente de Caixa",
+    "parent_code": "1.1.1.03"
+  },
+  {
+    "code": "1.1.1.03.011",
+    "name": "XP INVESTIMENTOS",
+    "type": "ANALITICA",
+    "group_key": "Caixa e equivalente de Caixa",
+    "parent_code": "1.1.1.03"
+  },
+  {
+    "code": "1.1.1.03.014",
+    "name": "ITAU- FUNDO DE INVESTIMENTO",
+    "type": "ANALITICA",
+    "group_key": "Caixa e equivalente de Caixa",
+    "parent_code": "1.1.1.03"
+  },
+  {
+    "code": "1.1.2",
+    "name": "CLIENTES",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1"
+  },
+  {
+    "code": "1.1.2.01",
+    "name": "DUPLICATAS A RECEBER",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.2"
+  },
+  {
+    "code": "1.1.2.01.00001",
+    "name": "CLIENTES DIVERSOS",
+    "type": "ANALITICA",
+    "group_key": "Contas a Receber - Clientes",
+    "parent_code": "1.1.2.01"
+  },
+  {
+    "code": "1.1.3",
+    "name": "OUTROS CREDITOS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1"
+  },
+  {
+    "code": "1.1.3.03.01",
+    "name": "ADIANTAMENTO A ACIONISTAS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.3"
+  },
+  {
+    "code": "1.1.3.03.01001",
+    "name": "ADIANTAMENTO A ACIONISTAS",
+    "type": "ANALITICA",
+    "group_key": "Outros Créditos",
+    "parent_code": "1.1.3"
+  },
+  {
+    "code": "1.1.3.05",
+    "name": "ADIANTAMENTOS A FORNECEDORES",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.3"
+  },
+  {
+    "code": "1.1.3.05.001",
+    "name": "ADIANTAMENTO A FORNECEDORES",
+    "type": "ANALITICA",
+    "group_key": "Outros Créditos",
+    "parent_code": "1.1.3.05"
+  },
+  {
+    "code": "1.1.3.05.002",
+    "name": "COMPRA PARA ENTREGA FUTURA",
+    "type": "ANALITICA",
+    "group_key": "Outros Créditos",
+    "parent_code": "1.1.3.05"
+  },
+  {
+    "code": "1.1.3.06",
+    "name": "ADIANTAMENTO A EMPREGADOS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.3"
+  },
+  {
+    "code": "1.1.3.06.002",
+    "name": "ADIANTAMENTO DE 13 SALARIO",
+    "type": "ANALITICA",
+    "group_key": "Outros Créditos",
+    "parent_code": "1.1.3.06"
+  },
+  {
+    "code": "1.1.3.06.003",
+    "name": "ADIANTAMENTO DE FERIAS",
+    "type": "ANALITICA",
+    "group_key": "Outros Créditos",
+    "parent_code": "1.1.3.06"
+  },
+  {
+    "code": "1.1.3.06.005",
+    "name": "DESCONTO EM FOLHA",
+    "type": "ANALITICA",
+    "group_key": "Outros Créditos",
+    "parent_code": "1.1.3.06"
+  },
+  {
+    "code": "1.1.3.08",
+    "name": "TRIBUTOS A RECUPERAR/COMPENSAR",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.3"
+  },
+  {
+    "code": "1.1.3.08.001",
+    "name": "IPI A RECUPERAR",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.002",
+    "name": "ICMS A RECUPERAR",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.004",
+    "name": "IMPOSTO DE RENDA PAGO POR ESTIMATIVA",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.005",
+    "name": "CONTRIBUICAO SOCIAL PAGA ESTIMATIVA",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.012",
+    "name": "COFINS A RECUPERAR",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.013",
+    "name": "PIS A RECUPERAR",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.019",
+    "name": "ICMS S/ AQUISICOES DE IMOBILIZADO",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.021",
+    "name": "IRRF SOBRE APLICACAO FINANCEIRA",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.026",
+    "name": "IRPJ DIFERIDO S/PREJ FISCAL",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.027",
+    "name": "CSLL DIFERIDA S/PREJ FISCAL",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.035",
+    "name": "SALDO NEGATIVO DE IRPJ (PAGO A MAIOR)",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.3.08.036",
+    "name": "SALDO NEGATIVO DE CSLL (PAGO A MAIOR)",
+    "type": "ANALITICA",
+    "group_key": "Impostos a Recuperar",
+    "parent_code": "1.1.3.08"
+  },
+  {
+    "code": "1.1.5",
+    "name": "ESTOQUE",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1"
+  },
+  {
+    "code": "1.1.5.01.00",
+    "name": "ESTOQUE PROPRIO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.01.00001",
+    "name": "EM ESTOQUE",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.01.00001.001",
+    "name": "MATERIAIS PARA PRODUCAO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.5.01.00001"
+  },
+  {
+    "code": "1.1.5.01.00001.001.001",
+    "name": "PRODUTO ACABADO-EM ESTOQUE",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00001.001"
+  },
+  {
+    "code": "1.1.5.01.00001.001.002",
+    "name": "PRODUTO INTERMEDIARIO-EM ESTOQUE",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00001.001"
+  },
+  {
+    "code": "1.1.5.01.00001.001.003",
+    "name": "MATERIA PRIMA-EM ESTOQUE",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00001.001"
+  },
+  {
+    "code": "1.1.5.01.00001.001.004",
+    "name": "MATERIAL DE CONSUMO-EM ESTOQUE",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00001.001"
+  },
+  {
+    "code": "1.1.5.01.00001.001.005",
+    "name": "EMBALAGENS-EM ESTOQUE",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00001.001"
+  },
+  {
+    "code": "1.1.5.01.00001.001.007",
+    "name": "MATERIAL DE SEGURANCA-EM ESTOQUE",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00001.001"
+  },
+  {
+    "code": "1.1.5.01.00001.001.008",
+    "name": "MAO DE OBRA_INDUSTRIALIZACAO-EM ESTOQUE",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00001.001"
+  },
+  {
+    "code": "1.1.5.01.00001.001.010",
+    "name": "IMOBILIZADO - EM ESTOQUE",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00001.001"
+  },
+  {
+    "code": "1.1.5.01.00003",
+    "name": "EM PROCESSO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.01.00003.001",
+    "name": "MATERIAIS EM PROCESSO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.5.01.00003"
+  },
+  {
+    "code": "1.1.5.01.00003.001.001",
+    "name": "MATERIAL DE CONSUMO-EM PROCESSO",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00003.001"
+  },
+  {
+    "code": "1.1.5.01.00003.001.002",
+    "name": "EMBALAGEM-EM PROCESSO",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00003.001"
+  },
+  {
+    "code": "1.1.5.01.00003.001.003",
+    "name": "MAO DE OBRA_INDUSTRIALIZACAO-EM PROCESSO",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00003.001"
+  },
+  {
+    "code": "1.1.5.01.00003.001.004",
+    "name": "MATERIA PRIMA-EM PROCESSO",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00003.001"
+  },
+  {
+    "code": "1.1.5.01.00003.001.006",
+    "name": "PRODUTO ACABADO-EM PROCESSO",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00003.001"
+  },
+  {
+    "code": "1.1.5.01.00003.001.007",
+    "name": "PRODUTO INTERMEDIARIO-EM PROCESSO",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5.01.00003.001"
+  },
+  {
+    "code": "1.1.5.02.00",
+    "name": "ESTOQUE - DE TERCEIROS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.02.00002",
+    "name": "MATERIA PRIMA - DE TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.02.00003",
+    "name": "PRODUTO ACABADO - DE TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.02.00004",
+    "name": "PRODUTO INTERMEDIARIO - DE TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.02.00007",
+    "name": "EMBALAGENS - DE TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.03.00",
+    "name": "ESTOQUE - EM TERCEIROS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.03.00002",
+    "name": "MATERIA PRIMA - EM TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.03.00003",
+    "name": "PRODUTO ACABADO - EM TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.5.03.00004",
+    "name": "PRODUTO INTERMEDIARIO - EM TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Estoques",
+    "parent_code": "1.1.5"
+  },
+  {
+    "code": "1.1.6.01",
+    "name": "DESPESAS A APROPRIAR",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.1"
+  },
+  {
+    "code": "1.1.6.01.00001",
+    "name": "PREMIOS DE SEGUROS A APROPRIAR",
+    "type": "ANALITICA",
+    "group_key": "Despesas a apropriar",
+    "parent_code": "1.1.6.01"
+  },
+  {
+    "code": "1.1.6.01.00002",
+    "name": "IPTU A APROPRIAR",
+    "type": "ANALITICA",
+    "group_key": "Despesas a apropriar",
+    "parent_code": "1.1.6.01"
+  },
+  {
+    "code": "1.1.6.01.00004",
+    "name": "OUTROS CUSTOS E DESPESAS PAGOS ANTECIP.",
+    "type": "ANALITICA",
+    "group_key": "Despesas a apropriar",
+    "parent_code": "1.1.6.01"
+  },
+  {
+    "code": "1.2",
+    "name": "ATIVO NAO-CIRCULANTE",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1"
+  },
+  {
+    "code": "1.2.1",
+    "name": "ATIVO REALIZAVEL A LONGO PRAZO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2"
+  },
+  {
+    "code": "1.2.1.00.01",
+    "name": "DEPOSITOS JUDICIAIS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2.1"
+  },
+  {
+    "code": "1.2.1.00.01001",
+    "name": "DEPOSITO JUDICIAL",
+    "type": "ANALITICA",
+    "group_key": "Depósitos Judiciais",
+    "parent_code": "1.2.1"
+  },
+  {
+    "code": "1.2.4",
+    "name": "IMOBILIZADO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2"
+  },
+  {
+    "code": "1.2.4.01",
+    "name": "IMOVEIS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2.4"
+  },
+  {
+    "code": "1.2.4.01.001",
+    "name": "TERRENOS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.002",
+    "name": "PREDIOS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.003",
+    "name": "INSTALACOES",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.004",
+    "name": "BENFEITORIA PREDIAL",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.005",
+    "name": "MOVEIS E UTENSILIOS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.007",
+    "name": "MAQUINAS E EQUIPAMENTOS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.009",
+    "name": "VEICULOS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.012",
+    "name": "IMOBILIZADO EM ANDAMENTO",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.013",
+    "name": "OUTROS IMOBILIZADOS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.014",
+    "name": "MATERIAL DE INFORMATICA",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.015",
+    "name": "IMOBIL. EM ANDAMENTO-PROJETO AMPLIACAO",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.016",
+    "name": "IMOBILIZADOS - DE TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.017",
+    "name": "IMOBILIZADOS - EM TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.01.018",
+    "name": "(-) IMOBILIZADOS EM TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.01"
+  },
+  {
+    "code": "1.2.4.07",
+    "name": "(-) DEPRECIACOES, AMORT. E EXAUS. ACUMUL",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2.4"
+  },
+  {
+    "code": "1.2.4.07.00001",
+    "name": "(-) DEPRECIACOES DE PREDIOS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.07"
+  },
+  {
+    "code": "1.2.4.07.00002",
+    "name": "(-) DEPRECIACOES DE MOVEIS E UTENSILIOS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.07"
+  },
+  {
+    "code": "1.2.4.07.00003",
+    "name": "(-) DEPRECIACOES DE MAQUINAS, EQUIP. FER",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.07"
+  },
+  {
+    "code": "1.2.4.07.00004",
+    "name": "(-) DEPRECIACOES DE VEICULOS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.07"
+  },
+  {
+    "code": "1.2.4.07.00008",
+    "name": "(-) DEP. DE MATERIAL DE INFORMATICA",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.07"
+  },
+  {
+    "code": "1.2.4.07.00010",
+    "name": "(-) DEP. BENF . PREDIO GRAVATAI",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.07"
+  },
+  {
+    "code": "1.2.4.07.00011",
+    "name": "(-) DEPRECIACAO DE INSTALACOES",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.07"
+  },
+  {
+    "code": "1.2.4.07.00012",
+    "name": "(-) DEPRECIACAO IMOBILIZADO EM TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Imobilizado",
+    "parent_code": "1.2.4.07"
+  },
+  {
+    "code": "1.2.5",
+    "name": "INTANGIVEL",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2"
+  },
+  {
+    "code": "1.2.5.01",
+    "name": "INTANGIVEL",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2.5"
+  },
+  {
+    "code": "1.2.5.01.001",
+    "name": "MARCAS E PATENTES",
+    "type": "ANALITICA",
+    "group_key": "Intangível",
+    "parent_code": "1.2.5.01"
+  },
+  {
+    "code": "1.2.5.01.002",
+    "name": "SOFTWARE",
+    "type": "ANALITICA",
+    "group_key": "Intangível",
+    "parent_code": "1.2.5.01"
+  },
+  {
+    "code": "1.2.5.01.004",
+    "name": "PESQUISA E DESENVOLVIMENTO INTANGIVEL",
+    "type": "ANALITICA",
+    "group_key": "Intangível",
+    "parent_code": "1.2.5.01"
+  },
+  {
+    "code": "1.2.5.01.007",
+    "name": "P&D_FINALIZADO",
+    "type": "ANALITICA",
+    "group_key": "Intangível",
+    "parent_code": "1.2.5.01"
+  },
+  {
+    "code": "1.2.5.02",
+    "name": "AMORTIZACAO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2.5"
+  },
+  {
+    "code": "1.2.5.02.001",
+    "name": "(-) AMORTIZACAO DE SOFTWARE",
+    "type": "ANALITICA",
+    "group_key": "Intangível",
+    "parent_code": "1.2.5.02"
+  },
+  {
+    "code": "1.2.5.02.002",
+    "name": "(-)AMORTIZACAO P&D",
+    "type": "ANALITICA",
+    "group_key": "Intangível",
+    "parent_code": "1.2.5.02"
+  },
+  {
+    "code": "1.2.5.02.003",
+    "name": "(-) AMORTIZACAO DE PATENTES",
+    "type": "ANALITICA",
+    "group_key": "Intangível",
+    "parent_code": "1.2.5.02"
+  },
+  {
+    "code": "1.2.6",
+    "name": "PROPRIEDADE PARA INVESTIMENTO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2"
+  },
+  {
+    "code": "1.2.6.01",
+    "name": "PROPRIEDADE PARA INVESTIMENTO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "1.2.6"
+  },
+  {
+    "code": "1.2.6.01.001",
+    "name": "IMOVEIS",
+    "type": "ANALITICA",
+    "group_key": "Propriedades p/ Investimento",
+    "parent_code": "1.2.6.01"
+  },
+  {
+    "code": "2",
+    "name": "PASSIVO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": null
+  },
+  {
+    "code": "2.1",
+    "name": "PASSIVO CIRCULANTE",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2"
+  },
+  {
+    "code": "2.1.1",
+    "name": "EMPRESTIMOS E FINANCIAMENTOS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1"
+  },
+  {
+    "code": "2.1.1.01",
+    "name": "EMPRESTIMOS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1.1"
+  },
+  {
+    "code": "2.1.1.03",
+    "name": "EMPRESTIMOS BANCARIOS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1.1"
+  },
+  {
+    "code": "2.1.1.03.00002",
+    "name": "JUROS EMPRESTIMO - BRDE",
+    "type": "ANALITICA",
+    "group_key": "Empréstimos",
+    "parent_code": "2.1.1.03"
+  },
+  {
+    "code": "2.1.3.0",
+    "name": "FORNECEDORES",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1"
+  },
+  {
+    "code": "2.1.3.01",
+    "name": "FORNECEDORES NACIONAIS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1"
+  },
+  {
+    "code": "2.1.3.01.00001",
+    "name": "FORNECEDORES DIVERSOS",
+    "type": "ANALITICA",
+    "group_key": "Contas a Pagar - Fornecedores",
+    "parent_code": "2.1.3.01"
+  },
+  {
+    "code": "2.1.4",
+    "name": "OBRIGACOES TRIBUTARIAS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1"
+  },
+  {
+    "code": "2.1.4.01",
+    "name": "IMPOSTOS E CONTRIBUICOES A RECOLHER",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1.4"
+  },
+  {
+    "code": "2.1.4.01.002",
+    "name": "ICMS A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Impostos e Contribuições",
+    "parent_code": "2.1.4.01"
+  },
+  {
+    "code": "2.1.4.01.008",
+    "name": "IRRF A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Impostos e Contribuições",
+    "parent_code": "2.1.4.01"
+  },
+  {
+    "code": "2.1.4.01.012",
+    "name": "CRF A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Impostos e Contribuições",
+    "parent_code": "2.1.4.01"
+  },
+  {
+    "code": "2.1.4.01.013",
+    "name": "ISS RETIDO A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Impostos e Contribuições",
+    "parent_code": "2.1.4.01"
+  },
+  {
+    "code": "2.1.4.01.014",
+    "name": "INSS RETIDO A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Impostos e Contribuições",
+    "parent_code": "2.1.4.01"
+  },
+  {
+    "code": "2.1.4.01.029",
+    "name": "IRPJ A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Impostos e Contribuições",
+    "parent_code": "2.1.4.01"
+  },
+  {
+    "code": "2.1.4.01.030",
+    "name": "CSLL A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Impostos e Contribuições",
+    "parent_code": "2.1.4.01"
+  },
+  {
+    "code": "2.1.5",
+    "name": "OBRIGACOES TRABALHISTA E PREVIDENCIARIA",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1"
+  },
+  {
+    "code": "2.1.5.02",
+    "name": "OBRIGACOES SOCIAIS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1.5"
+  },
+  {
+    "code": "2.1.5.02.001",
+    "name": "INSS A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Obrigaçãoes Trabalhistas",
+    "parent_code": "2.1.5.02"
+  },
+  {
+    "code": "2.1.5.02.002",
+    "name": "FGTS A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Obrigaçãoes Trabalhistas",
+    "parent_code": "2.1.5.02"
+  },
+  {
+    "code": "2.1.5.02.004",
+    "name": "IRRF A RECOLHER",
+    "type": "ANALITICA",
+    "group_key": "Obrigaçãoes Trabalhistas",
+    "parent_code": "2.1.5.02"
+  },
+  {
+    "code": "2.1.5.03",
+    "name": "PROVISOES",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1.5"
+  },
+  {
+    "code": "2.1.5.03.001",
+    "name": "PROVISOES PARA FERIAS",
+    "type": "ANALITICA",
+    "group_key": "Obrigaçãoes Trabalhistas",
+    "parent_code": "2.1.5.03"
+  },
+  {
+    "code": "2.1.5.03.002",
+    "name": "PROVISOES PARA 13 SALARIO",
+    "type": "ANALITICA",
+    "group_key": "Obrigaçãoes Trabalhistas",
+    "parent_code": "2.1.5.03"
+  },
+  {
+    "code": "2.1.5.03.003",
+    "name": "INSS SOBRE PROVISOES PARA FERIAS",
+    "type": "ANALITICA",
+    "group_key": "Obrigaçãoes Trabalhistas",
+    "parent_code": "2.1.5.03"
+  },
+  {
+    "code": "2.1.5.03.004",
+    "name": "INSS SOBRE PROVISOES PARA 13 SALARIO",
+    "type": "ANALITICA",
+    "group_key": "Obrigaçãoes Trabalhistas",
+    "parent_code": "2.1.5.03"
+  },
+  {
+    "code": "2.1.5.03.005",
+    "name": "FGTS SOBRE PROVISOES PARA FERIAS",
+    "type": "ANALITICA",
+    "group_key": "Obrigaçãoes Trabalhistas",
+    "parent_code": "2.1.5.03"
+  },
+  {
+    "code": "2.1.5.03.006",
+    "name": "FGTS SOBRE PROVISOES PARA 13 SALARIO",
+    "type": "ANALITICA",
+    "group_key": "Obrigaçãoes Trabalhistas",
+    "parent_code": "2.1.5.03"
+  },
+  {
+    "code": "2.1.6",
+    "name": "OUTRAS OBRIGACOES",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1"
+  },
+  {
+    "code": "2.1.6.01",
+    "name": "OBRIGACOES COM CLIENTES",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1.6"
+  },
+  {
+    "code": "2.1.6.01.00002",
+    "name": "ADIANTAMENTO DE CLIENTES",
+    "type": "ANALITICA",
+    "group_key": "Outros Contas a Pagar",
+    "parent_code": "2.1.6.01"
+  },
+  {
+    "code": "2.1.6.01.00004",
+    "name": "IMOBILIZADOS - EM TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Estoques de Terceiros",
+    "parent_code": "2.1.6.01"
+  },
+  {
+    "code": "2.1.6.01.00006",
+    "name": "(-)ESTOQUE DE TERCEIROS",
+    "type": "ANALITICA",
+    "group_key": "Estoques de Terceiros",
+    "parent_code": "2.1.6.01"
+  },
+  {
+    "code": "2.1.6.03",
+    "name": "PROVISOES DIVERSAS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1.6"
+  },
+  {
+    "code": "2.1.6.03.001",
+    "name": "PROVISAO DE COMISSOES DE REPRESENTANTE",
+    "type": "ANALITICA",
+    "group_key": "Provisões para Comissões",
+    "parent_code": "2.1.6.03"
+  },
+  {
+    "code": "2.1.6.03.003",
+    "name": "PROVISAO CONTIGENCIAS",
+    "type": "ANALITICA",
+    "group_key": "Provisões para Comissões",
+    "parent_code": "2.1.6.03"
+  },
+  {
+    "code": "2.1.6.03.004",
+    "name": "PROVISOES DIVERSAS",
+    "type": "ANALITICA",
+    "group_key": "Provisões para Comissões",
+    "parent_code": "2.1.6.03"
+  },
+  {
+    "code": "2.1.6.04",
+    "name": "JUROS SOBRE CAPITAL PROPRIO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1.6"
+  },
+  {
+    "code": "2.1.6.04.001",
+    "name": "JSCP - MFM LTDA",
+    "type": "ANALITICA",
+    "group_key": "Provisões para JSCP",
+    "parent_code": "2.1.6.04"
+  },
+  {
+    "code": "2.1.6.04.002",
+    "name": "JSCP - LETICIA C RECHDEN",
+    "type": "ANALITICA",
+    "group_key": "Provisões para JSCP",
+    "parent_code": "2.1.6.04"
+  },
+  {
+    "code": "2.1.6.05",
+    "name": "CONTRATO DE MUTUO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.1.6"
+  },
+  {
+    "code": "2.1.6.05.001",
+    "name": "CONTRATO DE MUTUO - MFM",
+    "type": "ANALITICA",
+    "group_key": "Empréstimos de Acionistas",
+    "parent_code": "2.1.6.05"
+  },
+  {
+    "code": "2.1.6.05.002",
+    "name": "CONTRATO DE MUTUO - LETICIA",
+    "type": "ANALITICA",
+    "group_key": "Empréstimos de Acionistas",
+    "parent_code": "2.1.6.05"
+  },
+  {
+    "code": "2.2",
+    "name": "PASSIVO NAO-CIRCULANTE",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2"
+  },
+  {
+    "code": "2.2.1",
+    "name": "PASSIVO EXIGIVEL A LONGO PRAZO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.2"
+  },
+  {
+    "code": "2.2.1.01",
+    "name": "EMPRESTIMOS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.2.1"
+  },
+  {
+    "code": "2.2.1.01.002",
+    "name": "EMPRESTIMO BRDE",
+    "type": "ANALITICA",
+    "group_key": "Empréstimos NC",
+    "parent_code": "2.2.1.01"
+  },
+  {
+    "code": "2.2.1.01.006",
+    "name": "DIVIDENDOS A PAGAR LP",
+    "type": "ANALITICA",
+    "group_key": "Dividendos a Pagar",
+    "parent_code": "2.2.1.01"
+  },
+  {
+    "code": "2.3",
+    "name": "PATRIMONIO LIQUIDO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2"
+  },
+  {
+    "code": "2.3.1",
+    "name": "CAPITAL SOCIAL",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.3"
+  },
+  {
+    "code": "2.3.1.01",
+    "name": "CAPITAL SUBSCRITO",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.3.1"
+  },
+  {
+    "code": "2.3.1.01.002",
+    "name": "LETICIA C RECHDEN",
+    "type": "ANALITICA",
+    "group_key": "Capital Subscrito e Realizado",
+    "parent_code": "2.3.1.01"
+  },
+  {
+    "code": "2.3.1.01.003",
+    "name": "MFM LTDA",
+    "type": "ANALITICA",
+    "group_key": "Capital Subscrito e Realizado",
+    "parent_code": "2.3.1.01"
+  },
+  {
+    "code": "2.3.2",
+    "name": "RESERVAS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.3"
+  },
+  {
+    "code": "2.3.2.03",
+    "name": "RESERVAS DE LUCROS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.3.2"
+  },
+  {
+    "code": "2.3.2.03.003",
+    "name": "RESERVAS DE LUCROS",
+    "type": "ANALITICA",
+    "group_key": "Resultado do Exercício",
+    "parent_code": "2.3.2.03"
+  },
+  {
+    "code": "2.3.2.03.006",
+    "name": "RESERVA LEGAL",
+    "type": "ANALITICA",
+    "group_key": "Reserva Legal",
+    "parent_code": "2.3.2.03"
+  },
+  {
+    "code": "2.3.5",
+    "name": "LUCROS OU PREJUIZOS ACUMULADOS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.3"
+  },
+  {
+    "code": "2.3.5.01",
+    "name": "LUCROS OU PREJUIZOS ACUMULADOS",
+    "type": "SINTETICA",
+    "group_key": "",
+    "parent_code": "2.3.5"
+  },
+  {
+    "code": "2.3.5.01.002",
+    "name": "(-) PREJUIZOS ACUMULADOS",
+    "type": "ANALITICA",
+    "group_key": "Resultados Acumulados",
+    "parent_code": "2.3.5.01"
+  },
+  {
+    "code": "2.3.5.01.006",
+    "name": "AJUSTE DE EXERCICIOS ANTERIORES",
+    "type": "ANALITICA",
+    "group_key": "Ajustes Exercícios Anteriores",
+    "parent_code": "2.3.5.01"
+  }
+]

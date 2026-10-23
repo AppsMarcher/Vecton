@@ -18,13 +18,41 @@
       handleDreDrop
     } = deps;
 
+    const search = document.querySelector('#dre-plan-search');
+    const normalizeSearch = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const typeFilter = document.querySelector('#dre-plan-filter');
+    let query = '', filter = '';
+    if (typeFilter) typeFilter.addEventListener('change', () => { filter = typeFilter.value; renderDreTree(); });
+    const matches = node => ((!filter || node.class === filter) && normalizeSearch(`${node.code} ${node.name}`).includes(query)) || getDreChildren(node.code).some(matches);
+    if (search) search.addEventListener('input', () => { query = normalizeSearch(search.value.trim()); renderDreTree(); });
+    const refresh = document.querySelector('#dre-plan-refresh');
+    if (refresh) refresh.addEventListener('click', async () => {
+      if (refresh.disabled) return;
+      refresh.disabled = true;
+      const status = document.querySelector('#dre-plan-status');
+      try { await deps.refreshPlan(); renderDreTree(); renderDreEditor(); if (status) status.textContent = 'Plano atualizado.'; }
+      catch (error) { if (status) { status.textContent = error.message; status.setAttribute('role', 'alert'); } }
+      finally { refresh.disabled = false; }
+    });
+
     function renderDreTree() {
       if (!dreTree) {
         return;
       }
 
       dreTree.innerHTML = "";
+      const status = document.querySelector('#dre-plan-status');
+      if (status) {
+        const accounts = [];
+        const collect = code => getDreChildren(code).forEach(node => { accounts.push(node); collect(node.code); });
+        collect(ROOT_DRE_NODE.code);
+        status.setAttribute('role', 'status');
+        status.textContent = `${accounts.length} contas · ${accounts.filter(node => node.class === 'Sintetica').length} sintéticas · ${accounts.filter(node => node.class === 'Analitica').length} analíticas`;
+      }
       dreTree.append(renderDreNode({ ...ROOT_DRE_NODE }, 0));
+      if ((query || filter) && !getDreChildren(ROOT_DRE_NODE.code).some(matches)) {
+        dreTree.textContent = 'Nenhuma conta encontrada.';
+      }
     }
 
     function renderDreNode(node, depth) {
@@ -84,14 +112,17 @@
         handleDreDrop(dragPayload.code, node.code);
       });
 
-      const children = getDreChildren(node.code);
+      const children = getDreChildren(node.code).filter(child => (!query && !filter) || matches(child));
       const canExpand = children.length > 0;
       const expandedDreCodes = getExpandedDreCodes();
 
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = `tree-toggle ${canExpand ? "" : "empty"}`.trim();
-      toggle.textContent = canExpand ? (expandedDreCodes.has(node.code) ? "−" : "+") : "·";
+      const expanded = Boolean(query || filter) || expandedDreCodes.has(node.code);
+      toggle.textContent = canExpand ? (expanded ? "−" : "+") : "·";
+      if (canExpand) toggle.setAttribute('aria-expanded', String(expanded));
+      toggle.setAttribute('aria-label', `Expandir ou recolher ${node.name}`);
       toggle.disabled = !canExpand;
       toggle.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -107,7 +138,7 @@
       });
 
       const bullet = document.createElement("span");
-      bullet.className = `tree-bullet ${getNodeTone(node)}`;
+      bullet.className = `tree-bullet ${node.class === 'Analitica' ? 'analytic' : 'synthetic'}`;
 
       const label = document.createElement("div");
       label.className = "tree-label";
@@ -123,7 +154,7 @@
       row.append(toggle, bullet, label);
       wrapper.append(row);
 
-      if (canExpand && expandedDreCodes.has(node.code)) {
+      if (canExpand && expanded) {
         const childrenWrap = document.createElement("div");
         childrenWrap.className = "tree-children";
         children.forEach((child) => {

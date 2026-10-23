@@ -199,6 +199,8 @@
         { label: "Capex Meta", sub: "Relatorio", target: { view: "reports", reportId: "capexBudget" } },
         { label: "Empresas", sub: "Parametros", target: { view: "branchPlan" } },
         { label: "Plano de Contas DRE", sub: "Parametros", target: { view: "drePlan" } },
+        { label: "Plano de Contas BP", sub: "Parametros", target: { view: "bpPlan" } },
+        { label: "Balanço Patrimonial Real", sub: "Relatorio", target: { view: "reports", reportId: "balanceSheetReal" } },
         { label: "Plano de Contas FC", sub: "Parametros", target: { view: "fcPlan" } },
         { label: "Centro de Custos", sub: "Parametros", target: { view: "ccPlan" } },
         { label: "Carga de Realizado", sub: "Parametros", target: { view: "actualsLoad", actualsLoadType: null } },
