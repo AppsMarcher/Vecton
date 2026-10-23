@@ -22,7 +22,22 @@
       fetchAllScenarios,
       fetchRealYears,
       rowsForSource,
+      computeDreCompareCell,
     } = deps;
+    let dfsExporter = null;
+    const exporter = () => dfsExporter || (dfsExporter = window.VECTON_DFS_EXPORT.create(deps));
+
+    // "Foto" da tabela DFs exibida (linhas, totais e blocos de comparação) usada por Imprimir, E-mail e Excel.
+    function dfsSnapshot({ title, year, month, report, compareReport, sourceLabel, compareLabel }) {
+      const compareById = compareReport && month ? new Map(compareReport.lines.map(line => [line.id, line])) : null;
+      return {
+        title, year, month: compareById ? month : (month || null), sourceLabel, compareLabel,
+        lines: report.lines.map(line => ({
+          id: line.id, label: line.label, kind: line.kind, months: line.months || [], total: line.total,
+          compare: compareById ? computeDreCompareCell(line, compareById.get(line.id), month, report.receitaLiquida, compareReport.receitaLiquida) : null
+        }))
+      };
+    }
 
     const REPORT_HANDLERS = {
       dreGerReal: renderDreGerReal,
@@ -60,7 +75,7 @@
       window.vpExportTableToExcel(detailPanel.querySelector(`#${wrapId} table`), title, [source]);
     }
 
-    function initBudgetShell(detailPanel, wrapId, title) {
+    function initBudgetShell(detailPanel, wrapId, title, dfs = false) {
       detailPanel.classList.add("dre-cmp-shell");
       detailPanel.innerHTML = `
         <div class="vp-source-bar dre-cmp-bar">
@@ -68,12 +83,13 @@
           <select class="vp-source-sel" id="vp-dre-src-sel">
             <option value="">Carregando…</option>
           </select>
-          ${window.vpExportIconButtonHtml("data-dre-export")}
+          ${dfs ? exporter().menu() : window.vpExportIconButtonHtml("data-dre-export")}
         </div>
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
         </div>`;
-      detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
+      if (dfs) exporter().bind(detailPanel, () => detailPanel.__dfsSnapshot);
+      else detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
       return detailPanel.querySelector(`#${wrapId}`);
     }
 
@@ -120,7 +136,7 @@
 
     // ── Comparador embutido nos relatorios Real (bloco Mes+Acumulado x Real/Cenario/Var) ──
 
-    function initCompareShell(detailPanel, wrapId, title) {
+    function initCompareShell(detailPanel, wrapId, title, dfs = false) {
       detailPanel.classList.add("dre-cmp-shell");
       detailPanel.innerHTML = `
         <div class="vp-source-bar dre-cmp-bar">
@@ -128,12 +144,13 @@
           <select class="vp-source-sel" id="vp-dre-cmp-sel">
             <option value="">Carregando…</option>
           </select>
-          ${window.vpExportIconButtonHtml("data-dre-export")}
+          ${dfs ? exporter().menu() : window.vpExportIconButtonHtml("data-dre-export")}
         </div>
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
         </div>`;
-      detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
+      if (dfs) exporter().bind(detailPanel, () => detailPanel.__dfsSnapshot);
+      else detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
       return detailPanel.querySelector(`#${wrapId}`);
     }
 
@@ -233,7 +250,7 @@
     function renderDreDfsReal(detailPanel) {
       const year = getCurrentYear();
       const month = getCurrentPeriodMonth();
-      const tableWrap = initCompareShell(detailPanel, "reports-dfs-table-wrap", "DRE DFs Real");
+      const tableWrap = initCompareShell(detailPanel, "reports-dfs-table-wrap", "DRE DFs Real", true);
       // Sem scrollbar flutuante aqui: o DFs tem poucas linhas e cabe inteiro
       // na tela sem precisar rolar a página, então a barra própria do card
       // (overflow-x do tableWrap) já fica sempre visível — a flutuante virava
@@ -265,6 +282,7 @@
         }
 
         // Espera o comparativo ANTES de pintar — mesma dinâmica do OPEX Real.
+        detailPanel.__dfsSnapshot = null;
         tableWrap.innerHTML = window.vpSkeletonTable();
         const src = _compareSource;
         let compareReport = null;
@@ -279,6 +297,7 @@
         }
         if (compareIsStale(tableWrap, src)) return;
         tableWrap.innerHTML = buildDreDfsRealTableMarkup(report, compareReport, month, compareLabelFor(detailPanel));
+        detailPanel.__dfsSnapshot = dfsSnapshot({ title: "DRE DFs Real", year, month, report, compareReport, sourceLabel: "real", compareLabel: compareLabelFor(detailPanel) });
         initAllReportTableResizers();
         if (compareError) showCompareError(tableWrap, compareError);
       }
@@ -395,7 +414,7 @@
 
     function renderDreDfsBudget(detailPanel) {
       const year = getCurrentYear();
-      const tableWrap = initBudgetShell(detailPanel, "reports-dfs-budget-wrap", "DRE DFs Meta");
+      const tableWrap = initBudgetShell(detailPanel, "reports-dfs-budget-wrap", "DRE DFs Meta", true);
       // Mesmo motivo do DFs Real (ver renderDreDfsReal): tabela curta, a
       // barra própria do card já basta — sem a flutuante duplicada.
 
@@ -406,6 +425,7 @@
       });
 
       async function doRender() {
+        detailPanel.__dfsSnapshot = null;
         tableWrap.innerHTML = `<div class="actuals-empty">Carregando...</div>`;
         let rows;
         try {
@@ -418,6 +438,7 @@
         const report = buildDreDfsRealReport(year, rows, gerReport);
         if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado disponivel para ${year}.</div>`; return; }
         tableWrap.innerHTML = buildDreDfsRealTableMarkup(report, null, null, sourceLabelFor(detailPanel));
+        detailPanel.__dfsSnapshot = dfsSnapshot({ title: "DRE DFs Meta", year, month: null, report, compareReport: null, sourceLabel: sourceLabelFor(detailPanel), compareLabel: null });
         initAllReportTableResizers();
       }
     }

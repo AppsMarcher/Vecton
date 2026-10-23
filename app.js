@@ -1589,6 +1589,11 @@ const reportsDreModule = createReportsDreModule({
   fetchAllScenarios,
   fetchRealYears,
   rowsForSource,
+  computeDreCompareCell,
+  alert: message => appAlert(message, "warn"),
+  sendEmail: payload => callEdgeFunction("send-report-email", payload),
+  getUserId: () => currentUser?.id || null,
+  getUserName: () => state.profile?.name || "",
   getCurrentYear: () => Number(state.currentPeriod?.year || 2026),
   getCurrentPeriodMonth: () => Number(state.currentPeriod?.month || 1),
 });
