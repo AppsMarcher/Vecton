@@ -20,13 +20,39 @@
       getManagements
     } = deps;
 
+    const search = document.querySelector('#cc-plan-search');
+    const normalizeSearch = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const typeFilter = document.querySelector('#cc-plan-filter');
+    let query = '', filter = '';
+    if (typeFilter) typeFilter.addEventListener('change', () => { filter = typeFilter.value; renderCcTree(); });
+    const matches = node => ((!filter || node.class === filter) && normalizeSearch(`${node.code} ${node.name} ${node.type || ""} ${getLinkedCostCenter(node.code)?.management || ""}`).includes(query)) || getCcChildren(node.code).some(matches);
+    if (search) search.addEventListener('input', () => { query = normalizeSearch(search.value.trim()); renderCcTree(); });
+    const refresh = document.querySelector('#cc-plan-refresh');
+    if (refresh) refresh.addEventListener('click', async () => {
+      if (refresh.disabled) return;
+      refresh.disabled = true;
+      const status = document.querySelector('#cc-plan-status');
+      try { await deps.refreshPlan(); renderCcTree(); renderCcEditor(); if (status) status.textContent = 'Plano atualizado.'; }
+      catch (error) { if (status) { status.textContent = error.message; status.setAttribute('role', 'alert'); } }
+      finally { refresh.disabled = false; }
+    });
+
     function renderCcTree() {
       if (!ccTree) {
         return;
       }
 
       ccTree.innerHTML = "";
+      const status = document.querySelector('#cc-plan-status');
+      if (status) {
+        const accounts = [];
+        const collect = code => getCcChildren(code).forEach(node => { accounts.push(node); collect(node.code); });
+        collect(ROOT_CC_NODE.code);
+        status.setAttribute('role', 'status');
+        status.textContent = `${accounts.length} centros · ${accounts.filter(node => node.class === 'Sintetica').length} sintéticos · ${accounts.filter(node => node.class === 'Analitica').length} analíticos`;
+      }
       ccTree.append(renderCcNode({ ...ROOT_CC_NODE }, 0));
+      if ((query || filter) && !getCcChildren(ROOT_CC_NODE.code).some(matches)) ccTree.textContent = 'Nenhum centro de custos encontrado.';
     }
 
     function renderCcNode(node, depth) {
@@ -86,14 +112,17 @@
         handleCcDrop(dragPayload.code, node.code);
       });
 
-      const children = getCcChildren(node.code);
+      const children = getCcChildren(node.code).filter(child => (!query && !filter) || matches(child));
       const canExpand = children.length > 0;
       const expandedCcCodes = getExpandedCcCodes();
 
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = `tree-toggle ${canExpand ? "" : "empty"}`.trim();
-      toggle.textContent = canExpand ? (expandedCcCodes.has(node.code) ? "-" : "+") : ".";
+      const expanded = Boolean(query || filter) || expandedCcCodes.has(node.code);
+      toggle.textContent = canExpand ? (expanded ? "−" : "+") : "·";
+      if (canExpand) toggle.setAttribute('aria-expanded', String(expanded));
+      toggle.setAttribute('aria-label', `Expandir ou recolher ${node.name}`);
       toggle.disabled = !canExpand;
       toggle.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -109,7 +138,7 @@
       });
 
       const bullet = document.createElement("span");
-      bullet.className = `tree-bullet ${node.class === "Sintetica" || node.code === ROOT_CC_NODE.code ? "synthetic" : "actual"}`;
+      bullet.className = `tree-bullet ${node.class === "Sintetica" || node.code === ROOT_CC_NODE.code ? "synthetic" : "analytic"}`;
 
       const label = document.createElement("div");
       label.className = "tree-label";
@@ -125,7 +154,7 @@
       row.append(toggle, bullet, label);
       wrapper.append(row);
 
-      if (canExpand && expandedCcCodes.has(node.code)) {
+      if (canExpand && expanded) {
         const childrenWrap = document.createElement("div");
         childrenWrap.className = "tree-children";
         children.forEach((child) => childrenWrap.append(renderCcNode(child, depth + 1)));

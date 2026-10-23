@@ -1215,12 +1215,16 @@
       </section>
 
       <section id="ccPlan-view" class="content-view">
-        <div class="dre-workspace cc-workspace">
+        <div class="dre-workspace account-plan-workspace cc-workspace">
           <div class="content-card tree-panel">
             <div class="card-toolbar">
               <button id="cc-add-node" class="primary-button compact-button" type="button">Adicionar</button>
-              <span class="toolbar-note">Arraste um item para realocar na arvore</span>
+              <button id="cc-plan-refresh" class="ghost-button" type="button">Atualizar</button>
             </div>
+            <label class="account-plan-search">Buscar centro de custos<input id="cc-plan-search" type="search" placeholder="Buscar centro de custos…"></label>
+            <label class="account-plan-search">Classe<select id="cc-plan-filter"><option value="">Todas as classes</option><option value="Analitica">Analíticas</option><option value="Sintetica">Sintéticas</option></select></label>
+            <p class="toolbar-note account-plan-hint">Arraste para um grupo sintético para reorganizar a hierarquia.</p>
+            <p id="cc-plan-status" class="account-plan-status" role="status" aria-live="polite"></p>
             <div id="cc-tree" class="dre-tree"></div>
           </div>
 
@@ -1252,7 +1256,7 @@
                 <input id="cc-node-name" name="name" type="text" required>
               </label>
               <label>
-                Gestao
+                Gestão
                 <!-- Opcoes montadas em runtime por ccTreeModule.syncManagementOptions
                      a partir do cadastro de Gestoes (Parametros > Gestoes). -->
                 <select id="cc-node-management" name="management">
@@ -1268,8 +1272,8 @@
                 <input id="cc-node-parent" type="text" disabled>
               </label>
               <label class="full-span">
-                Observacao visual
-                <textarea id="cc-node-note" rows="4" placeholder="Espaco reservado para futuras propriedades do centro de custos"></textarea>
+                Observação visual
+                <textarea id="cc-node-note" rows="4" placeholder="Espaço reservado para futuras propriedades do centro de custos"></textarea>
               </label>
               <div class="editor-actions full-span">
                 <button class="primary-button" type="submit">Salvar</button>
@@ -1697,7 +1701,7 @@
   <script src="src/modules/ui/headerModule.js?v=20261022bp1"></script>
   <script src="src/modules/ui/branchTreeModule.js?v=20260719r"></script>
   <script src="src/modules/ui/dreTreeModule.js?v=20261023plan1"></script>
-  <script src="src/modules/ui/ccTreeModule.js?v=20260731a"></script>
+  <script src="src/modules/ui/ccTreeModule.js?v=20261023ccplan1"></script>
   <script src="src/modules/ui/renderModule.js?v=20260922a"></script>
   <script src="src/modules/ui/profileDialogModule.js?v=20260924a"></script>
   <script src="src/modules/reports/reportsDreModule.js?v=20261021scope1"></script>
@@ -1767,6 +1771,6 @@
   <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
   <script src="src/modules/cashflow/fcExport.js?v=20261014em1"></script>
   <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
-  <script src="app.js?v=20261023hc1"></script>
+  <script src="app.js?v=20261023ccplan1"></script>
 </body>
 </html>

@@ -355,6 +355,22 @@ const dreTreeModule = createDreTreeModule({
   handleDreDrop
 });
 const ccTreeModule = createCcTreeModule({
+  refreshPlan: async () => {
+    if (!isAdmin() || !currentUser?.id) throw new Error('Acesso restrito aos administradores.');
+    const userId = currentUser.id;
+    const organizationId = await resolveOrganizationId();
+    const [nodes, centers, managements] = await Promise.all([
+      fetchAllSupabaseRows('cc_plan_nodes', `organization_id=eq.${organizationId}&select=id,node_code,node_name,node_class,node_type,parent_node_id,sort_order,origin,note&order=sort_order.asc,node_code.asc`),
+      fetchAllSupabaseRows('cost_centers', `organization_id=eq.${organizationId}&select=id,cost_center_number,cost_center_name,cost_center_type,cost_center_management`),
+      fetchAllSupabaseRows('managements', `organization_id=eq.${organizationId}&order=sort_order.asc,name.asc`)
+    ]);
+    if (currentUser?.id !== userId || !isAdmin()) return;
+    const parents = new Map(nodes.map(row => [row.id, row.node_code]));
+    state.ccNodes = nodes.map(row => ({ id: row.id, code: row.node_code, name: row.node_name, class: row.node_class, parentCode: parents.get(row.parent_node_id) || null, type: row.node_type, origin: row.origin || 'estrutura', note: row.note || '' }));
+    state.managements = managements;
+    state.costCenters = centers.map(row => ({ id: row.id, number: row.cost_center_number, name: row.cost_center_name, type: row.cost_center_type, management: normalizeCostCenterManagement(row.cost_center_management, managements.map(m => m.name)) }));
+    if (!state.ccNodes.some(node => node.code === selectedCcCode)) selectedCcCode = state.ccNodes[0]?.code || null;
+  },
   ccTree,
   ccNodeForm,
   ROOT_CC_NODE,
