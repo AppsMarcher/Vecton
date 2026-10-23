@@ -74,3 +74,26 @@
 @media (max-width: 767px) {
   .bp-load-layout .actuals-intake-header { flex-wrap: wrap; }
 }
+
+/* Larguras próprias da carga BP, sem a primeira coluna de 22% da tabela genérica. */
+.bp-load-layout .bp-load-table { table-layout: fixed; width: 100%; min-width: 1000px; }
+.bp-load-table .bp-load-col-index { width: 4%; }
+.bp-load-table .bp-load-col-code { width: 22%; }
+.bp-load-table .bp-load-col-name { width: 26%; }
+.bp-load-table .bp-load-col-group { width: 18%; }
+.bp-load-table .bp-load-col-amount { width: 14%; }
+.bp-load-table .bp-load-col-status { width: 7%; }
+.bp-load-table .bp-load-col-action { width: 9%; }
+.bp-load-layout .bp-load-table th,
+.bp-load-layout .bp-load-table td { padding: 10px 12px; text-align: left; vertical-align: middle; white-space: normal; overflow-wrap: anywhere; }
+.bp-load-layout .bp-load-table th:first-child,
+.bp-load-layout .bp-load-table td:first-child { width: auto; }
+.bp-load-layout .bp-load-table th:nth-child(2),
+.bp-load-layout .bp-load-table td:nth-child(2) { white-space: nowrap; overflow-wrap: normal; }
+.bp-load-layout .bp-load-table th:nth-child(5),
+.bp-load-layout .bp-load-table td:nth-child(5) { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bp-load-layout .bp-load-table th:nth-child(6),
+.bp-load-layout .bp-load-table td:nth-child(6) { text-align: center; }
+.bp-load-layout .bp-load-table th:last-child,
+.bp-load-layout .bp-load-table td:last-child { text-align: right; }
+.bp-load-layout .bp-load-table td:last-child button { max-width: 100%; margin-block: 2px; padding: 6px 8px; font-size: .72rem; }
