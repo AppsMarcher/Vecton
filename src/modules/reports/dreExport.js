@@ -127,8 +127,8 @@
     const body = snapshot.lines.map(line => `<tr class="${rowClass(line)}"><th>${esc(String(line.label).trim())}</th>${cells(line)}</tr>`).join("");
     const title = `${snapshot.title} — ${periodText(snapshot)}`;
     return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
-@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}html,body{margin:0;padding:0}
-body{font:${font}px Arial,sans-serif;color:#172033;display:flex;justify-content:center}
+@page{size:A4 landscape;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{font:${font}px Arial,sans-serif;color:#172033;display:flex;justify-content:center;padding-top:10mm}
 .sheet{width:100%;max-width:277mm;margin:0 auto;break-inside:avoid;page-break-inside:avoid}
 .intro{text-align:center;margin-bottom:10px;line-height:1.5}.intro p{margin:0;font-weight:700;font-size:${font + 2}px}.intro small{color:#475569;font-size:${font + .5}px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
@@ -144,8 +144,8 @@ tr.detail th{padding-left:14px}
 tr.subtotal th,tr.subtotal td{background:#eaf0ff;font-weight:700;border-top:1px solid #c9d8f5;border-bottom:1px solid #c9d8f5}
 tr.percent th,tr.percent td{font-style:italic;color:#475569}
 td.total{font-weight:700}
-.signature{margin-top:14px;text-align:center;break-inside:avoid;page-break-inside:avoid;font-size:${font + 2}px;font-weight:700;line-height:1.45}
-</style></head><body><div class="sheet"><div class="intro"><p>MARCHER BRASIL AGROINDUSTRIAL S.A.</p><p>${esc(title)}</p>${compare ? `<small>Comparativo: ${label}</small>` : ""}</div>
+.signature{position:fixed;left:0;right:0;bottom:15mm;text-align:center;font-size:${font + 2}px;font-weight:700;line-height:1.45}
+</style></head><body><div class="sheet"><div class="intro"><p>MARCHER BRASIL AGROINDUSTRIAL S.A.</p><p>${esc(title)}</p></div>
 <table><colgroup>${units.map(unit => unit === 8 ? '<col class="gap">' : `<col style="width:${(unit / sum * 100).toFixed(2)}%">`).join("")}</colgroup>
 <thead><tr><th class="line" rowspan="2">${esc(isGer(snapshot) ? "Linha Gerencial" : "Linha DFs")}</th><th class="group" colspan="13">${esc(snapshot.month ? "Realizado" : snapshot.sourceLabel)}</th>${compare ? `<th class="gap" rowspan="2"></th><th class="group" colspan="4">Mês</th><th class="gap" rowspan="2"></th><th class="group" colspan="4">Acumulado</th>` : ""}</tr>
 <tr class="sub">${MONTHS.map(month => `<th>${month.toUpperCase()}</th>`).join("")}<th>TOTAL</th>${compare ? `<th>Real</th><th>${label}</th><th>Var R$</th><th>Var %</th><th>Real</th><th>${label}</th><th>Var R$</th><th>Var %</th>` : ""}</tr></thead>
