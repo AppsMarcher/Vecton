@@ -27,6 +27,8 @@
 .bp-statement-intro { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; margin-bottom: 26px; }
 .bp-statement-intro .section-kicker { margin: 0 0 6px; }
 .bp-statement-intro h2 { margin: 0; font-size: 1.2rem; font-weight: 650; letter-spacing: -.025em; }
+.content-card.bp-statement:hover { outline-color: transparent; }
+.bp-export [hidden] { display: none !important; }
 .bp-statement-actions { display: flex; align-items: flex-start; gap: 18px; }
 .bp-statement-actions .fc-export > button { display: inline-flex; align-items: center; gap: 6px; border-color: var(--line); font-weight: 600; }
 .bp-statement-actions .fc-export svg { width: 14px; height: 14px; flex: none; }

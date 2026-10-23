@@ -21,7 +21,7 @@
     return rows;
   }
 
-  // Uma única página A4 paisagem, conteúdo centralizado na horizontal.
+  // Uma única página A4 retrato, conteúdo centralizado na horizontal.
   function printHtml(model, esc) {
     const section = id => {
       const s = model.sections.find(x => x.id === id);
@@ -30,17 +30,17 @@
     const head = label => `<table class="head"><tr><th>${label}</th><td>${model.current.year}</td><td>${model.previous.year}</td></tr></table>`;
     const grand = (label, total) => `<table class="grand"><tr><th>${label}</th><td>${money(total.current)}</td><td>${money(total.previous)}</td></tr></table>`;
     const longest = Math.max(...["asset", "liability"].map(side => model.sections.filter(s => s.side === side).reduce((n, s) => n + s.lines.length + 3, 0)));
-    const font = longest > 36 ? 7.5 : longest > 30 ? 8.5 : 9.5;
+    const font = longest > 36 ? 7.5 : longest > 30 ? 8 : 8.5;
     const title = `Balanço Patrimonial — ${model.current.date}`;
     return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
-@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}html,body{margin:0;padding:0}
+@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}html,body{margin:0;padding:0}
 body{font:${font}px Arial,sans-serif;color:#172033;display:flex;justify-content:center}
-.sheet{width:260mm;max-width:100%;margin:0 auto;break-inside:avoid;page-break-inside:avoid}
+.sheet{width:186mm;max-width:100%;margin:0 auto;break-inside:avoid;page-break-inside:avoid}
 .intro{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px}
 .intro p{margin:0;font-size:${font - 1.5}px;letter-spacing:.08em;color:#64748b}.intro h1{margin:3px 0 0;font-size:${font + 8}px}
 .dates{text-align:right;font-weight:700}.dates span{display:block;font-weight:400;color:#64748b;margin-top:3px}
-.grid{display:grid;grid-template-columns:1fr 1fr;column-gap:14mm}
-table{width:100%;border-collapse:collapse;table-layout:fixed}th{text-align:left;font-weight:400;padding:1.5px 0 1.5px 14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;column-gap:8mm}
+table{width:100%;border-collapse:collapse;table-layout:fixed}th{text-align:left;font-weight:400;padding:1.5px 0 1.5px 10px}
 td{text-align:right;white-space:nowrap;padding:1.5px 0 1.5px 8px;width:22%}
 col.l{width:56%}h3{margin:12px 0 4px;font-size:${font + .5}px}
 .head th{font-weight:700;padding-left:0;border:0}.head td{font-weight:700;border-bottom:1px solid #334155}
