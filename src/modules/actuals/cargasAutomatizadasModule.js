@@ -75,23 +75,57 @@
       return `${MONTH_NAMES[m - 1]}/${y}`;
     };
 
-    // Ultimos 18 meses ja encerrados (do mes anterior para tras), no fuso de Sao Paulo.
-    function closedMonths() {
+    const MONTH_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    const MIN_YEAR = 2000;
+    let openPicker = null; // job com o seletor de mes aberto
+    const pickerYear = {}; // ano exibido no seletor de cada job
+
+    // Mes corrente no fuso de Sao Paulo.
+    function nowParts() {
       const now = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-      let y = now.getFullYear();
-      let m = now.getMonth(); // 0-based do mes corrente = mes anterior em 1-based
-      const out = [];
-      for (let i = 0; i < 18; i += 1) {
-        if (m === 0) { y -= 1; m = 12; }
-        out.push(monthValue(y, m));
-        m -= 1;
-      }
-      return out;
+      return { y: now.getFullYear(), m: now.getMonth() + 1 };
+    }
+
+    // So meses ja encerrados (antes do mes corrente) podem ser carregados.
+    function isClosed(y, m) {
+      const n = nowParts();
+      return y * 12 + m < n.y * 12 + n.m;
+    }
+
+    function previousMonthValue() {
+      const { y, m } = nowParts();
+      return m === 1 ? monthValue(y - 1, 12) : monthValue(y, m - 1);
     }
 
     function selectedMonth(job) {
-      const list = closedMonths();
-      return list.includes(chosenMonth[job]) ? chosenMonth[job] : list[0];
+      const value = chosenMonth[job];
+      if (value) {
+        const [y, m] = value.split("-").map(Number);
+        if (isClosed(y, m)) return value;
+      }
+      return previousMonthValue();
+    }
+
+    // Seletor de mes no mesmo formato do seletor de periodo do cabecalho (ano com setas + grade de meses).
+    function monthPickerHtml(job, busy) {
+      const selected = selectedMonth(job);
+      const selectedYear = Number(selected.slice(0, 4));
+      const viewYear = pickerYear[job] ?? selectedYear;
+      const open = openPicker === job;
+      const popover = open ? `
+        <div class="period-popover auto-carga-popover" role="dialog" aria-label="Mês da carga">
+          <div class="period-popover-header">
+            <button class="period-nav-button" type="button" data-auto-carga-year="-1" aria-label="Ano anterior" ${viewYear <= MIN_YEAR ? "disabled" : ""}>‹</button>
+            <strong>${viewYear}</strong>
+            <button class="period-nav-button" type="button" data-auto-carga-year="1" aria-label="Próximo ano" ${viewYear >= nowParts().y ? "disabled" : ""}>›</button>
+          </div>
+          <p class="period-popover-caption">Selecione o mês fechado a carregar.</p>
+          <div class="period-month-grid">${MONTH_ABBR.map((name, i) => {
+            const value = monthValue(viewYear, i + 1);
+            return `<button type="button" class="period-month-button${value === selected ? " active" : ""}" data-auto-carga-pick="${value}" ${isClosed(viewYear, i + 1) ? "" : "disabled"}>${name}</button>`;
+          }).join("")}</div>
+        </div>` : "";
+      return `<div class="auto-carga-picker"><button type="button" class="auto-carga-picker-trigger" data-auto-carga-picker="${escapeHtml(job)}" aria-haspopup="dialog" aria-expanded="${open}" ${busy ? "disabled" : ""}><b>${escapeHtml(monthText(selected))}</b><span aria-hidden="true">▾</span></button>${popover}</div>`;
     }
 
     function windowText(cfg) {
@@ -138,7 +172,7 @@
       }
 
       const monthHtml = onDemandMonth
-        ? `<select data-auto-carga-month="${escapeHtml(cfg.job)}" ${busy ? "disabled" : ""}>${closedMonths().map((v) => `<option value="${v}" ${v === selectedMonth(cfg.job) ? "selected" : ""}>${escapeHtml(monthText(v))}</option>`).join("")}</select>`
+        ? monthPickerHtml(cfg.job, busy)
         : `<b>${escapeHtml(windowText(cfg).replace(/^./, (c) => c.toUpperCase()))}</b>`;
 
       return `
@@ -160,6 +194,10 @@
         </div>`;
     }
 
+    // Ordem dos cards: DRE | Balanço Patrimonial | Volumes de Vendas; cargas novas vão para o fim.
+    const CARD_ORDER = ["dre", "bp", "vendas"];
+    const orderOf = (job) => { const i = CARD_ORDER.indexOf(job); return i < 0 ? CARD_ORDER.length : i; };
+
     function render() {
       if (!root) return;
       if (!loadedOnce) {
@@ -170,7 +208,7 @@
         root.innerHTML = '<div class="actuals-empty">Nenhuma carga automática configurada.</div>';
         return;
       }
-      root.innerHTML = data.configs.map(cardHtml).join("");
+      root.innerHTML = [...data.configs].sort((x, y) => orderOf(x.job) - orderOf(y.job)).map(cardHtml).join("");
     }
 
     async function fetchData() {
@@ -268,11 +306,37 @@
       root = rootEl;
       if (!root || root.dataset.bound === "1") return;
       root.dataset.bound = "1";
-      root.addEventListener("change", (event) => {
-        const sel = event.target.closest("[data-auto-carga-month]");
-        if (sel) chosenMonth[sel.dataset.autoCargaMonth] = sel.value;
-      });
+      const closePicker = () => {
+        if (!openPicker) return;
+        openPicker = null;
+        render();
+      };
+      if (typeof document !== "undefined") {
+        document.addEventListener("pointerdown", (event) => { if (openPicker && !event.target.closest(".auto-carga-picker")) closePicker(); });
+        document.addEventListener("keydown", (event) => { if (event.key === "Escape") closePicker(); });
+      }
       root.addEventListener("click", (event) => {
+        const trigger = event.target.closest("[data-auto-carga-picker]");
+        if (trigger && !trigger.disabled) {
+          const job = trigger.dataset.autoCargaPicker;
+          if (openPicker === job) openPicker = null;
+          else { openPicker = job; pickerYear[job] = Number(selectedMonth(job).slice(0, 4)); }
+          render();
+          return;
+        }
+        const nav = event.target.closest("[data-auto-carga-year]");
+        if (nav && !nav.disabled && openPicker) {
+          pickerYear[openPicker] = Math.min(nowParts().y, Math.max(MIN_YEAR, (pickerYear[openPicker] ?? nowParts().y) + Number(nav.dataset.autoCargaYear)));
+          render();
+          return;
+        }
+        const pick = event.target.closest("[data-auto-carga-pick]");
+        if (pick && !pick.disabled && openPicker) {
+          chosenMonth[openPicker] = pick.dataset.autoCargaPick;
+          openPicker = null;
+          render();
+          return;
+        }
         const btn = event.target.closest("[data-auto-carga-run]");
         if (btn && !btn.disabled) request(btn.dataset.autoCargaRun);
       });
