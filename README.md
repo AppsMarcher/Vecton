@@ -61,7 +61,7 @@ O VectonPlan cresceu de um app de planejamento financeiro para uma suíte de ges
 9. **Parâmetros e cargas financeiras**
    - empresas e filiais;
    - plano de contas;
-   - Balanço Patrimonial: cadastro BP com códigos e chaves nas analíticas; relatório Real consolidado, com Ativo/Passivo lado a lado, mês selecionado × dezembro anterior e Reserva de Lucros pelo acumulado da conta 51401001 do DRE — ver [Balanço Patrimonial](docs/balanco-patrimonial.md);
+   - Balanço Patrimonial: Plano de Contas BP (códigos e chaves agrupadoras nas analíticas, sem exclusão de conta com saldo); carga consolidada Real e Planejado por Excel ou lote manual, com rascunho, aplicação e substituição por competência; relatório Real com Ativo/Passivo lado a lado, mês selecionado × dezembro anterior, classificação pelo plano vigente na carga e Reserva de Lucros vinda da conta 51401001 do DRE no ano em andamento e do saldo da carga BP em anos encerrados — migrations 301 a 307, ver [Balanço Patrimonial](docs/balanco-patrimonial.md);
    - gestões e centros de custos;
    - carga de realizado, planejado e headcount;
    - usuários e perfis de acesso;
