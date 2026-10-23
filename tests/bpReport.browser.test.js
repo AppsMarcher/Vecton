@@ -56,12 +56,12 @@ const amounts={
   assert.equal(await page.locator('[data-bp-line="cash"] td').last().innerText(),'8.023.413');
   assert.equal(await page.locator('[data-bp-line="profitReserve"] th').innerText(),'Reserva de Lucros');
   assert.equal(await page.locator('[data-bp-line="profitReserve"] td').first().innerText(),'860.651');
-  assert.equal(await page.locator('[data-bp-line="profitReserve"] td').last().innerText(),'0');
+  assert.equal(await page.locator('[data-bp-line="profitReserve"] td').last().innerText(),'999.999.999');
   assert.equal(await page.locator('[data-bp-line="shareholders"]').locator('xpath=ancestor::section[1]').getAttribute('data-bp-section'),'liabilityNoncurrent');
   assert.equal(await page.locator('[data-bp-line="taxNoncurrent"] td').first().innerText(),'0');
   assert.equal(await page.locator('[data-bp-line="pcld"] td').last().innerText(),'-195.950');
   assert.deepEqual(await page.locator('.bp-statement-asset .bp-statement-grandtotal td').allTextContents(),['65.679.534','65.774.085']);
-  assert.deepEqual(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').allTextContents(),['65.679.534','65.774.085']);
+  assert.deepEqual(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').allTextContents(),['65.679.534','1.065.774.084']);
   const aligned=await page.evaluate(()=>{
    const rect=q=>document.querySelector(q).getBoundingClientRect();
    return Math.abs(rect('[data-bp-section="assetNoncurrent"]').y-rect('[data-bp-section="liabilityNoncurrent"]').y)<1&&Math.abs(rect('.bp-statement-asset .bp-statement-grandtotal').y-rect('.bp-statement-liability .bp-statement-grandtotal').y)<1;
@@ -92,13 +92,13 @@ const amounts={
   await page.locator('.bp-statement-grid').waitFor();
   assert.equal(await page.locator('[data-bp-line="profitReserve"] td').first().innerText(),'0');
   assert.notEqual(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').first().innerText(),'—');
-  assert.equal(await page.locator('[data-bp-line="profitReserve"] td').last().innerText(),'0');
-  assert.equal(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').last().innerText(),'65.774.085');
+  assert.equal(await page.locator('[data-bp-line="profitReserve"] td').last().innerText(),'999.999.999');
+  assert.equal(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').last().innerText(),'1.065.774.084');
   assert.equal(await page.locator('.bp-statement-notice').count(),0);
   const callsBeforeHistory=await page.evaluate(()=>window.dreCalls.length);
   await page.evaluate(()=>{window.period={year:2025,month:12};window.report.renderSelected(document.querySelector('#report'),'balanceSheetReal');});
   await page.locator('.bp-statement-grid').waitFor();
-  assert.equal(await page.locator('[data-bp-line="profitReserve"] td').first().innerText(),'0');
+  assert.equal(await page.locator('[data-bp-line="profitReserve"] td').first().innerText(),'999.999.999');
   assert.notEqual(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').first().innerText(),'—');
   assert.equal(await page.evaluate(()=>window.dreCalls.length),callsBeforeHistory);
   await page.evaluate(()=>{window.period={year:2026,month:6};});

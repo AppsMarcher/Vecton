@@ -48,9 +48,12 @@ Somente os saldos das analíticas são agrupados pela chave do plano, evitando a
 
 ### Exceção: Reserva de Lucros
 
-Por definição explícita do usuário, a chave `Resultado do Exercício` é apresentada na linha **Reserva de Lucros**, mas seu valor é substituído pelo resultado da conta **51401001 do DRE Societário Realizado**. O valor lançado no próprio BP nessa chave não é somado à linha.
+Por definição explícita do usuário, a chave `Resultado do Exercício` é apresentada na linha **Reserva de Lucros**. Apenas essa chave pertence à linha; outras chaves não são tratadas como alias.
 
-O relatório reutiliza `buildDreSocRealReport` do app, porque a conta 51401001 é calculada no DRE, não uma leitura direta de lançamentos com esse código. Soma seus resultados mensais de janeiro até o mês selecionado somente quando o ano da coluna corresponde ao ano calendário em andamento, no fuso America/Sao_Paulo. Em anos encerrados e na coluna comparativa, a linha Reserva de Lucros é zero, sem consultar o DRE desses anos. Selecionar um ano histórico no cabeçalho não ativa a exceção. Se não houver resultado do DRE no ano em andamento, usa zero. Mantém o sinal do DRE e não força ajustes para zerar eventuais diferenças patrimoniais.
+- **Ano em andamento (coluna atual):** o valor é o resultado da conta **51401001 do DRE Societário Realizado**, somado de janeiro até o mês selecionado, no fuso America/Sao_Paulo. O valor lançado no BP nessa chave não é somado. Sem resultado do DRE, usa zero. Mantém o sinal do DRE e não força ajustes para zerar eventuais diferenças patrimoniais.
+- **Ano encerrado (coluna atual) e coluna comparativa (31/12 do ano anterior):** o valor é o saldo da carga BP da chave, sem cálculo e sem consultar o DRE.
+
+O relatório reutiliza `buildDreSocRealReport` do app, porque a conta 51401001 é calculada no DRE, não uma leitura direta de lançamentos com esse código.
 
 ### Dados e estados
 
@@ -68,7 +71,7 @@ node tests/bpReport.browser.test.js
 node tests/bp.browser.test.js
 ```
 
-Os testes cobrem as datas, consolidação, agrupamento, exclusão de sintéticas, exceção do DRE real, acumulado janeiro–mês, Reserva de Lucros anterior zerada sem consultar o DRE anterior, dados ausentes, acesso, mudança de competência e requisições antigas. As capturas `report-final-clear.png`, `report-final-dark.png` e `report-final-mobile.png` usam valores de teste para verificar a disposição visual.
+Os testes cobrem as datas, consolidação, agrupamento, exclusão de sintéticas, exceção do DRE real, acumulado janeiro–mês, Reserva de Lucros de anos encerrados vindo do saldo BP sem consultar o DRE, dados ausentes, acesso, mudança de competência e requisições antigas. As capturas `report-final-clear.png`, `report-final-dark.png` e `report-final-mobile.png` usam valores de teste para verificar a disposição visual.
 
 
 ## Cargas consolidadas: SQL 303

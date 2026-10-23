@@ -15,7 +15,7 @@ assert.equal(model.current.date,'31/10/2026');assert.equal(model.previous.date,'
 const line = id => model.sections.flatMap(s=>s.lines).find(l=>l.id===id);
 assert.equal(line('cash').current,15000); // consolida filiais sem duplicar sintéticas
 assert.equal(line('profitReserve').current,3000); // DRE substitui o saldo BP, não soma
-assert.equal(line('profitReserve').previous,0); // ignora tanto o saldo BP quanto eventual resultado DRE anterior
+assert.equal(line('profitReserve').previous,99999900); // 31/12 é ano fechado: saldo da carga BP, sem DRE
 assert.equal(line('profitReserve').label,'Reserva de Lucros');
 assert.equal(model.sections.flatMap(s=>s.lines).some(l=>l.label==='Resultado do Exercício'),false);
 assert.equal(model.sections.find(s=>s.id==='liabilityNoncurrent').current,2000); // conforme imagem
@@ -26,7 +26,7 @@ assert.equal(M.periods({year:2026,month:1}).previous.date,'31/12/2025');
 assert.throws(()=>M.periods({year:2026,month:13}),/inválida/);
 const noCurrent = M.build(plan,[],[batch('01',80)],{year:2026,month:10},{previous:0});
 assert.equal(noCurrent.asset.current,null);assert.equal(noCurrent.liability.current,null);assert.equal(noCurrent.asset.previous,8000);
-assert.equal(noCurrent.liability.previous,0);
+assert.equal(noCurrent.liability.previous,99999900);
 
 const missingDre = M.build(plan,[batch('01',10)],[],{year:2026,month:10});
 assert.equal(missingDre.liability.current,0);assert.equal(missingDre.asset.current,1000);
@@ -58,5 +58,5 @@ vm.createContext(scope);vm.runInContext(buildSource+`\nthis.getResult=async(year
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 const historic=M.build(plan,[batch('01',10)],[],{year:2025,month:12},{current:999},2026);
-assert.equal(historic.sections.find(s=>s.id==='equity').lines.find(l=>l.id==='profitReserve').current,0);
-assert.equal(historic.liability.current,0);
+assert.equal(historic.sections.find(s=>s.id==='equity').lines.find(l=>l.id==='profitReserve').current,99999900); // ano fechado: saldo BP, ignora o DRE
+assert.equal(historic.liability.current,99999900);

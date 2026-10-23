@@ -25,7 +25,7 @@
     ] },
     { id: "equity", side: "liability", title: "PATRIMÔNIO LÍQUIDO", total: "Total do Patrimônio Líquido", lines: [
       line("capital", "Capital Subscrito e Realizado"), line("legalReserve", "Reserva Legal"),
-      line("profitReserve", "Reserva de Lucros", ["Reserva de Lucros", "Reservas de Lucros", "Resultado do Exercício"]),
+      line("profitReserve", "Reserva de Lucros", ["Resultado do Exercício"]),
       line("retained", "Resultados Acumulados"), line("adjustments", "Ajustes Exercícios Anteriores")
     ] }
   ];
@@ -50,7 +50,7 @@
     if (/^2\.3(?:\.|$)/.test(code)) return "equity";
     throw new Error(`A conta ${code || node.name} não pertence a um grupo BP reconhecido.`);
   }
-  function aggregate(batches, plan) {
+  function aggregate(batches, plan, dreReplacesProfitReserve = false) {
     const values = new Map(), extras = new Map(), scopes = new Set();
     const currentIds = new Map(plan.map(n => [n.id, n])), currentCodes = new Map(plan.map(n => [n.account_code || n.source_name, n]));
     for (const batch of batches) {
@@ -75,8 +75,9 @@
           target = { id, label: node.group_key, keys: [node.group_key] };
           extras.set(id, { ...target, sectionId });
         }
-        // Exceção definida pelo usuário: esta linha vem do DRE, nunca do saldo BP.
-        if (target.id === "profitReserve") continue;
+        // Exceção definida pelo usuário: no ano em andamento esta linha vem do DRE, nunca do saldo BP.
+        // Em anos encerrados vale o saldo da carga BP, sem cálculo.
+        if (target.id === "profitReserve" && dreReplacesProfitReserve) continue;
         if (row.amount === null || row.amount === undefined || typeof row.amount === "boolean" || String(row.amount).trim() === "") throw new Error(`Saldo ausente na conta ${node.account_code}.`);
         const amount = Number(row.amount), cents = Math.round(amount * 100);
         if (!Number.isFinite(amount) || !Number.isSafeInteger(cents)) throw new Error(`Saldo inválido na conta ${node.account_code}.`);
@@ -89,7 +90,8 @@
   }
   const calendarYear = () => Number(new Intl.DateTimeFormat('en', { timeZone: 'America/Sao_Paulo', year: 'numeric' }).format(new Date()));
   function build(plan, currentBatches, previousBatches, selected, dreResult = {}, ongoingYear = calendarYear()) {
-    const dates = periods(selected), current = aggregate(currentBatches,plan), previous = aggregate(previousBatches,plan);
+    const dates = periods(selected), currentIsOngoing = dates.current.year === ongoingYear;
+    const current = aggregate(currentBatches,plan,currentIsOngoing), previous = aggregate(previousBatches,plan);
     const extraLines = new Map([...previous.extras, ...current.extras]);
     const sections = SECTIONS.map(section => {
       // Contas inativas ou fora dos grupos BP só importam quando têm saldo (tratado em aggregate).
@@ -103,7 +105,7 @@
       }
       const extras = [...extraLines.values()].filter(l => l.sectionId === section.id);
       const result = value => { if (value === null || value === undefined) return 0; const cents = Math.round(Number(value) * 100); if (!Number.isSafeInteger(cents)) throw new Error("Resultado do DRE inválido."); return cents; };
-      const lines = [...section.lines, ...extras].map(l => ({ ...l, current: current.available ? l.id === "profitReserve" ? (dates.current.year === ongoingYear ? result(dreResult.current) : 0) : (current.values.get(l.id) || 0) : null, previous: previous.available ? l.id === "profitReserve" ? 0 : (previous.values.get(l.id) || 0) : null }));
+      const lines = [...section.lines, ...extras].map(l => ({ ...l, current: current.available ? l.id === "profitReserve" && currentIsOngoing ? result(dreResult.current) : (current.values.get(l.id) || 0) : null, previous: previous.available ? (previous.values.get(l.id) || 0) : null }));
       const sum = column => lines.some(l => l[column] === null) ? null : lines.reduce((total,l) => total + l[column],0);
       return { ...section, lines, current: current.available ? sum("current") : null, previous: previous.available ? sum("previous") : null };
     });
