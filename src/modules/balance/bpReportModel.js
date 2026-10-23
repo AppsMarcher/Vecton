@@ -86,7 +86,8 @@
     }
     return { available: batches.length > 0, values, extras };
   }
-  function build(plan, currentBatches, previousBatches, selected, dreResult = {}) {
+  const calendarYear = () => Number(new Intl.DateTimeFormat('en', { timeZone: 'America/Sao_Paulo', year: 'numeric' }).format(new Date()));
+  function build(plan, currentBatches, previousBatches, selected, dreResult = {}, ongoingYear = calendarYear()) {
     const dates = periods(selected), current = aggregate(currentBatches,plan), previous = aggregate(previousBatches,plan);
     const extraLines = new Map([...previous.extras, ...current.extras]);
     const sections = SECTIONS.map(section => {
@@ -99,15 +100,14 @@
         }
       }
       const extras = [...extraLines.values()].filter(l => l.sectionId === section.id);
-      const result = value => { if (value === null || value === undefined) return null; const cents = Math.round(Number(value) * 100); if (!Number.isSafeInteger(cents)) throw new Error("Resultado do DRE inválido."); return cents; };
-      const lines = [...section.lines, ...extras].map(l => ({ ...l, current: current.available ? l.id === "profitReserve" ? result(dreResult.current) : (current.values.get(l.id) || 0) : null, previous: previous.available ? l.id === "profitReserve" ? 0 : (previous.values.get(l.id) || 0) : null }));
+      const result = value => { if (value === null || value === undefined) return 0; const cents = Math.round(Number(value) * 100); if (!Number.isSafeInteger(cents)) throw new Error("Resultado do DRE inválido."); return cents; };
+      const lines = [...section.lines, ...extras].map(l => ({ ...l, current: current.available ? l.id === "profitReserve" ? (dates.current.year === ongoingYear ? result(dreResult.current) : 0) : (current.values.get(l.id) || 0) : null, previous: previous.available ? l.id === "profitReserve" ? 0 : (previous.values.get(l.id) || 0) : null }));
       const sum = column => lines.some(l => l[column] === null) ? null : lines.reduce((total,l) => total + l[column],0);
       return { ...section, lines, current: current.available ? sum("current") : null, previous: previous.available ? sum("previous") : null };
     });
     const sideTotal = (side,column,available) => { const groups = sections.filter(s => s.side === side); return !available || groups.some(s => s[column] === null) ? null : groups.reduce((a,s) => a+s[column],0); };
     const total = side => ({ current: sideTotal(side,"current",current.available), previous: sideTotal(side,"previous",previous.available) });
-    return { ...dates, sections, asset: total("asset"), liability: total("liability"), hasCurrent: current.available, hasPrevious: previous.available,
-      missingDre: current.available && dreResult.current == null };
+    return { ...dates, sections, asset: total("asset"), liability: total("liability"), hasCurrent: current.available, hasPrevious: previous.available };
   }
-  window.VECTON_BP_REPORT_MODEL = { SECTIONS, normalize, periods, aggregate, build };
+  window.VECTON_BP_REPORT_MODEL = { SECTIONS, normalize, periods, aggregate, build, calendarYear };
 })(window);

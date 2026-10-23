@@ -23,8 +23,9 @@
         batches = [];
       }
       const forPeriod = p => batches.filter(b => Number(b.reference_year) === p.year && Number(b.reference_month) === p.month);
-      const resultCurrent = forPeriod(dates.current).length ? await d.getDreResult(dates.current.year, dates.current.month) : null;
-      return M.build(plan, forPeriod(dates.current), forPeriod(dates.previous), selected, { current: resultCurrent });
+      const ongoingYear = d.getCurrentYear?.() ?? M.calendarYear();
+      const resultCurrent = dates.current.year === ongoingYear && forPeriod(dates.current).length ? await d.getDreResult(dates.current.year, dates.current.month) : 0;
+      return M.build(plan, forPeriod(dates.current), forPeriod(dates.previous), selected, { current: resultCurrent }, ongoingYear);
     }
     function tableRows(section) {
       return `<section class="bp-statement-section" data-bp-section="${section.id}"><h3>${esc(section.title)}</h3><table class="bp-statement-table" aria-label="${esc(section.title)}"><colgroup><col class="bp-label-col"><col><col></colgroup><tbody>${section.lines.map((line,index) => `<tr class="${index === section.lines.length - 1 ? "bp-section-last" : ""}" data-bp-line="${esc(line.id)}"><th scope="row">${esc(line.label)}</th><td>${format(line.current)}</td><td>${format(line.previous)}</td></tr>`).join("")}<tr class="bp-section-total"><th scope="row">${esc(section.total)}</th><td>${format(section.current)}</td><td>${format(section.previous)}</td></tr></tbody></table></section>`;
@@ -40,7 +41,6 @@
     function draw(root, model) {
       root.innerHTML = `<article class="content-card bp-statement" aria-label="Balanço Patrimonial Real consolidado Marcher">
         <header class="bp-statement-intro"><div><p class="section-kicker">MARCHER</p><h2>Balanço Patrimonial</h2></div><p class="bp-statement-dates">${model.current.date}<span>comparado a ${model.previous.date}</span></p></header>
-        ${model.missingDre ? '<p class="bp-statement-notice" role="status">Resultado do DRE indisponível no ano atual. A Reserva de Lucros e os totais que dependem dela nessa coluna são exibidos como “—”.</p>' : ""}
         <div class="bp-statement-scroll" tabindex="0" role="region" aria-label="Ativo e Passivo lado a lado"><div class="bp-statement-grid">${side(model,"asset","ATIVO","TOTAL DO ATIVO")}${side(model,"liability","PASSIVO","TOTAL DO PASSIVO")}</div></div>
         </article>`;
     }

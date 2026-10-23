@@ -50,13 +50,13 @@ Somente os saldos das analíticas são agrupados pela chave do plano, evitando a
 
 Por definição explícita do usuário, a chave `Resultado do Exercício` é apresentada na linha **Reserva de Lucros**, mas seu valor é substituído pelo resultado da conta **51401001 do DRE Societário Realizado**. O valor lançado no próprio BP nessa chave não é somado à linha.
 
-O relatório reutiliza `buildDreSocRealReport` do app, porque a conta 51401001 é calculada no DRE, não uma leitura direta de lançamentos com esse código. Soma seus resultados mensais de janeiro até o mês selecionado somente no ano atual. No ano anterior, a linha Reserva de Lucros é sempre zero, sem consultar o resultado do DRE desse ano. Mantém o sinal do DRE e não força ajustes para zerar eventuais diferenças patrimoniais.
+O relatório reutiliza `buildDreSocRealReport` do app, porque a conta 51401001 é calculada no DRE, não uma leitura direta de lançamentos com esse código. Soma seus resultados mensais de janeiro até o mês selecionado somente quando o ano da coluna corresponde ao ano calendário em andamento, no fuso America/Sao_Paulo. Em anos encerrados e na coluna comparativa, a linha Reserva de Lucros é zero, sem consultar o DRE desses anos. Selecionar um ano histórico no cabeçalho não ativa a exceção. Se não houver resultado do DRE no ano em andamento, usa zero. Mantém o sinal do DRE e não força ajustes para zerar eventuais diferenças patrimoniais.
 
 ### Dados e estados
 
 A leitura utiliza o plano instalado e os fechamentos BP realizados vigentes, quando disponíveis, apenas para as duas competências exatas. Não há fallback para meses anteriores e não há leitura de Budget ou Forecast. Fechamentos sobrepostos para a mesma filial ou uma posição consolidada misturada com filiais produzem erro, evitando dupla contagem.
 
-Uma competência sem saldo carregado aparece como “—”, não como zero. Sem o resultado necessário do DRE, a Reserva de Lucros, o subtotal do PL e o total do Passivo do ano atual ficam indisponíveis; a coluna anterior continua calculada com Reserva de Lucros igual a zero. Erros de acesso ou conexão são exibidos com opção de tentar novamente. Nenhum valor de demonstração é incluído no produto; os exemplos visuais de testes ficam somente em `artifacts/bp/`.
+Uma competência sem saldo carregado aparece como “—”, não como zero. Sem o resultado do DRE, a Reserva de Lucros usa zero e o subtotal do PL e o total do Passivo continuam sendo calculados com os saldos BP disponíveis. Erros de acesso ou conexão são exibidos com opção de tentar novamente. Nenhum valor de demonstração é incluído no produto; os exemplos visuais de testes ficam somente em `artifacts/bp/`.
 
 Módulos: `bpReportModel.js` e `bpReportModule.js`, integrados ao card `balanceSheetReal`. A leitura utiliza os fechamentos `bp_import_batches`, instalados pela migration 303. Sem saldos carregados, o demonstrativo permanece disponível com valores ausentes.
 
@@ -102,7 +102,7 @@ A migration 304 foi instalada no Supabase em 22/10/2026. A conferência anterior
 
 Realizado e Planejado compartilham os cards de importação, histórico e detalhe do DRE. O botão de período abre o seletor global. A carga permanece completa, com saldos de fechamento consolidados; não se somam posições BP. O Planejado exige cenário do ano selecionado.
 
-Importar arquivo valida o Excel e salva um rascunho persistente em bp_import_drafts. Novo lote manual inicia sem saldos; não é obrigatório informar todas as analíticas ativas. É necessário ao menos um saldo analítico válido. O detalhe permite buscar contas e adicionar, editar ou excluir lançamentos do rascunho. Editar lote aplicado cria uma cópia em rascunho, preservando o fechamento atual até a nova aplicação.
+Importar arquivo valida o Excel, confirma a substituição da competência/destino, salva um rascunho persistente em bp_import_drafts e aplica o lote automaticamente. Se a aplicação falhar, a tela mostra o erro e permite retomar pelo botão Aplicar lote. Novo lote manual inicia sem saldos; não é obrigatório informar todas as analíticas ativas. É necessário ao menos um saldo analítico válido. O detalhe permite buscar contas e adicionar, editar ou excluir lançamentos do rascunho. Editar lote aplicado cria uma cópia em rascunho, preservando o fechamento atual até a nova aplicação.
 
 Aplicar lote revalida a revisão do rascunho, plano, contas, competência e destino no servidor. Na mesma transação, exclui todos os lotes anteriores da mesma organização/ano/mês/fonte/cenário, grava o definitivo e remove os rascunhos daquele destino. Se falhar, o lote vigente permanece intacto. Outros períodos e cenários são preservados. Excluir lote pede confirmação e remove somente o lote selecionado. Alterações de uma revisão antiga são rejeitadas para evitar sobrescrita entre sessões.
 
@@ -119,3 +119,6 @@ A carga completa aceita qualquer conjunto não vazio de analíticas ativas cadas
 ## Inclusão de contas em 23/10/2026: SQL 306
 
 A migration 306 cadastra as dez analíticas solicitadas pelo usuário, com as chaves Imobilizado, Intangível, Estoques, Estoques de Terceiros e Outros Contas a Pagar. Reutiliza a sintética 2.1.6.02 e cria esse grupo somente se ausente. A conta pai segue o ancestral sintético cadastrado mais próximo. Reordena apenas os irmãos nos grupos afetados, comparando numericamente os segmentos do código e preservando seus zeros. Não modifica cargas nem saldos; pode ser reexecutada sem duplicar contas.
+
+
+A aplicação automática vale para arquivos Realizados e Planejados, como no DRE. Arquivos inválidos e importações canceladas não criam nem aplicam lotes. Lotes manuais e cópias para edição continuam em rascunho até aplicação explícita. Rascunhos importados antes desta atualização não são aplicados só por abrir a tela.

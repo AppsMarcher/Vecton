@@ -6,7 +6,7 @@
   const money=v=>v==null?'—':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   async function all(table,query){const rows=[];for(let offset=0;;offset+=1000){const page=await d.fetch(table,`${query}&limit=1000&offset=${offset}`);rows.push(...page);if(page.length<1000)return rows;}}
   function open(planned){mode=planned?'planned':'actual';origin=planned?'budgetLoad':'actualsLoad';selected=null;scenario='';d.navigate('bpLoad');}
-  async function renderLoad(notification=''){
+  async function renderLoad(notification='',notificationError=false){
    if(d.getActiveView()!=='bpLoad'||busy)return;
    const root=d.root,token=++generation,user=d.getUserId(),period={...d.getPeriod()},source=mode;
    const current=()=>token===generation&&user===d.getUserId()&&d.getActiveView()==='bpLoad'&&d.isAdmin();
@@ -25,12 +25,12 @@
     if(!history.some(h=>h.id===selected))selected=history[0]?.id||null;
     if(!scenarios.some(s=>s.id===scenario))scenario=scenarios[0]?.id||'';
     root.innerHTML=`<div class="actuals-layout bp-load-layout"><section class="content-card actuals-intake-card"><div class="actuals-intake-header"><div class="actuals-intake-controls"><button class="actuals-period-trigger" data-period><span class="actuals-period-kicker">Período</span><strong>${months[period.month-1]}/${period.year}</strong></button><select class="actuals-mode-select" aria-label="Tipo da carga"><option>Carga completa</option></select></div><button class="ghost-button" data-template>Modelo</button></div>
-     <form class="actuals-upload-form">${source==='planned'?`<label class="budget-target-wrap">Cenário de destino<select name="scenario" required>${scenarios.map(s=>`<option value="${esc(s.id)}" ${s.id===scenario?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label>`:''}<label class="vecton-file-field">Arquivo<span class="vecton-file-trigger"><span class="vecton-file-btn">Selecionar arquivo</span><span class="vecton-file-name">Nenhum arquivo selecionado</span><input class="vecton-file-native" name="file" type="file" accept=".xlsx,.xls" required></span></label><div class="bp-load-actions"><button class="ghost-button" type="submit">Importar arquivo</button><button class="ghost-button" type="button" data-manual>Novo lote manual</button><button class="ghost-button" type="button" data-back>← Voltar</button></div></form><div class="actuals-upload-feedback" data-feedback role="status" aria-live="polite">${esc(notification)}</div></section>
+     <form class="actuals-upload-form">${source==='planned'?`<label class="budget-target-wrap">Cenário de destino<select name="scenario" required>${scenarios.map(s=>`<option value="${esc(s.id)}" ${s.id===scenario?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label>`:''}<label class="vecton-file-field">Arquivo<span class="vecton-file-trigger"><span class="vecton-file-btn">Selecionar arquivo</span><span class="vecton-file-name">Nenhum arquivo selecionado</span><input class="vecton-file-native" name="file" type="file" accept=".xlsx,.xls" required></span></label><div class="bp-load-actions"><button class="ghost-button" type="submit">Importar arquivo</button><button class="ghost-button" type="button" data-manual>Novo lote manual</button><button class="ghost-button" type="button" data-back>← Voltar</button></div></form><div class="actuals-upload-feedback ${notificationError?'is-error':''}" data-feedback role="status" aria-live="polite">${esc(notification)}</div></section>
      <section class="content-card actuals-batch-card"><span class="actuals-period-kicker">Histórico</span><h3 class="inline-card-title">Lotes</h3><div class="actuals-batch-list bp-load-history">${history.map(h=>`<button class="actuals-batch-item ${h.id===selected?'active':''}" data-batch="${esc(h.id)}"><div class="actuals-batch-item-head"><strong>${months[h.reference_month-1]}</strong><span class="actuals-badge ${h.draft?'is-warn':'is-ok'}">${h.draft?'Rascunho':'Aplicado'}</span></div><span>Ano base ${h.reference_year}</span><span>${esc(h.file_name)}</span><span>Carga completa${h.scenario_id?' · '+esc(scenarios.find(s=>s.id===h.scenario_id)?.name||'Cenário'):''}</span></button>`).join('')||'<p class="toolbar-note">Nenhuma carga aplicada.</p>'}</div></section>
      <section class="content-card actuals-detail-card" data-detail><p class="toolbar-note">Selecione um lote para consultar os saldos.</p></section></div>`;
     const form=root.querySelector('form'),feedback=root.querySelector('[data-feedback]'),detail=root.querySelector('[data-detail]');
     const run=async work=>{if(busy||!current())return;busy=true;const controls=[...root.querySelectorAll('button,input,select')].map(el=>[el,el.disabled]);controls.forEach(([el])=>el.disabled=true);try{await work();}catch(e){if(current()){feedback.classList.add('is-error');feedback.textContent=e.message;}}finally{busy=false;if(current())controls.forEach(([el,disabled])=>el.disabled=disabled);}};
-    const reload=async message=>{busy=false;if(current())await renderLoad(message);};
+    const reload=async(message,error=false)=>{busy=false;if(current())await renderLoad(message,error);};
     const save=async(rows,file,batch=null,snapshot=plan)=>{
      const id=await d.rpc('bp_save_draft',{p_org:org,p_id:batch?.draft?batch.id:null,p_revision:batch?.draft?batch.revision:null,p_year:batch?.reference_year||period.year,p_month:batch?.reference_month||period.month,p_source:source,p_scenario:batch?batch.scenario_id:scenario||null,p_file:file,p_rows:rows,p_plan:snapshot});
      selected=id;return id;
@@ -41,7 +41,30 @@
     form.elements.file.onchange=()=>{root.querySelector('.vecton-file-name').textContent=form.elements.file.files[0]?.name||'Nenhum arquivo selecionado';feedback.textContent='';};
     root.querySelector('[data-template]').onclick=()=>{try{if(!plan.some(n=>n.active&&n.node_class==='Analitica'))throw Error('Cadastre as contas analíticas no Plano BP.');const sheet=window.XLSX.utils.aoa_to_sheet([M.headers,...plan.filter(n=>n.active).map(n=>[String(n.account_code||n.source_name||''),n.name,n.node_class==='Analitica'?0:null,n.node_class==='Analitica'?'ANALITICA':'SINTETICA',n.node_class==='Analitica'?n.group_key:null])]);sheet['!cols']=[{wch:28},{wch:55},{wch:20},{wch:16},{wch:38}];const book=window.XLSX.utils.book_new();window.XLSX.utils.book_append_sheet(book,sheet,'BP');window.XLSX.writeFile(book,'modelo-carga-bp.xlsx');}catch(e){feedback.textContent=e.message;}};
     const ensureScenario=()=>{if(source==='planned'&&!scenario)throw Error('Selecione o cenário de destino.');};
-    form.onsubmit=event=>{event.preventDefault();void run(async()=>{ensureScenario();const file=form.elements.file.files[0];if(!file||file.size>20*1024*1024)throw Error('Selecione um Excel de até 20 MB.');const book=window.XLSX.read(await file.arrayBuffer(),{type:'array'});if(!current())return;const rows=M.parseWorkbook(book,plan,window.XLSX);await save(rows,file.name);await reload('Arquivo importado. Confira os saldos e aplique o lote.');});};
+    form.onsubmit=event=>{
+     event.preventDefault();
+     void run(async()=>{
+      ensureScenario();
+      const file=form.elements.file.files[0];
+      if(!file||file.size>20*1024*1024)throw Error('Selecione um Excel de até 20 MB.');
+      const book=window.XLSX.read(await file.arrayBuffer(),{type:'array'});
+      if(!current())return;
+      const rows=M.parseWorkbook(book,plan,window.XLSX);
+      const target=source==='planned'?scenarios.find(s=>s.id===scenario)?.name:'Realizado';
+      if(!await d.confirm(`Importar e aplicar os saldos BP de ${months[period.month-1]}/${period.year} — ${target}? A carga completa substituirá o lote anterior deste período e destino.`))return;
+      if(!current())return;
+      const draftId=await save(rows,file.name);
+      if(!current())return;
+      feedback.textContent='Aplicando carga BP…';
+      try{
+       selected=await d.rpc('bp_apply_draft',{p_org:org,p_id:draftId,p_revision:1});
+      }catch(error){
+       await reload(`Arquivo importado, mas não foi possível confirmar a aplicação automática: ${error.message}. Confira o status do lote; se estiver em rascunho, use Aplicar lote para tentar novamente.`,true);
+       return;
+      }
+      await reload('Arquivo importado e lote aplicado automaticamente.');
+     });
+    };
     root.querySelector('[data-manual]').onclick=()=>void run(async()=>{ensureScenario();await save([],`Lote manual ${months[period.month-1]}/${period.year}`);await reload('Lote manual criado. Adicione as contas e seus saldos.');});
     root.querySelectorAll('[data-batch]').forEach(button=>button.onclick=()=>{selected=button.dataset.batch;void renderLoad();});
     if(!selected)return;

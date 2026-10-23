@@ -706,7 +706,7 @@ bpModule = window.VECTON_BP.createModule({
     const rows = await fetchActualsReportRowsForYear(year);
     if (!rows.some(row => Number(row.referenceMonth ?? row.reference_month) >= 1 && Number(row.referenceMonth ?? row.reference_month) <= month)) return null;
     const result = buildDreSocRealReport(year, rows).rows.find(row => row.code === "51401001");
-    if (!result) throw new Error("A conta 51401001 não foi encontrada no DRE Societário Realizado.");
+    if (!result) return 0;
     return result.months.slice(0, month).reduce((sum, value) => sum + Math.round(value * 100), 0) / 100;
   },
   isReportActive: () => activeView === "reports" && selectedReportId === "balanceSheetReal",

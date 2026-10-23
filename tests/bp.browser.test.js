@@ -27,7 +27,7 @@ const plan = [
         resolveOrganizationId: async () => 'org', fetch: async () => structuredClone(window.plan), confirm: async () => true,
         update: async (org, id, fields) => { Object.assign(window.plan.find(n => n.id === id), fields); return [window.plan.find(n => n.id === id)]; }, insert: async row => { window.plan.push(row); return [row]; }, remove: async () => {} });
       window.mod = window.VECTON_BP.createModule({ root: document.querySelector('#load'), escapeHtml: esc, isAdmin: () => window.admin, getUserId: () => window.user, getPeriod: () => window.period, getActiveView: () => window.active,
-        resolveOrganizationId: async () => 'org', getDreResult: async () => 0, confirm: async () => true, canSeeReport: () => window.admin, isReportActive: () => window.active === 'reports', navigate: view => { window.active = view; void window.mod.renderLoad(); },
+        resolveOrganizationId: async () => 'org', getDreResult: async () => 0, confirm: async () => window.confirmResult !== false, canSeeReport: () => window.admin, isReportActive: () => window.active === 'reports', navigate: view => { window.active = view; void window.mod.renderLoad(); },
         fetch: async (table, query) => { if (/offset=1000/.test(query)) return []; if (table === 'bp_plan_nodes') return structuredClone(window.plan); if (table === 'branches') return [{ id: 'branch', code: '01', name: 'Matriz' }]; if (table === 'forecast_scenarios') return [{ id: 'scenario', name: 'Budget 2026' }];
           if(table==='bp_import_drafts')return structuredClone(window.dbDrafts.filter(x=>!query.includes('&id=eq.')||query.includes('&id=eq.'+x.id+'&'))); if(table==='bp_import_batches'&&window.active==='bpLoad')return structuredClone(window.dbFinals.filter(x=>!query.includes('&id=eq.')||query.includes('&id=eq.'+x.id+'&'))); if (table === 'bp_import_batches' && query.includes('superseded_at=is.null')) return [
             { branch_id: 'branch', reference_year: 2026, reference_month: 2, rows: [{ account_id: 'c', amount: 200 }, { account_id: 's', amount: 200 }] },
@@ -59,9 +59,15 @@ const plan = [
     XLSX.utils.book_append_sheet(book, XLSX.utils.aoa_to_sheet([['CONTA', 'NOME DA CONTA', 'SALDO', 'TIPO_CONTA'], ['1','ATIVO',9999,'SINTETICA'], ['1.1', 'Caixa', 200,'ANALITICA'], ['2','PASSIVO',9999,'SINTETICA'], ['2.1', 'Capital', 200,'ANALITICA']]), 'Balancete');
     const file = { name: 'bp.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: XLSX.write(book, { type: 'buffer', bookType: 'xlsx' }) };
     await page.locator('#load input[type="file"]').setInputFiles(file);
+    await page.evaluate(()=>{window.confirmResult=false;});
+    await page.locator('#load button[type="submit"]').click();
+    assert.equal(await page.evaluate(()=>window.dbDrafts.length+window.dbFinals.length),0);
+    await page.evaluate(()=>{window.confirmResult=true;window.fail=true;});
     await page.locator('#load button[type="submit"]').click();
     await page.locator('[data-apply]').waitFor();
-    assert.match(await page.locator('[data-feedback]').innerText(), /Arquivo importado/);
+    assert.match(await page.locator('[data-feedback]').innerText(), /não foi possível confirmar a aplicação automática/);
+    assert.equal(await page.locator('[data-feedback]').evaluate(el=>el.classList.contains('is-error')),true);
+    assert.equal(await page.evaluate(()=>window.dbDrafts.length),1);
     await page.evaluate(() => { window.fail = true; });
     await page.locator('[data-apply]').click();
     await page.waitForFunction(() => document.querySelector('[data-feedback]').textContent === 'Falha simulada');
@@ -87,12 +93,13 @@ const plan = [
     await page.evaluate(() => window.mod.open(true));
     await page.locator('#load select[name="scenario"]').selectOption('scenario');
     await page.locator('#load input[type="file"]').setInputFiles(file);
-    await page.locator('#load button[type="submit"]').click(); await page.locator('[data-apply]').waitFor();
-    await page.locator('[data-apply]').click();
+    await page.locator('#load button[type="submit"]').click();
+    await page.waitForFunction(()=>document.querySelector('[data-feedback]')?.textContent==='Arquivo importado e lote aplicado automaticamente.');
     await page.waitForFunction(() => window.calls.some(x=>x.p_source==='planned'));
     assert.equal(await page.evaluate(() => window.calls.find(x=>x.p_source==='planned').p_source), 'planned');
     assert.equal(await page.evaluate(() => window.calls.find(x=>x.p_source==='planned').p_scenario), 'scenario');
-    await page.waitForFunction(() => document.querySelector('[data-feedback]')?.textContent === 'Lote aplicado. O lote substituído foi excluído.');
+    assert.equal(await page.locator('[data-apply]').count(),0);
+    assert.equal(await page.evaluate(()=>window.dbDrafts.length),0);
     await page.locator('[data-manual]').click();await page.locator('#load [data-add]').waitFor();
     assert.equal(await page.locator('[data-apply]').isDisabled(),true);
     await page.locator('#load [data-add]').click();await page.locator('[data-editor] select[name="account"]').selectOption('c');await page.locator('[data-editor] input[name="amount"]').fill('0');

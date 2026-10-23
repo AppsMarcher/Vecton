@@ -27,9 +27,9 @@ assert.throws(()=>M.periods({year:2026,month:13}),/inválida/);
 const noCurrent = M.build(plan,[],[batch('01',80)],{year:2026,month:10},{previous:0});
 assert.equal(noCurrent.asset.current,null);assert.equal(noCurrent.liability.current,null);assert.equal(noCurrent.asset.previous,8000);
 assert.equal(noCurrent.liability.previous,0);
-assert.equal(noCurrent.missingDre,false);
+
 const missingDre = M.build(plan,[batch('01',10)],[],{year:2026,month:10});
-assert.equal(missingDre.liability.current,null);assert.equal(missingDre.asset.current,1000);assert.equal(missingDre.missingDre,true);
+assert.equal(missingDre.liability.current,0);assert.equal(missingDre.asset.current,1000);
 assert.throws(()=>M.build(plan,[batch('01',1),batch('01',2)],[],{year:2026,month:10}),/sobrepostos/);
 assert.throws(()=>M.build(plan,[batch(null,1),batch('02',2)],[],{year:2026,month:10}),/sobrepostos/);
 assert.throws(()=>M.aggregate([{rows:[{account_id:'unknown',amount:1}]}],plan),/sem cadastro/);
@@ -56,3 +56,7 @@ vm.createContext(scope);vm.runInContext(buildSource+`\nthis.getResult=async(year
  assert.equal(await scope.getResult(2025,12),100);
  console.log('BP report: closing dates, consolidation, keys, totals, missing data and actual DRE YTD exception OK');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+const historic=M.build(plan,[batch('01',10)],[],{year:2025,month:12},{current:999},2026);
+assert.equal(historic.sections.find(s=>s.id==='equity').lines.find(l=>l.id==='profitReserve').current,0);
+assert.equal(historic.liability.current,0);

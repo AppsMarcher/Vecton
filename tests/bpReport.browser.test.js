@@ -41,6 +41,7 @@ const amounts={
      if(window.missing)throw Error("PGRST205 Could not find the table 'public.bp_import_batches' in the schema cache");
      return [closing(2026,10,0,'01'),closing(2026,10,0,'02'),closing(2025,12,1,'01'),closing(2025,12,1,'02'),closing(2026,6,0,'01'),closing(2026,6,0,'02'),closing(2026,1,1,'01')];
     },
+    getCurrentYear:()=>2026,
     getDreResult:async(year,month)=>{window.dreCalls.push([year,month]);if(window.delay&&year===2026)return new Promise(resolve=>window.waiting.push(resolve));return window.dreMissing?null:year===2026?860651:0;}
    });
    window.report.renderSelected(document.querySelector('#report'),'balanceSheetReal');
@@ -89,11 +90,18 @@ const amounts={
   assert.match(await page.locator('.bp-statement-dates').innerText(),/30\/06\/2026/);
   await page.evaluate(()=>{window.dreMissing=true;window.report.renderSelected(document.querySelector('#report'),'balanceSheetReal');});
   await page.locator('.bp-statement-grid').waitFor();
-  assert.equal(await page.locator('[data-bp-line="profitReserve"] td').first().innerText(),'—');
-  assert.equal(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').first().innerText(),'—');
+  assert.equal(await page.locator('[data-bp-line="profitReserve"] td').first().innerText(),'0');
+  assert.notEqual(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').first().innerText(),'—');
   assert.equal(await page.locator('[data-bp-line="profitReserve"] td').last().innerText(),'0');
   assert.equal(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').last().innerText(),'65.774.085');
-  assert.match(await page.locator('.bp-statement-notice').innerText(),/DRE indisponível/);
+  assert.equal(await page.locator('.bp-statement-notice').count(),0);
+  const callsBeforeHistory=await page.evaluate(()=>window.dreCalls.length);
+  await page.evaluate(()=>{window.period={year:2025,month:12};window.report.renderSelected(document.querySelector('#report'),'balanceSheetReal');});
+  await page.locator('.bp-statement-grid').waitFor();
+  assert.equal(await page.locator('[data-bp-line="profitReserve"] td').first().innerText(),'0');
+  assert.notEqual(await page.locator('.bp-statement-liability .bp-statement-grandtotal td').first().innerText(),'—');
+  assert.equal(await page.evaluate(()=>window.dreCalls.length),callsBeforeHistory);
+  await page.evaluate(()=>{window.period={year:2026,month:6};});
   await page.evaluate(()=>{window.missing=true;window.report.renderSelected(document.querySelector('#report'),'balanceSheetReal');});
   await page.locator('.bp-statement-grid').waitFor();
   assert.equal(await page.locator('[data-bp-line="cash"] td').first().innerText(),'—');
