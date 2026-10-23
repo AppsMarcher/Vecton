@@ -760,7 +760,7 @@
         .rpc-area-tab { display:inline-flex; align-items:center; min-height:32px; border-radius:9px; border:1px solid var(--rpc-line); background:transparent; color:var(--rpc-soft); font-size:.7rem; font-weight:600; padding:0 12px; cursor:pointer; }
         .rpc-area-tab:hover:not(.is-active) { border-color:rgba(79,124,255,.4); color:var(--rpc-text); }
         .rpc-area-tab.is-active { background:var(--rpc-blue); border-color:var(--rpc-blue); color:#fff; }
-        .rpc-area-card { background:var(--theme-surface, rgba(12,14,18,.9)); border:1px solid var(--rpc-line); border-radius:16px; box-shadow:0 18px 48px var(--theme-shadow-color, rgba(0,0,0,.32)); padding:16px 18px; }
+        .rpc-area-card { background:var(--theme-surface, rgba(12,14,18,.9)); border:1px solid var(--rpc-line); border-radius:16px; box-shadow:none; padding:16px 18px; }
         .rpc-area-head { display:flex; align-items:center; gap:10px; margin:0 0 18px; }
         .rpc-area-title { margin:0; font-size:.95rem; letter-spacing:.03em; text-transform:uppercase; color:var(--rpc-text); }
         .rpc-area-coordinator { display:inline-flex; align-items:center; padding:3px 10px; border-radius:8px; border:1px solid var(--rpc-accent, var(--rpc-line)); background:color-mix(in srgb, var(--rpc-accent, var(--rpc-blue)) 16%, transparent); color:var(--rpc-accent, var(--rpc-soft)); font-size:.68rem; font-weight:600; letter-spacing:normal; text-transform:none; }
