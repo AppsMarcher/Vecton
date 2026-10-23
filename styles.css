@@ -5296,7 +5296,7 @@ textarea[disabled] {
 }
 
 /* ── Carga de Realizado - Automatizadas (cards das cargas do robô) ───────── */
-.load-catalog-section { margin-top: 30px; }
+.load-catalog-section { margin-top: 30px; padding-bottom: var(--dashboard-card-gap, 16px); }
 .load-catalog-grid--auto { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 .load-catalog-card--static { cursor: default; }
 .load-catalog-card--static:hover { transform: none; box-shadow: none; }
