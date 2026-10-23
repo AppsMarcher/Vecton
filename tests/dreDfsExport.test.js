@@ -68,6 +68,7 @@ const snapshot=withCompare=>({title:'DRE DFs Real',year:2026,month:9,sourceLabel
   for(const withCompare of [true,false]){
    const html=E.printHtml(snapshot(withCompare),v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;'));
    assert.match(html,/size:A4 landscape/);
+   assert.match(html,/Ricardo Guimarães Filho<br>Contador/);
    const page=await browser.newPage();await page.setContent(html);
    const pdf=await page.pdf({preferCSSPageSize:true,printBackground:true});
    assert.equal((pdf.toString('latin1').match(/\/Type\s*\/Page(?!s)/g)||[]).length,1);
@@ -75,6 +76,7 @@ const snapshot=withCompare=>({title:'DRE DFs Real',year:2026,month:9,sourceLabel
    await page.setViewportSize({width:1123,height:794});
    const box=await page.evaluate(()=>{const s=document.querySelector('.sheet').getBoundingClientRect(),t=document.querySelector('table');return{l:s.left,r:innerWidth-s.right,overflow:t.scrollWidth-t.clientWidth};});
    assert.ok(Math.abs(box.l-box.r)<2,'centralizado');assert.ok(box.overflow<=1,'tabela cabe na largura');
+   assert.ok(await page.evaluate(()=>document.querySelector('.signature').getBoundingClientRect().top>document.querySelector('table').getBoundingClientRect().bottom),'assinatura abaixo da tabela');
    assert.equal(await page.locator('thead .group').count(),withCompare?3:1);
    if(withCompare)await page.screenshot({path:process.env.DFS_SHOT||'nul'}).catch(()=>{});
    await page.close();

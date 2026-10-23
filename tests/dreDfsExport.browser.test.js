@@ -13,7 +13,7 @@ const {chromium}=require('playwright');
   await page.evaluate(()=>{
    window.vpSkeletonTable=()=>'skeleton';window.vpExportIconButtonHtml=a=>`<button class="vp-export-btn" ${a}>Excel</button>`;
    window.VECTON_SCENARIO_SOURCES={chooseSource:()=>({options:[{value:'x',label:'Fcst 5+7 2026'}],value:'x'})};
-   window.alerts=[];window.opened=[];
+   window.alerts=[];window.opened=[];window.floating=[];
   });
   for(const p of ['src/modules/reports/dreDfsExport.js','src/modules/reports/reportsDreModule.js'])await page.addScriptTag({path:path.resolve(p)});
   await page.evaluate(()=>{
@@ -21,7 +21,7 @@ const {chromium}=require('playwright');
    const report=()=>({lines:[line('receitaBruta','Receita Bruta','section',0),line('vendas','Venda de Produtos e Serviços','value',100),line('receitaLiquida','Receita Líquida','subtotal',90)],receitaLiquida:Array(12).fill(90)});
    const deps={escapeHtml:v=>String(v),getCurrentYear:()=>2026,getCurrentPeriodMonth:()=>9,getReportsLoadingYear:()=>null,getReportsErrorMessage:()=>'',
     reportsLedgerCache:new Map([[2026,{rows:[{}]}]]),buildDreGerRealReport:()=>({lines:[]}),buildDreDfsRealReport:report,buildDreDfsRealTableMarkup:()=>'<table class="t"></table>',
-    initAllReportTableResizers(){},initFloatingScrollbar(){},isAccessRestricted:()=>false,fetchAllScenarios:async()=>[],fetchRealYears:async()=>[],rowsForSource:async()=>[{}],
+    initAllReportTableResizers(){},initFloatingScrollbar:wrap=>{window.floating.push(wrap.className);},isAccessRestricted:()=>false,fetchAllScenarios:async()=>[],fetchRealYears:async()=>[],rowsForSource:async()=>[{}],
     computeDreCompareCell:(l,c,month)=>({isPercent:false,realMonth:1,compareMonth:2,varMonth:-1,varPctMonth:-.5,realYtd:3,compareYtd:4,varYtd:-1,varPctYtd:-.25}),
     alert:async m=>{window.alerts.push(m);},sendEmail:async()=>{},getUserId:()=>'u',getUserName:()=>'Teste'};
    window.dre=window.VECTON_REPORTS_DRE.createReportsDreModule(deps);
@@ -30,6 +30,7 @@ const {chromium}=require('playwright');
   for(const [id,expectCompare] of [['dreDfsReal',true],['dreDfsBudget',false]]){
    await page.evaluate(id=>{window.panel=document.querySelector('#panel');window.dre.renderSelectedDreReport(window.panel,id);},id);
    await page.locator('.t').waitFor({state:'attached'});
+   assert.deepEqual(await page.evaluate(()=>window.floating.splice(0)),['reports-table-wrap'],id+': barra de rolagem flutuante ativada');
    assert.equal(await page.locator('.dfs-export [data-dfs-export-toggle]').count(),1,id+': botão Exportar');
    assert.equal(await page.locator('.vp-export-btn').count(),0,id+': sem o botão Excel antigo');
    assert.equal(await page.locator('.dfs-export .fc-export-menu').isVisible(),false);

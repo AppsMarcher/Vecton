@@ -251,10 +251,10 @@
       const year = getCurrentYear();
       const month = getCurrentPeriodMonth();
       const tableWrap = initCompareShell(detailPanel, "reports-dfs-table-wrap", "DRE DFs Real", true);
-      // Sem scrollbar flutuante aqui: o DFs tem poucas linhas e cabe inteiro
-      // na tela sem precisar rolar a página, então a barra própria do card
-      // (overflow-x do tableWrap) já fica sempre visível — a flutuante virava
-      // uma segunda barra duplicada logo abaixo dela (reportado pelo usuário).
+      // Com o comparativo a tabela fica larga: a barra flutuante espelha a rolagem horizontal
+      // enquanto a barra própria do card está fora da tela. Ela só aparece nesse caso
+      // (ver realScrollbarOnScreen), então não duplica a barra real.
+      initFloatingScrollbar(tableWrap);
 
       populateCompareSel(detailPanel, year).then(() => {
         const sel = detailPanel.querySelector("#vp-dre-cmp-sel");
@@ -415,8 +415,8 @@
     function renderDreDfsBudget(detailPanel) {
       const year = getCurrentYear();
       const tableWrap = initBudgetShell(detailPanel, "reports-dfs-budget-wrap", "DRE DFs Meta", true);
-      // Mesmo motivo do DFs Real (ver renderDreDfsReal): tabela curta, a
-      // barra própria do card já basta — sem a flutuante duplicada.
+      // Mesma barra flutuante do DFs Real (ver renderDreDfsReal).
+      initFloatingScrollbar(tableWrap);
 
       populateSourceSel(detailPanel, year).then(() => {
         const sel = detailPanel.querySelector("#vp-dre-src-sel");
