@@ -5,8 +5,8 @@ const {chromium}=require('playwright');
 const deps='../artifacts/bp-test-deps/node_modules/';
 const ExcelJS=require(deps+'exceljs'),XLSX=require(deps+'xlsx');
 const window={};
-vm.runInNewContext(fs.readFileSync('src/modules/reports/dreDfsExport.js','utf8'),{window});
-const E=window.VECTON_DFS_EXPORT;
+vm.runInNewContext(fs.readFileSync('src/modules/reports/dreExport.js','utf8'),{window});
+const E=window.VECTON_DRE_EXPORT;
 // Helper real do app: bloco de comparação Mês/Acumulado.
 const app=fs.readFileSync('app.js','utf8');
 const scope={};
@@ -28,6 +28,22 @@ const report=factor=>{
   return{lines,receitaLiquida:Array(12).fill(1000)};
 };
 const real=report(1),other=report(.9),byId=new Map(other.lines.map(l=>[l.id,l]));
+// Mesmas linhas, tipos e ordem do buildDreGerRealReport.
+const gerSpec=[['receitaBruta','( = ) Receita Bruta','result'],['impostos','( - ) Impostos s/ Vendas','deduction'],['devolucoes','( - ) Devoluções','deduction'],['descontos','( - ) Descontos','deduction'],
+ ['receitaLiquida','( = ) Receita Líquida','subtotal'],['materiais','( - ) Materiais','deduction'],['custosPessoal','( - ) Custo c/ Pessoal','deduction'],['demaisGGF','( - ) Demais GGF','deduction'],
+ ['custoAbsorcao','( +/- ) Custo Absorção','deduction'],['ggfPct','GGF%','percent'],['lucroBruto','( = ) Lucro Bruto','subtotal'],['lbPct','LB%','percent'],['despComerciais','( - ) Desp. Comerciais','deduction'],
+ ['dcPct','DC%','percent'],['comissoes','( - ) Comissão s/ Vendas','detail'],['demaisDesp','( - ) Demais Desp. Comerciais','detail'],['despAdmin','( - ) Desp. Administrativas','deduction'],['daPct','DA%','percent'],
+ ['outrosResultados','( +/- ) Outros Resultados','deduction'],['ebitda','( = ) EBITDA','subtotal'],['ebitdaPct','EBITDA%','percent'],['depreciacao','( - ) Depreciação','deduction'],['amortizacao','( - ) Amortização','deduction'],
+ ['resultadoOp','( = ) Resultado Operacional','subtotal'],['roPct','RO%','percent'],['resultadoFin','( +/- ) Resultado Financeiro','deduction'],['rfPct','RF%','percent'],['despFin','( - ) Despesas Financeiras','detail'],
+ ['recFin','( + ) Receitas Financeiras','detail'],['lair','( = ) Resultado antes IRPJ/CSLL','subtotal'],['lairPct','LAIR%','percent'],['irpj','( - ) Provisão para IRPJ/CSLL','deduction'],
+ ['resultadoExerc','( = ) Resultado do Exercício','result-final'],['llPct','LL%','percent']];
+const gerReport=factor=>({lines:gerSpec.map(([id,label,kind],i)=>{
+  const months=Array.from({length:12},(_,m)=>kind==='percent'?(m+1)/100*factor:(i+1)*1000.5*(m+1)*factor*(i%2?-1:1));
+  return{id,label,kind,months,total:months.reduce((a,b)=>a+b,0),numerator:months};
+}),receitaLiquida:Array(12).fill(1000)});
+const gerReal=gerReport(1),gerOther=gerReport(.9),gerById=new Map(gerOther.lines.map(l=>[l.id,l]));
+const gerSnapshot=withCompare=>({title:'DRE Gerencial Real',profile:'ger',sheetName:'DRE Ger Real',year:2026,month:9,sourceLabel:'real',compareLabel:'Fcst 5+7 2026',
+  lines:gerReal.lines.map(l=>({id:l.id,label:l.label,kind:l.kind,months:l.months,total:l.total,compare:withCompare?compareCell(l,gerById.get(l.id),9,gerReal.receitaLiquida,gerOther.receitaLiquida):null}))});
 const snapshot=withCompare=>({title:'DRE DFs Real',year:2026,month:9,sourceLabel:'real',compareLabel:'Fcst 5+7 2026',
   lines:real.lines.map(l=>({id:l.id,label:l.label,kind:l.kind,months:l.months,total:l.total,compare:withCompare?compareCell(l,byId.get(l.id),9,real.receitaLiquida,other.receitaLiquida):null}))});
 (async()=>{
@@ -62,11 +78,36 @@ const snapshot=withCompare=>({title:'DRE DFs Real',year:2026,month:9,sourceLabel
    assert.equal(sheet.getCell('V5').value,c.realYtd);assert.equal(sheet.getCell('T5').numFmt,'0.0%');
   }else assert.equal(sheet.getCell('Q1').value,null);
  }
+ // DRE Gerencial: estrutura do modelo anexo (DRE Gerencial.xlsx), mesmas linhas e posições.
+ for(const withCompare of [false,true]){
+  const read=new ExcelJS.Workbook();await read.xlsx.load(await E.buildWorkbook(ExcelJS,gerSnapshot(withCompare)).xlsx.writeBuffer());
+  const sheet=read.getWorksheet('DRE Ger Real');
+  assert.equal(sheet.views[0].showGridLines,false);
+  assert.equal(sheet.getCell('C1').value,'jan');assert.equal(sheet.getCell('O1').value,2026);assert.equal(sheet.getCell('C2').value,'real');assert.equal(sheet.getCell('C2').font.size,8);
+  const templatePath='../DRE Gerencial.xlsx';
+  if(fs.existsSync(templatePath)){
+   const template=XLSX.readFile(templatePath).Sheets['DRE Ger Real'];
+   const norm=v=>String(v).trim().replace('IRJP','IRPJ').replace('Comercias','Comerciais');
+   for(const [address,cell] of Object.entries(template)){
+    if(address[0]==='!'||cell.v===undefined||!/^B\d+$/.test(address))continue;
+    assert.equal(norm(sheet.getCell(address).value),norm(cell.v),address);
+   }
+   for(const row of [3,9,17,18,30,31,36,37,44,45,49,50])assert.equal(sheet.getCell('B'+row).fill.fgColor.argb,'FFF2F2F2','B'+row+' faixa');
+   for(const row of [5,11,15,20,21,22,47])assert.notEqual(sheet.getCell('B'+row).fill&&sheet.getCell('B'+row).fill.fgColor&&sheet.getCell('B'+row).fill.fgColor.argb,'FFF2F2F2','B'+row+' sem faixa');
+  }
+  assert.equal(sheet.getCell('B3').font.bold,true);assert.equal(sheet.getCell('B15').font.italic,true);assert.equal(sheet.getCell('B18').font.bold,true);assert.equal(sheet.getCell('B22').alignment.indent,1);
+  assert.equal(sheet.getCell('C15').numFmt,'0.0%');assert.equal(sheet.getCell('C5').numFmt,'#,##0');assert.equal(sheet.getCell('C3').value,gerReal.lines[0].months[0]);assert.equal(sheet.getCell('O3').value,gerReal.lines[0].total);
+  if(withCompare){
+   assert.equal(sheet.getCell('Q1').value,'Mês');assert.equal(sheet.getCell('V1').value,'Acumulado');
+   const c=compareCell(gerReal.lines[0],gerById.get('receitaBruta'),9,gerReal.receitaLiquida,gerOther.receitaLiquida);
+   assert.equal(sheet.getCell('Q3').value,c.realMonth);assert.equal(sheet.getCell('S3').value,c.varMonth);assert.equal(sheet.getCell('V3').value,c.realYtd);
+  }else assert.equal(sheet.getCell('Q1').value,null);
+ }
  // PDF: mesma visão da tela, A4 paisagem, uma página, centralizado.
  const browser=await chromium.launch({channel:'msedge',headless:true});
  try{
-  for(const withCompare of [true,false]){
-   const html=E.printHtml(snapshot(withCompare),v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;'));
+  for(const [build,withCompare] of [[snapshot,true],[snapshot,false],[gerSnapshot,true],[gerSnapshot,false]]){
+   const html=E.printHtml(build(withCompare),v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;'));
    assert.match(html,/size:A4 landscape/);
    assert.match(html,/Ricardo Guimarães Filho<br>Contador/);
    const page=await browser.newPage();await page.setContent(html);
@@ -78,9 +119,9 @@ const snapshot=withCompare=>({title:'DRE DFs Real',year:2026,month:9,sourceLabel
    assert.ok(Math.abs(box.l-box.r)<2,'centralizado');assert.ok(box.overflow<=1,'tabela cabe na largura');
    assert.ok(await page.evaluate(()=>document.querySelector('.signature').getBoundingClientRect().top>document.querySelector('table').getBoundingClientRect().bottom),'assinatura abaixo da tabela');
    assert.equal(await page.locator('thead .group').count(),withCompare?3:1);
-   if(withCompare)await page.screenshot({path:process.env.DFS_SHOT||'nul'}).catch(()=>{});
+   if(withCompare)await page.screenshot({path:(build===snapshot?process.env.DFS_SHOT:process.env.GER_SHOT)||'nul'}).catch(()=>{});
    await page.close();
   }
  }finally{await browser.close();}
- console.log('DRE DFs export: Excel no modelo anexo (com e sem comparação) e PDF A4 paisagem em uma página OK');
+ console.log('DRE DFs/Gerencial export: Excel nos modelos anexos (com e sem comparação) e PDF A4 paisagem em uma página OK');
 })().catch(error=>{console.error(error);process.exitCode=1;});

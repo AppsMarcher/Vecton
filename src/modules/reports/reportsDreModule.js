@@ -24,14 +24,14 @@
       rowsForSource,
       computeDreCompareCell,
     } = deps;
-    let dfsExporter = null;
-    const exporter = () => dfsExporter || (dfsExporter = window.VECTON_DFS_EXPORT.create(deps));
+    let dreExporter = null;
+    const exporter = () => dreExporter || (dreExporter = window.VECTON_DRE_EXPORT.create(deps));
 
     // "Foto" da tabela DFs exibida (linhas, totais e blocos de comparação) usada por Imprimir, E-mail e Excel.
-    function dfsSnapshot({ title, year, month, report, compareReport, sourceLabel, compareLabel }) {
+    function dreSnapshot({ title, year, month, report, compareReport, sourceLabel, compareLabel, profile = "dfs", sheetName }) {
       const compareById = compareReport && month ? new Map(compareReport.lines.map(line => [line.id, line])) : null;
       return {
-        title, year, month: compareById ? month : (month || null), sourceLabel, compareLabel,
+        title, year, month: compareById ? month : (month || null), sourceLabel, compareLabel, profile, sheetName,
         lines: report.lines.map(line => ({
           id: line.id, label: line.label, kind: line.kind, months: line.months || [], total: line.total,
           compare: compareById ? computeDreCompareCell(line, compareById.get(line.id), month, report.receitaLiquida, compareReport.receitaLiquida) : null
@@ -88,7 +88,7 @@
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
         </div>`;
-      if (dfs) exporter().bind(detailPanel, () => detailPanel.__dfsSnapshot);
+      if (dfs) exporter().bind(detailPanel, () => detailPanel.__dreSnapshot);
       else detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
       return detailPanel.querySelector(`#${wrapId}`);
     }
@@ -149,7 +149,7 @@
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
         </div>`;
-      if (dfs) exporter().bind(detailPanel, () => detailPanel.__dfsSnapshot);
+      if (dfs) exporter().bind(detailPanel, () => detailPanel.__dreSnapshot);
       else detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
       return detailPanel.querySelector(`#${wrapId}`);
     }
@@ -200,7 +200,7 @@
     function renderDreGerReal(detailPanel) {
       const year = getCurrentYear();
       const month = getCurrentPeriodMonth();
-      const tableWrap = initCompareShell(detailPanel, "reports-ger-table-wrap", "DRE Gerencial Real");
+      const tableWrap = initCompareShell(detailPanel, "reports-ger-table-wrap", "DRE Gerencial Real", true);
       initFloatingScrollbar(tableWrap);
 
       populateCompareSel(detailPanel, year).then(() => {
@@ -228,6 +228,7 @@
 
         // Espera o comparativo ANTES de pintar — real+comparativo nascem
         // juntos, sem "flash" de upgrade in-place (mesma dinâmica do OPEX Real).
+        detailPanel.__dreSnapshot = null;
         tableWrap.innerHTML = window.vpSkeletonTable();
         const src = _compareSource;
         let compareReport = null;
@@ -241,6 +242,7 @@
         }
         if (compareIsStale(tableWrap, src)) return;
         tableWrap.innerHTML = buildDreGerRealTableMarkup(report, true, compareReport, month, compareLabelFor(detailPanel));
+        detailPanel.__dreSnapshot = dreSnapshot({ title: "DRE Gerencial Real", year, month, report, compareReport, sourceLabel: "real", compareLabel: compareLabelFor(detailPanel), profile: "ger", sheetName: "DRE Ger Real" });
         initAllReportTableResizers();
         initDreGerDrilldown(tableWrap, cacheEntry?.rows || [], year, "real");
         if (compareError) showCompareError(tableWrap, compareError);
@@ -282,7 +284,7 @@
         }
 
         // Espera o comparativo ANTES de pintar — mesma dinâmica do OPEX Real.
-        detailPanel.__dfsSnapshot = null;
+        detailPanel.__dreSnapshot = null;
         tableWrap.innerHTML = window.vpSkeletonTable();
         const src = _compareSource;
         let compareReport = null;
@@ -297,7 +299,7 @@
         }
         if (compareIsStale(tableWrap, src)) return;
         tableWrap.innerHTML = buildDreDfsRealTableMarkup(report, compareReport, month, compareLabelFor(detailPanel));
-        detailPanel.__dfsSnapshot = dfsSnapshot({ title: "DRE DFs Real", year, month, report, compareReport, sourceLabel: "real", compareLabel: compareLabelFor(detailPanel) });
+        detailPanel.__dreSnapshot = dreSnapshot({ title: "DRE DFs Real", year, month, report, compareReport, sourceLabel: "real", compareLabel: compareLabelFor(detailPanel) });
         initAllReportTableResizers();
         if (compareError) showCompareError(tableWrap, compareError);
       }
@@ -358,7 +360,7 @@
 
     function renderDreGerBudget(detailPanel) {
       const year = getCurrentYear();
-      const tableWrap = initBudgetShell(detailPanel, "reports-ger-budget-wrap", "DRE Gerencial Meta");
+      const tableWrap = initBudgetShell(detailPanel, "reports-ger-budget-wrap", "DRE Gerencial Meta", true);
       initFloatingScrollbar(tableWrap);
 
       populateSourceSel(detailPanel, year).then(() => {
@@ -368,12 +370,14 @@
       });
 
       async function doRender() {
+        detailPanel.__dreSnapshot = null;
         tableWrap.innerHTML = `<div class="actuals-empty">Carregando...</div>`;
         try {
           const rows = await getSourceRows(year);
           const report = buildDreGerRealReport(year, rows);
           if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado de cenário disponivel para ${year}.</div>`; return; }
           tableWrap.innerHTML = buildDreGerRealTableMarkup(report, true, null, null, sourceLabelFor(detailPanel));
+          detailPanel.__dreSnapshot = dreSnapshot({ title: "DRE Gerencial Meta", year, month: null, report, compareReport: null, sourceLabel: sourceLabelFor(detailPanel), compareLabel: null, profile: "ger", sheetName: "DRE Ger Meta" });
           initAllReportTableResizers();
           initDreGerDrilldown(tableWrap, rows, year, _budgetSource);
         } catch (e) {
@@ -425,7 +429,7 @@
       });
 
       async function doRender() {
-        detailPanel.__dfsSnapshot = null;
+        detailPanel.__dreSnapshot = null;
         tableWrap.innerHTML = `<div class="actuals-empty">Carregando...</div>`;
         let rows;
         try {
@@ -438,7 +442,7 @@
         const report = buildDreDfsRealReport(year, rows, gerReport);
         if (!report.lines.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhum dado disponivel para ${year}.</div>`; return; }
         tableWrap.innerHTML = buildDreDfsRealTableMarkup(report, null, null, sourceLabelFor(detailPanel));
-        detailPanel.__dfsSnapshot = dfsSnapshot({ title: "DRE DFs Meta", year, month: null, report, compareReport: null, sourceLabel: sourceLabelFor(detailPanel), compareLabel: null });
+        detailPanel.__dreSnapshot = dreSnapshot({ title: "DRE DFs Meta", year, month: null, report, compareReport: null, sourceLabel: sourceLabelFor(detailPanel), compareLabel: null });
         initAllReportTableResizers();
       }
     }

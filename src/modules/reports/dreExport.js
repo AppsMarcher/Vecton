@@ -6,27 +6,48 @@
     email: '<path d="M4 4h16v16H4z"/><path d="m22 6-10 7L2 6"/>',
     excel: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'
   }[type]}</svg>`;
-  const menu = () => `<div class="fc-export dfs-export"><button type="button" class="ghost-button" data-dfs-export-toggle aria-haspopup="true" aria-expanded="false">${icon("print")}Exportar</button><div class="fc-export-menu" hidden>${[["print", "Imprimir"], ["email", "Enviar por e-mail"], ["excel", "Baixar Excel"]].map(([key, label]) => `<button type="button" data-dfs-export="${key}">${icon(key)}${label}</button>`).join("")}</div></div>`;
+  const menu = () => `<div class="fc-export dre-export"><button type="button" class="ghost-button" data-dre-exp-toggle aria-haspopup="true" aria-expanded="false">${icon("print")}Exportar</button><div class="fc-export-menu" hidden>${[["print", "Imprimir"], ["email", "Enviar por e-mail"], ["excel", "Baixar Excel"]].map(([key, label]) => `<button type="button" data-dre-exp="${key}">${icon(key)}${label}</button>`).join("")}</div></div>`;
 
   const finite = value => Number.isFinite(Number(value));
   const plainName = snapshot => `${snapshot.title.replace(/\s+/g, "-")}-${snapshot.year}${snapshot.month ? "-" + String(snapshot.month).padStart(2, "0") : ""}`;
   const periodText = snapshot => snapshot.month ? `${MONTHS[snapshot.month - 1].replace(/^./, c => c.toUpperCase())}/${snapshot.year}` : `${snapshot.year} · ${snapshot.sourceLabel}`;
-  const hasFill = line => line.kind === "subtotal" || line.id === "resultadoExerc";
-  // Linhas em branco do modelo: antes de seção/subtotal/resultado e logo após um subtotal.
-  const spacerBefore = (previous, line) => Boolean(previous) && line.kind !== "percent" && (["section", "subtotal", "result"].includes(line.kind) || previous.kind === "subtotal");
+  const subtotalLike = kind => ["subtotal", "result", "result-final"].includes(kind);
+  const isGer = snapshot => snapshot.profile === "ger";
+  // Faixa cinza do modelo: DFs nos subtotais; Gerencial nos subtotais e no percentual logo abaixo deles.
+  const hasFill = (snapshot, line, previous) => isGer(snapshot)
+    ? subtotalLike(line.kind) || (line.kind === "percent" && Boolean(previous) && subtotalLike(previous.kind))
+    : line.kind === "subtotal" || line.id === "resultadoExerc";
+  // Linhas em branco entre blocos, como nos modelos anexos.
+  const spacerBefore = (snapshot, previous, line) => {
+    if (!previous) return false;
+    if (isGer(snapshot)) return !["percent", "detail"].includes(line.kind) && (subtotalLike(line.kind) || previous.kind !== "deduction");
+    return line.kind !== "percent" && (["section", "subtotal", "result"].includes(line.kind) || previous.kind === "subtotal");
+  };
+  // Estilo de cada tipo de linha, conforme "DRE DFs.xlsx" e "DRE Gerencial.xlsx".
+  function lineStyle(snapshot, line, previous) {
+    const percent = line.kind === "percent", section = line.kind === "section";
+    if (isGer(snapshot)) {
+      const filled = hasFill(snapshot, line, previous);
+      if (percent) return { bold: filled, italic: true, labelSize: 9, valueSize: 9, indent: 0, filled };
+      if (line.kind === "detail") return { bold: false, italic: false, labelSize: 9, valueSize: 9, indent: 1, filled };
+      return { bold: subtotalLike(line.kind), italic: false, labelSize: 10, valueSize: 10, indent: 0, filled };
+    }
+    return { bold: ["value", "subtotal", "result"].includes(line.kind), italic: percent, labelSize: percent ? 9 : 10, valueSize: 9, indent: section ? 0 : 1, filled: hasFill(snapshot, line, previous) };
+  }
 
-  // Planilha no formato do modelo "DRE DFs.xlsx": meses em C:N, total em O, Aptos Display,
-  // faixa cinza nos subtotais; os blocos de comparação (Mês e Acumulado) seguem à direita.
+  // Planilha no formato dos modelos "DRE DFs.xlsx" e "DRE Gerencial.xlsx": meses em C:N, total em O,
+  // Aptos Display, faixa cinza nos subtotais; os blocos de comparação (Mês e Acumulado) seguem à direita.
   function buildWorkbook(ExcelJS, snapshot) {
-    const book = new ExcelJS.Workbook(), sheet = book.addWorksheet("DRE DFs", {
+    const ger = isGer(snapshot);
+    const book = new ExcelJS.Workbook(), sheet = book.addWorksheet(snapshot.sheetName || "DRE DFs", {
       properties: { tabColor: { argb: "FF0070C0" }, defaultRowHeight: 12.75 },
       views: [{ showGridLines: false }],
       pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.51, right: 0.51, top: 0.79, bottom: 0.79, header: 0.31, footer: 0.31 } }
     });
     const compare = snapshot.lines.some(line => line.compare);
     const lastColumn = compare ? 25 : 15;
-    const widths = { 1: 9.14, 2: 34.4, 15: 12, 16: 2.5, 21: 2.5 };
-    for (let column = 1; column <= lastColumn; column++) sheet.getColumn(column).width = widths[column] || 11.5;
+    const widths = ger ? { 1: 3.3, 2: 33.4, 15: 12.4, 16: 2.5, 21: 2.5 } : { 1: 9.14, 2: 34.4, 15: 12, 16: 2.5, 21: 2.5 };
+    for (let column = 1; column <= lastColumn; column++) sheet.getColumn(column).width = widths[column] || (ger ? 11.4 : 11.5);
     const font = (size, bold, italic, color) => ({ name: "Aptos Display", size, bold, italic, ...(color ? { color: { argb: color } } : {}) });
     const gray = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
     const blocks = compare ? [[17, 20], [22, 25]] : [];
@@ -38,29 +59,29 @@
       if (style.format) cell.numFmt = style.format;
       if (style.fill) cell.fill = gray;
     };
-    sheet.getRow(1).height = 19.5; sheet.getRow(2).height = 17.85; sheet.getRow(3).height = 7.5;
+    const subSize = ger ? 8 : 10;
+    if (!ger) { sheet.getRow(1).height = 19.5; sheet.getRow(2).height = 17.85; sheet.getRow(3).height = 7.5; }
     MONTHS.forEach((month, index) => {
       set(1, 3 + index, month, { bold: true, align: "center" });
-      set(2, 3 + index, snapshot.sourceLabel, { italic: true, color: "FF0070C0", align: "center" });
+      set(2, 3 + index, snapshot.sourceLabel, { italic: true, color: "FF0070C0", align: "center", size: subSize });
     });
     set(1, 15, snapshot.year, { bold: true, align: "center", format: "0" });
-    set(2, 15, snapshot.sourceLabel, { italic: true, color: "FF0070C0", align: "center" });
+    set(2, 15, snapshot.sourceLabel, { italic: true, color: "FF0070C0", align: "center", size: subSize });
     if (compare) {
       for (const [first, title] of [[17, "Mês"], [22, "Acumulado"]]) {
         set(1, first, title, { bold: true, align: "center" }); sheet.mergeCells(1, first, 1, first + 3);
-        ["Real", snapshot.compareLabel || "Cenário", "Var R$", "Var %"].forEach((text, index) => set(2, first + index, text, { italic: true, color: "FF0070C0", align: "center" }));
+        ["Real", snapshot.compareLabel || "Cenário", "Var R$", "Var %"].forEach((text, index) => set(2, first + index, text, { italic: true, color: "FF0070C0", align: "center", size: subSize }));
       }
     }
-    let row = 4, previous = null;
+    let row = ger ? 3 : 4, previous = null;
     for (const line of snapshot.lines) {
-      if (spacerBefore(previous, line)) { sheet.getRow(row).height = 7.5; row++; }
-      sheet.getRow(row).height = 15.75;
-      const filled = hasFill(line), percent = line.kind === "percent", section = line.kind === "section";
-      const bold = ["value", "subtotal", "result"].includes(line.kind), italic = percent;
-      const labelStyle = { bold, italic, size: percent ? 9 : 10, indent: section ? 0 : 1, fill: filled };
-      set(row, 2, String(line.label).trim(), labelStyle);
+      if (spacerBefore(snapshot, previous, line)) { if (!ger) sheet.getRow(row).height = 7.5; row++; }
+      if (!ger) sheet.getRow(row).height = 15.75;
+      const look = lineStyle(snapshot, line, previous), filled = look.filled, percent = line.kind === "percent", section = line.kind === "section";
+      const { bold, italic } = look;
+      set(row, 2, String(line.label).trim(), { bold, italic, size: look.labelSize, indent: look.indent, fill: filled });
       if (!section) {
-        const style = { bold, italic, size: 9, align: "right", format: percent ? "0.0%" : "#,##0", fill: filled };
+        const style = { bold, italic, size: look.valueSize, align: "right", format: percent ? "0.0%" : "#,##0", fill: filled };
         for (let index = 0; index < 12; index++) set(row, 3 + index, line.months[index] ?? 0, style);
         set(row, 15, line.total ?? 0, style);
         const cell = line.compare;
@@ -101,7 +122,9 @@
       }
       return html;
     };
-    const body = snapshot.lines.map(line => `<tr class="${line.kind === "section" ? "section" : line.kind === "subtotal" || line.kind === "result" ? "subtotal" : line.kind === "percent" ? "percent" : line.kind === "detail" ? "detail" : ""}"><th>${esc(String(line.label).trim())}</th>${cells(line)}</tr>`).join("");
+    const rowClass = line => line.kind === "section" ? "section" : subtotalLike(line.kind) ? "subtotal" : line.kind === "percent" ? "percent" : line.kind === "detail" ? "detail" : "";
+    const pad = snapshot.lines.length > 26 ? 2.6 : 4.5;
+    const body = snapshot.lines.map(line => `<tr class="${rowClass(line)}"><th>${esc(String(line.label).trim())}</th>${cells(line)}</tr>`).join("");
     const title = `${snapshot.title} — ${periodText(snapshot)}`;
     return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
 @page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}html,body{margin:0;padding:0}
@@ -113,8 +136,8 @@ col.gap{width:${(8 / sum * 100).toFixed(2)}%}
 thead th{padding:4px 2px;text-align:center;font-weight:700;color:#334155;border-bottom:1px solid #cbd5e1;background:#fff}
 thead .group{border-bottom:1px solid #cbd5e1;text-transform:none}thead .sub th,thead .sub{font-size:${font - .3}px}
 th.line{text-align:left;padding-left:6px;vertical-align:middle}
-tbody th{text-align:left;font-weight:400;padding:4.5px 2px 4.5px 6px;white-space:nowrap;overflow:hidden;border-bottom:1px solid #e5e7eb}
-tbody td{text-align:right;padding:4.5px 3px;white-space:nowrap;border-bottom:1px solid #e5e7eb}
+tbody th{text-align:left;font-weight:400;padding:${pad}px 2px ${pad}px 6px;white-space:nowrap;overflow:hidden;border-bottom:1px solid #e5e7eb}
+tbody td{text-align:right;padding:${pad}px 3px;white-space:nowrap;border-bottom:1px solid #e5e7eb}
 td.gap,th.gap{background:#fff!important;border:0!important}
 tr.section th,tr.section td{background:#eef1f5;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:${font - .4}px}
 tr.detail th{padding-left:14px}
@@ -124,7 +147,7 @@ td.total{font-weight:700}
 .signature{position:fixed;left:0;right:0;bottom:0;text-align:center;font-size:${font + 2}px;font-weight:700;line-height:1.45}
 </style></head><body><div class="sheet"><div class="intro"><p>MARCHER BRASIL AGROINDUSTRIAL S.A.</p><p>${esc(title)}</p>${compare ? `<small>Comparativo: ${label}</small>` : ""}</div>
 <table><colgroup>${units.map(unit => unit === 8 ? '<col class="gap">' : `<col style="width:${(unit / sum * 100).toFixed(2)}%">`).join("")}</colgroup>
-<thead><tr><th class="line" rowspan="2">Linha DFs</th><th class="group" colspan="13">${esc(snapshot.month ? "Realizado" : snapshot.sourceLabel)}</th>${compare ? `<th class="gap" rowspan="2"></th><th class="group" colspan="4">Mês</th><th class="gap" rowspan="2"></th><th class="group" colspan="4">Acumulado</th>` : ""}</tr>
+<thead><tr><th class="line" rowspan="2">${esc(isGer(snapshot) ? "Linha Gerencial" : "Linha DFs")}</th><th class="group" colspan="13">${esc(snapshot.month ? "Realizado" : snapshot.sourceLabel)}</th>${compare ? `<th class="gap" rowspan="2"></th><th class="group" colspan="4">Mês</th><th class="gap" rowspan="2"></th><th class="group" colspan="4">Acumulado</th>` : ""}</tr>
 <tr class="sub">${MONTHS.map(month => `<th>${month.toUpperCase()}</th>`).join("")}<th>TOTAL</th>${compare ? `<th>Real</th><th>${label}</th><th>Var R$</th><th>Var %</th><th>Real</th><th>${label}</th><th>Var R$</th><th>Var %</th>` : ""}</tr></thead>
 <tbody>${body}</tbody></table></div><div class="signature">__________________________<br>Ricardo Guimarães Filho<br>Contador</div></body></html>`;
   }
@@ -141,18 +164,18 @@ td.total{font-weight:700}
       });
     }
     function bind(root, getSnapshot) {
-      const toggle = root.querySelector("[data-dfs-export-toggle]"), popup = root.querySelector(".dfs-export .fc-export-menu");
+      const toggle = root.querySelector("[data-dre-exp-toggle]"), popup = root.querySelector(".dre-export .fc-export-menu");
       if (!toggle || !popup) return;
       const close = () => { popup.hidden = true; toggle.setAttribute("aria-expanded", "false"); };
       toggle.onclick = () => { popup.hidden = !popup.hidden; toggle.setAttribute("aria-expanded", String(!popup.hidden)); };
-      root.addEventListener("click", event => { if (!event.target.closest(".dfs-export")) close(); });
+      root.addEventListener("click", event => { if (!event.target.closest(".dre-export")) close(); });
       root.addEventListener("keydown", event => { if (event.key === "Escape") { close(); toggle.focus(); } });
-      root.querySelectorAll("[data-dfs-export]").forEach(button => button.onclick = async () => {
+      root.querySelectorAll("[data-dre-exp]").forEach(button => button.onclick = async () => {
         close();
         try {
           const snapshot = getSnapshot();
           if (!snapshot) throw new Error("Aguarde o relatório terminar de carregar para exportar.");
-          const kind = button.dataset.dfsExport, title = `${snapshot.title} — ${periodText(snapshot)}`, filename = plainName(snapshot);
+          const kind = button.dataset.dreExp, title = `${snapshot.title} — ${periodText(snapshot)}`, filename = plainName(snapshot);
           if (kind === "excel") {
             if (!window.ExcelJS) throw new Error("O gerador de Excel não está disponível. Atualize a página.");
             const buffer = await buildWorkbook(window.ExcelJS, snapshot).xlsx.writeBuffer();
@@ -168,5 +191,5 @@ td.total{font-weight:700}
     }
     return { menu, bind };
   }
-  window.VECTON_DFS_EXPORT = { create, buildWorkbook, printHtml };
+  window.VECTON_DRE_EXPORT = { create, buildWorkbook, printHtml };
 })(window);

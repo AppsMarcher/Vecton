@@ -1,6 +1,6 @@
 /* Botão Exportar dos DREs DFs (Real e Meta): mesmo porte do antigo botão Excel da barra. */
-.dfs-export { position: relative; }
-.dfs-export > button { display: inline-flex; align-items: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, border-color .15s; }
-.dfs-export > button:hover { background: var(--theme-surface-tint, rgba(255,255,255,.06)); color: var(--text); }
-.dfs-export svg { width: 13px; height: 13px; flex: none; }
-.dfs-export [hidden] { display: none !important; }
+.dre-export { position: relative; }
+.dre-export > button { display: inline-flex; align-items: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--text-muted); font-size: 0.75rem; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, border-color .15s; }
+.dre-export > button:hover { background: var(--theme-surface-tint, rgba(255,255,255,.06)); color: var(--text); }
+.dre-export svg { width: 13px; height: 13px; flex: none; }
+.dre-export [hidden] { display: none !important; }
