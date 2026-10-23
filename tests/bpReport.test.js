@@ -60,3 +60,14 @@ vm.createContext(scope);vm.runInContext(buildSource+`\nthis.getResult=async(year
 const historic=M.build(plan,[batch('01',10)],[],{year:2025,month:12},{current:999},2026);
 assert.equal(historic.sections.find(s=>s.id==='equity').lines.find(l=>l.id==='profitReserve').current,99999900); // ano fechado: saldo BP, ignora o DRE
 assert.equal(historic.liability.current,99999900);
+
+// Item 2: conta inativa ou fora dos grupos BP, sem saldo, não derruba o relatório.
+const oddPlan=[...plan,{...node('odd','9.9.9','Outra'),active:false},{...node('odd2','3.1.1','Outra2'),active:true}];
+assert.doesNotThrow(()=>M.build(oddPlan,[batch('01',1)],[],{year:2026,month:10}));
+// ...mas com saldo o erro continua visível.
+assert.throws(()=>M.build(oddPlan,[{branch_id:'01',rows:[{account_id:'odd2',amount:5}]}],[],{year:2026,month:10}),/grupo BP/);
+// Item 3: a classificação vem do snapshot do lote, não do plano atual.
+const moved=plan.map(n=>n.id==='cash'?{...n,group_key:'Estoques'}:n);
+const snapBatch={branch_id:'01',plan_snapshot:plan,rows:[{account_id:'cash',amount:7}]};
+const agg=M.aggregate([snapBatch],moved);
+assert.equal(agg.values.get('cash'),700);assert.equal(agg.values.get('inventory')||0,0);
