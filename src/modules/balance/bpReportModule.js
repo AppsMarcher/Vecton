@@ -2,7 +2,8 @@
   "use strict";
   function createModule(d) {
     const M = window.VECTON_BP_REPORT_MODEL, esc = d.escapeHtml;
-    let generation = 0, reportRoot = null;
+    const exporter = window.VECTON_BP_EXPORT.create(d);
+    let generation = 0, reportRoot = null, shown = null;
     const format = cents => cents === null ? "—" : (cents / 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 }).replace(/^-0$/, "0");
     async function all(table, query) {
       const rows = [];
@@ -40,9 +41,11 @@
     }
     function draw(root, model) {
       root.innerHTML = `<article class="content-card bp-statement" aria-label="Balanço Patrimonial Real consolidado Marcher">
-        <header class="bp-statement-intro"><div><p class="section-kicker">MARCHER</p><h2>Balanço Patrimonial</h2></div><p class="bp-statement-dates">${model.current.date}<span>comparado a ${model.previous.date}</span></p></header>
+        <header class="bp-statement-intro"><div><p class="section-kicker">MARCHER</p><h2>Balanço Patrimonial</h2></div><div class="bp-statement-actions"><p class="bp-statement-dates">${model.current.date}<span>comparado a ${model.previous.date}</span></p>${exporter.menu()}</div></header>
         <div class="bp-statement-scroll" tabindex="0" role="region" aria-label="Ativo e Passivo lado a lado"><div class="bp-statement-grid">${side(model,"asset","ATIVO","TOTAL DO ATIVO")}${side(model,"liability","PASSIVO","TOTAL DO PASSIVO")}</div></div>
         </article>`;
+      shown = model;
+      exporter.bind(root, () => shown);
     }
     function renderSelected(root, reportId) {
       if (reportId !== "balanceSheetReal") return false;

@@ -26,7 +26,7 @@ const amounts={
   await page.route('http://localhost/bp-report-test',r=>r.fulfill({contentType:'text/html; charset=utf-8',body:'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"></head><body style="height:auto;overflow:auto"><main style="padding:24px;max-width:1280px;margin:auto"><section id="report"></section></main></body></html>'}));
   await page.goto('http://localhost/bp-report-test');
   for(const p of ['styles.css','src/styles/appearance.css','src/modules/balance/bp.css'])await page.addStyleTag({path:path.resolve(p)});
-  for(const p of ['src/modules/balance/bpReportModel.js','src/modules/balance/bpReportModule.js'])await page.addScriptTag({path:path.resolve(p)});
+  for(const p of ['src/modules/balance/bpReportModel.js','src/modules/balance/bpExport.js','src/modules/balance/bpReportModule.js'])await page.addScriptTag({path:path.resolve(p)});
   await page.evaluate(({plan,amounts})=>{
    window.period={year:2026,month:10};window.allowed=true;window.user='u';window.calls=[];window.dreCalls=[];window.waiting=[];window.delay=false;window.missing=false;window.dreMissing=false;window.failure=false;
    const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -48,6 +48,25 @@ const amounts={
   },{plan,amounts});
   await page.locator('.bp-statement-grid').waitFor();
   assert.equal(await page.locator('#report select').count(),0);
+  // Exportar: ao lado das datas, sem borda azul; PDF em A4 paisagem, uma página, centralizado.
+  assert.equal(await page.locator('.bp-statement-actions [data-bp-export-toggle]').count(),1);
+  await page.locator('[data-bp-export-toggle]').click();
+  assert.equal(await page.locator('[data-bp-export]').count(),3);
+  assert.deepEqual(await page.locator('[data-bp-export]').allInnerTexts(),['Imprimir','Enviar por e-mail','Baixar Excel']);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(()=>{const probe=document.createElement('i');probe.style.cssText='border:1px solid var(--blue)';document.body.append(probe);const blue=getComputedStyle(probe).borderTopColor;probe.remove();return getComputedStyle(document.querySelector('[data-bp-export-toggle]')).borderTopColor===blue;}),false);
+  const boxes=await page.evaluate(()=>({d:document.querySelector('.bp-statement-dates').getBoundingClientRect().right,b:document.querySelector('[data-bp-export-toggle]').getBoundingClientRect().left}));
+  assert.ok(boxes.d<=boxes.b,'as datas ficam à esquerda do botão');
+  const exportModel=await page.evaluate(async()=>{const m=await window.report.read('org',window.period);window.dreCalls.pop();return m;});
+  const printHtml=await page.evaluate(m=>window.VECTON_BP_EXPORT.printHtml(m,v=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;')),exportModel);
+  assert.match(printHtml,/size:A4 landscape/);
+  const pdfPage=await browser.newPage();await pdfPage.setContent(printHtml);
+  const pdf=await pdfPage.pdf({preferCSSPageSize:true,printBackground:true});
+  assert.equal((pdf.toString('latin1').match(/\/Type\s*\/Page(?!s)/g)||[]).length,1);
+  const media=pdf.toString('latin1').match(/\/MediaBox\s*\[\s*0\s+0\s+([\d.]+)\s+([\d.]+)/);assert.ok(Number(media[1])>Number(media[2]),'paisagem');
+  const sheetBox=await pdfPage.evaluate(()=>{const r=document.querySelector('.sheet').getBoundingClientRect();return{l:r.left,r:innerWidth-r.right};});
+  assert.ok(Math.abs(sheetBox.l-sheetBox.r)<2,'centralizado');
+  await pdfPage.close();
   assert.equal(await page.locator('.bp-statement-side').count(),2);
   assert.equal(await page.locator('.bp-statement-heading th').allTextContents().then(x=>x.join('|')),'ATIVO|2026|2025|PASSIVO|2026|2025');
   assert.match(await page.locator('.bp-statement-dates').innerText(),/31\/10\/2026.*31\/12\/2025/s);

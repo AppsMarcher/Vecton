@@ -695,6 +695,9 @@ const bpPlanModule = window.VECTON_BP_PLAN.createBpPlanModule({
 });
 bpModule = window.VECTON_BP.createModule({
   root: views.bpLoad, escapeHtml, isAdmin,
+  alert: message => appAlert(message, "warn"),
+  sendEmail: payload => callEdgeFunction("send-report-email", payload),
+  getUserName: () => state.profile?.name || "",
   openPeriod: () => periodTrigger.click(),
   getUserId: () => currentUser?.id || null,
   getPeriod: () => state.currentPeriod,

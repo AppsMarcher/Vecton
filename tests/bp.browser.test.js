@@ -18,7 +18,7 @@ const plan = [
     await page.goto('http://localhost/bp-test');
     for (const file of ['styles.css', 'src/modules/balance/bp.css', 'src/styles/appearance.css']) await page.addStyleTag({ path: path.resolve(file) });
     await page.addScriptTag({ path: require.resolve(process.env.BP_XLSX_BROWSER_LIB || '../artifacts/bp-test-deps/node_modules/xlsx/dist/xlsx.full.min.js') });
-    for (const file of ['src/modules/params/bpPlanModule.js', 'src/modules/balance/bpModel.js', 'src/modules/balance/bpReportModel.js', 'src/modules/balance/bpReportModule.js', 'src/modules/balance/bpModule.js']) await page.addScriptTag({ path: path.resolve(file) });
+    for (const file of ['src/modules/params/bpPlanModule.js', 'src/modules/balance/bpModel.js', 'src/modules/balance/bpReportModel.js', 'src/modules/balance/bpExport.js', 'src/modules/balance/bpReportModule.js', 'src/modules/balance/bpModule.js']) await page.addScriptTag({ path: path.resolve(file) });
     await page.evaluate(()=>document.documentElement.dataset.vectonTheme='clear');
     await page.evaluate(async plan => {
       window.plan = plan; window.admin = true; window.active = 'bpPlan'; window.calls = []; window.fail = false; window.dbDrafts=[]; window.dbFinals=[]; window.user = 'admin'; window.period = { year: 2026, month: 2 };
