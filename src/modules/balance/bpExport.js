@@ -79,9 +79,10 @@
 @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}html,body{margin:0;padding:0}
 body{font:${font}px Arial,sans-serif;color:#172033;display:flex;justify-content:center}
 .sheet{width:186mm;max-width:100%;margin:0 auto;break-inside:avoid;page-break-inside:avoid}
-.intro{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px}
-.intro p{margin:0;font-size:${font - 1.5}px;letter-spacing:.08em;color:#64748b}.intro h1{margin:3px 0 0;font-size:${font + 8}px}
-.dates{text-align:right;font-weight:700}.dates span{display:block;font-weight:400;color:#64748b;margin-top:3px}
+.intro{text-align:center;margin-bottom:16px;line-height:1.45}
+.intro p{margin:0;font-size:${font + 1}px;font-weight:700}.intro .gap{height:1.4em}.intro h1{margin:0;font-size:${font + 1}px;font-weight:700}
+.dates{margin-top:6px;font-size:${font}px;color:#475569}
+.signature{position:fixed;left:0;right:0;bottom:0;text-align:center;font-size:${font + 1}px;font-weight:700;line-height:1.45}
 .grid{display:grid;grid-template-columns:1fr 1fr;column-gap:8mm}
 table{width:100%;border-collapse:collapse;table-layout:fixed}th{text-align:left;font-weight:400;padding:1.5px 0 1.5px 10px}
 td{text-align:right;white-space:nowrap;padding:1.5px 0 1.5px 8px;width:22%}
@@ -90,12 +91,12 @@ col.l{width:56%}h3{margin:12px 0 4px;font-size:${font + .5}px}
 .total th,.total td{font-weight:700;padding-top:8px}
 .grand th{font-weight:700;padding-top:8px}.grand td{font-weight:700;padding-top:8px;border-top:1px solid #334155;border-bottom:3px double #334155}
 .cell{align-self:start}.foot{align-self:end;margin-top:12px}
-</style></head><body><div class="sheet"><div class="intro"><div><p>MARCHER</p><h1>Balanço Patrimonial</h1></div><div class="dates">${model.current.date}<span>comparado a ${model.previous.date}</span></div></div>
+</style></head><body><div class="sheet"><div class="intro"><p>MARCHER BRASIL AGROINDUSTRIAL S.A.</p><p>CNPJ: 06.221.454/0001-79</p><div class="gap"></div><h1>BALANÇO PATRIMONIAL</h1><div class="dates">${model.current.date} · comparado a ${model.previous.date}</div></div>
 <div class="grid"><div>${head("ATIVO")}</div><div>${head("PASSIVO")}</div>
 <div class="cell">${section("assetCurrent")}</div><div class="cell">${section("liabilityCurrent")}</div>
 <div class="cell">${section("assetNoncurrent")}</div><div class="cell">${section("liabilityNoncurrent")}</div>
 <div></div><div class="cell">${section("equity")}</div>
-<div class="foot">${grand("TOTAL DO ATIVO", model.asset)}</div><div class="foot">${grand("TOTAL DO PASSIVO", model.liability)}</div></div></div></body></html>`;
+<div class="foot">${grand("TOTAL DO ATIVO", model.asset)}</div><div class="foot">${grand("TOTAL DO PASSIVO", model.liability)}</div></div></div><div class="signature">__________________________<br>Ricardo Guimarães Filho<br>Contador</div></body></html>`;
   }
 
   function create(d) {
