@@ -106,6 +106,16 @@ Cada lançamento vira uma linha de `actuals_import_rows` (conta/CC só dígitos,
 O Vecton valida cada linha: conta no Plano de Contas DRE, centro de custos e empresa cadastrados; uma linha reprovada bloqueia a carga (como na tela manual) e o e-mail de erro lista os motivos **agrupados** (ex.: "conta 31101099 · CC - · filial 01 (40 linhas) — Conta nao cadastrada").
 Ligar: simular com `node src/index.js dre --dry-run`, conferir o saldo/linhas com o Excel e então `update carga_automatica_config set enabled = true where job = 'dre';`. A tarefa agendada atende as duas cargas (`node src/index.js run`). O login SQL do robô precisa ler `CT2010` (no ambiente atual ele lê todas as tabelas).
 
+## Carga do Balanço Patrimonial (semi-automática)
+
+Carga **mensal e sob demanda** do BP Real, sem horário programado: na semana seguinte à virada do mês, em **Parâmetros → Carga de Realizado → Automatizadas**, o card **Balanço Patrimonial** traz o seletor **Mês da carga** (padrão: mês anterior; só meses fechados, últimos 18) e o botão **Carregar agora**. O pedido leva o mês escolhido (`carga_automatica_pedido.reference_year/reference_month`, migration 308) e o robô o atende na próxima rodada (até 5 min).
+- **Consulta:** a mesma do `Base Carga BP.xlsm` (`sql/bp_mes.sql`): saldo acumulado no fim do mês = CQ0 até o fim do mês anterior + movimento da CT2 do mês (moeda `01`, saldo tipo `1`), contas `params.conta_de`…`params.conta_ate` (padrão `1` a `2zzzzzzzzzzzzzzzz`), só contas com saldo diferente de zero.
+- **Regras da carga manual** (tela Carga de Realizado - Balanço Patrimonial): consolidada Marcher, carga completa da competência (o fechamento anterior do mês é substituído), grava só contas **analíticas** presentes na extração (as sintéticas são conferência; contas omitidas não herdam saldo). Conta inexistente no Plano BP, tipo divergente, duplicada, inativa ou sem chave agrupadora **bloqueia** a carga (log `erro` + e-mail de erro agrupado por conta), igual à importação do Excel.
+- **Como grava:** `bp_save_draft` + `bp_apply_draft` (as mesmas funções da tela), depois confere o fechamento gravado (nº de contas e soma). O usuário do robô precisa ser **Administrador** (`can_manage_bp_plan`). Rascunhos `Protheus BP …` de tentativas anteriores do mesmo mês são removidos antes.
+- **Proteções:** mês corrente/futuro é recusado (`--force`/`--dry-run` liberam); extração vazia e queda > `queda_max_pct` (30%) vs. a última carga `ok` do mesmo mês bloqueiam.
+- **Linha de comando:** `node src/index.js bp --mes=2026-09 --dry-run` simula (CSV em `logs/BP_2026-09.csv`); sem `--dry-run` carrega. O `--mes` é obrigatório.
+- Não gera aviso de "carga aplicada" (a tela manual do BP também não); só o e-mail/sino de erro.
+
 ## Nova carga
 
 Criar `src/jobs/<nome>.js` exportando: `nome`, `precisaRegioes`, `alvo` (tabelas e funções do Vecton: `batches`, `rows`, `apply`, `remove`, `errorSelect`), `extrairMes`, `paraLinhaImport`, `descreverErro`, `textoResumo`, `textoSimulacao` e `gravarCsv`; copiar a query para `sql/<nome>_mes.sql` com placeholders; registrar em `JOBS` (`src/runner.js`), inserir a linha em `carga_automatica_config` e o card em `JOBS` de `src/modules/actuals/cargasAutomatizadasModule.js`. O runner é genérico (lote `complete`, validação, proteções, log, avisos, pedidos).

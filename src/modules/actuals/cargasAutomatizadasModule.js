@@ -35,6 +35,13 @@
         icon: '<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.4 5.6A1 1 0 0 0 6.6 20H19"/><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>'
       }
     };
+    // BP: carga de mes fechado, so sob demanda; o card ganha o seletor do mes a carregar.
+    JOBS.bp = {
+      label: "Balanço Patrimonial",
+      color: "purple",
+      onDemandMonth: true,
+      icon: '<path d="M12 3v18M5 7h14M5 7l-2 6a3 3 0 0 0 6 0L7 7M19 7l-2 6a3 3 0 0 0 6 0l-2-6"/>'
+    };
     const FALLBACK_ICON = '<path d="M12 2v20M5 9l7-7 7 7"/>';
 
     let root = null;
@@ -44,6 +51,7 @@
     let pollTimer = null;
     let busyJobs = new Set();
     let knownOpen = new Map();
+    const chosenMonth = {};
 
     const label = (job) => JOBS[job]?.label || job;
 
@@ -58,6 +66,32 @@
       try {
         return new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: TZ });
       } catch { return "mês corrente"; }
+    }
+
+    const MONTH_NAMES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const monthValue = (y, m) => `${y}-${String(m).padStart(2, "0")}`;
+    const monthText = (value) => {
+      const [y, m] = String(value).split("-").map(Number);
+      return `${MONTH_NAMES[m - 1]}/${y}`;
+    };
+
+    // Ultimos 18 meses ja encerrados (do mes anterior para tras), no fuso de Sao Paulo.
+    function closedMonths() {
+      const now = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
+      let y = now.getFullYear();
+      let m = now.getMonth(); // 0-based do mes corrente = mes anterior em 1-based
+      const out = [];
+      for (let i = 0; i < 18; i += 1) {
+        if (m === 0) { y -= 1; m = 12; }
+        out.push(monthValue(y, m));
+        m -= 1;
+      }
+      return out;
+    }
+
+    function selectedMonth(job) {
+      const list = closedMonths();
+      return list.includes(chosenMonth[job]) ? chosenMonth[job] : list[0];
     }
 
     function windowText(cfg) {
@@ -80,7 +114,8 @@
       const pedido = latestBy(data.pedidos, cfg.job);
       const open = pedido && (pedido.status === "pendente" || pedido.status === "executando");
       const busy = open || busyJobs.has(cfg.job);
-      const horarios = (cfg.horarios || []).join(" · ") || "—";
+      const onDemandMonth = !!meta.onDemandMonth;
+      const horarios = (cfg.horarios || []).join(" · ") || (onDemandMonth ? "Somente sob demanda" : "—");
 
       let last = '<span class="auto-carga-muted">Nenhuma execução registrada.</span>';
       if (log) {
@@ -93,7 +128,8 @@
       let pedidoHtml = "";
       if (pedido) {
         const cls = pedido.status === "erro" ? "err" : (pedido.status === "concluido" ? "ok" : "warn");
-        pedidoHtml = `<div><span class="auto-carga-k">Último pedido</span> <b>${escapeHtml(formatWhen(pedido.requested_at))}</b> · <span class="auto-carga-status auto-carga-status--${cls}">${escapeHtml(PEDIDO_TEXT[pedido.status] || pedido.status)}</span>`
+        const ref = pedido.reference_year ? ` · ref. ${escapeHtml(monthValue(pedido.reference_year, pedido.reference_month))}` : "";
+        pedidoHtml = `<div><span class="auto-carga-k">Último pedido</span> <b>${escapeHtml(formatWhen(pedido.requested_at))}</b>${ref} ·<span class="auto-carga-status auto-carga-status--${cls}">${escapeHtml(PEDIDO_TEXT[pedido.status] || pedido.status)}</span>`
           + (!open && pedido.resultado ? `<br><span class="auto-carga-muted">${escapeHtml(String(pedido.resultado).slice(0, 200))}</span>` : "")
           + (open ? '<br><span class="auto-carga-muted">O robô atende o pedido em até 5 minutos.</span>' : "")
           + "</div>";
@@ -107,11 +143,12 @@
             <span class="auto-carga-badge ${cfg.enabled ? "is-on" : "is-off"}">${cfg.enabled ? "Ligada" : "Pausada"}</span>
           </div>
           <div class="auto-carga-meta">
-            <div><span class="auto-carga-k">Horários</span> <b>${escapeHtml(horarios)}</b> <span class="auto-carga-muted">(${escapeHtml(windowText(cfg))})</span></div>
+            <div><span class="auto-carga-k">Horários</span> <b>${escapeHtml(horarios)}</b> <span class="auto-carga-muted">(${onDemandMonth ? "mês fechado" : escapeHtml(windowText(cfg))})</span></div>
             <div><span class="auto-carga-k">Última carga</span> ${last}</div>
             ${pedidoHtml}
           </div>
           <div class="auto-carga-actions">
+            ${onDemandMonth ? `<label class="auto-carga-month"><span class="auto-carga-k">Mês da carga</span> <select data-auto-carga-month="${escapeHtml(cfg.job)}" ${busy ? "disabled" : ""}>${closedMonths().map((v) => `<option value="${v}" ${v === selectedMonth(cfg.job) ? "selected" : ""}>${escapeHtml(monthText(v))}</option>`).join("")}</select></label>` : ""}
             <button type="button" class="primary-button auto-carga-run" data-auto-carga-run="${escapeHtml(cfg.job)}" ${busy ? "disabled" : ""}>${busy ? "Pedido em andamento…" : "Carregar agora"}</button>
           </div>
         </div>`;
@@ -136,7 +173,7 @@
       const [configs, logs, pedidos] = await Promise.all([
         fetchSupabaseRowsSafe("carga_automatica_config", `${base}&select=job,descricao,enabled,horarios,meses_atras,meses_frente&order=job.asc`),
         fetchSupabaseRowsSafe("carga_automatica_log", `${base}&select=job,status,started_at,total_rows,rows_fat,rows_cart,mensagem&order=started_at.desc&limit=40`),
-        fetchSupabaseRowsSafe("carga_automatica_pedido", `${base}&select=id,job,status,requested_at,started_at,finished_at,resultado&order=requested_at.desc&limit=30`)
+        fetchSupabaseRowsSafe("carga_automatica_pedido", `${base}&select=id,job,status,requested_at,started_at,finished_at,resultado,reference_year,reference_month&order=requested_at.desc&limit=30`)
       ]);
       return { configs: configs || [], logs: logs || [], pedidos: pedidos || [] };
     }
@@ -191,13 +228,18 @@
       if (msg.includes("duplicate key") || msg.includes("uq_carga_automatica_pedido_aberto")) return "Já existe um pedido em andamento para esta carga.";
       if (msg.includes("row-level security") || msg.includes("42501")) return "Seu perfil não tem permissão para solicitar cargas automáticas.";
       if (msg.includes("carga_automatica_pedido") && msg.includes("does not exist")) return "A tabela de pedidos ainda não existe no banco (migration 263).";
+      if (msg.includes("reference_year") || msg.includes("reference_month")) return "O banco ainda não tem o mês do pedido (migration 308).";
       return "Não foi possível registrar o pedido. Tente novamente.";
     }
 
     async function request(job) {
       if (busyJobs.has(job)) return;
+      const onDemandMonth = !!JOBS[job]?.onDemandMonth;
+      const month = onDemandMonth ? selectedMonth(job) : null;
       const ok = await appConfirm(
-        `Carregar agora: ${label(job)}?\n\nIsto apaga e regrava ${monthLabelNow()} com os dados atuais do Protheus e envia os avisos de carga aplicada. O robô atende o pedido em até 5 minutos.`,
+        onDemandMonth
+          ? `Carregar agora: ${label(job)} de ${monthText(month)}?\n\nIsto substitui o fechamento de ${monthText(month)} (saldo acumulado até o último dia do mês) com os dados atuais do Protheus. O robô atende o pedido em até 5 minutos.`
+          : `Carregar agora: ${label(job)}?\n\nIsto apaga e regrava ${monthLabelNow()} com os dados atuais do Protheus e envia os avisos de carga aplicada. O robô atende o pedido em até 5 minutos.`,
         "warn"
       );
       if (!ok) return;
@@ -205,7 +247,7 @@
       render();
       try {
         const org = await resolveOrganizationId();
-        await insertSupabaseRows("carga_automatica_pedido", [{ organization_id: org, job, status: "pendente" }]);
+        await insertSupabaseRows("carga_automatica_pedido", [{ organization_id: org, job, status: "pendente", ...(month ? { reference_year: Number(month.slice(0, 4)), reference_month: Number(month.slice(5)) } : {}) }]);
         showToast?.(`Pedido enviado: ${label(job)}. O robô atende em até 5 minutos.`, "success");
       } catch (err) {
         console.error(err);
@@ -220,6 +262,10 @@
       root = rootEl;
       if (!root || root.dataset.bound === "1") return;
       root.dataset.bound = "1";
+      root.addEventListener("change", (event) => {
+        const sel = event.target.closest("[data-auto-carga-month]");
+        if (sel) chosenMonth[sel.dataset.autoCargaMonth] = sel.value;
+      });
       root.addEventListener("click", (event) => {
         const btn = event.target.closest("[data-auto-carga-run]");
         if (btn && !btn.disabled) request(btn.dataset.autoCargaRun);

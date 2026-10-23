@@ -13370,3 +13370,5 @@ td.capex-z { color: var(--text-faint); }
   .headcount-load-layout .editor-actions { flex-wrap: wrap; }
   .headcount-load-layout .actuals-rows-toolbar { flex-wrap: wrap; gap: 8px; }
 }
+.auto-carga-month { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; }
+.auto-carga-month select { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border, rgba(128,128,128,0.35)); background: var(--surface, transparent); color: var(--text); font: inherit; }

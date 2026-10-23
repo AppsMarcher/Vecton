@@ -8,8 +8,9 @@ import { ROOT_DIR } from "./config.js";
 import { agruparErros } from "./erros.js";
 import * as vendas from "./jobs/vendas.js";
 import * as dre from "./jobs/dre.js";
+import * as bp from "./jobs/bp.js";
 
-export const JOBS = { vendas, dre };
+export const JOBS = { vendas, dre, bp };
 const CHUNK_LINHAS = 500;
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -95,6 +96,16 @@ async function processarMes(ctx, job, mes) {
     await registrarLog(sb, orgId, base, { ...cabecalho, status: "bloqueada", detalhes: { ...detalhes, linhas_anteriores: ultimo.total_rows },
       mensagem: `Queda anormal: ${resumo.total} linhas contra ${ultimo.total_rows} na ultima carga (limite ${quedaMax}%). Use --force se for esperado.` });
     return { status: "bloqueada", mensagem: `Queda anormal: ${resumo.total} linhas contra ${ultimo.total_rows} na última carga (limite ${quedaMax}%)` };
+  }
+
+  // Carga com fluxo proprio de aplicacao (ex.: BP, que nao usa lote de importacao linha a linha).
+  if (job.aplicarMes) {
+    const hhmm = agora(cfg.timezone).hhmm;
+    const log = (extra) => registrarLog(sb, orgId, base, { ...cabecalho, ...extra });
+    const gravarCopia = params.diretorio_saida
+      ? () => { try { job.gravarCsv(params.diretorio_saida, mes, linhas); return ""; } catch (e) { return ` (CSV nao gravado: ${e.message})`; } }
+      : null;
+    return job.aplicarMes({ sb, orgId, params, mes, rotulo, hhmm, extraido, detalhes, log, gravarCopia });
   }
 
   const removidos = await limparLotesAutoPendentes(sb, orgId, alvo, job.nome);
@@ -184,6 +195,11 @@ async function concluirPedido(sb, pedidoId, resumo) {
   } catch (e) { console.error("Falha ao atualizar o pedido:", e.message); }
 }
 
+// Carga de mes fechado (BP) pedida para o mes corrente ou futuro.
+export function mesAberto(job, m, hoje) {
+  return !!job.somenteMesFechado && m.ano * 12 + m.mes >= hoje.ano * 12 + hoje.mes;
+}
+
 // modo "agenda": roda o que estiver devido; modo "manual": roda o job pedido agora.
 export async function executar(cfg, { jobNome, agenda = false, dryRun = false, force = false, mes = null }) {
   const { sb, user, orgId } = await conectar(cfg);
@@ -211,11 +227,16 @@ export async function executar(cfg, { jobNome, agenda = false, dryRun = false, f
           .map((r) => ({ municipio: r.municipio, uf: r.uf, regional: r.comercial_territorios?.nome }));
         if (!regioes.length) throw new Error("comercial_regioes_municipio esta vazia (rode a migration 260)");
       }
-      const meses = mes ? [mes] : janelaMeses(agora(cfg.timezone), config.meses_atras, config.meses_frente);
+      // Mes: --mes (manual) > mes escolhido no pedido ("Carregar agora") > janela configurada.
+      const mesPedido = pedido?.reference_year ? { ano: pedido.reference_year, mes: pedido.reference_month } : null;
+      if (job.exigeMes && !mes && !mesPedido) throw new Error(`${nome}: informe o mes da carga (escolha o mes no card ou use --mes=AAAA-MM)`);
+      const meses = mes ? [mes] : mesPedido ? [mesPedido] : janelaMeses(agora(cfg.timezone), config.meses_atras, config.meses_frente);
       const ctx = { cfg, sb, user, orgId, config, regioes, opcoes: { dryRun, force } };
       for (const m of meses) {
-        try { doJob.push({ job: nome, mes: m, ...(await processarMes(ctx, job, m)) }); }
-        catch (e) { console.error(`${nome} ${m.ano}-${pad2(m.mes)}: ${e.message}`); doJob.push({ job: nome, mes: m, status: "erro", mensagem: e.message }); }
+        try {
+          if (mesAberto(job, m, agora(cfg.timezone)) && !force && !dryRun) throw new Error(`${pad2(m.mes)}/${m.ano} ainda nao esta fechado: esta carga so aceita meses encerrados`);
+          doJob.push({ job: nome, mes: m, ...(await processarMes(ctx, job, m)) });
+        } catch (e) { console.error(`${nome} ${m.ano}-${pad2(m.mes)}: ${e.message}`); doJob.push({ job: nome, mes: m, status: "erro", mensagem: e.message }); }
       }
     } catch (e) {
       if (!pedido) throw e;
