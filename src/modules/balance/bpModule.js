@@ -31,8 +31,9 @@
     const form=root.querySelector('form'),feedback=root.querySelector('[data-feedback]'),detail=root.querySelector('[data-detail]');
     const run=async work=>{if(busy||!current())return;busy=true;const controls=[...root.querySelectorAll('button,input,select')].map(el=>[el,el.disabled]);controls.forEach(([el])=>el.disabled=true);try{await work();}catch(e){if(current()){feedback.classList.add('is-error');feedback.textContent=e.message;}}finally{busy=false;if(current())controls.forEach(([el,disabled])=>el.disabled=disabled);}};
     const reload=async(message,error=false)=>{busy=false;if(current())await renderLoad(message,error);};
-    const save=async(rows,file,batch=null,snapshot=plan)=>{
-     const id=await d.rpc('bp_save_draft',{p_org:org,p_id:batch?.draft?batch.id:null,p_revision:batch?.draft?batch.revision:null,p_year:batch?.reference_year||period.year,p_month:batch?.reference_month||period.month,p_source:source,p_scenario:batch?batch.scenario_id:scenario||null,p_file:file,p_rows:rows,p_plan:snapshot});
+    const save=async(rows,file,batch=null)=>{
+     // Sempre grava o plano atual: um snapshot antigo nunca passaria na conferência do servidor.
+     const id=await d.rpc('bp_save_draft',{p_org:org,p_id:batch?.draft?batch.id:null,p_revision:batch?.draft?batch.revision:null,p_year:batch?.reference_year||period.year,p_month:batch?.reference_month||period.month,p_source:source,p_scenario:batch?batch.scenario_id:scenario||null,p_file:file,p_rows:rows,p_plan:plan});
      selected=id;return id;
     };
     root.querySelector('[data-period]').onclick=()=>d.openPeriod?.();
@@ -80,7 +81,7 @@
     detail.querySelector('[data-search]').oninput=drawRows;drawRows();
     detail.querySelector('[data-add]').onclick=()=>{if(batch.draft)editor();else void run(async()=>{await save(rows,batch.file_name,batch,snapshot);await reload('Rascunho criado. O fechamento atual permanece até a aplicação.');});};
     detail.querySelector('[data-delete]').onclick=async()=>{if(!await d.confirm(`Excluir ${batch.draft?'o rascunho':'o lote aplicado e seus saldos'} de ${months[batch.reference_month-1]}/${batch.reference_year}?`))return;void run(async()=>{await d.rpc('bp_delete_batch',{p_org:org,p_id:batch.id,p_draft:!!batch.draft,p_revision:batch.revision||null});selected=null;await reload('Lote excluído.');});};
-    detail.querySelector('[data-apply]')?.addEventListener('click',async()=>{if(error)return;if(!await d.confirm(`Aplicar os saldos BP de ${months[batch.reference_month-1]}/${batch.reference_year}? O lote anterior deste período e destino será excluído definitivamente.`))return;void run(async()=>{selected=await d.rpc('bp_apply_draft',{p_org:org,p_id:batch.id,p_revision:batch.revision});await reload('Lote aplicado. O lote substituído foi excluído.');});});
+    detail.querySelector('[data-apply]')?.addEventListener('click',async()=>{if(error)return;if(!await d.confirm(`Aplicar os saldos BP de ${months[batch.reference_month-1]}/${batch.reference_year}? O lote anterior deste período e destino será excluído definitivamente.`))return;void run(async()=>{const refreshed=await save(rows,batch.file_name,batch);selected=await d.rpc('bp_apply_draft',{p_org:org,p_id:refreshed,p_revision:batch.revision+1});await reload('Lote aplicado. O lote substituído foi excluído.');});});
    }catch(e){if(token===generation)root.textContent=`Não foi possível carregar o BP: ${e.message}`;}
   }
   const report=window.VECTON_BP_REPORT.createModule(d);

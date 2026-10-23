@@ -26,6 +26,7 @@ const {PGlite}=require(process.env.PLANNING_PGLITE_TEST_LIB||'../artifacts/bp-te
   const migration=fs.readFileSync('supabase/303_bp_imports.sql','utf8');await db.exec(migration);await db.exec(migration);
   const workflow=fs.readFileSync('supabase/304_bp_load_workflow.sql','utf8');await db.exec(workflow);await db.exec(workflow);
   const optional=fs.readFileSync('supabase/305_bp_optional_accounts.sql','utf8');await db.exec(optional);await db.exec(optional);
+  const protect=fs.readFileSync('supabase/307_bp_protect_accounts_with_balances.sql','utf8');await db.exec(protect);await db.exec(protect);
   assert.deepEqual(await snapshot(),original); // Não altera uma conta sequer do cadastro já instalado.
   const as=async user=>db.exec(`reset role;select set_config('test.user','${user}',false);set role authenticated;`);
   await as(admin);
@@ -80,6 +81,10 @@ const {PGlite}=require(process.env.PLANNING_PGLITE_TEST_LIB||'../artifacts/bp-te
   assert.equal((await db.query('select count(*)::int n from bp_import_drafts')).rows[0].n,0);
   const removed=await stage([]);await db.query('select bp_delete_batch($1,$2,true,1)',[org,removed]);
   await assert.rejects(db.query('select bp_delete_batch($1,$2,true,1)',[org,removed]),/lote mudou/);
+  await assert.rejects(db.query('delete from bp_plan_nodes where id=$1',[account]),/possui saldos/);
+  const parentNode=plan.find(n=>n.id===account).parent_id,parentCode=plan.find(n=>n.id===parentNode).account_code;
+  await db.query(`insert into bp_plan_nodes(organization_id,account_code,name,node_class,parent_id,group_key) values($1,$2,'Temporária','Analitica',$3,'Temp')`,[org,parentCode+'.999999',parentNode]);
+  assert.equal((await db.query('delete from bp_plan_nodes where account_code=$1',[parentCode+'.999999'])).affectedRows,1);
   await as(additional);await apply({month:8});
   await as(manager);assert.equal((await current()).length,1);assert.equal((await current('planned')).length,0);await assert.rejects(apply(),/administradores/);
   await as(analyst);assert.equal((await current()).length,0);await assert.rejects(apply(),/administradores/);

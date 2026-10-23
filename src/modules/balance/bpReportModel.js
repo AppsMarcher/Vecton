@@ -60,7 +60,8 @@
       const snapshot = batch.plan_snapshot || [], ids = new Map(snapshot.map(n => [n.id,n]));
       const seen = new Set();
       for (const row of batch.rows || []) {
-        const node = currentIds.get(row.account_id) || currentCodes.get(row.account_code) || ids.get(row.account_id);
+        // A classificação é a vigente quando o lote foi aplicado; o plano atual só cobre lotes sem snapshot.
+        const node = ids.get(row.account_id) || currentIds.get(row.account_id) || currentCodes.get(row.account_code);
         if (!node) throw new Error(`Conta BP sem cadastro: ${row.account_code || row.account_id}.`);
         if (node.node_class !== "Analitica") continue;
         if (seen.has(node.id)) throw new Error(`Conta duplicada no fechamento BP: ${node.account_code}.`);
@@ -91,7 +92,8 @@
     const dates = periods(selected), current = aggregate(currentBatches,plan), previous = aggregate(previousBatches,plan);
     const extraLines = new Map([...previous.extras, ...current.extras]);
     const sections = SECTIONS.map(section => {
-      const configuredExtras = plan.filter(n => n.node_class === "Analitica" && n.group_key).filter(n => sectionFor(n) === section.id);
+      // Contas inativas ou fora dos grupos BP só importam quando têm saldo (tratado em aggregate).
+      const configuredExtras = plan.filter(n => n.node_class === "Analitica" && n.group_key && n.active).filter(n => { try { return sectionFor(n) === section.id; } catch { return false; } });
       for (const node of configuredExtras) {
         const key = normalize(node.group_key);
         if (!section.lines.some(l => l.keys.some(k => normalize(k) === key))) {

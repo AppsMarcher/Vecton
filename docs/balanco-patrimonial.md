@@ -122,3 +122,7 @@ A migration 306 cadastra as dez analíticas solicitadas pelo usuário, com as ch
 
 
 A aplicação automática vale para arquivos Realizados e Planejados, como no DRE. Arquivos inválidos e importações canceladas não criam nem aplicam lotes. Lotes manuais e cópias para edição continuam em rascunho até aplicação explícita. Rascunhos importados antes desta atualização não são aplicados só por abrir a tela.
+
+## Proteção de contas com saldo: SQL 307
+
+A migration 307 impede remover do Plano BP uma conta que tenha saldo em lote aplicado ou rascunho; exclua os lotes antes ou inative a conta. Rascunhos agora são sempre gravados com o plano atual, e "Aplicar lote" atualiza o plano do rascunho antes de aplicar, evitando "O Plano BP mudou" após edições no cadastro. O relatório classifica cada lote pelo snapshot do plano vigente na aplicação e ignora, ao montar linhas extras, contas inativas ou fora dos grupos 1.1/1.2/2.1/2.2/2.3 que não tenham saldo.
