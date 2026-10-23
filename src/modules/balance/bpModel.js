@@ -28,7 +28,6 @@
     const header = findHeader(matrix);
     if (!header) throw new Error("Use o balancete ou modelo BP com as colunas CONTA e SALDO.");
     const accounts = new Map(plan.map(n => [n.account_code || n.source_name, n]));
-    const active = plan.filter(n => n.active && n.node_class === "Analitica");
     const seen = new Set();
     const rows = [];
     matrix.slice(header.index + 1).forEach((row,index) => {
@@ -50,8 +49,6 @@
       rows.push({ account_id: node.id, amount: amount(row[header.balance]) });
     });
     if (!rows.length) throw new Error("O arquivo não contém saldos.");
-    const missing = active.filter(n => !seen.has(n.id));
-    if (missing.length) throw new Error(`A carga completa deve conter todas as contas analíticas ativas. Faltam ${missing.length} conta(s): ${missing.slice(0,5).map(n => n.account_code || n.source_name).join(", ")}. Informe zero quando não houver saldo.`);
     return rows;
   }
   function parseWorkbook(book,plan,XLSX) {

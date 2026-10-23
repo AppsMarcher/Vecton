@@ -17,7 +17,7 @@ Parâmetros → Plano de Contas BP: árvore à esquerda, editor à direita, busc
 
 A importação não altera DRE/FC nem carrega saldos Real ou Planejado. Reexecuções atualizam por organização/código sem duplicar contas. Contas adicionais cadastradas depois não são removidas.
 
-**Não aplicar `300_balance_sheet.sql`:** é o rascunho anterior às definições do usuário. Para cargas em uma base que já tem o plano (301–302), executar os SQLs 303 e 304, nessa ordem.
+**Não aplicar `300_balance_sheet.sql`:** é o rascunho anterior às definições do usuário. Para cargas em uma base que já tem o plano (301–302), executar os SQLs 303, 304 e 305, nessa ordem.
 
 Admin e Super Admin, inclusive por papel adicional, mantêm o cadastro. Membros ativos da organização podem ler o plano. RLS e trigger validam organização, papel, hierarquia e chaves exclusivamente analíticas.
 
@@ -83,9 +83,9 @@ A tela de carga é consolidada Marcher, sem seletor de filial. No Planejado, o c
 
 Use o balancete Excel com CONTA, NOME DA CONTA, SALDO e TIPO_CONTA. A coluna CHAVE-AGRUPADORA é opcional; quando preenchida, deve corresponder ao cadastro. A identificação é pelo código contábil, preservado como texto. O vínculo de relatório vem sempre do Plano BP.
 
-A aba pode ter qualquer nome. O leitor procura CONTA e SALDO nas primeiras 30 linhas e exige uma única aba de balancete. O botão Baixar modelo BP gera o formato com as contas cadastradas, tipos e chaves. Sintéticas podem constar no arquivo, inclusive com saldo, mas são ignoradas na gravação. Somente as 114 analíticas ativas do plano atual são gravadas. Todas devem estar presentes uma vez cada, informando zero explicitamente onde não houver saldo. Contas desconhecidas, duplicadas, inativas ou com tipo/chave divergente bloqueiam a carga.
+A aba pode ter qualquer nome. O leitor procura CONTA e SALDO nas primeiras 30 linhas e exige uma única aba de balancete. O botão Baixar modelo BP gera o formato com as contas cadastradas, tipos e chaves. Sintéticas podem constar no arquivo, inclusive com saldo, mas são ignoradas na gravação. Somente as analíticas ativas presentes no arquivo são gravadas, uma vez cada. Não é obrigatório incluir todas as contas do plano. Contas omitidas não herdam saldos do lote anterior. Contas desconhecidas, duplicadas, inativas ou com tipo/chave divergente bloqueiam a carga.
 
-São aceitos arquivos .xlsx/.xls de até 20 MB. Fórmulas de saldo analítico precisam ter resultado salvo no Excel. Os valores são arredondados para centavos e podem ser negativos. O servidor valida novamente conta, organização, perfil, cenário, competência, completude e snapshot do plano; grava somente linhas analíticas canônicas, com usuário, data, arquivo e plano utilizado.
+São aceitos arquivos .xlsx/.xls de até 20 MB. Fórmulas de saldo analítico precisam ter resultado salvo no Excel. Os valores são arredondados para centavos e podem ser negativos. O servidor valida novamente conta, organização, perfil, cenário, competência, duplicidades e snapshot do plano; grava somente linhas analíticas canônicas, com usuário, data, arquivo e plano utilizado.
 
 ### Testes das cargas
 
@@ -102,10 +102,20 @@ A migration 304 foi instalada no Supabase em 22/10/2026. A conferência anterior
 
 Realizado e Planejado compartilham os cards de importação, histórico e detalhe do DRE. O botão de período abre o seletor global. A carga permanece completa, com saldos de fechamento consolidados; não se somam posições BP. O Planejado exige cenário do ano selecionado.
 
-Importar arquivo valida o Excel e salva um rascunho persistente em bp_import_drafts. Novo lote manual inicia sem saldos; todas as analíticas ativas devem ser informadas, inclusive zeros. O detalhe permite buscar contas e adicionar, editar ou excluir lançamentos do rascunho. Editar lote aplicado cria uma cópia em rascunho, preservando o fechamento atual até a nova aplicação.
+Importar arquivo valida o Excel e salva um rascunho persistente em bp_import_drafts. Novo lote manual inicia sem saldos; não é obrigatório informar todas as analíticas ativas. É necessário ao menos um saldo analítico válido. O detalhe permite buscar contas e adicionar, editar ou excluir lançamentos do rascunho. Editar lote aplicado cria uma cópia em rascunho, preservando o fechamento atual até a nova aplicação.
 
 Aplicar lote revalida a revisão do rascunho, plano, contas, competência e destino no servidor. Na mesma transação, exclui todos os lotes anteriores da mesma organização/ano/mês/fonte/cenário, grava o definitivo e remove os rascunhos daquele destino. Se falhar, o lote vigente permanece intacto. Outros períodos e cenários são preservados. Excluir lote pede confirmação e remove somente o lote selecionado. Alterações de uma revisão antiga são rejeitadas para evitar sobrescrita entre sessões.
 
 O relatório consulta exclusivamente os lotes definitivos, nunca os rascunhos. A limpeza inicial da migration remove somente registros já marcados como substituídos pelo fluxo 303.
 
 Validação: bpImport.sql.test.js cobre instalação repetida, substituição física, isolamento de destinos, rascunhos, revisão concorrente, permissões e preservação do fechamento em falhas. bp.browser.test.js cobre Excel, consulta, busca, edição, reaplicação, lote manual incompleto, exclusão e destinos Real/Planejado em navegador isolado.
+
+
+## Contas opcionais por competência: SQL 305
+
+A carga completa aceita qualquer conjunto não vazio de analíticas ativas cadastradas. Não é necessário acrescentar contas ausentes com saldo zero. A substituição continua integral para a competência e destino: apenas os saldos enviados permanecem no lote definitivo, sem reaproveitar contas omitidas do lote anterior. A regra vale para Excel, lotes manuais, Realizado e Planejado. Contas novas continuam exigindo cadastro e chave agrupadora.
+
+
+## Inclusão de contas em 23/10/2026: SQL 306
+
+A migration 306 cadastra as dez analíticas solicitadas pelo usuário, com as chaves Imobilizado, Intangível, Estoques, Estoques de Terceiros e Outros Contas a Pagar. Reutiliza a sintética 2.1.6.02 e cria esse grupo somente se ausente. A conta pai segue o ancestral sintético cadastrado mais próximo. Reordena apenas os irmãos nos grupos afetados, comparando numericamente os segmentos do código e preservando seus zeros. Não modifica cargas nem saldos; pode ser reexecutada sem duplicar contas.

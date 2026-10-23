@@ -25,6 +25,7 @@ const {PGlite}=require(process.env.PLANNING_PGLITE_TEST_LIB||'../artifacts/bp-te
   const original=await snapshot();
   const migration=fs.readFileSync('supabase/303_bp_imports.sql','utf8');await db.exec(migration);await db.exec(migration);
   const workflow=fs.readFileSync('supabase/304_bp_load_workflow.sql','utf8');await db.exec(workflow);await db.exec(workflow);
+  const optional=fs.readFileSync('supabase/305_bp_optional_accounts.sql','utf8');await db.exec(optional);await db.exec(optional);
   assert.deepEqual(await snapshot(),original); // Não altera uma conta sequer do cadastro já instalado.
   const as=async user=>db.exec(`reset role;select set_config('test.user','${user}',false);set role authenticated;`);
   await as(admin);
@@ -49,7 +50,10 @@ const {PGlite}=require(process.env.PLANNING_PGLITE_TEST_LIB||'../artifacts/bp-te
   await assert.rejects(apply({source:'unknown'}),/Fonte/);
   await assert.rejects(apply({month:0}),/Competência/);
   await assert.rejects(apply({rows:[]}),/vazia/);
-  await assert.rejects(apply({rows:amounts(1).slice(1)}),/todas as contas/);
+  await apply({month:7});
+  const partial=amounts(1).slice(0,1);const partialId=await apply({month:7,rows:partial});
+  const partialBatch=(await current('actual',7))[0];assert.equal(partialBatch.id,partialId);assert.deepEqual(partialBatch.rows,partial);
+  assert.equal((await db.query('select count(*)::int n from bp_import_batches where reference_month=7')).rows[0].n,1);
   const duplicate=amounts(1);duplicate[1]=duplicate[0];await assert.rejects(apply({rows:duplicate}),/duplicidades/);
   for(const invalid of [null,1.234,1e13,'NaN'])await assert.rejects(apply({rows:amounts(invalid)}),/inválido/);
   const synthetic=amounts(1);synthetic[0].account_id=plan.find(n=>n.node_class==='Sintetica').id;await assert.rejects(apply({rows:synthetic}),/inválido/);

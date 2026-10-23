@@ -18,7 +18,7 @@ assert.equal(sums.get('root'), 1214.46);
 assert.equal(sums.get('group'), 1214.46);
 assert.equal(M.totals(plan, [{ account_id: 'cash', amount: 0.1 }, { account_id: 'reducer', amount: 0.2 }]).get('root'), 0.3);
 for (const value of ['', 'abc', '1,234,56', '1.234', 'Infinity', NaN]) assert.throws(() => M.amount(value));
-assert.throws(() => M.parse([M.headers, ['1.1', '', 1]], plan), /todas/);
+assert.equal(M.parse([M.headers, ['1.1', '', 1]], plan).length, 1);
 assert.throws(() => M.parse([M.headers, ['1.1', '', 1], ['1.1', '', 2]], plan), /duplicada/);
 assert.throws(() => M.parse([M.headers, ['missing', '', 1]], plan), /inexistente/);
 assert.throws(() => M.parse([M.headers, ['1.1', '', null], ['1.2', '', 2]], plan), /saldo/);

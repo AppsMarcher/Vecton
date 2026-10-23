@@ -97,7 +97,7 @@ const plan = [
     assert.equal(await page.locator('[data-apply]').isDisabled(),true);
     await page.locator('#load [data-add]').click();await page.locator('[data-editor] select[name="account"]').selectOption('c');await page.locator('[data-editor] input[name="amount"]').fill('0');
     await page.locator('[data-editor] button[type="submit"]').click();await page.waitForFunction(()=>document.querySelector('[data-feedback]').textContent==='Lançamento salvo.');
-    assert.equal(await page.locator('[data-apply]').isDisabled(),true);
+    assert.equal(await page.locator('[data-apply]').isDisabled(),false);
     await page.locator('#load [data-delete]').click();await page.waitForFunction(()=>document.querySelector('[data-feedback]').textContent==='Lote excluído.');
     assert.equal(await page.evaluate(()=>window.dbDrafts.length),0);
     await page.evaluate(() => { document.querySelector('#load').hidden = true; window.active = 'reports'; window.mod.renderSelected(document.querySelector('#report'), 'balanceSheetReal'); });

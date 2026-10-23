@@ -12,7 +12,7 @@ const rows=M.parse(matrix,plan);assert.equal(rows.length,114);assert.equal(rows[
 assert.equal(rows.reduce((s,r)=>s+r.amount,0),1234.56);assert.equal(rows.some(r=>r.account_id==='1'),false);
 const clone=()=>structuredClone(matrix);
 let invalid=clone();invalid.push(invalid[first]);assert.throws(()=>M.parse(invalid,plan),/duplicada/);
-invalid=clone();invalid.splice(first,1);assert.throws(()=>M.parse(invalid,plan),/todas as contas/);
+invalid=clone();invalid.splice(first,1);assert.equal(M.parse(invalid,plan).length,113);
 invalid=clone();invalid[first][0]='9.9.9';assert.throws(()=>M.parse(invalid,plan),/inexistente/);
 invalid=clone();invalid[first][3]='SINTETICA';assert.throws(()=>M.parse(invalid,plan),/tipo da conta/);
 invalid=clone();invalid[first][4]='Chave diferente';assert.throws(()=>M.parse(invalid,plan),/chave agrupadora/);
@@ -27,4 +27,7 @@ book.Sheets['Balancete Setembro'].C4={t:'n',f:'1+1'};assert.equal(M.parseWorkboo
 book.Sheets['Balancete Setembro']['C'+(first+3)]={t:'n',f:'1+1'};assert.throws(()=>M.parseWorkbook(book,plan,XLSX),/Recalcule/);
 const two=XLSX.utils.book_new();XLSX.utils.book_append_sheet(two,XLSX.utils.aoa_to_sheet(matrix),'A');XLSX.utils.book_append_sheet(two,XLSX.utils.aoa_to_sheet(matrix),'B');
 assert.throws(()=>M.parseWorkbook(two,plan,XLSX),/mais de uma aba/);
-console.log('BP balancete: all 173 source accounts, only 114 analytical balances, arbitrary sheet/header, keys, duplicates, completeness and formulas OK');
+console.log('BP balancete: all 173 source accounts, only 114 analytical balances, arbitrary sheet/header, keys, duplicates, optional accounts and formulas OK');
+
+assert.equal(M.parse([M.headers,matrix[first]],plan).length,1);
+assert.throws(()=>M.parse([M.headers,matrix[1]],plan),/não contém saldos/);
