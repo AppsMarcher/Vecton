@@ -8,17 +8,60 @@
   }[type]}</svg>`;
   const menu = () => `<div class="fc-export bp-export"><button type="button" class="ghost-button" data-bp-export-toggle aria-haspopup="true" aria-expanded="false">${icon("print")}Exportar</button><div class="fc-export-menu" hidden>${[["print", "Imprimir"], ["email", "Enviar por e-mail"], ["excel", "Baixar Excel"]].map(([key, label]) => `<button type="button" data-bp-export="${key}">${icon(key)}${label}</button>`).join("")}</div></div>`;
 
-  function sheetRows(model) {
-    const rows = [];
-    for (const side of ["asset", "liability"]) {
-      for (const section of model.sections.filter(s => s.side === side)) {
-        for (const line of section.lines) rows.push([side === "asset" ? "Ativo" : "Passivo", section.title, line.label, line.current === null ? null : line.current / 100, line.previous === null ? null : line.previous / 100]);
-        rows.push([side === "asset" ? "Ativo" : "Passivo", section.title, section.total, section.current === null ? null : section.current / 100, section.previous === null ? null : section.previous / 100]);
-      }
-      const total = model[side];
-      rows.push([side === "asset" ? "Ativo" : "Passivo", "TOTAL", side === "asset" ? "TOTAL DO ATIVO" : "TOTAL DO PASSIVO", total.current === null ? null : total.current / 100, total.previous === null ? null : total.previous / 100]);
+  // Planilha no formato do modelo "BP Excel.xlsx": Ativo à esquerda (B:E), Passivo à direita (G:J),
+  // Aptos Display, sem linhas de grade, A4 paisagem ajustada à largura e totais alinhados no rodapé.
+  const EXCEL_LABELS = { taxNoncurrent: "Impostos a Recuperar NC", loansNoncurrent: "Empréstimos NC" };
+  function buildWorkbook(ExcelJS, model) {
+    const book = new ExcelJS.Workbook(), sheet = book.addWorksheet("BP", {
+      properties: { tabColor: { argb: "FF00B050" }, defaultRowHeight: 13.5 },
+      views: [{ showGridLines: false }],
+      pageSetup: { paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0, horizontalCentered: true, margins: { left: 0.59, right: 0.59, top: 1.18, bottom: 1.18, header: 0.2, footer: 0.2 } }
+    });
+    sheet.headerFooter.oddHeader = '&C&"Aptos Display,Negrito"&10MARCHER BRASIL AGROINDUSTRIAL S.A.\nCNPJ: 06.221.454/0001-79\n\nBALANÇO PATRIMONIAL';
+    sheet.headerFooter.oddFooter = '&C&"Aptos Display,Negrito"&10__________________________\nRicardo Guimarães Filho\nContador';
+    [9.14, 28, 3, 12.5, 12.5, 9.14, 28, 3, 12.5, 12.5].forEach((width, index) => { sheet.getColumn(index + 1).width = width; });
+    const thin = { style: "thin", color: { argb: "FF000000" } };
+    const put = (row, col, value, { bold = false, size = 10, indent = 0, number = false, border } = {}) => {
+      const cell = sheet.getCell(row, col);
+      if (value !== null && value !== undefined) cell.value = value;
+      cell.font = { name: "Aptos Display", size, bold };
+      cell.alignment = { vertical: "middle", horizontal: number ? "right" : "left", indent };
+      if (number) cell.numFmt = "#,##0";
+      if (border) cell.border = border;
+    };
+    const amount = cents => cents === null || cents === undefined ? null : cents / 100;
+    const endOf = (row, count) => row + count + 2;
+    const sectionOf = id => model.sections.find(s => s.id === id);
+    const write = (section, row, label, first) => {
+      put(row, label, section.title, { bold: true });
+      section.lines.forEach((line, index) => {
+        put(row + 1 + index, label, EXCEL_LABELS[line.id] || line.label, { indent: 2 });
+        put(row + 1 + index, first, amount(line.current), { size: 9, number: true });
+        put(row + 1 + index, first + 1, amount(line.previous), { size: 9, number: true });
+      });
+      const total = row + section.lines.length + 2;
+      put(total, label, section.total, { bold: true, indent: 2 });
+      put(total, first, amount(section.current), { bold: true, size: 9, number: true });
+      put(total, first + 1, amount(section.previous), { bold: true, size: 9, number: true });
+    };
+    const assetCurrent = sectionOf("assetCurrent"), assetNoncurrent = sectionOf("assetNoncurrent");
+    const liabilityCurrent = sectionOf("liabilityCurrent"), liabilityNoncurrent = sectionOf("liabilityNoncurrent"), equity = sectionOf("equity");
+    const noncurrentRow = Math.max(endOf(5, assetCurrent.lines.length), endOf(5, liabilityCurrent.lines.length)) + 3;
+    const equityRow = endOf(noncurrentRow, liabilityNoncurrent.lines.length) + 3;
+    const grandRow = Math.max(endOf(noncurrentRow, assetNoncurrent.lines.length), endOf(equityRow, equity.lines.length)) + 3;
+    for (const [label, first, title] of [[2, 4, "ATIVO"], [7, 9, "PASSIVO"]]) {
+      put(3, label, title, { bold: true });
+      put(3, first, model.current.year, { bold: true, number: true, border: { bottom: thin } }); sheet.getCell(3, first).numFmt = "0";
+      put(3, first + 1, model.previous.year, { bold: true, number: true, border: { bottom: thin } }); sheet.getCell(3, first + 1).numFmt = "0";
     }
-    return rows;
+    write(assetCurrent, 5, 2, 4); write(assetNoncurrent, noncurrentRow, 2, 4);
+    write(liabilityCurrent, 5, 7, 9); write(liabilityNoncurrent, noncurrentRow, 7, 9); write(equity, equityRow, 7, 9);
+    for (const [label, first, text, total] of [[2, 4, "TOTAL DO ATIVO", model.asset], [7, 9, "TOTAL DO PASSIVO", model.liability]]) {
+      put(grandRow, label, text, { bold: true, indent: 2 });
+      put(grandRow, first, amount(total.current), { bold: true, size: 9, number: true, border: { top: thin, bottom: thin } });
+      put(grandRow, first + 1, amount(total.previous), { bold: true, size: 9, number: true, border: { top: thin, bottom: thin } });
+    }
+    return book;
   }
 
   // Uma única página A4 retrato, conteúdo centralizado na horizontal.
@@ -79,12 +122,11 @@ col.l{width:56%}h3{margin:12px 0 4px;font-size:${font + .5}px}
         const kind = button.dataset.bpExport, title = `Balanço Patrimonial — ${model.current.date}`, filename = `Balanco-Patrimonial-${model.current.year}-${String(model.current.month).padStart(2, "0")}`;
         try {
           if (kind === "excel") {
-            if (!window.XLSX) throw new Error("O gerador de Excel não está disponível. Atualize a página.");
-            const X = window.XLSX, header = ["Lado", "Grupo", "Conta", `Saldo em ${model.current.date}`, `Saldo em ${model.previous.date}`];
-            const rows = sheetRows(model), sheet = X.utils.aoa_to_sheet([["Marcher — Balanço Patrimonial"], [`${model.current.date} comparado a ${model.previous.date} · Valores em R$`], [], header, ...rows]);
-            sheet["!cols"] = [{ wch: 10 }, { wch: 24 }, { wch: 40 }, { wch: 20 }, { wch: 20 }];
-            for (let r = 4; r < rows.length + 4; r++) for (const c of [3, 4]) { const cell = sheet[X.utils.encode_cell({ r, c })]; if (cell) cell.z = "#,##0"; }
-            const book = X.utils.book_new(); X.utils.book_append_sheet(book, sheet, "Balanço"); X.writeFile(book, filename + ".xlsx");
+            if (!window.ExcelJS) throw new Error("O gerador de Excel não está disponível. Atualize a página.");
+            const buffer = await buildWorkbook(window.ExcelJS, model).xlsx.writeBuffer();
+            const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+            const link = document.createElement("a"); link.href = url; link.download = filename + ".xlsx";
+            document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
           } else if (kind === "print") {
             const page = window.open("", "_blank"); if (!page) throw new Error("Libere pop-ups para imprimir o relatório.");
             page.document.write(printHtml(model, d.escapeHtml)); page.document.close(); page.focus(); setTimeout(() => page.print(), 400);
@@ -94,5 +136,5 @@ col.l{width:56%}h3{margin:12px 0 4px;font-size:${font + .5}px}
     }
     return { menu, bind };
   }
-  window.VECTON_BP_EXPORT = { create, printHtml, sheetRows };
+  window.VECTON_BP_EXPORT = { create, printHtml, buildWorkbook };
 })(window);
