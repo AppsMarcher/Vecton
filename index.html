@@ -1418,10 +1418,11 @@
                 </div>
                 <span class="ap-user-count" id="ap-count-manager">— usuários</span>
               </div>
-              <p class="ap-description">Visão consolidada no Dashboard, DRE, Fluxo de Caixa e relatórios comerciais. OPEX, Headcount e Capex restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil. Sem nenhuma gestão definida, não vê dados dos relatórios. No A3 Estratégicos, enxerga todas as áreas mas só edita a(s) A3 da própria gestão (mais concessão extra pontual, se configurada).</p>
+              <p class="ap-description">Visão consolidada no Dashboard, DRE, Balanço Patrimonial, Fluxo de Caixa e relatórios comerciais. OPEX, Headcount e Capex restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil. Sem nenhuma gestão definida, não vê dados dos relatórios. No A3 Estratégicos, enxerga todas as áreas mas só edita a(s) A3 da própria gestão (mais concessão extra pontual, se configurada).</p>
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--yes">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">DRE consolidado (somente leitura)</li>
+                <li class="ap-perm ap-perm--yes">Balanço Patrimonial Real (consolidado Marcher, com drill-down por conta, somente leitura)</li>
                 <li class="ap-perm ap-perm--yes">Fluxo de Caixa (consolidado + cenários próprios)</li>
                 <li class="ap-perm ap-perm--yes">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças (consolidado + drill-down)</li>
                 <li class="ap-perm ap-perm--yes">Evolutivo de Margens (consolidado + drill-down por código)</li>
@@ -1447,10 +1448,11 @@
                 </div>
                 <span class="ap-user-count" id="ap-count-analyst">— usuários</span>
               </div>
-              <p class="ap-description">Sem acesso ao Dashboard, DRE consolidado, Fluxo de Caixa ou relatórios comerciais. OPEX, Headcount e Capex restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil. Sem nenhuma gestão definida, não vê dados dos relatórios.</p>
+              <p class="ap-description">Sem acesso ao Dashboard, DRE consolidado, Balanço Patrimonial, Fluxo de Caixa ou relatórios comerciais. OPEX, Headcount e Capex restritos à sua gestão, com possibilidade de liberar gestões e CCs adicionais por perfil. Sem nenhuma gestão definida, não vê dados dos relatórios.</p>
               <ul class="ap-perms">
                 <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--no">DRE consolidado da empresa</li>
+                <li class="ap-perm ap-perm--no">Balanço Patrimonial</li>
                 <li class="ap-perm ap-perm--no">Fluxo de Caixa</li>
                 <li class="ap-perm ap-perm--no">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças</li>
                 <li class="ap-perm ap-perm--no">Evolutivo de Margens</li>
@@ -1480,7 +1482,7 @@
                 <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--yes">RPS Gestão — preencher semanas e metas de todas as áreas</li>
                 <li class="ap-perm ap-perm--no">Renomear indicador, unidade ou modo de cálculo do Mês</li>
-                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Fluxo de Caixa, OPEX, Headcount, Comercial)</li>
+                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Balanço Patrimonial, Fluxo de Caixa, OPEX, Headcount, Comercial)</li>
                 <li class="ap-perm ap-perm--no">Planejamento</li>
                 <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
                 <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
@@ -1507,7 +1509,7 @@
                 <li class="ap-perm ap-perm--yes">RPS Comercial — registrar e conduzir a reunião de todas as áreas</li>
                 <li class="ap-perm ap-perm--no">Ativações de Garantia e Marcher no Campo (perfil Marketing)</li>
                 <li class="ap-perm ap-perm--no">Evolutivo de Margens</li>
-                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Fluxo de Caixa, OPEX, Headcount)</li>
+                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Balanço Patrimonial, Fluxo de Caixa, OPEX, Headcount)</li>
                 <li class="ap-perm ap-perm--no">Planejamento</li>
                 <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
                 <li class="ap-perm ap-perm--no">RPS Gestão</li>
@@ -1532,7 +1534,7 @@
                 <li class="ap-perm ap-perm--no">Dashboard e cockpit consolidado</li>
                 <li class="ap-perm ap-perm--partial">A3 Estratégicos — só os A3 concedidos, configurável por pessoa</li>
                 <li class="ap-perm ap-perm--partial">Modo leitura ou leitura e gravação, configurável por pessoa</li>
-                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Fluxo de Caixa, OPEX, Headcount, Comercial)</li>
+                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Balanço Patrimonial, Fluxo de Caixa, OPEX, Headcount, Comercial)</li>
                 <li class="ap-perm ap-perm--no">RPS Gestão</li>
                 <li class="ap-perm ap-perm--no">Parâmetros, carga ou usuários</li>
               </ul>
@@ -1557,7 +1559,7 @@
                 <li class="ap-perm ap-perm--yes">Marcher no Campo</li>
                 <li class="ap-perm ap-perm--no">Painel de Vendas, Mapa de Vendas, Ranking Geográfico e Performance de Peças</li>
                 <li class="ap-perm ap-perm--no">Evolutivo de Margens</li>
-                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Fluxo de Caixa, OPEX, Headcount)</li>
+                <li class="ap-perm ap-perm--no">Demais relatórios (DRE, Balanço Patrimonial, Fluxo de Caixa, OPEX, Headcount)</li>
                 <li class="ap-perm ap-perm--no">Planejamento</li>
                 <li class="ap-perm ap-perm--no">A3 Estratégicos</li>
                 <li class="ap-perm ap-perm--no">RPS Gestão</li>
