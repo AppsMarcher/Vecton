@@ -8,8 +8,8 @@ const {chromium}=require('playwright');
  await page.addScriptTag({path:path.resolve('src/modules/comercial/comercialCadastroModule.js')});
  await page.evaluate(()=>{
   window.consultas=[];
-  const geo={SP:[{codigo_ibge:'3550308',municipio:'São Paulo'},{codigo_ibge:'3509502',municipio:'Campinas'}],RS:[{codigo_ibge:'4314902',municipio:'Porto Alegre'}]};
-  const ufs=[{value:'SP',label:'SP'},{value:'RS',label:'RS'}];
+  const geo={SP:[{codigo_ibge:'3550308',municipio:'São Paulo'},{codigo_ibge:'3509502',municipio:'Campinas'}],RS:[{codigo_ibge:'4314902',municipio:'Porto Alegre'}],MT:[{codigo_ibge:'5107958',municipio:'Tangará da Serra'},{codigo_ibge:'5107800',municipio:'Santo Antônio do Leste'},{codigo_ibge:'5107305',municipio:'Santo Antônio do Leverger'}]};
+  const ufs=[{value:'SP',label:'SP'},{value:'RS',label:'RS'},{value:'MT',label:'MT'}];
   const mod=VECTON_COMERCIAL_CADASTRO_MODULE.createCadastroModule({table:'comercial_clientes',idPrefix:'com-clientes',titleSingular:'Cliente',titlePlural:'Clientes',conflictKeys:['codigo'],
    ibgeLookup:{cidade:'cidade',uf:'uf',codigo:'codigo_ibge'},
    fields:[{key:'codigo',label:'Código',required:true},{key:'descricao',label:'Descrição',required:true},{key:'cidade',label:'Cidade'},{key:'uf',label:'UF',type:'select',options:ufs},{key:'codigo_ibge',label:'Código IBGE'}]},
@@ -27,6 +27,13 @@ const {chromium}=require('playwright');
  await page.fill('#com-clientes-f-cidade','Campinas');await page.waitForFunction(()=>document.querySelector('#com-clientes-f-codigo_ibge').value==='3509502');
  await page.selectOption('#com-clientes-f-uf','RS');await page.waitForFunction(()=>document.querySelector('#com-clientes-f-codigo_ibge').value==='');
  assert.match(await page.locator('#com-clientes-feedback').innerText(),/não encontrado/);
+ // nome cortado (Protheus): preenche so se UM municipio da UF comeca assim; com 2+ nao chuta
+ await page.selectOption('#com-clientes-f-uf','MT');await page.fill('#com-clientes-f-cidade','TANGARA DA SERR');
+ await page.waitForFunction(()=>document.querySelector('#com-clientes-f-codigo_ibge').value==='5107958');
+ assert.match(await page.locator('#com-clientes-feedback').innerText(),/Tangará da Serra.*único município/);
+ await page.fill('#com-clientes-f-cidade','SANTO ANTONIO D');await page.waitForFunction(()=>document.querySelector('#com-clientes-f-codigo_ibge').value==='');
+ assert.match(await page.locator('#com-clientes-feedback').innerText(),/não encontrado/);
+ await page.fill('#com-clientes-f-cidade','San');await page.waitForTimeout(600);assert.equal(await ibge.inputValue(),'');
  // codigo digitado a mao nunca e sobrescrito
  await ibge.fill('9999999');await page.fill('#com-clientes-f-cidade','Porto Alegre');await page.waitForTimeout(600);
  assert.equal(await ibge.inputValue(),'9999999');

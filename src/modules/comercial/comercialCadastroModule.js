@@ -204,7 +204,7 @@
 
     // Codigo IBGE a partir de cidade + UF (config.ibgeLookup = { cidade, uf, codigo }: chaves dos campos).
     // Fonte: comercial_municipios_geo (todos os municipios, <= 853 por UF, cabe no limite de 1000 linhas).
-    const municipiosPorUf = new Map(); // uf -> Map(nomeNormalizado -> codigo_ibge)
+    const municipiosPorUf = new Map(); // uf -> [{ chave (nome normalizado), codigo, nome }]
 
     function normalizeCidade(texto) {
       return String(texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
@@ -214,9 +214,20 @@
     async function carregarMunicipiosUf(uf) {
       if (municipiosPorUf.has(uf)) return municipiosPorUf.get(uf);
       const lista = await fetchSupabaseRows("comercial_municipios_geo", `uf=eq.${encodeURIComponent(uf)}&select=codigo_ibge,municipio&limit=1000`);
-      const mapa = new Map((lista || []).map((m) => [normalizeCidade(m.municipio), m.codigo_ibge]));
-      municipiosPorUf.set(uf, mapa);
-      return mapa;
+      const municipios = (lista || []).map((m) => ({ chave: normalizeCidade(m.municipio), codigo: m.codigo_ibge, nome: m.municipio }));
+      municipiosPorUf.set(uf, municipios);
+      return municipios;
+    }
+
+    // Nome exato; senao, o texto digitado como INICIO do nome (o Protheus corta a cidade, ex.: "TANGARA DA SERR")
+    // vale so quando um unico municipio da UF comeca assim. Com 2+ candidatos nao chuta.
+    function acharMunicipio(municipios, texto) {
+      const chave = normalizeCidade(texto);
+      const exato = municipios.find((m) => m.chave === chave);
+      if (exato) return { ...exato, parcial: false };
+      if (chave.length < 4) return null;
+      const candidatos = municipios.filter((m) => m.chave.startsWith(chave));
+      return candidatos.length === 1 ? { ...candidatos[0], parcial: true } : null;
     }
 
     function bindIbgeLookup(overlay, feedback) {
@@ -241,13 +252,15 @@
         if (codigo.value.trim() && !codigo.dataset.auto) return;
         const meuPedido = ++pedido;
         try {
-          const mapa = await carregarMunicipiosUf(uf.value);
+          const municipios = await carregarMunicipiosUf(uf.value);
           if (meuPedido !== pedido) return;
-          const achado = mapa.get(normalizeCidade(nome));
+          const achado = acharMunicipio(municipios, nome);
           if (achado) {
-            codigo.value = achado;
+            codigo.value = achado.codigo;
             codigo.dataset.auto = "1";
-            dica(`Código IBGE preenchido: ${nome} / ${uf.value}.`);
+            dica(achado.parcial
+              ? `Código IBGE preenchido: ${achado.nome} / ${uf.value} (único município da UF que começa com "${nome}").`
+              : `Código IBGE preenchido: ${achado.nome} / ${uf.value}.`);
           } else {
             if (codigo.dataset.auto) { codigo.value = ""; delete codigo.dataset.auto; }
             dica(`Município "${nome}" não encontrado em ${uf.value}. Informe o código IBGE manualmente.`);
