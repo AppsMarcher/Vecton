@@ -1,15 +1,18 @@
 (function attachVectonMarketTicker(window) {
   const { escapeHtml } = window.VECTON_CORE_UTILS;
 
-  const AWESOME_URL = "https://economia.awesomeapi.com.br/json/last/";
+  const COINBASE_URL = "https://api.coinbase.com/v2/prices/";
   const BRAPI_URL = "https://brapi.dev/api/quote/";
   const BRAPI_TOKEN = "4LwMAWvanm6vsnH4cAtfo7";
   const BCB_SGS_URL = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.";
 
   const TICKER_ITEMS = [
-    { id: "usd", label: "USD", source: "awesome", sourceLabel: "AwesomeAPI / Banco Central", pair: "USD-BRL", key: "USDBRL", prefix: "R$ ", decimals: 4, officialUrl: "https://www.bcb.gov.br/estabilidadefinanceira/historicocotacoes" },
-    { id: "eur", label: "EUR", source: "awesome", sourceLabel: "AwesomeAPI / Banco Central", pair: "EUR-BRL", key: "EURBRL", prefix: "R$ ", decimals: 4, officialUrl: "https://www.bcb.gov.br/estabilidadefinanceira/historicocotacoes" },
-    { id: "btc", label: "BTC", source: "awesome", sourceLabel: "AwesomeAPI", pair: "BTC-BRL", key: "BTCBRL", prefix: "R$ ", decimals: 2, officialUrl: "https://economia.awesomeapi.com.br/json/last/BTC-BRL" },
+    // USD/EUR: PTAX de venda (SGS 1 e 21619) — cotacao diaria do BCB, sem chave.
+    // A AwesomeAPI passou a responder 429 QuotaExceeded e o ticker ficava preso
+    // no ultimo valor guardado no navegador.
+    { id: "usd", label: "USD", source: "bcb", sourceLabel: "PTAX / Banco Central", seriesId: "1", lastN: 10, changeMode: "relativePct", prefix: "R$ ", decimals: 4, officialUrl: "https://www.bcb.gov.br/estabilidadefinanceira/historicocotacoes" },
+    { id: "eur", label: "EUR", source: "bcb", sourceLabel: "PTAX / Banco Central", seriesId: "21619", lastN: 10, changeMode: "relativePct", prefix: "R$ ", decimals: 4, officialUrl: "https://www.bcb.gov.br/estabilidadefinanceira/historicocotacoes" },
+    { id: "btc", label: "BTC", source: "coinbase", sourceLabel: "Coinbase", pair: "BTC-BRL", prefix: "R$ ", decimals: 2, officialUrl: "https://www.coinbase.com/price/bitcoin" },
     { id: "ibov", label: "IBOV", source: "brapi", sourceLabel: "B3 / brapi", symbol: "^BVSP", prefix: "", decimals: 0, officialUrl: "https://www.b3.com.br/pt_br/market-data-e-indices/servicos-de-dados/market-data/cotacoes/indices.htm" },
     { id: "selic", label: "SELIC", source: "bcb", sourceLabel: "Banco Central do Brasil", seriesId: "432", prefix: "", suffix: "% a.a.", decimals: 2, changeMode: "diff", historyDepth: 40, officialUrl: "https://www.bcb.gov.br/controleinflacao/historicotaxasjuros" },
     { id: "ipca12", label: "IPCA 12m", source: "bcb", sourceLabel: "Banco Central do Brasil", seriesId: "13522", prefix: "", suffix: "%", decimals: 2, changeMode: "relativePct", historyDepth: 6, officialUrl: "https://www.bcb.gov.br/controleinflacao/historicotaxasjuros" }
@@ -205,22 +208,30 @@
     return `${day}/${month}/${year}`;
   }
 
-  async function fetchAwesome(items) {
-    const pairs = items.map((item) => item.pair).join(",");
-    if (!pairs) return {};
-    const response = await fetch(AWESOME_URL + pairs);
-    if (!response.ok) throw new Error(`AwesomeAPI HTTP ${response.status}`);
-    const data = await response.json();
+  // Preco spot + variacao contra o mesmo horario de ontem (a Coinbase nao
+  // entrega variacao pronta; `?date=` devolve o spot daquele dia).
+  async function fetchCoinbase(items) {
     const output = {};
-    items.forEach((item) => {
-      const quote = data[item.key];
-      if (!quote) return;
-      output[item.id] = {
-        value: Number.parseFloat(quote.bid),
-        pct: Number.parseFloat(quote.pctChange),
-        updatedAt: quote.create_date || new Date().toISOString()
-      };
-    });
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    await Promise.all(items.map(async (item) => {
+      try {
+        const [nowRes, prevRes] = await Promise.all([
+          fetch(`${COINBASE_URL}${item.pair}/spot`),
+          fetch(`${COINBASE_URL}${item.pair}/spot?date=${yesterday}`)
+        ]);
+        if (!nowRes.ok) throw new Error(`Coinbase HTTP ${nowRes.status}`);
+        const value = Number.parseFloat((await nowRes.json())?.data?.amount);
+        if (!Number.isFinite(value)) return;
+        const previous = prevRes.ok ? Number.parseFloat((await prevRes.json())?.data?.amount) : NaN;
+        output[item.id] = {
+          value,
+          pct: Number.isFinite(previous) && previous !== 0 ? ((value - previous) / previous) * 100 : 0,
+          updatedAt: new Date().toISOString()
+        };
+      } catch (error) {
+        console.warn(`[ticker] Coinbase falhou para ${item.label}:`, error);
+      }
+    }));
     return output;
   }
 
@@ -288,7 +299,11 @@
           dataInicial: formatBcbDateParam(startDate),
           dataFinal: formatBcbDateParam(endDate)
         });
-        const url = `${BCB_SGS_URL}${item.seriesId}/dados?${params.toString()}`;
+        // lastN: a consulta por janela de datas do SGS atrasa a cotacao do dia em
+        // algumas series (EUR), enquanto /ultimos/N ja traz.
+        const url = item.lastN
+          ? `${BCB_SGS_URL}${item.seriesId}/dados/ultimos/${item.lastN}?formato=json`
+          : `${BCB_SGS_URL}${item.seriesId}/dados?${params.toString()}`;
         const response = await fetch(url);
         if (!response.ok) throw new Error(`BCB HTTP ${response.status}`);
 
@@ -450,7 +465,7 @@
   let lastBrapiFetchAt = 0;
 
   async function fetchTickerLive() {
-    const awesomeItems = TICKER_ITEMS.filter((item) => item.source === "awesome");
+    const coinbaseItems = TICKER_ITEMS.filter((item) => item.source === "coinbase");
     const brapiItems = TICKER_ITEMS.filter((item) => item.source === "brapi");
     const bcbItems = TICKER_ITEMS.filter((item) => item.source === "bcb");
     const vectonDbItems = TICKER_ITEMS.filter((item) => item.source === "vecton_db");
@@ -462,7 +477,7 @@
     if (shouldFetchBrapi) lastBrapiFetchAt = Date.now();
 
     const staleKeys = new Set([
-      ...awesomeItems.map((item) => item.id),
+      ...coinbaseItems.map((item) => item.id),
       ...(shouldFetchBrapi ? brapiItems.map((item) => item.id) : []),
       ...bcbItems.map((item) => item.id),
       ...vectonDbItems.map((item) => item.id)
@@ -472,19 +487,19 @@
       tickerState[key] = { ...tickerState[key], stale: true };
     });
 
-    const [awesomeResult, brapiResult, bcbResult, vectonDbResult] = await Promise.allSettled([
-      fetchAwesome(awesomeItems),
+    const [coinbaseResult, brapiResult, bcbResult, vectonDbResult] = await Promise.allSettled([
+      fetchCoinbase(coinbaseItems),
       shouldFetchBrapi ? fetchBrapi(brapiItems, BRAPI_TOKEN) : Promise.resolve({}),
       fetchBcb(bcbItems),
       fetchVectonCommodities(vectonDbItems)
     ]);
 
-    if (awesomeResult.status === "fulfilled") {
-      Object.entries(awesomeResult.value).forEach(([key, quote]) => {
+    if (coinbaseResult.status === "fulfilled") {
+      Object.entries(coinbaseResult.value).forEach(([key, quote]) => {
         tickerState[key] = { ...quote, stale: false };
       });
     } else {
-      console.warn("[ticker] AwesomeAPI falhou:", awesomeResult.reason);
+      console.warn("[ticker] Coinbase falhou:", coinbaseResult.reason);
     }
 
     if (brapiResult.status === "fulfilled") {
