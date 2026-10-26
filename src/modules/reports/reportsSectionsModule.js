@@ -160,7 +160,11 @@
       if (cardById.has("balanceSheetReal") && !assignedIds.has("balanceSheetReal")) {
         const section = buildSectionEl({ id: "fallback-balance", name: "Balanço Patrimonial" });
         section.querySelector(".reports-section-body").appendChild(cardById.get("balanceSheetReal"));
-        wrap.appendChild(section); assignedIds.add("balanceSheetReal");
+        // Fica antes do Fluxo de Caixa (seção do banco ou a inserida acima); sem ele, no fim do catálogo.
+        const cashFlowSection = cardById.get("cashFlow")?.closest(".reports-section");
+        if (cashFlowSection) cashFlowSection.before(section);
+        else wrap.appendChild(section);
+        assignedIds.add("balanceSheetReal");
       }
       const orphans = cards.filter((c) => !assignedIds.has(c.dataset.reportId));
       if (orphans.length) {
