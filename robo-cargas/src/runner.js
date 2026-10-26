@@ -128,10 +128,14 @@ async function processarMes(ctx, job, mes) {
     const reprovadas = await sb.select(alvo.rows,
       `batch_id=eq.${batchId}&validation_status=eq.error&select=${alvo.errorSelect}&order=row_number&limit=200`);
     const erros = agruparErros(reprovadas, job.descreverErro, 20);
-    await registrarLog(sb, orgId, base, { ...cabecalho, batch_id: batchId, status: "erro", detalhes: { ...detalhes, lote, primeiros_erros: erros },
-      mensagem: `Lote com ${lote.error_rows} linha(s) com erro de validacao (nada foi aplicado). Lote ${batchId} mantido para analise na tela de carga.` });
+    // Carga que sabe orientar a correcao (ex.: vendas: o que cadastrar e onde) devolve o texto pronto; o aviso do banco
+    // so lista as linhas tecnicas (primeiros_erros) quando nao ha esse texto. O detalhe tecnico fica em linhas_reprovadas.
+    const orientacao = job.mensagemErros?.(reprovadas, { batchId }) ?? null;
+    await registrarLog(sb, orgId, base, { ...cabecalho, batch_id: batchId, status: "erro",
+      detalhes: { ...detalhes, lote, linhas_reprovadas: erros, primeiros_erros: orientacao ? [] : erros },
+      mensagem: orientacao ?? `Lote com ${lote.error_rows} linha(s) com erro de validacao (nada foi aplicado). Lote ${batchId} mantido para analise na tela de carga.` });
     console.error(`${job.nome} ${rotulo}: ${lote.error_rows} linha(s) com erro. Lote ${batchId} mantido sem aplicar.`);
-    return { status: "erro", mensagem: `${lote.error_rows} linha(s) com erro de validação; nada foi aplicado` };
+    return { status: "erro", mensagem: orientacao ? orientacao.split("\n")[0] : `${lote.error_rows} linha(s) com erro de validação; nada foi aplicado` };
   }
 
   // Todas as linhas precisam ter sido validadas; senao a aplicacao gravaria menos do que foi extraido.

@@ -21,6 +21,25 @@ Ainda não exercitado: o e-mail "Carga automática com erro", que só dispara nu
 5. Grava o resultado em `carga_automatica_log` e uma cópia `Vendas_AAAA-MM.csv` na pasta `params.diretorio_saida` (no servidor: `C:\robo-cargas\logs`), sobrescrita a cada execução. Se a gravação do CSV falhar (ex.: unidade `O:` inexistente para a conta da tarefa), a carga **não falha**: o aviso fica na mensagem do log.
    A simulação (`--dry-run`) grava o CSV de conferência na pasta `logs/` do robô, com o mesmo nome do arquivo da carga real.
 
+## Carteira de pedidos (CART) — carteira vigente (desde 26/10/2026)
+
+A carteira é um **estoque** (pedidos em aberto hoje), não um fluxo mensal. Por isso:
+
+- **No mês corrente**, a carga traz **toda a carteira aberta**, qualquer que seja a data de entrega (atrasada, do mês ou futura), cada linha com a sua data de entrega prevista. **Em mês fechado**, a carga traz só o faturamento: a carteira completa nunca é gravada dentro de um mês passado.
+- O painel lê a carteira **somente da foto vigente** (lote de carteira mais recente que não seja posterior ao mês corrente do calendário) e a distribui pelo **mês da data de entrega**: Mês = entregas do mês; YTD = de janeiro até o mês; Ano = ano inteiro (inclui meses futuros). Carteira de ano anterior fica no ano de origem. A carteira não é comparada com o período anterior. O faturamento continua lido por lote de mês, sem mudança.
+- Itens de carteira **sem data de entrega** ficam fora da carga e são contados (`cartSemData` no resumo/simulação). O resumo traz também `cartMaisAntiga` (entrega mais antiga da carteira).
+- **Cadastro:** pedido de Máquinas/Acessórios/Transgrain para cliente ou produto ainda não cadastrado reprova o lote **inteiro** (nada é aplicado e chega o aviso de erro). Cadastre em Parâmetros → Comercial e use **Carregar agora**. Peças usa cliente/produto genéricos e não trava. O aviso (sino e e-mail) agrupa por **cliente/produto a cadastrar**, com documentos e valor afetados e onde cadastrar (Máquinas: informar a cultura no produto); o detalhe técnico por linha fica em `carga_automatica_log.detalhes.linhas_reprovadas`.
+- `meses_atras` e `meses_frente` da carga de vendas devem ficar em **0** (só o mês corrente).
+
+### Fechamento do mês (procedimento)
+
+O mês corrente é **sempre do robô**. A carga manual (`Painel_Vecton.xlsm`) fica só para meses já fechados. No fechamento (ex.: 1º de novembro, para subir outubro com os ajustes gerenciais):
+
+1. Espere o robô fazer a **primeira carga do mês novo** (novembro vira a foto vigente da carteira). Se preciso, use **Carregar agora** no mês novo.
+2. **Só então** suba a planilha do mês fechado (outubro). Subir antes regravaria a carteira de outubro no critério antigo (só entregas do mês) enquanto outubro ainda é a foto vigente, e o painel ficaria com a carteira incompleta até a próxima carga.
+
+Nunca carregue carteira completa à mão em mês fechado. Entre o dia 1 e a primeira carga do mês novo, o painel mostra a carteira do último dia do mês anterior (no máximo um dia).
+
 ## Botão "Carregar agora" (tela Carga de Realizado - Automatizadas)
 
 Em **Parâmetros → Carga de Realizado**, a seção **Automatizadas** tem um card por carga (hoje: Volumes de Vendas) com ligada/pausada, horários, última execução e o botão **Carregar agora**.

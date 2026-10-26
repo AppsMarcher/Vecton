@@ -1,6 +1,7 @@
 -- Extrator da carga de vendas (FAT + CART) no Protheus (protheus_producao, SQL Server).
 -- Copia fiel da consulta 'Vecton' do Painel_Vecton.xlsm; os parametros da planilha viram placeholders:
---   {{DATA_INI}} / {{DATA_FIM}}  yyyymmdd (primeiro e ultimo dia do mes corrente)
+--   {{DATA_INI}} / {{DATA_FIM}}  yyyymmdd (primeiro e ultimo dia do mes; so o FAT usa)
+--   marcador CART_FILTRO (no WHERE da carteira): vazio = carteira completa (mes corrente); condicao falsa = sem carteira (meses fechados)
 --   {{CFOPS_SAIDA}} / {{CFOPS_DEVOL}}  lista SQL, ex.: '5101', '5102'
 WITH CLIENTES AS
 (
@@ -501,12 +502,10 @@ CART_BASE AS
       AND LTRIM(RTRIM(ISNULL(C6.C6_NOTA, ''))) = ''
       AND LTRIM(RTRIM(ISNULL(C5.C5_NOTA, ''))) = ''
 
-      AND LTRIM(RTRIM(ISNULL(C6.C6_ENTREG, ''))) <> ''
-      AND LEN(LTRIM(RTRIM(ISNULL(C6.C6_ENTREG, '')))) = 8
-      AND ISDATE(C6.C6_ENTREG) = 1
-
-      AND C6.C6_ENTREG >= '{{DATA_INI}}'
-      AND C6.C6_ENTREG <= '{{DATA_FIM}}'
+      /* Carteira completa: todo item aberto, qualquer data de entrega.
+         O marcador abaixo fica vazio no mes corrente e desliga a carteira nos demais meses.
+         Itens sem data de entrega valida entram com data nula e o robo os separa (e conta). */
+      {{CART_FILTRO}}
 
       AND LTRIM(RTRIM(ISNULL(F4.F4_CF, ''))) IN ({{CFOPS_SAIDA}})
 
