@@ -180,6 +180,7 @@
         .cvp-pop-tbl .num { text-align:right; }
         .cvp-pop-tbl td.mut { color:var(--theme-ink-secondary, #a1a7b3); }
         .cvp-pop-tbl td.neg { color:var(--theme-ink-red, #f87171); }
+        .cvp-pop-tbl tr.cvp-pop-dev td { color:var(--theme-ink-red, #f87171); background:color-mix(in srgb, var(--theme-ink-red, #f87171) 8%, transparent); }
         .cvp-pop-tbl tbody tr:not(:last-child) td { border-bottom:1px solid var(--theme-border-subtle, rgba(255,255,255,.05)); }
         .cvp-pop-tbl tr.cvp-pop-sum td { background:var(--theme-surface-tint, rgba(255,255,255,.03)); color:var(--theme-ink, #cbd2dc); border-top:1px solid var(--theme-border-subtle, rgba(255,255,255,.09)); }
         .cvp-pop-tbl tr.cvp-pop-sum td:first-child { color:var(--theme-ink-secondary, #a1a7b3); text-transform:uppercase; letter-spacing:.03em; font-size:9px; font-weight:600; }
@@ -671,7 +672,7 @@
         }
         totQ += Number(r.quantidade) || 0; totV += Number(r.valor) || 0;
         const cidadeUf = [r.cidade, r.uf].filter(Boolean).join("/");
-        return `<tr>
+        return `<tr${Number(r.quantidade) < 0 ? ' class="cvp-pop-dev"' : ""}>
           <td>${escapeHtml(r.tipo || "")}</td>
           <td class="mut">${escapeHtml(formatDisplayDate(r.entry_date))}</td>
           <td class="mut">${escapeHtml(documentoLabel(r))}</td>
