@@ -53,6 +53,8 @@
 .bp-statement-section .bp-statement-table th { padding-left: 18px; padding-right: 8px; overflow-wrap: anywhere; }
 .bp-statement-table td.bp-drillable { cursor: pointer; }
 .bp-statement-table td.bp-drillable:hover, .bp-statement-table td.bp-drillable:focus-visible { color: var(--blue); text-decoration: underline; outline: none; }
+/* Códigos do plano BP são longos (ex.: 1.1.5.01.00001.001.0001): a coluna Conta não pode truncar. */
+.bp-drill-popover .gap-table .gap-code { width: 200px; min-width: 200px; }
 .bp-section-last td { border-bottom: 1px solid var(--text-soft); padding-bottom: 5px; }
 .bp-statement-table .bp-section-total th, .bp-statement-table .bp-section-total td { padding-top: 18px; font-weight: 750; }
 .bp-statement-grandtotal th, .bp-statement-grandtotal td { font-weight: 750; padding-top: 8px; }

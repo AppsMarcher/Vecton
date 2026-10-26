@@ -48,7 +48,7 @@
       const head = () => th("code", "gap-code", "Conta") + th("name", "gap-name", "Descrição") + th("cents", "gap-val", "Saldo");
       const body = () => sorted().map(r => `<tr><td class="gap-code">${esc(r.code)}</td><td class="gap-name">${esc(r.name)}</td><td class="gap-val">${money2(r.cents)}</td></tr>`).join("");
       popover = document.createElement("div");
-      popover.className = "ger-audit-popover";
+      popover.className = "ger-audit-popover bp-drill-popover";
       popover.dataset.lineId = lineId; popover.dataset.column = column;
       popover.setAttribute("role", "dialog"); popover.setAttribute("aria-label", `Composição de ${line.label} em ${date}`);
       popover.innerHTML = `<div class="gap-header"><span class="gap-title">${esc(line.label)}</span><span class="gap-badge">${date}</span>${rows.length && d.exportRows ? '<button type="button" class="vp-export-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 19h14"/></svg><span>Excel</span></button>' : ""}<button class="gap-close" aria-label="Fechar">✕</button></div>${rows.length
