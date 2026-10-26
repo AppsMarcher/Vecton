@@ -698,6 +698,7 @@ bpModule = window.VECTON_BP.createModule({
   alert: message => appAlert(message, "warn"),
   sendEmail: payload => callEdgeFunction("send-report-email", payload),
   getUserName: () => state.profile?.name || "",
+  exportRows: exportRowsToExcel,
   openPeriod: () => periodTrigger.click(),
   getUserId: () => currentUser?.id || null,
   getPeriod: () => state.currentPeriod,

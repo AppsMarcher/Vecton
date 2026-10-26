@@ -51,7 +51,7 @@
     throw new Error(`A conta ${code || node.name} não pertence a um grupo BP reconhecido.`);
   }
   function aggregate(batches, plan, dreReplacesProfitReserve = false) {
-    const values = new Map(), extras = new Map(), scopes = new Set();
+    const values = new Map(), extras = new Map(), scopes = new Set(), accounts = new Map();
     const currentIds = new Map(plan.map(n => [n.id, n])), currentCodes = new Map(plan.map(n => [n.account_code || n.source_name, n]));
     for (const batch of batches) {
       const scope = batch.branch_id || "consolidated";
@@ -84,9 +84,13 @@
         const total = (values.get(target.id) || 0) + cents;
         if (!Number.isSafeInteger(total)) throw new Error("O saldo consolidado excede o limite de precisão.");
         values.set(target.id, total);
+        // Detalhe para o drilldown: mesma conta em filiais diferentes é somada.
+        const lineAccounts = accounts.get(target.id) || new Map(), code = node.account_code || node.source_name || "";
+        const entry = lineAccounts.get(code) || { code, name: node.name || "", cents: 0 };
+        entry.cents += cents; lineAccounts.set(code, entry); accounts.set(target.id, lineAccounts);
       }
     }
-    return { available: batches.length > 0, values, extras };
+    return { available: batches.length > 0, values, extras, accounts };
   }
   const calendarYear = () => Number(new Intl.DateTimeFormat('en', { timeZone: 'America/Sao_Paulo', year: 'numeric' }).format(new Date()));
   function build(plan, currentBatches, previousBatches, selected, dreResult = {}, ongoingYear = calendarYear()) {
@@ -105,7 +109,10 @@
       }
       const extras = [...extraLines.values()].filter(l => l.sectionId === section.id);
       const result = value => { if (value === null || value === undefined) return 0; const cents = Math.round(Number(value) * 100); if (!Number.isSafeInteger(cents)) throw new Error("Resultado do DRE inválido."); return cents; };
-      const lines = [...section.lines, ...extras].map(l => ({ ...l, current: current.available ? l.id === "profitReserve" && currentIsOngoing ? result(dreResult.current) : (current.values.get(l.id) || 0) : null, previous: previous.available ? (previous.values.get(l.id) || 0) : null }));
+      const detail = (side, id) => [...(side.accounts.get(id)?.values() || [])].filter(a => a.cents !== 0).sort((a, b) => a.code.localeCompare(b.code, "pt-BR", { numeric: true }));
+      const lines = [...section.lines, ...extras].map(l => ({ ...l, current: current.available ? l.id === "profitReserve" && currentIsOngoing ? result(dreResult.current) : (current.values.get(l.id) || 0) : null, previous: previous.available ? (previous.values.get(l.id) || 0) : null,
+        // No ano em andamento a Reserva de Lucros vem do DRE: o detalhe é uma linha única, não contas do BP.
+        detail: { current: l.id === "profitReserve" && currentIsOngoing ? [] : detail(current, l.id), previous: detail(previous, l.id), currentFromDre: l.id === "profitReserve" && currentIsOngoing } }));
       const sum = column => lines.some(l => l[column] === null) ? null : lines.reduce((total,l) => total + l[column],0);
       return { ...section, lines, current: current.available ? sum("current") : null, previous: previous.available ? sum("previous") : null };
     });

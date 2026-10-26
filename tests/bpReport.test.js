@@ -17,6 +17,10 @@ assert.equal(line('cash').current,15000); // consolida filiais sem duplicar sint
 assert.equal(line('profitReserve').current,3000); // DRE substitui o saldo BP, não soma
 assert.equal(line('profitReserve').previous,99999900); // 31/12 é ano fechado: saldo da carga BP, sem DRE
 assert.equal(line('profitReserve').label,'Reserva de Lucros');
+// Detalhe para o drilldown: contas somam a linha; Reserva do ano corrente vem do DRE (sem contas BP).
+assert.equal(line('cash').detail.current.reduce((n,a)=>n+a.cents,0),line('cash').current);
+assert.equal(line('profitReserve').detail.currentFromDre,true);assert.equal(line('profitReserve').detail.current.length,0);
+assert.equal(line('profitReserve').detail.previous.reduce((n,a)=>n+a.cents,0),99999900);
 assert.equal(model.sections.flatMap(s=>s.lines).some(l=>l.label==='Resultado do Exercício'),false);
 assert.equal(model.sections.find(s=>s.id==='liabilityNoncurrent').current,2000); // conforme imagem
 assert.equal(line('taxNoncurrent').current,0);assert.equal(line('taxCurrent').current,0);

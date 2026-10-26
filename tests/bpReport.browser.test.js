@@ -90,6 +90,33 @@ const amounts={
    const rect=q=>document.querySelector(q).getBoundingClientRect();
    return Math.abs(rect('[data-bp-section="assetNoncurrent"]').y-rect('[data-bp-section="liabilityNoncurrent"]').y)<1&&Math.abs(rect('.bp-statement-asset .bp-statement-grandtotal').y-rect('.bp-statement-liability .bp-statement-grandtotal').y)<1;
   });assert.equal(aligned,true);
+  // Drilldown: contas analíticas da linha, somando as duas filiais; Reserva de Lucros corrente = linha única do DRE.
+  await page.evaluate(()=>{window.exported=null;});
+  await page.locator('[data-bp-line="cash"] td').first().click();
+  const pop=page.locator('.ger-audit-popover');await pop.waitFor();
+  assert.match(await pop.locator('.gap-title').innerText(),/Caixa e equivalente de Caixa/);
+  assert.match(await pop.locator('.gap-badge').innerText(),/31\/10\/2026/);
+  assert.equal(await pop.locator('tbody tr').count()>0,true);
+  const drillSum=await pop.locator('tbody .gap-val').allInnerTexts().then(v=>v.reduce((n,t)=>n+Number(t.replace(/\./g,'').replace(',','.')),0));
+  assert.ok(Math.abs(drillSum-7031185.6)<0.02,'contas somam o valor da linha');
+  await pop.locator('th[data-sort="cents"]').click();
+  assert.match(await pop.locator('th[data-sort="cents"]').innerText(),/↑/);
+  await page.locator('[data-bp-line="cash"] td').first().click(); // segundo clique fecha
+  assert.equal(await page.locator('.ger-audit-popover').count(),0);
+  await page.locator('[data-bp-line="cash"] td').last().click();
+  assert.match(await page.locator('.ger-audit-popover .gap-badge').innerText(),/31\/12\/2025/);
+  await page.locator('.ger-audit-popover .gap-close').click();
+  assert.equal(await page.locator('.ger-audit-popover').count(),0);
+  await page.locator('[data-bp-line="profitReserve"] td').first().click();
+  assert.equal(await page.locator('.ger-audit-popover tbody tr').count(),1);
+  assert.match(await page.locator('.ger-audit-popover tbody').innerText(),/51401001.*Resultado do DRE Societário/s);
+  assert.match(await page.locator('.ger-audit-popover .gap-footer-val').innerText(),/860\.651,00/);
+  await page.locator('.bp-statement-intro h2').click(); // clique fora fecha
+  assert.equal(await page.locator('.ger-audit-popover').count(),0);
+  await page.locator('[data-bp-line="profitReserve"] td').last().click();
+  assert.match(await page.locator('.ger-audit-popover .gap-footer-val').innerText(),/999\.999\.999,00/);
+  await page.locator('.bp-statement-intro h2').click();
+  assert.equal(await page.locator('.bp-section-total td.bp-drillable').count(),0); // totais não são clicáveis
   assert.equal(await page.evaluate(()=>window.calls.some(c=>c.table==='branches')),false);
   assert.equal(await page.evaluate(()=>window.calls.find(c=>c.table==='bp_import_batches').query.includes('reference_month.eq.12')),true);
   fs.mkdirSync('artifacts/bp',{recursive:true});

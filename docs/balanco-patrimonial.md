@@ -134,3 +134,9 @@ A migration 307 impede remover do Plano BP uma conta que tenha saldo em lote apl
 ## Inclusão adicional de oito contas: SQL 307
 
 Cadastra três aplicações financeiras em Caixa e equivalente de Caixa, Clientes Consignação em Contas a Receber - Clientes, NFs Devolvidas em Outros Créditos, duas contas de material de consumo em Estoques e Substituição Tributária a Recolher em Impostos e Contribuições. Mantém o vínculo ao ancestral sintético cadastrado mais próximo e ordena numericamente apenas os grupos afetados, sem alterar cargas de saldos.
+
+## Drilldown das linhas
+
+Clicar no saldo de uma linha (coluna atual ou 31/12 anterior) abre o mesmo popover do DRE Gerencial com as contas analíticas que compõem a linha: Conta, Descrição e Saldo, ordenável, com total e exportação para Excel. Contas iguais em filiais diferentes são somadas e contas com saldo zero não aparecem. Totais e subtotais não são clicáveis. O detalhe vem do próprio fechamento já carregado, sem nova consulta.
+
+Exceção: na Reserva de Lucros do ano em andamento o popover mostra uma linha única, "Resultado do DRE Societário (jan–mês)", conta 51401001, com o valor do DRE. Na coluna do ano anterior vale a lista de contas da carga BP.

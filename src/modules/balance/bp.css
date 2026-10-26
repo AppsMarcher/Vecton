@@ -51,6 +51,8 @@
 .bp-statement-section { padding-top: 10px; padding-bottom: 20px; align-self: start; }
 .bp-statement-section h3 { margin: 0 0 5px; font-size: .77rem; font-weight: 750; letter-spacing: 0; }
 .bp-statement-section .bp-statement-table th { padding-left: 18px; padding-right: 8px; overflow-wrap: anywhere; }
+.bp-statement-table td.bp-drillable { cursor: pointer; }
+.bp-statement-table td.bp-drillable:hover, .bp-statement-table td.bp-drillable:focus-visible { color: var(--blue); text-decoration: underline; outline: none; }
 .bp-section-last td { border-bottom: 1px solid var(--text-soft); padding-bottom: 5px; }
 .bp-statement-table .bp-section-total th, .bp-statement-table .bp-section-total td { padding-top: 18px; font-weight: 750; }
 .bp-statement-grandtotal th, .bp-statement-grandtotal td { font-weight: 750; padding-top: 8px; }
