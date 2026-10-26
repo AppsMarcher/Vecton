@@ -14,12 +14,14 @@
       searchable,
       newLabel,
       noConflictOnCreate,
-      maxRows
+      maxRows,
+      ibgeLookup
     } = config;
 
     const {
       escapeHtml,
       resolveOrganizationId,
+      fetchSupabaseRows,
       fetchAllSupabaseRows,
       upsertSupabaseRows,
       insertSupabaseRows,
@@ -200,6 +202,65 @@
       return `<input id="${idPrefix}-f-${field.key}" type="text" value="${escapeHtml(String(value))}" ${locked ? "disabled" : ""} maxlength="120">`;
     }
 
+    // Codigo IBGE a partir de cidade + UF (config.ibgeLookup = { cidade, uf, codigo }: chaves dos campos).
+    // Fonte: comercial_municipios_geo (todos os municipios, <= 853 por UF, cabe no limite de 1000 linhas).
+    const municipiosPorUf = new Map(); // uf -> Map(nomeNormalizado -> codigo_ibge)
+
+    function normalizeCidade(texto) {
+      return String(texto || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+        .replace(/sant ana/g, "santana").replace(/[^a-z0-9]+/g, "");
+    }
+
+    async function carregarMunicipiosUf(uf) {
+      if (municipiosPorUf.has(uf)) return municipiosPorUf.get(uf);
+      const lista = await fetchSupabaseRows("comercial_municipios_geo", `uf=eq.${encodeURIComponent(uf)}&select=codigo_ibge,municipio&limit=1000`);
+      const mapa = new Map((lista || []).map((m) => [normalizeCidade(m.municipio), m.codigo_ibge]));
+      municipiosPorUf.set(uf, mapa);
+      return mapa;
+    }
+
+    function bindIbgeLookup(overlay, feedback) {
+      if (!ibgeLookup || typeof fetchSupabaseRows !== "function") return;
+      const el = (key) => overlay.querySelector(`#${idPrefix}-f-${key}`);
+      const cidade = el(ibgeLookup.cidade);
+      const uf = el(ibgeLookup.uf);
+      const codigo = el(ibgeLookup.codigo);
+      if (!cidade || !uf || !codigo || codigo.disabled) return;
+
+      let timer = null;
+      let pedido = 0;
+      const dica = (texto) => { feedback.textContent = texto; feedback.className = "users-invite-feedback"; };
+
+      // Digitar o codigo a mao assume o controle: a busca para de sobrescrever.
+      codigo.addEventListener("input", () => { delete codigo.dataset.auto; });
+
+      async function buscar() {
+        const nome = cidade.value.trim();
+        if (!nome || !uf.value) return;
+        // So preenche se o codigo estiver vazio ou tiver vindo da propria busca.
+        if (codigo.value.trim() && !codigo.dataset.auto) return;
+        const meuPedido = ++pedido;
+        try {
+          const mapa = await carregarMunicipiosUf(uf.value);
+          if (meuPedido !== pedido) return;
+          const achado = mapa.get(normalizeCidade(nome));
+          if (achado) {
+            codigo.value = achado;
+            codigo.dataset.auto = "1";
+            dica(`Código IBGE preenchido: ${nome} / ${uf.value}.`);
+          } else {
+            if (codigo.dataset.auto) { codigo.value = ""; delete codigo.dataset.auto; }
+            dica(`Município "${nome}" não encontrado em ${uf.value}. Informe o código IBGE manualmente.`);
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      cidade.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(buscar, 300); });
+      uf.addEventListener("change", buscar);
+    }
+
     function getOrCreateOverlay() {
       let overlay = document.querySelector(`#${idPrefix}-overlay`);
       if (overlay) return overlay;
@@ -273,6 +334,8 @@
         overlay.querySelectorAll(".users-invite-body input, .users-invite-body select")
           .forEach((el) => el.addEventListener("change", refreshRequiredMarks));
       }
+
+      bindIbgeLookup(overlay, feedback);
 
       saveBtn.addEventListener("click", () => saveForm(row, overlay, feedback, saveBtn));
 

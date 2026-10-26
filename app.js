@@ -1014,6 +1014,7 @@ const UF_OPTIONS = [
 const comercialCadastroDeps = {
   escapeHtml,
   resolveOrganizationId,
+  fetchSupabaseRows,
   fetchAllSupabaseRows,
   upsertSupabaseRows,
   insertSupabaseRows,
@@ -1104,6 +1105,7 @@ const comClientesMod = createCadastroModule({
   titleSingular: "Cliente", titlePlural: "Clientes",
   conflictKeys: ["organization_id", "codigo"],
   searchable: true,
+  ibgeLookup: { cidade: "cidade", uf: "uf", codigo: "codigo_ibge" },
   fields: [
     { key: "codigo", label: "Código", required: true, lockOnEdit: true },
     { key: "descricao", label: "Descrição", required: true },
