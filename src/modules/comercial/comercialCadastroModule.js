@@ -15,7 +15,8 @@
       newLabel,
       noConflictOnCreate,
       maxRows,
-      ibgeLookup
+      ibgeLookup,
+      filterKey
     } = config;
 
     const {
@@ -32,6 +33,7 @@
 
     let rows = [];
     let searchTerm = "";
+    let filterValue = "";
     let sortKey = fields[0].key;
     let sortDir = 1;
 
@@ -57,6 +59,7 @@
     }
 
     function matchesSearch(row) {
+      if (filterKey && filterValue && String(row[filterKey] ?? "") !== filterValue) return false;
       if (!searchable || !searchTerm) return true;
       const haystack = fields.map((f) => displayValue(f, row)).join(" ").toLowerCase();
       return haystack.includes(searchTerm.toLowerCase());
@@ -121,6 +124,7 @@
         // a ordenação exibida vem do sort client-side (sortKey/sortDir), não da query.
         const fetched = await fetchAllSupabaseRows(table, `organization_id=eq.${orgId}&select=${selectCols}`);
         rows = fetched || [];
+        fillFilterOptions();
         if (!rows.length) {
           tbody.innerHTML = `<tr><td colspan="${colspan}" class="users-empty">Nenhum ${titleSingular.toLowerCase()} cadastrado.</td></tr>`;
           return;
@@ -178,6 +182,31 @@
       input.dataset.bound = "1";
       input.addEventListener("input", () => {
         searchTerm = input.value.trim();
+        const tbody = document.querySelector(`#${idPrefix}-table-body`);
+        if (tbody) renderTable(tbody);
+      });
+    }
+
+    // Filtro por uma coluna (ex.: UF): select com os valores presentes nas linhas.
+    function fillFilterOptions() {
+      if (!filterKey) return;
+      const select = document.querySelector(`#${idPrefix}-filter`);
+      if (!select) return;
+      const values = [...new Set(rows.map((r) => String(r[filterKey] ?? "")).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "pt-BR"));
+      if (filterValue && !values.includes(filterValue)) filterValue = "";
+      select.innerHTML = `<option value="">Todas</option>`
+        + values.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+      select.value = filterValue;
+    }
+
+    function bindFilter() {
+      if (!filterKey) return;
+      const select = document.querySelector(`#${idPrefix}-filter`);
+      if (!select || select.dataset.bound) return;
+      select.dataset.bound = "1";
+      select.addEventListener("change", () => {
+        filterValue = select.value;
         const tbody = document.querySelector(`#${idPrefix}-table-body`);
         if (tbody) renderTable(tbody);
       });
@@ -429,6 +458,7 @@
         btn.addEventListener("click", () => openFormModal(null));
       }
       bindSearch();
+      bindFilter();
       bindSortableHeaders();
     }
 

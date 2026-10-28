@@ -1067,7 +1067,7 @@ const comRegioesMod = createCadastroModule({
   table: "comercial_regioes_municipio", idPrefix: "com-regioes",
   titleSingular: "Município", titlePlural: "Municípios", newLabel: "Novo município",
   conflictKeys: ["organization_id", "codigo_ibge"],
-  searchable: true, maxRows: 300,
+  searchable: true, maxRows: 300, filterKey: "uf",
   fields: [
     { key: "municipio", label: "Município", required: true },
     { key: "uf", label: "UF", required: true, type: "select", options: () => UF_OPTIONS },
