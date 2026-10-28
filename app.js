@@ -6840,13 +6840,14 @@ async function deleteSupabaseRows(table, filters) {
   return response;
 }
 
-// `options.range` = [de, ate] (inclusive) pagina o resultado via header Range: o
-// PostgREST corta toda resposta em max-rows (1.000) e nao avisa.
+// `options.range` = [de, ate] (inclusive) pagina o resultado via limit/offset na
+// URL (o header Range e ignorado em POST de RPC): o PostgREST corta toda
+// resposta em max-rows (1.000) e nao avisa.
 async function callSupabaseRpc(functionName, payload = {}, options = {}) {
-  const response = await authenticatedFetch(`${supabaseConfig.projectUrl}/rest/v1/rpc/${functionName}`, {
+  const paging = options.range ? `?limit=${options.range[1] - options.range[0] + 1}&offset=${options.range[0]}` : "";
+  const response = await authenticatedFetch(`${supabaseConfig.projectUrl}/rest/v1/rpc/${functionName}${paging}`, {
     method: "POST",
-    body: JSON.stringify(payload),
-    ...(options.range ? { headers: { "Range-Unit": "items", Range: `${options.range[0]}-${options.range[1]}` } } : {})
+    body: JSON.stringify(payload)
   });
 
   if (!response.ok) {

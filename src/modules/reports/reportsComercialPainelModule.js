@@ -772,11 +772,13 @@
           const PAGE = 1000;
           const fetchAllPages = async (payload) => {
             const all = [];
-            for (let from = 0; ; from += PAGE) {
+            // Teto de 200 paginas (200 mil linhas): garante que nunca trava em loop.
+            for (let from = 0; from < PAGE * 200; from += PAGE) {
               const page = (await callSupabaseRpc("comercial_painel_detalhe", payload, { range: [from, from + PAGE - 1] })) || [];
               all.push(...page);
-              if (page.length < PAGE) return all;
+              if (page.length < PAGE) break;
             }
+            return all;
           };
           const results = await Promise.all(terrList.map((terr) => fetchAllPages({
             p_org: org, p_year: year, p_month: month, p_period: period,
