@@ -5,15 +5,15 @@ import { janelaMeses, intervaloMes, agora } from "../src/util.js";
 import { montarSql, normalizarLinha, hashDasLinhas, paraLinhaImport, resumir, deveIncluirCarteira, excluirCartSemData, mensagemErros } from "../src/jobs/vendas.js";
 
 const regioes = [
-  { municipio: "RIO VERDE", uf: "GO", regional: "GO_MG SUL" },
+  { municipio: "RIO VERDE", uf: "GO", regional: "MG" },
   { municipio: "SAO GABRIEL DO OESTE", uf: "MS", regional: "MS" },
   { municipio: "SAO GABRIEL DO OESTE", uf: "MS", regional: "DUPLICADO" },
-  { municipio: "Itapecerica", uf: "MG", regional: "GO_MG SUL" }
+  { municipio: "Itapecerica", uf: "MG", regional: "MG" }
 ];
 const resolver = criarResolvedor(regioes);
 
 test("territorio: casa exato sem diferenciar maiusculas", () => {
-  assert.equal(resolver({ cidade: "rio verde", uf: "go", vend: "" }), "GO_MG SUL");
+  assert.equal(resolver({ cidade: "rio verde", uf: "go", vend: "" }), "MG");
 });
 test("territorio: usa o primeiro quando o municipio se repete", () => {
   assert.equal(resolver({ cidade: "SAO GABRIEL DO OESTE", uf: "MS", vend: "" }), "MS");
@@ -23,8 +23,8 @@ test("territorio: cidade truncada casa por prefixo na mesma UF", () => {
   assert.equal(resolver({ cidade: "SAO GABRIEL DO OES", uf: "GO", vend: "" }), "");
 });
 test("territorio: vendedores fixos tem prioridade", () => {
-  assert.equal(resolver({ cidade: "X", uf: "SP", vend: "000274" }), "GO_MG NORTE");
-  assert.equal(resolver({ cidade: "X", uf: "SP", vend: "000590" }), "GO_MG SUL");
+  assert.equal(resolver({ cidade: "X", uf: "SP", vend: "000274" }), "GO");
+  assert.equal(resolver({ cidade: "X", uf: "SP", vend: "000590" }), "MG");
 });
 test("territorio: nao encontrado ou cidade vazia retorna vazio", () => {
   assert.equal(resolver({ cidade: "NAO EXISTE", uf: "GO", vend: "" }), "");
@@ -94,7 +94,7 @@ test("normalizarLinha: limpa textos, arredonda e resolve territorio", () => {
   assert.equal(l.documento, "123");
   assert.equal(l.uf, "GO");
   assert.equal(l.fat, 1000.46);
-  assert.equal(l.territorio, "GO_MG SUL");
+  assert.equal(l.territorio, "MG");
 });
 test("paraLinhaImport calcula MB = MP/RL e deixa nula sem RL", () => {
   const l = normalizarLinha(bruta, resolver);
@@ -169,10 +169,10 @@ test("mensagemErros: produto que existe mas esta sem cultura vira grupo proprio"
   assert.ok(!m.includes("Produtos a cadastrar"));
 });
 test("mensagemErros: outros motivos aparecem como estao, agrupados", () => {
-  const outro = (n, doc) => reprovada(n, doc, "C1", "P1", "Máquinas", "5", ["Territorio nao cadastrado: GO_MG SUL"]);
+  const outro = (n, doc) => reprovada(n, doc, "C1", "P1", "Máquinas", "5", ["Territorio nao cadastrado: MG"]);
   const m = mensagemErros([outro(1, "A1"), outro(2, "A2"), reprovada(3, "A3", "C9", "P1", "Peças", "1", ["Cliente nao cadastrado"])], {});
   assert.ok(m.includes("Outros problemas"));
-  assert.ok(m.includes("• Territorio nao cadastrado: GO_MG SUL — 2 documentos (A1, A2)"));
+  assert.ok(m.includes("• Territorio nao cadastrado: MG — 2 documentos (A1, A2)"));
   assert.ok(m.split("\n")[0].includes("1 cliente") && m.split("\n")[0].includes("1 outro problema"), m.split("\n")[0]);
 });
 test("mensagemErros: lista longa e cortada com 'e mais N' e sem lista vazia devolve null", () => {

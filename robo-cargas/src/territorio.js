@@ -1,10 +1,10 @@
 // Resolve o territorio (REGIONAL_MARCHER) a partir de Cidade + UF do cliente.
 // Reproduz a formula da coluna "territorio" do Painel_Vecton.xlsm:
-//   1) vendedor 000274 -> "GO_MG NORTE"; 000590 -> "GO_MG SUL"
+//   1) vendedor 000274 -> "GO"; 000590 -> "MG"
 //   2) nome do municipio igual (sem diferenciar maiusculas) + UF
 //   3) senao, municipio que COMECA com o texto da cidade (A1_MUN truncado) + UF, na ordem do cadastro
 //   4) senao, nao encontrado (retorna "")
-const FIXOS_POR_VENDEDOR = { "000274": "GO_MG NORTE", "000590": "GO_MG SUL" };
+const FIXOS_POR_VENDEDOR = { "000274": "GO", "000590": "MG" };
 
 const chave = (s) => String(s ?? "").trim().toLocaleLowerCase("pt-BR");
 

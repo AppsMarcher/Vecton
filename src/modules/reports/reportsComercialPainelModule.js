@@ -890,8 +890,8 @@
         { terr: "RR" }
       ],
       [
-        { terr: "GO_MG SUL" },
-        { terr: "GO_MG NORTE" },
+        { terr: "MG" },
+        { terr: "GO" },
         { terr: "BA", mode: "grao" },
         { terr: "BA", mode: "pec" },
         { terr: "PA" },

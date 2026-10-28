@@ -101,7 +101,7 @@ Configuração (tabela `carga_automatica_config`): `enabled`, `meses_atras`, `me
 
 Tela **Parâmetros → Comercial → Municípios**: busque o município, edite o território (lista dos territórios cadastrados) ou inclua município novo.
 A mudança vale na próxima execução do robô e só para o mês corrente; meses fechados não são recarregados.
-A regra fixa dos vendedores 000274 (GO_MG NORTE) e 000590 (GO_MG SUL) está em `src/territorio.js`.
+A regra fixa dos vendedores 000274 (GO) e 000590 (MG) está em `src/territorio.js`.
 
 ## Relatórios e cache do navegador
 
