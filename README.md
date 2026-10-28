@@ -340,6 +340,8 @@ Em **Parâmetros → Carga de Realizado** a tela tem duas seções: **Manuais** 
 
 **Mapa município → território:** a carga de vendas resolve o território de cada cliente por **Parâmetros → Comercial → Municípios** (`comercial_regioes_municipio`, vinculada a `comercial_territorios`; carga inicial na migration `260`).
 
+**Territórios `GO` e `MG` (28/10/2026):** `GO_MG NORTE` e `GO_MG SUL` foram renomeados para `GO` e `MG` pela migration `313`, preservando os IDs; ledger, atribuições e municípios apontam por `territorio_id` e não foram tocados. Os nomes antigos ficam só em arquivos históricos (`033`, `047`, `260` e `carga_vendas_2023_2026/`). As vendas dos vendedores `000274` (Renan Filipe → `GO`) e `000590` (Renan Borba → `MG`) são fixadas por código em `robo-cargas/src/territorio.js`, inclusive fora do território; a exceção em `robo-cargas/sql/vendas_mes.sql` não mudou. O painel (`PRINT_COL_LAYOUT`, em `reportsComercialPainelModule.js`) casa o card pelo nome do território, então app e robô precisam estar na versão nova após a migration. Os territórios `GO` e `MG` seguem com municípios de GO, MG e Brasília/DF misturados; o nome é do território, não da UF. Confirme a atualização de `territorio.js` no servidor do robô: a carga de vendas falha com "Territorio nao cadastrado" se ele ainda enviar o nome antigo.
+
 Detalhes, instalação e operação: [`robo-cargas/README.md`](robo-cargas/README.md). Resumo para a TI: [`docs/robo-cargas-resumo-ti.pdf`](docs/robo-cargas-resumo-ti.pdf).
 
 ### Carteira vigente e cadastro comercial
@@ -457,6 +459,7 @@ Resumo por fase:
 | `300–307` | BP: catálogo, plano, seed, cargas/rascunhos, contas opcionais/adicionais e proteção de saldos |
 | `308–310` | carga BP sob demanda, notificação de carga e sininho do envio semanal de vendas |
 | `311–312` | foto vigente da carteira por entrega e validação de datas CART |
+| `313` | renomeia os territórios `GO_MG NORTE` → `GO` e `GO_MG SUL` → `MG` (mesmos IDs; aplicada no Supabase do app em 28/10/2026) |
 
 ### Divergências conhecidas do schema
 
