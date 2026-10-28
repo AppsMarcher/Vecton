@@ -635,6 +635,8 @@
 
     let popEl = null;
     let popRows = [], popShowTerr = false, popShowVend = false, popSort = { key: null, dir: 1 };
+    const POP_PAGE_SIZE = 500;
+    let popPage = 0;
 
     function closeDetailPopover() {
       if (!popEl) return;
@@ -664,13 +666,24 @@
         return `<th data-sort="${key}"${cls ? ` class="${cls}"` : ""} style="cursor:pointer;user-select:none${active ? ";color:var(--blue)" : ""}">${label}${arrow}</th>`;
       };
       const documentoLabel = (r) => [r.documento, r.serie_documento].filter(Boolean).join("/");
+      // Totais sobre TODAS as linhas; so a pagina atual vai para o DOM (milhares
+      // de <tr> travam a pagina).
       let totQ = 0, totV = 0;
-      const body = ordered.map((r) => {
+      ordered.forEach((r) => { totV += Number(r.valor) || 0; if (!r.resumo) totQ += Number(r.quantidade) || 0; });
+      const totalPages = Math.max(1, Math.ceil(ordered.length / POP_PAGE_SIZE));
+      popPage = Math.min(Math.max(popPage, 0), totalPages - 1);
+      const pageRows = ordered.slice(popPage * POP_PAGE_SIZE, (popPage + 1) * POP_PAGE_SIZE);
+      const pager = totalPages > 1
+        ? `<div class="cvp-pop-pager" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:8px;font-size:12px">
+            <button type="button" data-pop-page="prev"${popPage === 0 ? " disabled" : ""}>‹ Anterior</button>
+            <span>Página ${popPage + 1} de ${totalPages} · linhas ${popPage * POP_PAGE_SIZE + 1}–${Math.min(ordered.length, (popPage + 1) * POP_PAGE_SIZE)} de ${ordered.length}</span>
+            <button type="button" data-pop-page="next"${popPage >= totalPages - 1 ? " disabled" : ""}>Próxima ›</button>
+          </div>`
+        : "";
+      const body = pageRows.map((r) => {
         if (r.resumo) {
-          totV += Number(r.valor) || 0;
           return `<tr class="cvp-pop-sum"><td colspan="${span}">${escapeHtml(r.label)} · consolidado</td><td class="num">—</td><td class="num${Number(r.valor) < 0 ? " neg" : ""}">${fmtFullR$(r.valor)}</td></tr>`;
         }
-        totQ += Number(r.quantidade) || 0; totV += Number(r.valor) || 0;
         const cidadeUf = [r.cidade, r.uf].filter(Boolean).join("/");
         return `<tr${Number(r.quantidade) < 0 ? ' class="cvp-pop-dev"' : ""}>
           <td>${escapeHtml(r.tipo || "")}</td>
@@ -692,7 +705,7 @@
         <thead><tr>${sortTh("tipo", "Tipo")}${sortTh("entry_date", "Data")}${sortTh("documento", "Documento")}${showTerr ? sortTh("territorio", "Território") : ""}${showVend ? sortTh("vendedor", "Vendedor") : ""}${sortTh("cod_cliente", "Cód. Cli.")}${sortTh("cliente", "Cliente")}${sortTh("cidade", "Cidade/UF")}${sortTh("cultura", "Cult")}${sortTh("cod_produto", "Cód. Prod.")}${sortTh("produto", "Produto")}${sortTh("quantidade", "Qtd", "num")}${sortTh("valor", "FAT", "num")}</tr></thead>
         <tbody>${body}</tbody>
         <tfoot><tr><td colspan="${span}">Total · ${items.length} ${items.length === 1 ? "linha" : "linhas"}</td><td class="num${totQ < 0 ? " neg" : ""}">${nf(totQ)}</td><td class="num${totV < 0 ? " neg" : ""}">${fmtFullR$(totV)}</td></tr></tfoot>
-      </table>`;
+      </table>${pager}`;
     }
 
     // Exporta as linhas de transação do popover de detalhe (exclui as linhas
@@ -706,6 +719,16 @@
           ? d * ((Number(a[k]) || 0) - (Number(b[k]) || 0))
           : d * String(a[k] || "").localeCompare(String(b[k] || ""), "pt-BR"));
       }
+      // Mesmo fechamento da tela: as linhas consolidadas (Pecas/Transgrain/Acessorios)
+      // vao no fim e uma linha de Total soma tudo.
+      const resumos = popRows.filter((r) => r.resumo);
+      const totQ = items.reduce((s, r) => s + (Number(r.quantidade) || 0), 0);
+      const totV = items.concat(resumos).reduce((s, r) => s + (Number(r.valor) || 0), 0);
+      const exportRows = [
+        ...items,
+        ...resumos.map((r) => ({ ...r, tipo: `${r.label} · consolidado` })),
+        { total: true, tipo: "Total", quantidade: totQ, valor: totV }
+      ];
       const columns = [
         { label: "Tipo", value: (r) => r.tipo || "" },
         { label: "Data", value: (r) => formatDisplayDate(r.entry_date) },
@@ -718,10 +741,10 @@
         { label: "Cult", value: (r) => r.cultura || "" },
         { label: "Cód. Prod.", value: (r) => r.cod_produto || "" },
         { label: "Produto", value: (r) => r.produto || "" },
-        { label: "Qtd", value: (r) => Number(r.quantidade) || 0 },
+        { label: "Qtd", value: (r) => (r.resumo ? "" : Number(r.quantidade) || 0) },
         { label: "FAT", value: (r) => Number(r.valor) || 0 },
       ];
-      exportRowsToExcel(items, columns, `Detalhamento_${titulo}`);
+      exportRowsToExcel(exportRows, columns, `Detalhamento_${titulo}`);
     }
 
     // Renderiza a tabela no popover atual e liga o sort (setas ↑↓) nos cabecalhos.
@@ -733,7 +756,13 @@
       body.querySelectorAll(".cvp-pop-tbl th[data-sort]").forEach((th) => th.addEventListener("click", () => {
         const key = th.dataset.sort;
         if (popSort.key === key) popSort.dir *= -1; else { popSort.key = key; popSort.dir = 1; }
+        popPage = 0;
         paintPopTable();
+      }));
+      body.querySelectorAll("[data-pop-page]").forEach((btn) => btn.addEventListener("click", () => {
+        popPage += btn.dataset.popPage === "next" ? 1 : -1;
+        paintPopTable();
+        body.scrollTop = 0;
       }));
     }
 
@@ -808,6 +837,7 @@
       // já é o próprio card). Vale inclusive no consolidado e em "Demais", que
       // é onde ela informa de fato — cada linha mostra quem vendeu.
       popShowVend = !!scope.pecas;
+      popPage = 0;
       popSort = { key: null, dir: 1 };                 // cada abertura comeca na ordem padrao (valor desc)
       const exportWrap = backdrop.querySelector(".cvp-pop-export");
       if (exportWrap) exportWrap.style.display = popRows.some((r) => !r.resumo) ? "flex" : "none";
