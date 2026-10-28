@@ -6840,10 +6840,13 @@ async function deleteSupabaseRows(table, filters) {
   return response;
 }
 
-async function callSupabaseRpc(functionName, payload = {}) {
+// `options.range` = [de, ate] (inclusive) pagina o resultado via header Range: o
+// PostgREST corta toda resposta em max-rows (1.000) e nao avisa.
+async function callSupabaseRpc(functionName, payload = {}, options = {}) {
   const response = await authenticatedFetch(`${supabaseConfig.projectUrl}/rest/v1/rpc/${functionName}`, {
     method: "POST",
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    ...(options.range ? { headers: { "Range-Unit": "items", Range: `${options.range[0]}-${options.range[1]}` } } : {})
   });
 
   if (!response.ok) {

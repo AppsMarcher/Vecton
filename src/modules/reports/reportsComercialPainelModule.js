@@ -767,7 +767,18 @@
           // Card fundido (ex: MA_PI) cobre 2+ territorios reais -- a RPC so
           // filtra 1 territorio por vez, entao busca cada um e junta as linhas.
           const terrList = (scope.terrs && scope.terrs.length) ? scope.terrs : [scope.terr || null];
-          const results = await Promise.all(terrList.map((terr) => callSupabaseRpc("comercial_painel_detalhe", {
+          // O Supabase devolve no maximo 1.000 linhas por chamada: busca em paginas
+          // ate vir uma incompleta (a RPC tem ordem estavel, ver migration 314).
+          const PAGE = 1000;
+          const fetchAllPages = async (payload) => {
+            const all = [];
+            for (let from = 0; ; from += PAGE) {
+              const page = (await callSupabaseRpc("comercial_painel_detalhe", payload, { range: [from, from + PAGE - 1] })) || [];
+              all.push(...page);
+              if (page.length < PAGE) return all;
+            }
+          };
+          const results = await Promise.all(terrList.map((terr) => fetchAllPages({
             p_org: org, p_year: year, p_month: month, p_period: period,
             p_origens: origens, p_linhas: scope.linhas || [],
             p_coordenacao: scope.coord || null, p_territorio: terr,
