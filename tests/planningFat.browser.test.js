@@ -8,6 +8,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     const errors = []; page.on('pageerror', e => errors.push(e.message));
     await page.route('https://planning.test/', r => r.fulfill({ contentType: 'text/html', body: '<style>:root{--text:#25334a;--text-soft:#677994;--text-faint:#677994;--panel:white;--panel-alt:#f6f8fc;--line:#d7dfed;--blue:#365fe6}body{font:14px Arial;background:white;margin:0}</style><main id="planning"></main>' }));
     await page.goto('https://planning.test/');
+    await page.addScriptTag({ path: path.join(__dirname, '../src/modules/ui/dialogs.js') });
     for (const name of ['planningCore', 'planningFatCore', 'planningViews', 'planningFatViews', 'planningModule', 'planningFatModule']) await page.addScriptTag({ path: path.join(__dirname, `../src/modules/planning/${name}.js`) });
     await page.addStyleTag({ path: path.join(__dirname, '../src/modules/planning/planning.css') });
     await page.evaluate(async () => {
@@ -48,7 +49,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
               return { ok: true };
             }
             if (args.p_action === 'save_taxes') { Object.assign(fix.D.taxes.find(t => t.line === p.line), { ipi: p.ipi, icms: p.icms, pis: p.pis, cofins: p.cofins, version: p.version + 1 }); return { ok: true }; }
-            if (args.p_action === 'refresh_premises') { fix.D.stale = false; return { ok: true }; }
+            if (args.p_action === 'refresh_premises') { fix.D.stale = false; return { ok: true, rows: 14, pending: 2, window_months: [202609, 202608] }; }
             return { ok: true };
           }
           return { ok: true };
@@ -168,6 +169,8 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.match(await page.locator('.fat-stale').innerText(), /Premissas defasadas · base set\/26 · ago\/26/);
     await page.locator('.fat-stale [data-pl="fat-refresh"]').click();
     assert.equal(await page.locator('.fat-stale').count(), 0);
+    await page.waitForSelector('.vp-toast-warn');
+    assert.match(await page.locator('.vp-toast-warn').innerText(), /Premissas atualizadas · 14 premissas · base set\/26 · ago\/26 · 2 modelo\(s\) sem histórico/, 'o botão Atualizar premissas responde com o resultado');
 
     // ── Integrar: direto sem sobreposição; com sobreposição, confirmação sem bloquear
     await page.locator('[data-pl="project"]').click();

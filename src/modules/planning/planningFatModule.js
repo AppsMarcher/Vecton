@@ -270,6 +270,21 @@
       const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
       const a = document.createElement('a'); a.href = url; a.download = `fat-vendas-${slug(vm.label)}-${vm.year}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
+    // Atualizar premissas: avisa que está calculando e, ao fim, o que mudou (ou o erro), já que o botão não tem retorno visual próprio.
+    async function refreshPremises() {
+      const dismiss = deps.toast('Atualizando premissas…', 'info');
+      try {
+        const result = await write('refresh_premises');
+        data = await read(); index(); deps.render();
+        if (typeof dismiss === 'function') dismiss();
+        const base = (result.window_months || []).map(ymLabel).join(' · '), pending = result.pending || 0;
+        deps.toast(`Premissas atualizadas · ${result.rows ?? 0} premissas${base ? ` · base ${base}` : ''}${pending ? ` · ${pending} modelo(s) sem histórico` : ''}`, pending ? 'warning' : 'success');
+      } catch (err) {
+        if (typeof dismiss === 'function') dismiss();
+        deps.toast(`Não foi possível atualizar as premissas: ${err?.message || err}`, 'error');
+        throw err;
+      }
+    }
     async function action(name, el) {
       switch (name) {
         case 'fat-export': return exportExcel();
@@ -279,7 +294,7 @@
         case 'fat-toggle': if (el.dataset.id === 'prem') premOpen = !premOpen; else dreOpen = !dreOpen; return deps.render();
         case 'fat-save': return save();
         case 'fat-discard': changes = new Map(); persistDraft(); return deps.render();
-        case 'fat-refresh': { await write('refresh_premises'); data = await read(); index(); return deps.render(); }
+        case 'fat-refresh': return refreshPremises();
         case 'fat-adjust': return adjust(el);
         case 'fat-release': { const f = deps.form(); await write('set_status', { status: f.status === 'released' ? 'draft' : 'released' }); await deps.refresh(); data = await read(); index(); return deps.render(); }
         case 'fat-access-save': {
