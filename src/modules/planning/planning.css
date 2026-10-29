@@ -130,3 +130,4 @@
 .pl-app select[data-access] option[value=read],.pl-app select[data-fat=access] option[value=read],.pl-app select[data-access]:has(option[value=read]:checked),.pl-app select[data-fat=access]:has(option[value=read]:checked){color:var(--red)}
 .pl-app select[data-access] option[value=none],.pl-app select[data-fat=access] option[value=none]{color:var(--text)}
 .pl-app .fat-ctl .fat-select--user{width:160px;flex:none}
+.fat-grid.fat-access{min-width:0}.fat-grid.fat-access td{height:71px;padding:0 17px;font-size:12px}.fat-grid.fat-access th{padding:0 17px}
