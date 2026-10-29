@@ -197,6 +197,17 @@ const { createDb } = require('./helpers/planningFatDb');
     // planning_write não mexe no FAT
     await assert.rejects(write('save_access', sid, { form_id: fatForm, access: [] }), /operações autorizadas do FAT/);
     await assert.rejects(write('save_form', sid, { code: 'FAT', name: 'Outro' }), /reservado/);
+    // 321: admin renomeia o FAT sem mexer em código, status ou revisão
+    const revFat = async () => (await db.query('select revision, status, code from planning_forms where id=$1', [fatForm])).rows[0];
+    const revBefore = await revFat();
+    await write('save_form', sid, { id: fatForm, code: 'FAT', name: 'Vendas · Projeção de Volumes' });
+    assert.deepEqual(await revFat(), revBefore);
+    assert.equal((await db.query('select name from planning_forms where id=$1', [fatForm])).rows[0].name, 'Vendas · Projeção de Volumes');
+    await assert.rejects(write('save_form', sid, { id: fatForm, code: 'XX', name: 'Outro' }), /código do FAT/);
+    await assert.rejects(write('save_form', sid, { id: fatForm, code: 'FAT', name: '  ' }), /nome/);
+    await T.as(ids.writer);
+    await assert.rejects(write('save_form', sid, { id: fatForm, code: 'FAT', name: 'Invasão' }), /Sem permissão/);
+    await T.as(ids.admin);
     await db.exec('reset role');
 
     // ---- Task 5: integração, sobreposição e meta

@@ -231,7 +231,7 @@
     }
     async function openFormDialog(f = null) {
       const next = String(Math.max(0,...context.forms.filter(x=>x.form_type!=='capex' && /^\d+$/.test(x.code)).map(x=>Number(x.code)))+1).padStart(2,'0');
-      modal(f ? 'Identificação do formulário' : 'Novo formulário', `<div class="pl-columns">${field('Código', textInput('pl-form-code', f?.code || next, f?.form_type === 'capex' ? 'readonly' : ''))}${field('Nome', textInput('pl-form-title', f?.name))}</div>`, async () => { const result = await write('save_form', { ...(f ? { id: f.id, status: f.status } : {}), code: root.querySelector('#pl-form-code').value, name: root.querySelector('#pl-form-title').value }); close(); await refresh(); if (!f) await loadForm(result.id, 'structure'); else render(); });
+      modal(f ? 'Identificação do formulário' : 'Novo formulário', `<div class="pl-columns">${field('Código', textInput('pl-form-code', f?.code || next, f?.form_type === 'capex' || f?.form_type === 'fat' ? 'readonly' : ''))}${field('Nome', textInput('pl-form-title', f?.name))}</div>`, async () => { const result = await write('save_form', { ...(f ? { id: f.id, status: f.status } : {}), code: root.querySelector('#pl-form-code').value, name: root.querySelector('#pl-form-title').value }); close(); await refresh(); if (!f) await loadForm(result.id, 'structure'); else render(); });
     }
     function lineDialog(line = null) {
       const l = line || { seq: Math.max(0, ...lines().map(l => l.seq)) + 1, origin: 'input', style: {} };
