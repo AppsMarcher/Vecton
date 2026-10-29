@@ -223,6 +223,22 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.equal(await page.locator('[data-pl="fat-refresh"]').count(), 1);
     await page.locator('[data-pl="fat-tab"][data-tab="pre"]').click();
     assert.equal(await page.locator('[data-pl="fat-tab"][data-tab="acc"]').count(), 1);
+    // ── Excel no modelo do Evolutivo de Margens (ExcelJS real quando PLANNING_EXCELJS_LIB aponta para a biblioteca)
+    assert.equal(await page.locator('[data-pl="fat-export"]').count(), 1);
+    if (process.env.PLANNING_EXCELJS_LIB) {
+      await page.addScriptTag({ path: process.env.PLANNING_EXCELJS_LIB });
+      const [download] = await Promise.all([page.waitForEvent('download'), page.locator('[data-pl="fat-export"]').click()]);
+      assert.match(download.suggestedFilename(), /^fat-vendas-marcher-2027\.xlsx$/);
+      const file = path.join(require('node:os').tmpdir(), 'fat-export-test.xlsx'); await download.saveAs(file);
+      const ExcelJS = require(process.env.PLANNING_EXCELJS_LIB.replace(/dist[\/].*$/, ''));
+      const wb = new ExcelJS.Workbook(); await wb.xlsx.readFile(file); const ws = wb.worksheets[0];
+      assert.equal(ws.getCell('A5').value, 'Modelo'); assert.equal(ws.getCell('B5').value, 'VOL · unidades'); assert.equal(ws.getCell('B6').value, '2025'); assert.equal(ws.getCell('P6').value, '2027');
+      assert.equal(ws.getCell(5, 17).value, 'FAT · R$/un');
+      const names = []; ws.eachRow(r => names.push(r.getCell(1).value)); assert(names.includes('Total Marcher')); assert(names.includes('GRÃOS')); assert(names.includes('INGRAIN100'));
+    } else {
+      await page.evaluate(() => { window.exportedCells = []; window.ExcelJS = { Workbook: class { constructor() { this.xlsx = { writeBuffer: async () => new Uint8Array() }; } addWorksheet() { const cells = new Map(), get = (r, c) => { const k = r + ':' + c; if (!cells.has(k)) cells.set(k, {}); return cells.get(k); }; window.exportedCells = cells; return { getColumn: () => ({}), getRow: () => ({}), mergeCells() {}, getCell: (r, c) => get(typeof r === 'string' ? r : r, c) }; } } }; });
+      await page.locator('[data-pl="fat-export"]').click(); await page.waitForFunction(() => window.exportedCells.size > 50);
+    }
     // ── acessos por coordenação
     await page.evaluate(() => { fix.D.coords = [{ key: 'MARCHER', name: 'Marcher' }, { key: 'c-norte', name: 'Norte' }, { key: 'c-sul', name: 'Sul' }]; });
     await page.locator('[data-pl="index"]').click(); await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');

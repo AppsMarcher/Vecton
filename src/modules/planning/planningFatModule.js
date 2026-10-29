@@ -210,8 +210,69 @@
         deps.close(); data = await read(); index(); deps.render();
       });
     }
+
+    // ── Excel (mesmo modelo do Evolutivo de Margens) ───────────────────────
+    // A tabela da tela se repete lado a lado (VOL | FAT | RL | MP | MC1%), cada bloco com os dois anos de
+    // referência, os 12 meses e o total do ano; vale a visão e o filtro abertos (Marcher, Coordenação ou Região).
+    const XL_METRICS = [['vol', 'VOL', 'unidades'], ['fat', 'FAT', 'R$/un'], ['rl', 'RL', 'R$/un'], ['mp', 'MP', 'R$/un'], ['mb', 'MC1%', '%']];
+    const XL_BORDER = { style: 'thin', color: { argb: 'FFE1E5EC' } }, XL_BORDER_ALL = { top: XL_BORDER, left: XL_BORDER, bottom: XL_BORDER, right: XL_BORDER };
+    const xlFill = argb => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+    const xlFormat = (v, key) => (key === 'mb' ? '0.0%' : key === 'vol' ? (Number.isInteger(Math.round(v * 100) / 100) ? '#,##0' : '#,##0.0') : Math.abs(v) < 100 ? '#,##0.00' : '#,##0');
+    const slug = t => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    function buildWorkbook(vm) {
+      const blockW = 15; // ano-2, ano-1, 12 meses e o total do ano
+      const wb = new global.ExcelJS.Workbook(); wb.creator = 'VectonPlan'; wb.created = new Date();
+      const ws = wb.addWorksheet('Vendas · Projeção de volumes', {
+        views: [{ state: 'frozen', xSplit: 1, ySplit: 6, showGridLines: false }],
+        pageSetup: { orientation: 'landscape', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: .3, right: .3, top: .4, bottom: .4, header: .2, footer: .2 } } });
+      const lastCol = 1 + XL_METRICS.length * blockW;
+      ws.getColumn(1).width = 34; for (let c = 2; c <= lastCol; c++) ws.getColumn(c).width = 10.5;
+      ws.getCell('A1').value = `${deps.scenario().name} · ${vm.form.name}`; ws.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF172033' } };
+      const meta = ws.getCell('A2'); meta.value = `${vm.label} · ${vm.tag || 'volume por território'}`; meta.font = { size: 10, color: { argb: 'FF556070' } };
+      const gen = ws.getCell('A4'); gen.value = `Gerado em ${new Date().toLocaleString('pt-BR')}`; gen.font = { size: 9, italic: true, color: { argb: 'FF7A8494' } };
+      const headFill = xlFill('FFF1F3F7');
+      const hd = (cell, text, align = 'center') => { cell.value = text; cell.font = { bold: true, size: 9.5, color: { argb: 'FF334055' } }; cell.fill = headFill; cell.border = XL_BORDER_ALL; cell.alignment = { horizontal: align, vertical: 'middle', wrapText: true }; };
+      ws.mergeCells('A5:A6'); hd(ws.getCell('A5'), 'Modelo', 'left');
+      XL_METRICS.forEach(([, label, unit], b) => {
+        const c0 = 2 + b * blockW; ws.mergeCells(5, c0, 5, c0 + blockW - 1); hd(ws.getCell(5, c0), `${label} · ${unit}`);
+        for (let c = c0 + 1; c < c0 + blockW; c++) { ws.getCell(5, c).fill = headFill; ws.getCell(5, c).border = XL_BORDER_ALL; }
+        vm.refYears.forEach((y, i) => hd(ws.getCell(6, c0 + i), String(y))); months.forEach((m, i) => hd(ws.getCell(6, c0 + 2 + i), m.toUpperCase())); hd(ws.getCell(6, c0 + blockW - 1), String(vm.year));
+      });
+      ws.getRow(5).height = 18; ws.getRow(6).height = 18;
+      let r = 7;
+      vm.rows.forEach(row => {
+        if (row.kind === 'grp') {
+          for (let c = 1; c <= lastCol; c++) { const cell = ws.getCell(r, c); cell.fill = xlFill('FFE9EDF5'); cell.border = XL_BORDER_ALL; }
+          const c1 = ws.getCell(r, 1); c1.value = row.name.toUpperCase(); c1.font = { bold: true, size: 10, color: { argb: 'FF334055' } }; r++; return;
+        }
+        const fill = row.kind === 'top' ? xlFill('FFDDE5F5') : row.kind === 'sub' ? xlFill('FFF6F8FB') : null, bold = row.kind !== 'model';
+        const name = ws.getCell(r, 1); name.value = row.name; name.border = XL_BORDER_ALL; name.alignment = { horizontal: 'left', vertical: 'middle', indent: row.kind === 'model' ? 1 : 0 }; name.font = { bold, size: 10, color: { argb: 'FF172033' } }; if (fill) name.fill = fill;
+        XL_METRICS.forEach(([key], b) => {
+          const c0 = 2 + b * blockW;
+          [row.r25, ...row.months.slice(0, 12), row.year].forEach((cellData, i) => {
+            const cell = ws.getCell(r, c0 + i), v = core.metric(cellData, key), rf = fill || (i === 0 || i === 1 || i === blockW - 1 ? xlFill('FFEEF2FB') : null);
+            cell.border = XL_BORDER_ALL; cell.alignment = { horizontal: 'right', vertical: 'middle' }; if (rf) cell.fill = rf;
+            if (v == null || !Number.isFinite(v)) { cell.value = '–'; cell.font = { bold, size: 10, color: { argb: 'FF9AA3B2' } }; return; }
+            cell.value = key === 'mb' ? v : Math.round(v * 1e6) / 1e6; cell.numFmt = xlFormat(v, key); cell.font = { bold, size: 10, color: { argb: 'FF172033' } };
+          });
+        });
+        r++;
+      });
+      r += 1;
+      ['Valores unitários (R$ ÷ volume) em FAT, RL e MP; VOL em unidades · MC1% = (RL − MP) ÷ RL · – = sem volume',
+        `Colunas ${vm.refYears[0]} e ${vm.refYears[1]} = realizado; ${vm.year} = projeção digitada no formulário (mesmos números da tela)`].forEach(t => { const c = ws.getCell(r++, 1); c.value = t; c.font = { size: 9, italic: true, color: { argb: 'FF7A8494' } }; });
+      return wb;
+    }
+    async function exportExcel() {
+      if (!global.ExcelJS) throw Error('Biblioteca de exportação indisponível');
+      const vm = viewModel(deps.form());
+      const buffer = await buildWorkbook(vm).xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+      const a = document.createElement('a'); a.href = url; a.download = `fat-vendas-${slug(vm.label)}-${vm.year}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
     async function action(name, el) {
       switch (name) {
+        case 'fat-export': return exportExcel();
         case 'fat-view': view = el.dataset.v; if (isPecas() && metric === 'vol') metric = 'fat'; return deps.render();
         case 'fat-metric': metric = el.dataset.m; return deps.render();
         case 'fat-tab': tab = el.dataset.tab; return deps.render();
