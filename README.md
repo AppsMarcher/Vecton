@@ -461,6 +461,7 @@ Resumo por fase:
 | `311–312` | foto vigente da carteira por entrega e validação de datas CART |
 | `313` | renomeia os territórios `GO_MG NORTE` → `GO` e `GO_MG SUL` → `MG` (mesmos IDs; aplicada no Supabase do app em 28/10/2026) |
 | `314` | mapa de municípios de GO/MG passa a seguir a UF (183 de MG → `MG`, 24 de GO → `GO`); não reprocessa o razão |
+| `316`–`319` | FAT (projeção de vendas do Planejamento): formulário `fat`, regiões por território, premissas do histórico, percentuais de impostos, integração conta × mês somada ao formulário 08 e meta por modelo |
 
 ### Divergências conhecidas do schema
 

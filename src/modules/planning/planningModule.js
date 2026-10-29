@@ -26,8 +26,12 @@
       get tab() { return tab; }, get formTab() { return formTab; }, get selectedCC() { return selectedCC; }, get changes() { return changes; },
       get accountNumbers() { return accountNumbers; },
       get costCenters() { return costCenters(); }, get capexItems() { return sortedCapexItems(); }, get capexDepreciation() { return capexDepreciation; }, get capexDepOpen() { return capexDepOpen; },
+      fatView: f => fat.html(f), fatListRow: f => fat.listRow(f, { locked: locked(), admin: admin() }),
       locked, admin, form, lines, inputMonths, key: (l, cc, m) => key(l, cc, m), computed: savedOnly => computed(savedOnly), selectedForms: () => selectedForms()
     };
+    const fat = global.VECTON_PLANNING_FAT.createFatController({ escapeHtml: esc, rpc, months, org: () => org, scenario: () => scenario, context: () => context, form, admin, locked, inputMonths,
+      render: () => render(), root: () => root, modal: (...a) => modal(...a), close: () => close(), refresh: () => refresh(), invalidate: () => invalidateScenarioCachesFor?.(scenario.id, scenario.reference_year),
+      toast: (text, type) => global.VECTON_DIALOGS?.showToast?.(text, type) });
     const draftKey = () => `vecton-planning:${org}:${context.user_id}:${scenario.id}:${formId}:${selectedCC.join(',')}`;
     function storage(action, key, value) { try { return localStorage[action](key, value); } catch (_) { return null; } }
     async function ensure() {
@@ -66,6 +70,7 @@
       root = container.querySelector('.pl-app'); fitGrid(); root.onclick = e => { hideTip(); const el = e.target.closest('[data-pl]'); if (el && !el.disabled) void run(() => action(el.dataset.pl, el)); };
       root.onchange = e => void run(() => change(e.target));
       root.oninput = e => {
+        if (e.target.dataset.fat === 'vol') return fat.input(e.target);
         if (!e.target.dataset.cell || e.target.disabled) return;
         try { setChange(e.target.dataset.cell, core.parseAmount(e.target.value)); updateGrid(); }
         catch (_) { /* Partial input is validated on blur. */ }
@@ -131,14 +136,14 @@
       finally { busy = false; }
     }
     function friendly(error) { try { return JSON.parse(error.message).message || error.message; } catch (_) { return error.message || String(error); } }
-    function modal(title, body, callback, info = false) {
+    function modal(title, body, callback, info = false, confirmLabel = 'Confirmar') {
       const dialog = root.querySelector('dialog'); dialogAction = callback;
-      dialog.innerHTML = `<div class="pl-dialog-head"><h2>${esc(title)}</h2><button type="button" class="pl-dialog-x" data-pl="dismiss" aria-label="Fechar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>${body}<div class="pl-actions">${info ? button('Entendi', 'dismiss', '', true) : `${button('Cancelar', 'dismiss')}${button('Confirmar', 'confirm', '', true)}`}</div><div class="pl-modal-error" role="alert"></div>`;
+      dialog.innerHTML = `<div class="pl-dialog-head"><h2>${esc(title)}</h2><button type="button" class="pl-dialog-x" data-pl="dismiss" aria-label="Fechar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>${body}<div class="pl-actions">${info ? button('Entendi', 'dismiss', '', true) : `${button('Cancelar', 'dismiss')}${button(esc(confirmLabel), 'confirm', '', true)}`}</div><div class="pl-modal-error" role="alert"></div>`;
       dialog.showModal();
     }
     function close() { root.querySelector('dialog')?.close(); dialogAction = null; }
     async function leave(fn) {
-      if (changes.size) { modal('Alterações não salvas', '<p>Salve os valores antes de sair ou confirme para descartar as alterações locais.</p>', async () => { storage('removeItem', draftKey()); changes.clear(); close(); await fn(); }); }
+      if (changes.size || fat.dirty()) { modal('Alterações não salvas', '<p>Salve os valores antes de sair ou confirme para descartar as alterações locais.</p>', async () => { storage('removeItem', draftKey()); changes.clear(); fat.discard(); close(); await fn(); }); }
       else await fn();
     }
     function exit() { active = false; generation++; previewRequest++; clearTimeout(previewTimer); changes.clear(); back?.(); }
@@ -169,6 +174,7 @@
       const calc = core.compile(lines()); return months.map((_, i) => { try { return calc(l => cellValue(l, i + 1, savedOnly)); } catch (err) { return Object.fromEntries(lines().map(l => [l.id, l.origin === 'input' ? cellValue(l, i + 1, savedOnly) : l.origin === 'formula' ? err.message : null])); } });
     }
     async function readForm(id = formId) {
+      if (context.forms.find(f => f.id === id)?.form_type === 'fat') return;
       const request = ++generation;
       clearTimeout(previewTimer); previewRequest++;
       const capex = context.forms.find(f => f.id === id)?.form_type === 'capex';
@@ -178,6 +184,7 @@
       indexForm(); revision = data.revision ?? form().revision;
     }
     async function loadForm(id, targetTab = 'input') {
+      if (context.forms.find(f => f.id === id)?.form_type === 'fat') { formId = id; formTab = targetTab; changes.clear(); await fat.open(id, targetTab === 'structure' ? 'cfg' : 'pre'); return render(); }
       formId = id; formTab = targetTab; selectedCC = costCenters().length ? [costCenters()[0].id] : []; changes.clear();
       await readForm(); render();
       const draft = storage('getItem', draftKey());
@@ -306,6 +313,7 @@
       });
     }
     async function action(name, el) {
+      if (name.startsWith('fat-')) return fat.action(name, el);
       const d = el.dataset;
       switch (name) {
         case 'exit': return leave(exit);
@@ -347,16 +355,19 @@
         case 'release': await write('save_form', { ...form(), status: form().status === 'draft' ? 'released' : 'draft' }); await refresh(); return render();
         case 'save': return save();
         case 'discard': storage('removeItem', draftKey()); changes.clear(); if(isCapex()){await readForm();} return render();
-        case 'project': return modal(`Integrar ao DRE e OPEX do ${scenario.name}?`, `<p>Integra os valores projetados nos formulários de OPEX e CAPEX ao DRE e demais relatórios derivados.</p>${changes.size ? '<p class="pl-note">Sua digitação não salva não será incluída.</p>' : ''}`, async () => {
+        case 'project': { if (form()?.form_type === 'fat') return fat.integrate();
+          const fatForm = context.forms.find(f => f.scenario_id === scenario.id && f.form_type === 'fat' && f.status === 'released');
+          let overlap = []; if (fatForm) { try { overlap = await rpc('planning_fat_overlap', { p_org: org, p_form: fatForm.id }); } catch (_) { overlap = []; } }
+          return modal(`Integrar ao DRE e OPEX do ${scenario.name}?`, `<p>Integra os valores projetados nos formulários de OPEX, CAPEX e FAT ao DRE e demais relatórios derivados.</p>${overlap.length ? fat.overlapHtml(overlap) : ''}${changes.size ? '<p class="pl-note">Sua digitação não salva não será incluída.</p>' : ''}`, async () => {
           const result = await rpc('planning_integrate_all', { p_org: org, p_scenario: scenario.id, p_form: formId });
           invalidateScenarioCachesFor?.(scenario.id, scenario.reference_year);
           if (!result.ok) { await refresh(); throw Error(result.error || 'Falha na integração'); }
           close(); await refresh(); render();
           const notes = result.notes || [], skipped = result.capex?.skipped_items || 0;
           global.VECTON_DIALOGS?.showToast?.(`Integração concluída · ${result.rows_written} linhas${skipped ? ` · ${skipped} itens do CAPEX incompletos ignorados` : ''}${notes.length ? ` · ${notes.join('; ')}` : ''}`, skipped || notes.length ? 'warning' : 'success');
-        });
+        }); }
         case 'clear': return modal('Apagar os valores deste formulário?', '<p>Todos os centros serão zerados. O DRE só será atualizado após uma nova integração.</p>', async () => { await write('clear_entries', { form_id: formId, confirmation: 'APAGAR' }); storage('removeItem', draftKey()); changes.clear(); close(); await readForm(); render(); });
-        case 'copy-form': { const all = await rpc('planning_context', { p_org: org }); return modal('Copiar estrutura', `${field('Origem', `<select id="pl-copy-form" class="pl-input">${all.forms.filter(f => f.id !== formId && f.form_type !== 'capex').map(f => `<option value="${f.id}">${esc(all.scenarios.find(s => s.id === f.scenario_id)?.name || '')} / ${esc(f.code)} · ${esc(f.name)}</option>`).join('')}</select>`)}${field('Código no destino', textInput('pl-copy-code'))}${field('Nome', textInput('pl-copy-name'))}<p>Valores e acessos não são copiados.</p>`, async () => { await write('copy_form', { source_form_id: root.querySelector('#pl-copy-form').value, code: root.querySelector('#pl-copy-code').value, name: root.querySelector('#pl-copy-name').value }); close(); await refresh(); formId = null; render(); }); }
+        case 'copy-form': { const all = await rpc('planning_context', { p_org: org }); return modal('Copiar estrutura', `${field('Origem', `<select id="pl-copy-form" class="pl-input">${all.forms.filter(f => f.id !== formId && f.form_type !== 'capex' && f.form_type !== 'fat').map(f => `<option value="${f.id}">${esc(all.scenarios.find(s => s.id === f.scenario_id)?.name || '')} / ${esc(f.code)} · ${esc(f.name)}</option>`).join('')}</select>`)}${field('Código no destino', textInput('pl-copy-code'))}${field('Nome', textInput('pl-copy-name'))}<p>Valores e acessos não são copiados.</p>`, async () => { await write('copy_form', { source_form_id: root.querySelector('#pl-copy-form').value, code: root.querySelector('#pl-copy-code').value, name: root.querySelector('#pl-copy-name').value }); close(); await refresh(); formId = null; render(); }); }
         case 'import': return modal('Importar contas DRE', `<p>Selecione contas analíticas para criar linhas digitadas.</p>${context.accounts.filter(a => !lines().some(l => l.account_id === a.id)).map(a => `<label class="pl-choice"><input type="checkbox" data-import="${a.id}">${esc(a.account_number)} · ${esc(a.account_name)}</label>`).join('')}`, async () => {
           // One server transaction for the entire selection.
           await write('import_accounts', { form_id: formId, account_ids: [...root.querySelectorAll('[data-import]:checked')].map(e => e.dataset.import) }); close(); await refresh(); await readForm(); render();
@@ -365,6 +376,7 @@
       }
     }
     async function change(el) {
+      if (el.dataset.fat) return fat.change(el);
       if (el.dataset.capexItem && !el.disabled) {
         const item=capexItems.find(i=>i.id===el.dataset.capexItem);
         try {

@@ -1,5 +1,8 @@
 -- REFERÊNCIA, NÃO É MIGRATION. Versão vigente de public.planning_write.
 -- Última migration que recria a função: 290_planning_capex.sql
+-- A partir da 319_planning_fat_integration.sql o nome `planning_write` é um envoltório: esta versão passou a se chamar
+-- planning_write_before_fat (o corpo abaixo não mudou) e o envoltório bloqueia as operações estruturais sobre o FAT
+-- e prepara o FAT em cenário novo.
 create or replace function public.planning_write(p_org uuid,p_action text,p_scenario uuid default null,p_payload jsonb default '{}') returns jsonb
 language plpgsql security definer set search_path=public as $$
 declare s public.forecast_scenarios; f public.planning_forms; oldline public.planning_form_lines;

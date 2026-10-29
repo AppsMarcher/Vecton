@@ -70,9 +70,10 @@
       // Formulário não liberado só aparece no modo gerenciar (engrenagem do cenário).
       const visible = context.forms.filter(f => admin || f.status === 'released');
       const row = f => `<div class="pl-list-row"><span class="pl-code">${esc(f.form_type === 'capex' ? 'CPX' : f.code)}</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(locked ? 'Somente leitura' : f.form_type === 'capex' ? 'Planejar investimentos' : f.access_mode === 'write' ? 'Lançar valores' : 'Visualizar')}</small></div>${statusBadge(f)}${admin ? button('Configurar', 'configure', `data-id="${f.id}"`) : ''}${button('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`;
-      const rows = visible.filter(f => f.form_type !== 'capex').sort((a,b) => a.code.localeCompare(b.code, 'pt-BR', { numeric: true })).map(row).join('');
+      const rows = visible.filter(f => f.form_type !== 'capex' && f.form_type !== 'fat').sort((a,b) => a.code.localeCompare(b.code, 'pt-BR', { numeric: true })).map(row).join('');
       const capex = visible.filter(f => f.form_type === 'capex').map(row).join('');
-      return `<div class="pl-heading"><h2>Formulários do cenário</h2>${admin ? button('+ Novo formulário', 'new-form', off(locked), true) : ''}</div><div class="pl-list">${rows || '<p class="pl-note">Nenhum formulário disponível. O administrador pode construir um novo formulário.</p>'}</div>${capex ? `<div class="pl-list pl-capex-list">${capex}</div>` : ''}`;
+      const fatRows = visible.filter(f => f.form_type === 'fat').map(f => st.fatListRow(f)).join('');
+      return `<div class="pl-heading"><h2>Formulários do cenário</h2>${admin ? button('+ Novo formulário', 'new-form', off(locked), true) : ''}</div><div class="pl-list">${rows || '<p class="pl-note">Nenhum formulário disponível. O administrador pode construir um novo formulário.</p>'}</div>${capex ? `<div class="pl-list pl-capex-list">${capex}</div>` : ''}${fatRows ? `<div class="pl-list pl-fat-list">${fatRows}</div>` : ''}`;
     }
     function sourcesList(st) {
       const cards = st.context.months.map(m => {
@@ -111,6 +112,7 @@
     // ── Formulário: preenchimento, estrutura e acessos ─────────────────────
     function formView(st, f) {
       if (f.form_type === 'capex') return capexForm(st, f);
+      if (f.form_type === 'fat') return st.fatView(f);
       const tabs = [['input', 'Preenchimento'], ...(st.admin() ? [['structure', 'Estrutura'], ['access', 'Acessos']] : [])];
       const body = st.formTab === 'input' ? grid(st) : st.formTab === 'structure' ? structure(st) : access(st);
       return `${st.formTab === 'input' ? `<div class="pl-heading"><div class="pl-actions" style="margin-left:auto">${f.access_mode === 'write' ? button('Integrar no DRE e OPEX', 'project', off(st.locked()), true) : ''}${exportButton}</div></div>` : ''}<div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO ${esc(f.code)}</small><h2>${esc(f.name)}</h2></div>${statusBadge(f)}</div><div class="pl-tabrow${tabs.length > 1 ? '' : ' pl-tabrow--bare'}">${tabs.length > 1 ? `<nav class="pl-tabs">${tabButtons(tabs, 'form-tab', st.formTab)}</nav>` : ''}${st.formTab === 'input' ? gridToolbar(st) : ''}</div>${body}`;

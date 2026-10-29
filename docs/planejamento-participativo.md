@@ -78,6 +78,20 @@ A depreciação começa no mês seguinte, considera apenas lançamentos e destin
 
 Parâmetros são copiados da base explícita ou do cenário participativo anterior; o primeiro começa vazio. A cópia do CPX remapeia os tipos, copia itens e acessos e respeita a escolha de copiar valores. Nenhum saldo de depreciação é transportado entre exercícios nesta versão.
 
+## FAT: projeção de vendas (migrations 316 a 319)
+
+Formulário `FAT` (`form_type = 'fat'`), um por cenário participativo, no bloco abaixo dos OPEX e do CPX. Spec: `docs/superpowers/specs/2026-10-28-fat-projecao-vendas-design.md`.
+
+**Ordem de aplicação (antes de publicar os assets):** `316` (tipo, tabelas privadas, regiões, modelos), `317` (premissas), `318` (cálculo, leitura/escrita, sobreposição, integração, meta) e `319` (botão único de integração, contexto, clonagem e criação). Cenários existentes ganham o FAT em rascunho, sem acessos. A migration não é aplicada pelo aplicativo.
+
+- **Lançamento:** só o volume, por região (território da tabela de Atribuições; Peças é a região sem território). Filtrar uma região mostra o formulário inteiro. Peças digita o FAT (bruto, com IPI), com VOL = 1; Exportação não tem imposto (FAT = RL, conta 31101002).
+- **Premissas:** FAT/un e MP/un da média ponderada dos 2 últimos meses fechados com venda do modelo no território (recua até achar 2; sem venda, média Marcher). Congeladas ao liberar; **Atualizar premissas** e os ajustes do admin ficam registrados, e o ajuste sobrevive à atualização.
+- **Cálculo:** `FAT = VOL × FAT/un`, impostos = FAT × percentual (IPI, ICMS, PIS e COFINS por linha Máquinas, Transgrain e Peças, na aba Configuração), `RL = FAT − impostos`, `MP = VOL × MP/un`. Sem CBS.
+- **Integração:** conta × mês, sem centro de custo, receita negativa e impostos e MP positivos, histórico `FAT: FAT`. Apaga e regrava só as linhas do FAT; o OPEX e o CPX preservam as suas. O DRE soma FAT + formulário 08 (e demais OPEX) por conta. Ao **Integrar**, se o FAT e um OPEX liberado têm valor na mesma conta e mês, abre uma confirmação (não bloqueia). `planning_integrate_all` integra OPEX, CAPEX e FAT.
+- **Meta comercial:** a integração grava `planning_fat_meta` (modelo × território × coordenação × mês). A leitura pelo Painel de Vendas é um plano à parte.
+- **Segurança:** as tabelas `planning_fat_*` não têm acesso direto (RLS e `revoke`); tudo passa por `planning_fat_read`, `planning_fat_write`, `planning_fat_overlap` e `planning_integrate_all`. `planning_write` passou a ser um envoltório (ver a referência) e recusa operações estruturais sobre o FAT.
+- **Testes:** `node tests/planningFatCore.test.js`; `node tests/planningFat.sql.test.js` (PGlite, como os demais testes SQL); `node tests/planningFat.browser.test.js`.
+
 ## Limites desta entrega
 
 Sem alterações de RH por posição, Comercial, Fluxo de Caixa, aprovações, variáveis ou novas funções de fórmula. A atualização entre colegas aparece ao reler/salvar; o Realtime não foi acrescentado. Alertas por notificação/e-mail não foram ligados à integração. O desempenho no Supabase e o piloto OPEX dependem de homologação.

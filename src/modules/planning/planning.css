@@ -78,3 +78,45 @@
 .pl-origin-body{padding:4px 15px 15px 42px;display:flex;flex-direction:column;gap:10px}
 .pl-sub{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text);cursor:pointer}
 .pl-hint{font-size:12px;color:var(--pl-muted);margin:0}
+
+/* ── FAT (projeção de vendas): formato do Evolutivo de Margens ─────────────── */
+.fat-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px 16px 16px;margin-top:14px}
+.fat-card-h{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.fat-ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fat-seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;min-height:36px;align-items:center}
+.fat-seg button{background:none;border:0;color:var(--text-soft);font:inherit;font-weight:600;font-size:12px;padding:6px 14px;border-radius:7px;cursor:pointer}
+.fat-seg button.on{background:var(--blue);color:#fff}
+.fat-select{min-height:36px;background:var(--panel);border:1px solid var(--line);color:var(--text);font:inherit;font-size:12px;font-weight:600;padding:0 10px;border-radius:10px}
+.fat-chip{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:10px;font-size:12px;color:var(--text-soft);background:var(--panel-alt)}
+.fat-scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}
+.fat-grid{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px;table-layout:fixed;font-variant-numeric:tabular-nums}
+.fat-small{min-width:640px;table-layout:auto}
+.fat-grid th,.fat-grid td{padding:0 10px;border-bottom:1px solid rgba(120,130,150,.14);white-space:nowrap;text-align:right;font-size:11.5px;height:34px;vertical-align:middle}
+.fat-grid th{height:26px;background:var(--panel);font-size:10.5px;letter-spacing:.06em;color:var(--text-soft);text-transform:uppercase;font-weight:650}
+.fat-grid th:first-child,.fat-grid td:first-child{text-align:left}
+.fat-grid td.l,.fat-grid th.l{text-align:left}
+.fat-grid .mut{color:var(--text-faint)}
+.fat-grid th.ref,.fat-grid td.ref,.fat-grid th.tot,.fat-grid td.tot{background:var(--panel-alt)}
+.fat-grid td.tot{font-weight:700}
+.fat-grid th.ref,.fat-grid td.ref{padding-left:5px;padding-right:5px;border-right:1px solid var(--line)}
+.fat-grid tr.grp td{height:26px;font-size:10.5px;letter-spacing:.06em;font-weight:700;text-transform:uppercase;padding-left:10px}
+.fat-grid tr.sub td,.fat-grid tr.top td{font-weight:700;background:var(--panel-alt)}
+.fat-grid tr.sp td{height:14px;background:var(--panel);border-bottom:0}
+.fat-grid td .v{line-height:1.2}
+.fat-grid td.cod{color:var(--text-soft)}.fat-grid td.cod .c{color:var(--text-faint);margin-right:6px}
+.fat-mname{display:flex;align-items:center;gap:7px}
+.fat-dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none;background:var(--text-faint)}
+.fat-dot.l{background:var(--theme-ink-green,#16a34a)}.fat-dot.m{background:#c98a0b}.fat-dot.a{background:#7651cd}
+.fat-grid td input{width:100%;height:17px;padding:0;display:block;border:0;background:transparent;color:var(--text);font:inherit;font-size:11.5px;text-align:right;border-radius:6px}
+.fat-grid td input:hover:not(:disabled){background:var(--panel-alt)}.fat-grid td input:focus{outline:none;background:rgba(79,124,255,.12)}
+.fat-grid td input.dirty{color:#c98a0b;font-weight:700}.fat-grid td input:disabled{color:var(--text-faint)}
+.fat-cfg td:first-child{min-width:190px}.fat-cfg td input{width:78px;text-align:right;border:0;border-radius:6px;background:transparent;color:var(--text);font:inherit;font-size:11.5px;padding:7px 8px}
+.fat-cfg td input:hover{background:var(--panel-alt)}.fat-cfg td input:focus{outline:none;background:rgba(79,124,255,.12)}
+.fat-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:var(--panel-alt);color:var(--text-soft)}
+.fat-badge.local{background:rgba(34,197,94,.12);color:var(--theme-ink-green,#16a34a)}.fat-badge.marcher{background:rgba(201,138,11,.14);color:#c98a0b}.fat-badge.adjusted{background:rgba(118,81,205,.14);color:#7651cd}
+.fat-sect{margin-top:22px}
+.fat-sect-h{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;padding:6px 0;margin-bottom:8px;font:inherit;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;text-align:left}
+.fat-arrow{font-size:11px;color:var(--text-soft);width:10px}
+.fat-stale{display:flex;gap:10px;align-items:center;justify-content:space-between;background:rgba(201,138,11,.12);border:1px solid #c98a0b;color:#c98a0b;border-radius:10px;padding:8px 12px;font-size:12px;margin-top:14px}
+.fat-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.fat-state{color:var(--text-soft);font-size:12px}
