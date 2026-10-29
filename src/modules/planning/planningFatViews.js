@@ -57,7 +57,7 @@
 
     // ── Configuração e acessos (admin) ─────────────────────────────────────
     function config(vm) {
-      const rows = vm.taxes.map(t => `<tr><td>${esc(t.label)}</td>${['ipi', 'icms', 'pis', 'cofins'].map(k => `<td><input data-fat="tax" data-line="${t.line}" data-key="${k}" inputmode="decimal" value="${nf(t[k], 2)}"> %</td>`).join('')}<td class="mut">${nf(t.sum, 2)}%</td></tr>`).join('');
+      const rows = vm.taxes.map(t => `<tr><td>${esc(t.label)}</td>${['ipi', 'icms', 'pis', 'cofins'].map(k => `<td><div class="fat-pct"><input data-fat="tax" data-line="${t.line}" data-key="${k}" inputmode="decimal" value="${nf(t[k], 2)}"><span>%</span></div></td>`).join('')}<td class="mut">${nf(t.sum, 2)}%</td></tr>`).join('');
       return `<div class="fat-card"><div class="fat-card-h"><b>Impostos de referência</b>${btn('Atualizar premissas', 'fat-refresh')}</div><div class="fat-scroll"><table class="fat-grid fat-cfg"><thead><tr><th>Linha</th><th>IPI</th><th>ICMS</th><th>PIS</th><th>COFINS</th><th>Total do FAT</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     }
     function access(vm) {
