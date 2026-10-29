@@ -4028,19 +4028,22 @@ thead .col-frozen-3 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 8px 16px;
+  gap: 1px;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 14px;
   border-radius: 10px;
   border: 1px solid var(--line);
   background: var(--panel-alt);
   color: var(--text);
   cursor: pointer;
-  min-width: 90px;
+  min-width: 96px;
 }
 
 .actuals-period-kicker {
   color: var(--text-faint);
-  font-size: 0.62rem;
+  line-height: 1.1;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -4051,7 +4054,10 @@ thead .col-frozen-3 {
 }
 
 .actuals-mode-select {
-  height: 40px;
+  height: 44px;
+  box-sizing: border-box;
+  width: 150px;
+  text-overflow: ellipsis;
   padding: 0 12px;
   border-radius: 10px;
   border: 1px solid var(--line);
@@ -4067,6 +4073,11 @@ thead .col-frozen-3 {
   gap: 2px;
   min-width: 160px;
 }
+/* Barra de controles da carga: período, tipo e destino com a mesma altura (44px); só a largura varia.
+   O rótulo "Destino" fica sobre o seletor, fora do fluxo, para não deixá-lo mais alto que os demais. */
+.actuals-intake-controls .budget-target-wrap { position: relative; display: block; min-width: 0; }
+.actuals-intake-controls .budget-target-label { position: absolute; top: -15px; left: 2px; line-height: 1; white-space: nowrap; }
+.actuals-intake-controls .budget-target-wrap > .actuals-mode-select { width: 190px; max-width: 100%; }
 .budget-target-label {
   font-size: 0.68rem;
   font-weight: 600;
@@ -4075,11 +4086,6 @@ thead .col-frozen-3 {
   letter-spacing: .04em;
   padding-left: 2px;
 }
-
-/* Larguras fixas na carga de planejado: o select não muda de tamanho conforme o texto das opções do Destino. */
-#complan-load-mode { width: 150px; flex: 0 0 150px; }
-#complan-scenario-select { width: 190px; max-width: 100%; text-overflow: ellipsis; }
-#complan-scenario-select:has(option[value=""]) { color: var(--text-faint); }
 
 .actuals-scope-panel {
   display: none;
@@ -13383,9 +13389,6 @@ td.capex-z { color: var(--text-faint); }
 .headcount-load-layout > .content-card { min-width: 0; }
 .headcount-load-layout .actuals-intake-header { flex-wrap: wrap; gap: 12px; }
 .headcount-load-layout .actuals-intake-controls { flex: 1 1 auto; flex-wrap: wrap; min-width: 0; }
-.headcount-load-layout .actuals-mode-select { width: auto; min-width: 148px; max-width: 100%; font-size: .82rem; }
-.headcount-load-layout .budget-target-wrap { flex: 1 1 180px; max-width: 260px; min-width: 0; }
-.headcount-load-layout .budget-target-wrap select { width: 100%; }
 .headcount-load-layout .actuals-intake-header > .hc-template-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; white-space: nowrap; }
 .headcount-load-layout .actuals-intake-header > .hc-template-button,
 .headcount-load-layout .editor-actions > button,
@@ -13406,7 +13409,6 @@ td.capex-z { color: var(--text-faint); }
 .headcount-load-layout .actuals-rows-search input { min-width: 0; }
 @media (max-width: 767px) {
   .headcount-load-layout .actuals-intake-controls { flex-basis: 100%; }
-  .headcount-load-layout .budget-target-wrap { max-width: none; }
   .headcount-load-layout .editor-actions { flex-wrap: wrap; }
   .headcount-load-layout .actuals-rows-toolbar { flex-wrap: wrap; gap: 8px; }
 }
