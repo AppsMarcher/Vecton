@@ -30,23 +30,25 @@
     return c.q ? c[key] / c.q : null;
   }
 
-  // Terceiro bloco (Faturamento | Impostos | Matéria-prima). parts: {maq, tra, exp, pec}, cada um com 12 células
+  // Terceiro bloco (Faturamento | Impostos | Matéria-prima). parts: {maq, tra, ace, exp, pec}, cada um com 12 células
   // (em exp o RL já é igual ao FAT). Os impostos são FAT × %, direto; Exportação não tem imposto.
-  function dreLines(parts, taxes) {
+  // Acessórios (ace) vai na mesma conta de Peças (31101006), com a própria linha de impostos.
+  function dreLines(source, taxes) {
     const months = Array.from({ length: 12 }, (_, j) => j);
+    const parts = { ...source, ace: source.ace || months.map(ZERO) };
     const col = fn => months.map(fn);
     const taxOf = (list, line, key) => col(j => (list ? list[j].fat * Number((taxes[line] || {})[key] || 0) / 100 : 0));
     const sumCols = (...arrays) => col(j => arrays.reduce((s, a) => s + a[j], 0));
     const accounts = {
       '31101001': col(j => parts.maq[j].fat), '31101002': col(j => parts.exp[j].fat),
-      '31101006': col(j => parts.pec[j].fat), '31101007': col(j => parts.tra[j].fat)
+      '31101006': col(j => parts.pec[j].fat + parts.ace[j].fat), '31101007': col(j => parts.tra[j].fat)
     };
-    const tax = key => sumCols(taxOf(parts.maq, 'maq', key), taxOf(parts.tra, 'tra', key), taxOf(parts.pec, 'pec', key));
+    const tax = key => sumCols(taxOf(parts.maq, 'maq', key), taxOf(parts.tra, 'tra', key), taxOf(parts.ace, 'ace', key), taxOf(parts.pec, 'pec', key));
     accounts['31203001'] = tax('ipi'); accounts['31203002'] = tax('icms'); accounts['31203004'] = tax('cofins'); accounts['31203005'] = tax('pis');
     const fat = sumCols(accounts['31101001'], accounts['31101002'], accounts['31101006'], accounts['31101007']);
     const imposto = sumCols(accounts['31203001'], accounts['31203002'], accounts['31203004'], accounts['31203005']);
     const rl = col(j => fat[j] - imposto[j]);
-    const mp = col(j => parts.maq[j].mp + parts.tra[j].mp + parts.exp[j].mp + parts.pec[j].mp);
+    const mp = col(j => parts.maq[j].mp + parts.tra[j].mp + parts.ace[j].mp + parts.exp[j].mp + parts.pec[j].mp);
     accounts['412010901'] = mp;
     return { accounts, fat, imposto, rl, mp, mpPct: col(j => (rl[j] ? mp[j] / rl[j] : null)) };
   }

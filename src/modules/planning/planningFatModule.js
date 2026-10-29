@@ -6,8 +6,8 @@
     const { escapeHtml: esc, rpc, months } = deps;
     const core = global.VECTON_PLANNING_FAT_CORE;
     const views = global.VECTON_PLANNING_FAT_VIEWS.createFatViews({ escapeHtml: esc, months });
-    const LINE = { 'Grãos': 'Grão', Cargograin: 'Grão', 'Pecuária': 'Pecuária', Transgrain: 'Outros', 'Linhas complementares': 'Peças' };
-    const GROUPS = ['Grãos', 'Pecuária', 'Cargograin', 'Transgrain'];
+    const LINE = { 'Grãos': 'Grão', Cargograin: 'Grão', 'Pecuária': 'Pecuária', Transgrain: 'Outros', 'Acessórios': 'Grão', 'Linhas complementares': 'Peças' };
+    const GROUPS = ['Grãos', 'Pecuária', 'Cargograin', 'Transgrain', 'Acessórios'];
     const ORIGIN = { local: 'histórico do território', marcher: 'média Marcher', adjusted: 'ajustada pelo admin' };
     const LOWER = months.map(m => m.toLowerCase());
     let data = null, formId = null, view = 'mar', metric = 'vol', regionKey = null, coordName = 'Norte', tab = 'pre', premOpen = false, dreOpen = false;
@@ -35,7 +35,7 @@
 
     // ── Cálculo da prévia ──────────────────────────────────────────────────
     const taxes = () => Object.fromEntries(data.taxes.map(t => [t.line, t]));
-    const cls = g => (g === 'Transgrain' ? 'tra' : g === 'Linhas complementares' ? 'pec' : 'maq');
+    const cls = g => (g === 'Transgrain' ? 'tra' : g === 'Acessórios' ? 'ace' : g === 'Linhas complementares' ? 'pec' : 'maq');
     const modelList = () => data.models.slice().sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group) || a.sort - b.sort);
     const premiseOf = (region, model) => core.resolvePremise(data.premises.find(p => p.region_key === region && p.model_key === model) || null, data.premises.find(p => p.region_key === 'marcher' && p.model_key === model) || null);
     const coordOf = (region, group) => data.coordination.find(c => c.region_key === region && c.line === LINE[group])?.coordination || '';
@@ -124,9 +124,9 @@
       return { rows, total: { q: tot.q, fat: tot.q ? tot.fat / tot.q : 0, rl: tot.q ? tot.rl / tot.q : 0, mp: tot.q ? tot.mp / tot.q : 0, mb: core.mc1(tot) } };
     }
     function dreParts() {
-      const parts = { maq: Array.from({ length: 12 }, zero), tra: Array.from({ length: 12 }, zero), exp: Array.from({ length: 12 }, zero), pec: Array.from({ length: 12 }, zero) };
+      const parts = { maq: Array.from({ length: 12 }, zero), tra: Array.from({ length: 12 }, zero), ace: Array.from({ length: 12 }, zero), exp: Array.from({ length: 12 }, zero), pec: Array.from({ length: 12 }, zero) };
       if (!isPecas()) modelList().filter(m => !m.fat_driven).forEach(m => regionsIn().forEach(r => {
-        if (!included(r, m)) return; const dst = coordOf(r, m.group) === 'Exportação' ? parts.exp : m.group === 'Transgrain' ? parts.tra : parts.maq;
+        if (!included(r, m)) return; const dst = coordOf(r, m.group) === 'Exportação' ? parts.exp : m.group === 'Transgrain' ? parts.tra : m.group === 'Acessórios' ? parts.ace : parts.maq;
         for (let j = 0; j < 12; j++) if (amountOf(r, m.model_key, j + 1)) dst[j] = core.add(dst[j], cellOf(r, m, j + 1));
       }));
       const pm = data.models.find(x => x.fat_driven);
@@ -145,7 +145,7 @@
         regions: data.regions.map(r => ({ key: r.region_key, label: r.label })), coords: ['Exportação', 'Norte', 'Oeste', 'Peças', 'Pecuária', 'Sul'], regionKey, coordName, label: labelOf(), responsible: responsible(), pecas,
         tag: pecas ? 'VOL = 1' : view === 'vend' ? (isExpo() ? 'FAT = RL' : '') : isExpo() ? 'Somente leitura · FAT = RL' : 'Somente leitura',
         rows: pecas ? pecasRows() : gridRows(), prem: premRows(), premOpen, dreOpen, dre: core.dreLines(dreParts(), tx),
-        taxes: [['maq', 'Máquinas'], ['tra', 'Transgrain'], ['pec', 'Peças']].map(([line, label]) => ({ line, label, ...Object.fromEntries(['ipi', 'icms', 'pis', 'cofins'].map(k => [k, Number(tx[line]?.[k] || 0)])), sum: sumTax(tx[line]) })), access: deps.admin() ? accessModel() : null };
+        taxes: [['maq', 'Máquinas'], ['tra', 'Transgrain'], ['ace', 'Acessórios'], ['pec', 'Peças']].map(([line, label]) => ({ line, label, ...Object.fromEntries(['ipi', 'icms', 'pis', 'cofins'].map(k => [k, Number(tx[line]?.[k] || 0)])), sum: sumTax(tx[line]) })), access: deps.admin() ? accessModel() : null };
     }
     const html = f => views.form(viewModel(f));
 
