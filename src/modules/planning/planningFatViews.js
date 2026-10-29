@@ -7,7 +7,7 @@
     const fmt = (v, metric) => (v == null ? '–' : metric === 'mb' ? `${nf(v * 100, 1)}%` : nf(v));
     const btn = (text, action, attrs = '', primary = false) => `<button type="button" class="pl-button ${primary ? 'pl-primary' : ''}" data-pl="${action}" ${attrs}>${text}</button>`;
     const seg = (items, action, current, attr) => `<div class="fat-seg">${items.map(([id, label]) => `<button type="button" data-pl="${action}" data-${attr}="${esc(id)}" class="${current === id ? 'on' : ''}">${esc(label)}</button>`).join('')}</div>`;
-    const select = (kind, options, current) => `<select class="fat-select" data-fat="${kind}">${options.map(o => `<option value="${esc(o.key)}" ${o.key === current ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`;
+    const select = (kind, options, current, cls = '') => `<select class="fat-select${cls}" data-fat="${kind}">${options.map(o => `<option value="${esc(o.key)}" ${o.key === current ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`;
     const cellTd = (c, metric, cls = '') => { const v = core.metric(c, metric); return `<td class="${cls}${v == null ? ' mut' : ''}"><div class="v">${fmt(v, metric)}</div></td>`; };
 
     // ── Grade (formato do Evolutivo de Margens) ────────────────────────────
@@ -23,7 +23,7 @@
     }
     function grid(vm) {
       const head = `<colgroup><col style="width:190px"><col style="width:91px"><col style="width:91px">${months.map(() => '<col>').join('')}<col style="width:91px"></colgroup><thead><tr><th>Modelo</th><th class="ref">${vm.refYears[0]}</th><th class="ref last">${vm.refYears[1]}</th>${months.map(m => `<th>${esc(m)}</th>`).join('')}<th class="tot">${vm.year}</th></tr></thead>`;
-      const selectors = vm.view === 'vend' ? select('region', vm.regions, vm.regionKey) : vm.view === 'coord' ? select('coord', vm.coords.map(c => ({ key: c, label: c })), vm.coordName) : '';
+      const selectors = vm.view === 'vend' ? select('region', vm.regions, vm.regionKey, ' fat-select--xs') : vm.view === 'coord' ? select('coord', vm.coords.map(c => ({ key: c, label: c })), vm.coordName, ' fat-select--sm') : '';
       const chips = [vm.view === 'vend' && vm.responsible ? `Responsável · ${vm.responsible}` : '', vm.tag].filter(Boolean).map(t => `<span class="fat-chip">${esc(t)}</span>`).join('');
       const tabs = seg([['mar', 'Marcher'], ['coord', 'Coordenação'], ['vend', 'Região']], 'fat-view', vm.view, 'v');
       const metrics = seg([['vol', 'VOL'], ['fat', 'FAT'], ['rl', 'RL'], ['mp', 'MP'], ['mb', 'MC1%']], 'fat-metric', vm.metric, 'm');

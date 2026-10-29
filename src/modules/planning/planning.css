@@ -121,3 +121,5 @@
 .fat-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .fat-state{color:var(--text-soft);font-size:12px}
 .pl-edit-name{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:8px;padding:4px;border:0;background:transparent;color:var(--pl-muted);cursor:pointer;border-radius:6px}.pl-edit-name:hover:not(:disabled){color:var(--blue)}.pl-edit-name:disabled{opacity:.4;cursor:not-allowed}
+.pl-app .fat-ctl .fat-select--sm{width:25%;min-width:120px;flex:none}
+.pl-app .fat-ctl .fat-select--xs{width:130px;flex:none}
