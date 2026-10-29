@@ -120,3 +120,4 @@
 .fat-stale{display:flex;gap:10px;align-items:center;justify-content:space-between;background:rgba(201,138,11,.12);border:1px solid #c98a0b;color:#c98a0b;border-radius:10px;padding:8px 12px;font-size:12px;margin-top:14px}
 .fat-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .fat-state{color:var(--text-soft);font-size:12px}
+.pl-edit-name{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:8px;padding:4px;border:0;background:transparent;color:var(--pl-muted);cursor:pointer;border-radius:6px}.pl-edit-name:hover:not(:disabled){color:var(--blue)}.pl-edit-name:disabled{opacity:.4;cursor:not-allowed}
