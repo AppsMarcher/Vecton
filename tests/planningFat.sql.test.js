@@ -190,9 +190,9 @@ const { createDb } = require('./helpers/planningFatDb');
     await fw('clear_adjust', { region_key: BA, model_key: 'INGRAIN100', version: (await fr()).premises.find(p => p.region_key === BA && p.model_key === 'INGRAIN100').version });
     assert.equal((await fr()).premises.find(p => p.region_key === BA && p.model_key === 'INGRAIN100').adjusted, false);
     assert.equal((await fr()).history.some(h => h.region_key === BA && h.model_key === 'INGRAIN100' && h.year === 2026), true, 'colunas de referência 2025 e 2026');
-    // bloqueio vence admin
+    // bloqueio não vale para admin (320)
     await write('lock', sid, { locked: true });
-    await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 4, '1')] }), /bloqueado/);
+    await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 4, 'abc', 0)] }), /inválida/); // passou do bloqueio e caiu na validação
     await write('lock', sid, { locked: false });
     // planning_write não mexe no FAT
     await assert.rejects(write('save_access', sid, { form_id: fatForm, access: [] }), /operações autorizadas do FAT/);

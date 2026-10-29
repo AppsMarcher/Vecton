@@ -15,7 +15,9 @@
       return capexSort.direction * value(a).localeCompare(value(b), 'pt-BR') || a.id.localeCompare(b.id);
     });
     const lines = () => isCapex() ? sortedCapexItems().map(i => ({ ...i, origin: 'input' })) : (context?.lines || []).filter(l => l.form_id === formId);
-    const locked = () => scenario.status === 'locked' || (scenario.lock_at && Date.parse(scenario.lock_at) <= Date.now());
+    const scenarioLocked = () => scenario.status === 'locked' || (scenario.lock_at && Date.parse(scenario.lock_at) <= Date.now());
+    // O bloqueio vale só para usuários comuns; administradores seguem editando (o servidor aplica a mesma regra).
+    const locked = () => scenarioLocked() && !context?.is_admin;
     // Controles de edição (cenário/formulário) só no modo gerenciar, aberto pela engrenagem do cenário.
     let manage = false;
     const admin = () => !!context?.is_admin && manage;
@@ -27,7 +29,7 @@
       get accountNumbers() { return accountNumbers; },
       get costCenters() { return costCenters(); }, get capexItems() { return sortedCapexItems(); }, get capexDepreciation() { return capexDepreciation; }, get capexDepOpen() { return capexDepOpen; },
       fatView: f => fat.html(f), fatListRow: f => fat.listRow(f, { locked: locked(), admin: admin() }),
-      locked, admin, form, lines, inputMonths, key: (l, cc, m) => key(l, cc, m), computed: savedOnly => computed(savedOnly), selectedForms: () => selectedForms()
+      locked, scenarioLocked, admin, form, lines, inputMonths, key: (l, cc, m) => key(l, cc, m), computed: savedOnly => computed(savedOnly), selectedForms: () => selectedForms()
     };
     const fat = global.VECTON_PLANNING_FAT.createFatController({ escapeHtml: esc, rpc, months, org: () => org, scenario: () => scenario, context: () => context, form, admin, locked, inputMonths,
       render: () => render(), root: () => root, modal: (...a) => modal(...a), close: () => close(), refresh: () => refresh(), invalidate: () => invalidateScenarioCachesFor?.(scenario.id, scenario.reference_year),
@@ -331,7 +333,7 @@
           wizard = null; await refresh(result.id); scenario = context.scenarios.find(s => s.id === result.id); render(); return;
         }
         case 'copy-scenario': return leave(() => startWizard(container, back, scenario));
-        case 'lock': return modal(locked() ? 'Desbloquear cenário?' : 'Bloquear cenário', locked() ? '<p>O cenário voltará a aceitar alterações autorizadas.</p>' : `<p>Deixe a data vazia para bloquear imediatamente ou programe o bloqueio.</p>${field('Data e hora do bloqueio', textInput('pl-lock-at', '', 'type="datetime-local"'))}`, async () => { const date = root.querySelector('#pl-lock-at')?.value; await write('lock', { locked: locked() ? false : !date, lock_at: date ? new Date(date).toISOString() : null }); close(); await refresh(); render(); });
+        case 'lock': return modal(scenarioLocked() ? 'Desbloquear cenário?' : 'Bloquear cenário', scenarioLocked() ? '<p>O cenário voltará a aceitar alterações autorizadas.</p>' : `<p>Deixe a data vazia para bloquear imediatamente ou programe o bloqueio.</p>${field('Data e hora do bloqueio', textInput('pl-lock-at', '', 'type="datetime-local"'))}`, async () => { const date = root.querySelector('#pl-lock-at')?.value; await write('lock', { locked: scenarioLocked() ? false : !date, lock_at: date ? new Date(date).toISOString() : null }); close(); await refresh(); render(); });
         case 'tab': tab = d.tab; return render();
         case 'report': return leave(() => { active = false; deps.openScenarioReport(scenario.id, d.report); });
         case 'dre': return leave(() => { active = false; openScenarioDreReport(scenario.id); });

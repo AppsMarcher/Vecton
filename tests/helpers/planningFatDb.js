@@ -34,7 +34,7 @@ async function createDb() {
   await db.exec('grant usage on schema public,auth to authenticated; grant select,insert,update,delete on forecast_scenarios,forecast_ledger_entries,user_profiles to authenticated;');
   await db.exec(mig('279_planning_formula_sequencia.sql')); await db.exec(mig('280_planning_scenario_icon.sql'));
   await db.exec("alter table cost_centers add column cost_center_type text; update cost_centers set cost_center_type='ADM';");
-  for (const name of ['290_planning_capex.sql', '291_planning_capex_destinations.sql', '293_planning_integrated_stamp.sql', '294_planning_ledger_user.sql', '295_planning_integrate_all.sql']) await db.exec(mig(name));
+  for (const name of ['287_planning_reordenar_linhas.sql', '290_planning_capex.sql', '291_planning_capex_destinations.sql', '293_planning_integrated_stamp.sql', '294_planning_ledger_user.sql', '295_planning_integrate_all.sql']) await db.exec(mig(name));
   // Cadastros e razão comerciais (mínimo que o FAT lê; os nomes de coluna são os reais)
   await db.exec(`create table comercial_territorios(id uuid primary key,organization_id uuid,nome text);
     create table comercial_linhas_negocio(id uuid primary key,organization_id uuid,nome text);
@@ -64,6 +64,6 @@ async function createDb() {
   const sale = (o) => db.query('insert into comercial_realizado_ledger_entries(organization_id,origem,reference_year,reference_month,produto_id,territorio_id,linha_negocio_id,coordenacao_id,quantidade,valor,rl,mp) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
     [org, o.origem || 'FAT', o.year, o.month, prod[o.prod], o.terr ? k['territorio:' + o.terr] : null, k['linha:' + o.linha], k['coord:' + o.coord], o.qty, o.fat, o.rl ?? o.fat * 0.9, o.mp]);
   return { db, ids, k, prod, as, write, ctx, sale, mig, exists: f => fs.existsSync(path.join(__dirname, '../../supabase', f)),
-    loadFat: async () => { await db.exec('reset role'); for (const f of ['316_planning_fat_schema.sql', '317_planning_fat_premises.sql', '318_planning_fat_engine.sql', '319_planning_fat_integration.sql']) if (fs.existsSync(path.join(__dirname, '../../supabase', f))) await db.exec(mig(f)); } };
+    loadFat: async () => { await db.exec('reset role'); for (const f of ['316_planning_fat_schema.sql', '317_planning_fat_premises.sql', '318_planning_fat_engine.sql', '319_planning_fat_integration.sql', '320_planning_bloqueio_nao_vale_para_admin.sql']) if (fs.existsSync(path.join(__dirname, '../../supabase', f))) await db.exec(mig(f)); } };
 }
 module.exports = { createDb, uuid };

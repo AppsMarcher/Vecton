@@ -92,7 +92,7 @@
       return `${st.admin() ? `<nav class="pl-tabs">${tabs}</nav>` : ''}${body}`;
     }
     function scenario(st) {
-      const f = st.form(), locked = st.locked();
+      const f = st.form(), locked = st.scenarioLocked();
       const adminActions = st.admin() && !f ? button('Copiar cenário', 'copy-scenario') + button(locked ? 'Desbloquear' : 'Bloquear', 'lock') : '';
       const badge = `<span class="pl-badge${locked ? '' : ' pl-badge--ok'}">${locked ? 'Bloqueado' : 'Aberto'}</span>`;
       // No modo gerenciar o selo de status vai junto dos botões, na mesma linha do título.
