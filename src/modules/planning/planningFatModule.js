@@ -8,7 +8,7 @@
     const views = global.VECTON_PLANNING_FAT_VIEWS.createFatViews({ escapeHtml: esc, months });
     const LINE = { 'Grãos': 'Grão', Cargograin: 'Grão', 'Pecuária': 'Pecuária', Transgrain: 'Outros', 'Acessórios': 'Grão', 'Linhas complementares': 'Peças' };
     const GROUPS = ['Grãos', 'Pecuária', 'Cargograin', 'Transgrain', 'Acessórios'];
-    const ORIGIN = { local: 'histórico do território', marcher: 'média Marcher', adjusted: 'ajustada pelo admin' };
+    const ORIGIN = { local: 'histórico da região', marcher: 'média Marcher', adjusted: 'edit manual' };
     const LOWER = months.map(m => m.toLowerCase());
     let data = null, formId = null, view = 'mar', metric = 'vol', regionKey = null, coordName = 'Norte', tab = 'pre', premOpen = false, dreOpen = false;
     let changes = new Map(), volumes = new Map(), cellModes = new Map(), accessUser = null, accessDraft = null;

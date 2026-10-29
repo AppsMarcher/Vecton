@@ -112,7 +112,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.deepEqual(await cells('#fat-grid tr.grp td'), ['Grãos', 'Pecuária', 'Cargograin', 'Transgrain', 'Acessórios']);
     assert.equal(await page.locator('.fat-chip').first().innerText(), 'Responsável · PENINHA (Grãos) · A definir (Pecuária)');
     assert.equal(await page.locator('#fat-grid input[data-fat="vol"]').count(), 6 * 12);
-    assert.deepEqual(await cells('.fat-legend span'), ['Histórico do território', 'Média Marcher', 'Ajustada pelo admin'], 'legenda das bolinhas no fim da grade');
+    assert.deepEqual(await cells('.fat-legend span'), ['Histórico da região', 'Média Marcher', 'Edit manual'], 'legenda das bolinhas no fim da grade');
     await page.locator('.fat-sect-h', { hasText: 'Premissas do local' }).click();
     assert.equal(await page.locator('.fat-sect [data-pl="fat-adjust"]').first().evaluate(el => el.getBoundingClientRect().height <= 24), true, 'botão Ajustar compacto cabe na linha');
     await page.locator('.fat-sect-h', { hasText: 'Premissas do local' }).click();
