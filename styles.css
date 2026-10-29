@@ -4076,6 +4076,11 @@ thead .col-frozen-3 {
   padding-left: 2px;
 }
 
+/* Larguras fixas na carga de planejado: o select não muda de tamanho conforme o texto das opções do Destino. */
+#complan-load-mode { width: 150px; flex: 0 0 150px; }
+#complan-scenario-select { width: 190px; max-width: 100%; text-overflow: ellipsis; }
+#complan-scenario-select:has(option[value=""]) { color: var(--text-faint); }
+
 .actuals-scope-panel {
   display: none;
 }

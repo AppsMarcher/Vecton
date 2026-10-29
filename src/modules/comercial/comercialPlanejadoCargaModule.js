@@ -265,6 +265,10 @@
       // Destinos = cenários do ano da competência ("Budget {ano}" vem pré-selecionado).
       const { loadTargetsForYear, pickDefaultLoadTarget } = window.VECTON_SCENARIO_SOURCES;
       const year = Number(state.currentPeriod?.year);
+      // Período trocado para outro ano: os cenários carregados são do ano anterior; busca os do novo ano e redesenha.
+      if (availableScenariosYear !== year) {
+        loadScenarios(year).then(() => { if (availableScenariosYear === year) populateScenarioSelect(); });
+      }
       const targets = loadTargetsForYear(availableScenarios, year);
       sel.innerHTML = targets.length
         ? targets.map((s) => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("")
