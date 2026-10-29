@@ -27,7 +27,7 @@
       const chips = [vm.view === 'vend' && vm.responsible ? `Responsável · ${vm.responsible}` : '', vm.tag].filter(Boolean).map(t => `<span class="fat-chip">${esc(t)}</span>`).join('');
       const tabs = seg([['mar', 'Marcher'], ['coord', 'Coordenação'], ['vend', 'Região']], 'fat-view', vm.view, 'v');
       const metrics = seg([['vol', 'VOL'], ['fat', 'FAT'], ['rl', 'RL'], ['mp', 'MP'], ['mb', 'MC1%']], 'fat-metric', vm.metric, 'm');
-      return `<div class="fat-card"><div class="fat-card-h"><div class="fat-ctl">${tabs}${selectors}${chips}</div>${metrics}</div><div class="fat-scroll"><table class="fat-grid" id="fat-grid">${head}<tbody>${vm.rows.map(r => gridRow(r, vm.metric)).join('')}</tbody></table></div></div>`;
+      return `<div class="fat-card"><div class="fat-card-h fat-card-h--one"><div class="fat-ctl">${tabs}${selectors}${chips}</div>${metrics}</div><div class="fat-scroll"><table class="fat-grid" id="fat-grid">${head}<tbody>${vm.rows.map(r => gridRow(r, vm.metric)).join('')}</tbody></table></div></div>`;
     }
 
     // ── Blocos recolhíveis ─────────────────────────────────────────────────

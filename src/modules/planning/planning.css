@@ -122,4 +122,6 @@
 .fat-state{color:var(--text-soft);font-size:12px}
 .pl-edit-name{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:8px;padding:4px;border:0;background:transparent;color:var(--pl-muted);cursor:pointer;border-radius:6px}.pl-edit-name:hover:not(:disabled){color:var(--blue)}.pl-edit-name:disabled{opacity:.4;cursor:not-allowed}
 .pl-app .fat-ctl .fat-select--sm{width:25%;min-width:120px;flex:none}
-.pl-app .fat-ctl .fat-select--xs{width:130px;flex:none}
+.pl-app .fat-ctl .fat-select--xs{width:104px;flex:none}
+.fat-card-h--one{flex-wrap:nowrap;overflow-x:auto}.fat-card-h--one .fat-ctl{flex-wrap:nowrap;min-width:0}.fat-card-h--one .fat-ctl>*{flex:none}.fat-card-h--one .fat-ctl>.fat-chip{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fat-card-h--one>.fat-seg{flex:none}
+.fat-card-h--one .fat-ctl{flex:1 1 auto}.fat-card-h--one .fat-ctl>.fat-chip{display:block;line-height:34px}
