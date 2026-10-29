@@ -91,6 +91,7 @@
 .fat-scroll{overflow:auto;border:1px solid var(--line);border-radius:10px}
 .fat-grid{border-collapse:separate;border-spacing:0;width:100%;min-width:1180px;table-layout:fixed;font-variant-numeric:tabular-nums}
 .fat-small{min-width:640px;table-layout:auto}
+.fat-small .pl-button[data-pl="fat-adjust"]{min-height:0;height:22px;padding:0 10px;font-size:11px;line-height:1;border-radius:6px}
 .fat-grid th,.fat-grid td{padding:0 10px;border-bottom:1px solid rgba(120,130,150,.14);white-space:nowrap;text-align:right;font-size:11.5px;height:34px;vertical-align:middle}
 .fat-grid th{height:26px;background:var(--panel);font-size:10.5px;letter-spacing:.06em;color:var(--text-soft);text-transform:uppercase;font-weight:650}
 .fat-grid th:first-child,.fat-grid td:first-child{text-align:left}
