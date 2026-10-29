@@ -47,7 +47,7 @@ const { createDb } = require('./helpers/planningFatDb');
     assert.equal(await coord('PECAS', 'PECAS'), 'Peças');
 
     await T.as(ids.writer);
-    for (const t of ['planning_fat_volumes', 'planning_fat_premises', 'planning_fat_taxes', 'planning_fat_models', 'planning_fat_access']) await assert.rejects(db.query(`select * from ${t}`), /permission denied/, t + ' sem leitura direta');
+    for (const t of ['planning_fat_volumes', 'planning_fat_premises', 'planning_fat_taxes', 'planning_fat_models', 'planning_fat_access', 'planning_fat_coord_access']) await assert.rejects(db.query(`select * from ${t}`), /permission denied/, t + ' sem leitura direta');
     await db.exec('reset role');
 
     // ---- Task 2: premissas
@@ -127,10 +127,10 @@ const { createDb } = require('./helpers/planningFatDb');
     const fw = async (action, payload = {}, scenario = sid) => (await db.query('select planning_fat_write($1,$2,$3,$4::jsonb) value', [ids.org, action, scenario, JSON.stringify({ form_id: fatForm, ...payload })])).rows[0].value;
     const fwRev = async (action, payload = {}) => fw(action, { form_revision: (await db.query('select revision from planning_forms where id=$1', [fatForm])).rows[0].revision, ...payload });
     const fr = async (asof = '2026-10-28') => (await db.query('select planning_fat_read($1,$2,$3::date) value', [ids.org, fatForm, asof])).rows[0].value;
-    const BA = k['territorio:BA'], EX = k['territorio:EX'], SP = k['territorio:SP'];
+    const BA = k['territorio:BA'], EX = k['territorio:EX'], SP = k['territorio:SP']; const NORTE = k['coord:Norte'], EXPO = k['coord:Exportação'], SUL = k['coord:Sul'];
     await T.as(ids.admin);
     const cellv = (region, model, month, amount, version = 0) => ({ region_key: region, model_key: model, month, amount, version });
-    await fw('save_access', { access: [{ user_id: ids.writer, region_key: BA, access_mode: 'write' }, { user_id: ids.writer, region_key: EX, access_mode: 'read' }, { user_id: ids.reader, region_key: BA, access_mode: 'read' }, { user_id: ids.outsider, region_key: SP, access_mode: 'read' }] });
+    await fw('save_access', { access: [{ user_id: ids.writer, coord_key: NORTE, access_mode: 'write' }, { user_id: ids.writer, coord_key: EXPO, access_mode: 'read' }, { user_id: ids.reader, coord_key: NORTE, access_mode: 'read' }, { user_id: ids.outsider, coord_key: SUL, access_mode: 'read' }] });
     await fw('set_status', { status: 'released' });
     // escopo de leitura
     await T.as(ids.outsider);
@@ -142,6 +142,12 @@ const { createDb } = require('./helpers/planningFatDb');
     assert.equal((await fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 1, '8')] })).ok, true);
     await assert.rejects(fwRev('save_volumes', { cells: [cellv(EX, 'INGRAIN100', 1, '8')] }), /permiss/);
     await assert.rejects(fwRev('save_volumes', { cells: [cellv(SP, 'INGRAIN100', 1, '8')] }), /permiss/);
+    // por coordenação: Norte cobre a linha Grão em BA, não a Pecuária
+    await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN90', 1, '3')] }), /permiss/);
+    const cm = (await fr()).cell_modes;
+    assert.equal(cm.find(c => c.region_key === BA && c.model_key === 'INGRAIN100').mode, 'write');
+    assert.equal(cm.some(c => c.region_key === BA && c.model_key === 'INGRAIN90'), false);
+    assert.equal(cm.find(c => c.region_key === EX && c.model_key === 'INGRAIN100').mode, 'read');
     let rd = await fr();
     assert.deepEqual(rd.regions.map(r => r.label).sort(), ['BA', 'EX']);
     assert.equal(rd.volumes.filter(v => v.region_key === BA).length, 1);
@@ -155,7 +161,7 @@ const { createDb } = require('./helpers/planningFatDb');
     assert.equal((await fr()).volumes.filter(v => v.region_key === BA).length, 1, 'o lote com conflito não salva nada');
     for (const bad of ['-1', '', 'abc', '1.00001']) await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 2, bad, 0)] }), /inválida/);
     await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 2, '1'), cellv(BA, 'INGRAIN100', 2, '2')] }), /repetida/);
-    await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'PECAS', 2, '1')] }), /inválida/);
+    await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'PECAS', 2, '1')] }), /permiss|inválida/);
     await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 2, '1')], form_revision: 0 }), /reabra/);
     assert.equal((await fr()).volumes.filter(v => v.region_key === BA).length, 1);
     assert.equal((await fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 1, '9', 1)] })).ok, true);
@@ -180,6 +186,8 @@ const { createDb } = require('./helpers/planningFatDb');
     assert.equal(rd.stale, false); assert.deepEqual(rd.window_months, [202609, 202608]);
     assert.equal((await fr('2026-11-15')).stale, true, 'mês novo fechado depois da janela da última atualização');
     assert.equal(rd.access.length, 4, 'o admin recebe a matriz de acessos');
+    assert.deepEqual(rd.coords.map(c => c.name).sort(), ['Exportação', 'Marcher', 'Norte', 'Pecuária', 'Peças', 'Sul'].sort(), 'coordenações para o admin configurar'); assert.equal(rd.coords[0].name, 'Marcher');
+    assert.deepEqual(rd.cell_modes, [], 'o admin não precisa do mapa de células');
     const pBA = rd.premises.find(p => p.region_key === BA && p.model_key === 'INGRAIN100');
     assert.equal(pBA.calc_fat_unit, 53000);
     await fw('adjust_premise', { region_key: BA, model_key: 'INGRAIN100', adj_fat: 60000, adj_mp: null, version: pBA.version });
@@ -296,14 +304,14 @@ const { createDb } = require('./helpers/planningFatDb');
     // ---- Task 6: contexto, clonagem e criação do formulário
     await T.as(ids.admin);
     await sys(async () => db.query("update planning_fat_taxes set ipi=2.5 where scenario_id=$1 and line='pec'", [sid]));
-    await fw('save_access', { access: [{ user_id: ids.writer, region_key: BA, access_mode: 'write' }, { user_id: ids.reader, region_key: BA, access_mode: 'read' }, { user_id: ids.outsider, region_key: SP, access_mode: 'read' }] });
+    await fw('save_access', { access: [{ user_id: ids.writer, coord_key: NORTE, access_mode: 'write' }, { user_id: ids.reader, coord_key: NORTE, access_mode: 'read' }, { user_id: ids.outsider, coord_key: SUL, access_mode: 'read' }] });
     const sid2 = (await write('create', null, { name: 'Forecast', year: 2028, months, forms: [], base_scenario_id: sid })).id;
     const ff2 = (await ctx(sid2)).forms.find(f => f.form_type === 'fat');
     assert.equal(ff2.code, 'FAT'); assert.equal(ff2.status, 'draft');
     const q = (text, params) => sys(async () => (await db.query(text, params)).rows);
     assert.equal((await q('select count(*)::int n from planning_fat_models where scenario_id=$1', [sid2]))[0].n, 8, 'modelos semeados no cenário novo');
     assert.equal(Number((await q("select ipi from planning_fat_taxes where scenario_id=$1 and line='pec'", [sid2]))[0].ipi), 2.5, 'percentuais herdados do cenário de origem');
-    assert.equal((await q('select count(*)::int n from planning_fat_access where form_id=$1', [ff2.id]))[0].n, 0, 'acessos não são copiados por padrão');
+    assert.equal((await q('select count(*)::int n from planning_fat_coord_access where form_id=$1', [ff2.id]))[0].n, 0, 'acessos não são copiados por padrão');
     assert.equal((await ctx(sid2)).fat_enabled, true);
     await assert.rejects(write('save_form', sid2, { code: 'FAT', name: 'Outro' }), /reservado/);
     // clonagem com valores e acessos
@@ -311,7 +319,7 @@ const { createDb } = require('./helpers/planningFatDb');
     const ff3 = (await ctx(sid3)).forms.find(f => f.form_type === 'fat');
     assert.equal(ff3.status, 'released');
     const cnt = async (tbl, where, p) => (await q(`select count(*)::int n from ${tbl} where ${where}`, p))[0].n;
-    assert.equal(await cnt('planning_fat_access', 'form_id=$1', [ff3.id]), await cnt('planning_fat_access', 'form_id=$1', [fatForm]));
+    assert.equal(await cnt('planning_fat_coord_access', 'form_id=$1', [ff3.id]), await cnt('planning_fat_coord_access', 'form_id=$1', [fatForm]));
     assert.equal(await cnt('planning_fat_volumes', 'form_id=$1', [ff3.id]), await cnt('planning_fat_volumes', 'form_id=$1', [fatForm]));
     assert(await cnt('planning_fat_volumes', 'form_id=$1', [ff3.id]) > 0);
     assert.equal(await cnt('planning_fat_premises', 'scenario_id=$1', [sid3]), await cnt('planning_fat_premises', 'scenario_id=$1', [sid]));
@@ -319,20 +327,20 @@ const { createDb } = require('./helpers/planningFatDb');
     // clonagem sem valores
     const sid4 = (await write('create', null, { name: 'Sem valores', year: 2030, months, base_scenario_id: sid, forms: [{ source_form_id: fatForm, status: 'draft' }] })).id;
     const ff4 = (await ctx(sid4)).forms.find(f => f.form_type === 'fat');
-    assert.equal(await cnt('planning_fat_volumes', 'form_id=$1', [ff4.id]), 0); assert.equal(await cnt('planning_fat_access', 'form_id=$1', [ff4.id]), 0);
+    assert.equal(await cnt('planning_fat_volumes', 'form_id=$1', [ff4.id]), 0); assert.equal(await cnt('planning_fat_coord_access', 'form_id=$1', [ff4.id]), 0);
     assert.equal(await cnt('planning_fat_taxes', 'scenario_id=$1', [sid4]), 3);
     // contexto por pessoa: o FAT só aparece para quem tem acesso
     await fw('set_status', { status: 'released' });
     await T.as(ids.reader);
     assert((await ctx(sid)).forms.some(f => f.form_type === 'fat'), 'quem tem acesso vê o FAT');
     await T.as(ids.admin);
-    await fw('save_access', { access: [{ user_id: ids.writer, region_key: BA, access_mode: 'write' }, { user_id: ids.outsider, region_key: SP, access_mode: 'read' }] });
+    await fw('save_access', { access: [{ user_id: ids.writer, coord_key: NORTE, access_mode: 'write' }, { user_id: ids.outsider, coord_key: SUL, access_mode: 'read' }] });
     await T.as(ids.reader);
     await assert.rejects(ctx(sid), /Sem acesso ao cenário/, 'sem acesso a nenhum formulário o cenário nem aparece');
     await T.as(ids.admin);
     // excluir o cenário remove tudo do FAT
     await write('delete_scenario', sid4, { confirmation: 'REMOVER' });
-    for (const [tbl, col] of [['planning_fat_models', 'scenario_id'], ['planning_fat_taxes', 'scenario_id'], ['planning_fat_premises', 'scenario_id'], ['planning_fat_volumes', 'scenario_id'], ['planning_fat_access', 'form_id']]) assert.equal(await cnt(tbl, `${col}=$1`, [col === 'form_id' ? ff4.id : sid4]), 0, tbl);
+    for (const [tbl, col] of [['planning_fat_models', 'scenario_id'], ['planning_fat_taxes', 'scenario_id'], ['planning_fat_premises', 'scenario_id'], ['planning_fat_volumes', 'scenario_id'], ['planning_fat_coord_access', 'form_id']]) assert.equal(await cnt(tbl, `${col}=$1`, [col === 'form_id' ? ff4.id : sid4]), 0, tbl);
     await db.exec('reset role');
 
     // ---- Revisão final: correções dos achados Importantes

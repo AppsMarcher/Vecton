@@ -223,6 +223,24 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.equal(await page.locator('[data-pl="fat-refresh"]').count(), 1);
     await page.locator('[data-pl="fat-tab"][data-tab="pre"]').click();
     assert.equal(await page.locator('[data-pl="fat-tab"][data-tab="acc"]').count(), 1);
+    // ── acessos por coordenação
+    await page.evaluate(() => { fix.D.coords = [{ key: 'MARCHER', name: 'Marcher' }, { key: 'c-norte', name: 'Norte' }, { key: 'c-sul', name: 'Sul' }]; });
+    await page.locator('[data-pl="index"]').click(); await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    await page.locator('[data-pl="fat-tab"][data-tab="acc"]').click();
+    assert.deepEqual(await cells('.fat-small tbody tr td:first-child'), ['Marcher', 'Norte', 'Sul']);
+    assert.deepEqual(await cells('.fat-small thead th'), ['Coordenação', 'Acesso']);
+    await page.locator('select[data-fat="access"][data-coord="c-norte"]').selectOption('write');
+    await page.locator('[data-pl="fat-access-save"]').click();
+    await page.waitForFunction(() => fix.calls.some(c => c.name === 'planning_fat_write' && c.args.p_action === 'save_access'));
+    assert.deepEqual(await page.evaluate(() => fix.calls.filter(c => c.args?.p_action === 'save_access').pop().args.p_payload.access.map(x => [x.coord_key, x.access_mode])), [['c-norte', 'write']]);
+    await page.locator('[data-pl="fat-tab"][data-tab="pre"]').click();
+    // célula fora da cobertura da coordenação fica somente leitura para quem não é admin
+    await page.evaluate(() => { fix.D.admin = false; fix.D.cell_modes = [{ region_key: 'BA', model_key: 'INGRAIN100', mode: 'write' }]; });
+    await page.locator('[data-pl="index"]').click();
+    await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    await page.locator('[data-pl="fat-view"][data-v="vend"]').click(); await page.locator('select[data-fat="region"]').selectOption('BA');
+    assert.deepEqual(await page.locator('#fat-grid tr:has(input) td:first-child').allTextContents(), ['INGRAIN100']);
+    await page.evaluate(() => { delete fix.D.admin; delete fix.D.cell_modes; });
 
     // ── sem permissão de escrita: campos somente leitura
     await page.evaluate(() => { fix.D.regions.forEach(r => { r.mode = 'read'; }); });

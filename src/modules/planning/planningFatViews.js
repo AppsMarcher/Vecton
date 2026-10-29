@@ -61,8 +61,8 @@
     }
     function access(vm) {
       const a = vm.access;
-      const rows = a.regions.map(r => `<tr><td>${esc(r.label)}</td><td><select class="fat-select fat-select--acc" data-fat="access" data-user="${esc(a.userId)}" data-region="${esc(r.key)}">${[['none', 'Sem acesso'], ['read', 'Visualizar'], ['write', 'Lançar valores']].map(([v, l]) => `<option value="${v}" ${r.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td></tr>`).join('');
-      return `<div class="fat-card"><div class="fat-card-h"><div class="fat-ctl"><b>Acessos por região</b>${select('access-user', a.users.map(u => ({ key: u.user_id, label: u.full_name || 'Usuário' })), a.userId, ' fat-select--user')}</div>${btn('Salvar acessos', 'fat-access-save', a.dirty ? '' : 'disabled', true)}</div><div class="fat-scroll"><table class="fat-grid fat-small"><thead><tr><th>Região</th><th>Acesso</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+      const rows = a.coords.map(r => `<tr><td>${esc(r.label)}</td><td><select class="fat-select fat-select--acc" data-fat="access" data-user="${esc(a.userId)}" data-coord="${esc(r.key)}">${[['none', 'Sem acesso'], ['read', 'Visualizar'], ['write', 'Lançar valores']].map(([v, l]) => `<option value="${v}" ${r.mode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td></tr>`).join('');
+      return `<div class="fat-card"><div class="fat-card-h"><div class="fat-ctl"><b>Acessos por coordenação</b>${select('access-user', a.users.map(u => ({ key: u.user_id, label: u.full_name || 'Usuário' })), a.userId, ' fat-select--user')}</div>${btn('Salvar acessos', 'fat-access-save', a.dirty ? '' : 'disabled', true)}</div><div class="fat-scroll"><table class="fat-grid fat-small"><thead><tr><th>Coordenação</th><th>Acesso</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
     }
 
     // ── Formulário ─────────────────────────────────────────────────────────

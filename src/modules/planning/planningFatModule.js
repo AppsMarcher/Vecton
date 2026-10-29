@@ -11,7 +11,7 @@
     const ORIGIN = { local: 'histórico do território', marcher: 'média Marcher', adjusted: 'ajustada pelo admin' };
     const LOWER = months.map(m => m.toLowerCase());
     let data = null, formId = null, view = 'mar', metric = 'vol', regionKey = null, coordName = 'Norte', tab = 'pre', premOpen = false, dreOpen = false;
-    let changes = new Map(), volumes = new Map(), accessUser = null, accessDraft = null;
+    let changes = new Map(), volumes = new Map(), cellModes = new Map(), accessUser = null, accessDraft = null;
     const vkey = (r, m, mo) => `${r}|${m}|${mo}`;
     const nf = (v, d = 0) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
     const draftKey = () => `vecton-planning-fat:${deps.org()}:${deps.context().user_id}:${deps.scenario().id}:${formId}`;
@@ -19,7 +19,9 @@
 
     async function read() { return rpc('planning_fat_read', { p_org: deps.org(), p_form: formId }); }
     async function write(action, payload = {}) { return rpc('planning_fat_write', { p_org: deps.org(), p_action: action, p_scenario: deps.scenario().id, p_payload: { form_id: formId, ...payload } }); }
-    function index() { volumes = new Map(data.volumes.map(v => [vkey(v.region_key, v.model_key, v.reference_month), v])); }
+    function index() { volumes = new Map(data.volumes.map(v => [vkey(v.region_key, v.model_key, v.reference_month), v])); cellModes = new Map((data.cell_modes || []).map(c => [`${c.region_key}|${c.model_key}`, c.mode])); }
+    // Acesso por coordenação: o admin lança em tudo; os demais, só nas células (região × modelo) cobertas por uma coordenação com escrita.
+    const canCell = (region, model) => data.admin !== false || cellModes.get(`${region}|${model}`) === 'write';
     async function open(id, targetTab = 'pre') {
       formId = id; tab = targetTab; changes = new Map(); data = await read(); index();
       const first = data.regions.find(r => r.region_key !== 'PECAS') || data.regions[0];
@@ -80,7 +82,7 @@
           const a = modelAgg(m); if (ro && !(a.year.q || a.r25.q || a.r26.q)) return;
           sub.push(a); total.push(a);
           const row = { kind: 'model', name: m.model_key, months: a.cells, r25: a.r25, r26: a.r26, year: a.year, dot: view === 'vend' ? (data.premises.some(p => p.region_key === regionKey && p.model_key === m.model_key) ? 'l' : premiseOf(regionKey, m.model_key).origin ? 'm' : '') : (a.anyVol ? (a.mar ? 'm' : 'l') : '') };
-          if (metric === 'vol' && can) row.inputs = Array.from({ length: 12 }, (_, j) => ({ model: m.model_key, month: j + 1, display: plain(amountOf(regionKey, m.model_key, j + 1)), dirty: changes.has(vkey(regionKey, m.model_key, j + 1)), disabled: !forms().includes(j + 1) }));
+          if (metric === 'vol' && can && canCell(regionKey, m.model_key)) row.inputs = Array.from({ length: 12 }, (_, j) => ({ model: m.model_key, month: j + 1, display: plain(amountOf(regionKey, m.model_key, j + 1)), dirty: changes.has(vkey(regionKey, m.model_key, j + 1)), disabled: !forms().includes(j + 1) }));
           rows.push(row);
         });
         if (rows.length) body.push({ kind: 'grp', name: g }, ...rows, lvl('sub', 'Total ' + g, sub));
@@ -98,7 +100,7 @@
       const a = pecasAgg(m);
       const can = editable() || (view === 'coord' && !deps.locked() && data.regions.find(r => r.region_key === 'PECAS')?.mode === 'write');
       const row = { kind: 'model', name: 'Peças', dot: 'l', months: a.cells, r25: a.r25, r26: a.r26, year: a.year };
-      if (metric === 'fat' && can) row.inputs = Array.from({ length: 12 }, (_, j) => ({ model: m.model_key, month: j + 1, display: nf(amountOf('PECAS', m.model_key, j + 1)), dirty: changes.has(vkey('PECAS', m.model_key, j + 1)), disabled: !forms().includes(j + 1) }));
+      if (metric === 'fat' && can && canCell('PECAS', m.model_key)) row.inputs = Array.from({ length: 12 }, (_, j) => ({ model: m.model_key, month: j + 1, display: nf(amountOf('PECAS', m.model_key, j + 1)), dirty: changes.has(vkey('PECAS', m.model_key, j + 1)), disabled: !forms().includes(j + 1) }));
       return [lvl('top', 'Total Peças', [a]), { kind: 'grp', name: 'Linhas complementares' }, row];
     }
     function premRows() {
@@ -132,9 +134,9 @@
       return parts;
     }
     function accessModel() {
-      if (!accessDraft) accessDraft = new Map(data.access.map(a => [`${a.user_id}|${a.region_key}`, a.access_mode]));
+      if (!accessDraft) accessDraft = new Map(data.access.map(a => [`${a.user_id}|${a.coord_key}`, a.access_mode]));
       const users = deps.context().users || [];
-      return { users, userId: accessUser, dirty: accessDraft.__dirty === true, regions: data.regions.map(r => ({ key: r.region_key, label: r.label, mode: accessDraft.get(`${accessUser}|${r.region_key}`) || 'none' })) };
+      return { users, userId: accessUser, dirty: accessDraft.__dirty === true, coords: (data.coords || []).map(c => ({ key: c.key, label: c.name, mode: accessDraft.get(`${accessUser}|${c.key}`) || 'none' })) };
     }
     function viewModel(f) {
       const tx = taxes(), pecas = isPecas(), win = (data.window_months || []).map(ymLabel).join(' · ');
@@ -170,7 +172,7 @@
         case 'region': regionKey = el.value; if (isPecas() && metric === 'vol') metric = 'fat'; return deps.render();
         case 'coord': coordName = el.value; if (isPecas() && metric === 'vol') metric = 'fat'; return deps.render();
         case 'access-user': accessUser = el.value; return deps.render();
-        case 'access': { if (!accessDraft) accessModel(); const k = `${el.dataset.user}|${el.dataset.region}`; if (el.value === 'none') accessDraft.delete(k); else accessDraft.set(k, el.value); accessDraft.__dirty = true; return deps.render(); }
+        case 'access': { if (!accessDraft) accessModel(); const k = `${el.dataset.user}|${el.dataset.coord}`; if (el.value === 'none') accessDraft.delete(k); else accessDraft.set(k, el.value); accessDraft.__dirty = true; return deps.render(); }
         case 'tax': {
           const t = data.taxes.find(x => x.line === el.dataset.line), next = { line: t.line, ipi: t.ipi, icms: t.icms, pis: t.pis, cofins: t.cofins, version: t.version };
           next[el.dataset.key] = parseAmount(el.value);
@@ -220,7 +222,7 @@
         case 'fat-adjust': return adjust(el);
         case 'fat-release': { const f = deps.form(); await write('set_status', { status: f.status === 'released' ? 'draft' : 'released' }); await deps.refresh(); data = await read(); index(); return deps.render(); }
         case 'fat-access-save': {
-          const access = [...accessDraft.entries()].map(([k, mode]) => { const [user_id, region_key] = k.split('|'); return { user_id, region_key, access_mode: mode }; });
+          const access = [...accessDraft.entries()].map(([k, mode]) => { const [user_id, coord_key] = k.split('|'); return { user_id, coord_key, access_mode: mode }; });
           await write('save_access', { access }); await deps.refresh(); data = await read(); index(); accessDraft = null; return deps.render();
         }
         default: return undefined;
