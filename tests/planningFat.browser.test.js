@@ -19,7 +19,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
         months: Array.from({ length: 12 }, (_, i) => ({ scenario_id: 'scenario', reference_month: i + 1, source_type: 'forms' })), users: [{ user_id: 'u1', full_name: 'Maria', management: 'Comercial' }, { user_id: 'admin', full_name: 'Admin' }], lines: [], cost_centers: [], accounts: [], access: [], fat_enabled: true };
       const D = { revision: 1, status: 'released', year: 2027, stale: false, window_months: [202609, 202608],
         regions: [{ region_key: 'BA', label: 'BA', mode: 'write' }, { region_key: 'EX', label: 'EX', mode: 'write' }, { region_key: 'SP', label: 'SP', mode: 'write' }, { region_key: 'PECAS', label: 'Peças', mode: 'write' }],
-        models: [{ model_key: 'INGRAIN100', group: 'Grãos', sort: 1, fat_driven: false }, { model_key: 'INGRAIN90', group: 'Pecuária', sort: 1, fat_driven: false }, { model_key: 'CARGOGRAIN 14000', group: 'Cargograin', sort: 1, fat_driven: false }, { model_key: 'TRANSGRAIN 215', group: 'Transgrain', sort: 1, fat_driven: false }, { model_key: 'CJ PROTECT SKATE', group: 'Acessórios', sort: 1, fat_driven: false }, { model_key: 'PECAS', group: 'Linhas complementares', sort: 1, fat_driven: true }],
+        models: [{ model_key: 'INGRAIN100', group: 'Grãos', sort: 1, fat_driven: false }, { model_key: 'INGRAIN90', group: 'Pecuária', sort: 1, fat_driven: false }, { model_key: 'CARGOGRAIN 14000', group: 'Cargograin', sort: 1, fat_driven: false }, { model_key: 'TRANSGRAIN 215', group: 'Transgrain', sort: 1, fat_driven: false }, { model_key: 'TRANSGRAIN IN-65', group: 'Transgrain', sort: 2, fat_driven: false }, { model_key: 'CJ PROTECT SKATE', group: 'Acessórios', sort: 1, fat_driven: false }, { model_key: 'PECAS', group: 'Linhas complementares', sort: 1, fat_driven: true }],
         coordination: [['BA', 'Grão', 'Norte', 'PENINHA'], ['BA', 'Outros', 'Norte', 'PENINHA'], ['BA', 'Pecuária', 'Pecuária', 'A definir'], ['EX', 'Grão', 'Exportação', 'Pablo'], ['EX', 'Outros', 'Exportação', 'Pablo'], ['EX', 'Pecuária', 'Exportação', 'Pablo'], ['SP', 'Grão', 'Sul', 'A definir'], ['SP', 'Outros', 'Sul', 'A definir'], ['SP', 'Pecuária', 'Pecuária', 'A definir'], ['PECAS', 'Peças', 'Peças', 'JENIFER VIANA']].map(([r, l, c, p]) => ({ region_key: r, line: l, coordination: c, responsible: p })),
         premises: [{ region_key: 'BA', model_key: 'INGRAIN100', fat_unit: 53000, mp_unit: 25400, origin: 'local', adjusted: false, window_months: [202609, 202608], version: 1, calc_fat_unit: 53000, calc_mp_unit: 25400 },
           { region_key: 'marcher', model_key: 'INGRAIN100', fat_unit: 53000, mp_unit: 25400, origin: 'marcher', adjusted: false, window_months: [202609, 202608], version: 1 },
@@ -111,7 +111,9 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.locator('.fat-seg button', { hasText: /^VOL$/ }).click();
     assert.deepEqual(await cells('#fat-grid tr.grp td'), ['Grãos', 'Pecuária', 'Cargograin', 'Transgrain', 'Acessórios']);
     assert.equal(await page.locator('.fat-chip').first().innerText(), 'Responsável · PENINHA (Grãos) · A definir (Pecuária)');
-    assert.equal(await page.locator('#fat-grid input[data-fat="vol"]').count(), 5 * 12);
+    assert.equal(await page.locator('#fat-grid input[data-fat="vol"]').count(), 6 * 12);
+    assert.deepEqual(await cells('.fat-legend span'), ['Histórico do território', 'Média Marcher', 'Ajustada pelo admin'], 'legenda das bolinhas no fim da grade');
+    assert.equal((await cells('#fat-grid tr td:first-child')).includes('TRANSGRAIN IN65'), true, 'nome do modelo sem o hífen');
     assert.equal(await page.locator('#fat-grid input[data-model="INGRAIN100"][data-month="1"]').inputValue(), '8');
 
     // ── digitar, rascunho local e salvar (sem consultar sobreposição)
@@ -268,6 +270,12 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
     await page.locator('[data-pl="fat-view"][data-v="vend"]').click(); await page.locator('select[data-fat="region"]').selectOption('BA');
     assert.equal(await page.locator('#fat-grid input').count(), 0);
+    // ── premissa ajustada na mão: bolinha roxa
+    await page.evaluate(() => { fix.D.premises.push({ region_key: 'BA', model_key: 'CJ PROTECT SKATE', fat_unit: 9000, mp_unit: 5000, origin: 'local', adjusted: true, window_months: [], version: 1, calc_fat_unit: 8000, calc_mp_unit: 5000 }); });
+    await page.locator('[data-pl="index"]').click();
+    await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    await page.locator('[data-pl="fat-view"][data-v="vend"]').click(); await page.locator('select[data-fat="region"]').selectOption('BA');
+    assert.equal(await page.locator('#fat-grid .fat-dot.a').count(), 1, 'premissa ajustada pelo admin ganha a bolinha roxa');
     assert.deepEqual(errors, []);
     console.log('FAT browser: list, grid, formats, views, Peças, Exportação, draft, save, conflict, DRE block, premises, integration and config passed.');
   } finally { await browser.close(); }

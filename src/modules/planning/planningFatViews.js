@@ -76,7 +76,8 @@
       const orphans = vm.orphans && vm.admin ? `<div class="fat-stale"><span>${vm.orphans} combinação(ões) de região e modelo sem atribuição vigente não serão integradas</span></div>` : '';
       const stale = vm.stale && vm.admin ? `<div class="fat-stale"><span>Premissas defasadas · base ${esc(vm.windowLabel)}</span>${btn('Atualizar premissas', 'fat-refresh')}</div>` : '';
       const foot = `<div class="fat-foot"><span class="fat-state">${vm.dirty ? 'Alterações não salvas' : 'Valores salvos'}</span><div class="pl-actions">${btn('Descartar', 'fat-discard', vm.dirty ? '' : 'disabled')}${btn('Salvar valores', 'fat-save', vm.dirty ? '' : 'disabled', true)}</div></div>`;
-      return head + stale + orphans + grid(vm) + foot + premises(vm) + dreBlock(vm);
+      const legend = vm.pecas ? '' : `<div class="fat-legend"><span><i class="fat-dot l"></i>Histórico do território</span><span><i class="fat-dot m"></i>Média Marcher</span><span><i class="fat-dot a"></i>Ajustada pelo admin</span></div>`;
+      return head + stale + orphans + grid(vm) + legend + foot + premises(vm) + dreBlock(vm);
     }
 
     function overlapModal(rows) {
