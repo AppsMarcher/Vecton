@@ -43,7 +43,8 @@ async function createDb() {
     create table comercial_tipos(id uuid primary key,organization_id uuid,nome text);
     create table comercial_culturas(id uuid primary key,organization_id uuid,nome text);
     create table comercial_produtos(id uuid primary key,organization_id uuid,codigo text,descricao text,nome_reduzido text,tipo_id uuid,cultura_id uuid);
-    create table comercial_realizado_ledger_entries(id uuid primary key default gen_random_uuid(),organization_id uuid,origem text,reference_year int,reference_month int,produto_id uuid,territorio_id uuid,linha_negocio_id uuid,coordenacao_id uuid,quantidade numeric,valor numeric,rl numeric,mp numeric);`);
+    create table comercial_realizado_ledger_entries(id uuid primary key default gen_random_uuid(),organization_id uuid,origem text,reference_year int,reference_month int,produto_id uuid,territorio_id uuid,linha_negocio_id uuid,coordenacao_id uuid,quantidade numeric,valor numeric,rl numeric,mp numeric);
+    create table comercial_planejado_ledger_entries(id uuid primary key default gen_random_uuid(),organization_id uuid,scenario_id uuid,reference_year int,reference_month int,produto_id uuid,territorio_id uuid,quantidade numeric,valor numeric);`);
   const k = {};
   for (const [t, names] of Object.entries({ territorio: ['BA', 'EX', 'SP'], linha: ['Grão', 'Pecuária', 'Outros', 'Peças'], coord: ['Norte', 'Pecuária', 'Exportação', 'Peças', 'Sul'], tipo: ['Máquinas', 'Transgrain', 'Peças'], cultura: ['Grãos', 'Pecuária'] }))
     for (const n of names) { k[t + ':' + n] = uuid(); const tab = { territorio: 'comercial_territorios', linha: 'comercial_linhas_negocio', coord: 'comercial_coordenacoes', tipo: 'comercial_tipos', cultura: 'comercial_culturas' }[t]; await db.query(`insert into ${tab} values($1,$2,$3)`, [k[t + ':' + n], org, n]); }
@@ -64,6 +65,6 @@ async function createDb() {
   const sale = (o) => db.query('insert into comercial_realizado_ledger_entries(organization_id,origem,reference_year,reference_month,produto_id,territorio_id,linha_negocio_id,coordenacao_id,quantidade,valor,rl,mp) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)',
     [org, o.origem || 'FAT', o.year, o.month, prod[o.prod], o.terr ? k['territorio:' + o.terr] : null, k['linha:' + o.linha], k['coord:' + o.coord], o.qty, o.fat, o.rl ?? o.fat * 0.9, o.mp]);
   return { db, ids, k, prod, as, write, ctx, sale, mig, exists: f => fs.existsSync(path.join(__dirname, '../../supabase', f)),
-    loadFat: async () => { await db.exec('reset role'); for (const f of ['316_planning_fat_schema.sql', '317_planning_fat_premises.sql', '318_planning_fat_engine.sql', '319_planning_fat_integration.sql', '320_planning_bloqueio_nao_vale_para_admin.sql', '321_planning_fat_renomear_formulario.sql', '322_planning_fat_acesso_por_coordenacao.sql']) if (fs.existsSync(path.join(__dirname, '../../supabase', f))) await db.exec(mig(f)); } };
+    loadFat: async () => { await db.exec('reset role'); for (const f of ['316_planning_fat_schema.sql', '317_planning_fat_premises.sql', '318_planning_fat_engine.sql', '319_planning_fat_integration.sql', '320_planning_bloqueio_nao_vale_para_admin.sql', '321_planning_fat_renomear_formulario.sql', '322_planning_fat_acesso_por_coordenacao.sql', '323_planning_fat_volumes_da_carga_planejado.sql']) if (fs.existsSync(path.join(__dirname, '../../supabase', f))) await db.exec(mig(f)); } };
 }
 module.exports = { createDb, uuid };

@@ -198,6 +198,21 @@ const { createDb } = require('./helpers/planningFatDb');
     await fw('clear_adjust', { region_key: BA, model_key: 'INGRAIN100', version: (await fr()).premises.find(p => p.region_key === BA && p.model_key === 'INGRAIN100').version });
     assert.equal((await fr()).premises.find(p => p.region_key === BA && p.model_key === 'INGRAIN100').adjusted, false);
     assert.equal((await fr()).history.some(h => h.region_key === BA && h.model_key === 'INGRAIN100' && h.year === 2026), true, 'colunas de referência 2025 e 2026');
+    // 323: a carga de vendas planejadas (arquivo) alimenta os volumes do FAT do mesmo cenário
+    const planned = (month, prodKey, terr, qty, valor = 0) => db.query('insert into comercial_planejado_ledger_entries(organization_id,scenario_id,reference_year,reference_month,produto_id,territorio_id,quantidade,valor) values($1,$2,2027,$3,$4,$5,$6,$7)', [ids.org, sid, month, T.prod[prodKey], terr, qty, valor]);
+    await db.exec('reset role');
+    await planned(6, 'ING100a', BA, 3); await planned(6, 'ING100b', BA, 2.4); await planned(6, 'ING90', BA, 7); await planned(6, 'PEC1', null, 0, 1500); await planned(6, 'PEC2', null, 0, 500.25); await planned(6, 'T170', k['territorio:SP'], 4);
+    await T.as(ids.admin);
+    const pvol = async (r, m, mo) => (await fr()).volumes.find(v => v.region_key === r && v.model_key === m && v.reference_month === mo)?.amount;
+    assert.equal(Number(await pvol(BA, 'INGRAIN100', 6)), 5, 'códigos do mesmo modelo somam e a quantidade é arredondada');
+    assert.equal(Number(await pvol(BA, 'INGRAIN90', 6)), 7);
+    assert.equal(Number(await pvol('PECAS', 'PECAS', 6)), 2000.25, 'Peças recebe a soma do valor (FAT em R$)');
+    assert.equal(await pvol(BA, 'INGRAIN100', 7), undefined, 'mês fora do arquivo não é tocado');
+    assert.equal(Number(await pvol(BA, 'INGRAIN100', 1)), 9, 'volume digitado em mês fora do arquivo permanece');
+    await db.exec('reset role'); await planned(6, 'ING100a', BA, 10); await T.as(ids.admin);
+    assert.equal(Number(await pvol(BA, 'INGRAIN100', 6)), 15, 'o mês é espelhado de novo a partir de todo o planejado carregado');
+    assert.equal((await db.query("select count(*)::int n from planning_audit_log where scenario_id=$1 and action='fat_planned_sync'", [sid])).rows[0].n > 0, true, 'a sincronização fica na auditoria');
+    await db.exec('reset role'); await db.query('delete from comercial_planejado_ledger_entries'); await db.query('delete from planning_fat_volumes where reference_month=6'); await T.as(ids.admin);
     // bloqueio não vale para admin (320)
     await write('lock', sid, { locked: true });
     await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 4, 'abc', 0)] }), /inválida/); // passou do bloqueio e caiu na validação
