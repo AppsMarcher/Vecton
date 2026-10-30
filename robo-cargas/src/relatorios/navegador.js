@@ -41,7 +41,10 @@ export async function montarRelatorio({ appUrl, sessao, reportId, assinatura = "
   });
   const erros = [];
   try {
-    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, locale: "pt-BR", timezoneId: "America/Sao_Paulo" });
+    // serviceWorkers "block": o robo entra sempre como visitante novo e o app recarrega a propria pagina quando o
+    // service worker (PWA) assume o controle (src/core/pwa.js, controllerchange) - se isso cair no meio do
+    // page.evaluate, o contexto e destruido ("Execution context was destroyed"). Sem SW nao ha recarga.
+    const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, locale: "pt-BR", timezoneId: "America/Sao_Paulo", serviceWorkers: "block" });
     await context.addInitScript(scriptSessao(sessao));
     const page = await context.newPage();
     page.on("pageerror", (e) => erros.push(String(e.message || e).slice(0, 200)));
