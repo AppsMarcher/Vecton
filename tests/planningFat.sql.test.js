@@ -223,6 +223,27 @@ const { createDb } = require('./helpers/planningFatDb');
     assert.equal(Number(await pvol(BA, 'INGRAIN100', 6)), 15, 'o mês é espelhado de novo a partir de todo o planejado carregado');
     assert.equal((await db.query("select count(*)::int n from planning_audit_log where scenario_id=$1 and action='fat_planned_sync'", [sid])).rows[0].n > 0, true, 'a sincronização fica na auditoria');
     await db.exec('reset role'); await db.query('delete from comercial_planejado_ledger_entries'); await db.query('delete from planning_fat_volumes where reference_month=6'); await T.as(ids.admin);
+    // 326: valor e %MB vazios na carga são assumidos do cenário (premissas + impostos do FAT); preenchidos, valem os da carga
+    await db.exec('reset role');
+    const assume = async (prodKey, terr, qtd, valor, mb, scenario = sid) => (await db.query('select valor::float8 v, mb_pct::float8 mb from comercial_planejado_assumir_cenario($1,$2,$3,$4,$5,$6,$7)', [ids.org, scenario, T.prod[prodKey], terr, qtd, valor, mb])).rows[0];
+    const near = (a, b, msg) => assert(Math.abs(a - b) < 1e-5, `${msg}: ${a} != ${b}`);
+    let a = await assume('ING100a', BA, 2, null, null);
+    assert.equal(a.v, 106000, 'valor = quantidade x FAT/un da região'); near(a.mb, (106000 * 0.901 - 50800) / (106000 * 0.901), '%MB = (RL - MP) / RL com os impostos de Máquinas');
+    a = await assume('ING100a', BA, 2, 100000, null);
+    assert.equal(a.v, 100000, 'valor da carga vale'); near(a.mb, (100000 * 0.901 - 50800) / (100000 * 0.901), '%MB recalculado sobre o valor da carga');
+    a = await assume('ING100a', BA, 2, null, 0.5);
+    assert.equal(a.v, 106000); assert.equal(a.mb, 0.5, '%MB da carga vale');
+    a = await assume('ING100a', EX, 2, null, null);
+    assert.equal(a.v, 106000, 'sem premissa local usa a média Marcher'); near(a.mb, (106000 - 50800) / 106000, 'Exportação: RL = valor');
+    a = await assume('PEC1', null, null, 1500, null);
+    assert.equal(a.v, 1500, 'Peças: o valor é o da carga'); near(a.mb, (1500 * (1 - 0.1664) - 1500 * 0.364) / (1500 * (1 - 0.1664)), 'Peças: %MB pelo MP/FAT da premissa');
+    a = await assume('T170', SP, 3, null, null);
+    assert.deepEqual(a, { v: null, mb: null }, 'sem premissa nenhuma, nada a assumir');
+    a = await assume('T170', SP, 3, 5000, null);
+    assert.equal(a.v, 5000);
+    a = await assume('ING100a', BA, 2, null, null, null);
+    assert.deepEqual(a, { v: null, mb: null }, 'destino sem cenário de planejamento: nada a assumir');
+    await T.as(ids.admin);
     // bloqueio não vale para admin (320)
     await write('lock', sid, { locked: true });
     await assert.rejects(fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 4, 'abc', 0)] }), /inválida/); // passou do bloqueio e caiu na validação
