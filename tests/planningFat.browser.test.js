@@ -9,7 +9,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.route('https://planning.test/', r => r.fulfill({ contentType: 'text/html', body: '<style>:root{--text:#25334a;--text-soft:#677994;--text-faint:#677994;--panel:white;--panel-alt:#f6f8fc;--line:#d7dfed;--blue:#365fe6}body{font:14px Arial;background:white;margin:0}</style><main id="planning"></main>' }));
     await page.goto('https://planning.test/');
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/ui/dialogs.js') });
-    for (const name of ['planningCore', 'planningFatCore', 'planningViews', 'planningFatViews', 'planningModule', 'planningFatModule']) await page.addScriptTag({ path: path.join(__dirname, `../src/modules/planning/${name}.js`) });
+    for (const name of ['planningCore', 'planningFatCore', 'planningImportModule', 'planningViews', 'planningFatViews', 'planningModule', 'planningFatModule']) await page.addScriptTag({ path: path.join(__dirname, `../src/modules/planning/${name}.js`) });
     await page.addStyleTag({ path: path.join(__dirname, '../src/modules/planning/planning.css') });
     await page.evaluate(async () => {
       const scenario = { id: 'scenario', name: 'Budget 2027', reference_year: 2027, status: 'open', planning_version: 1 };
@@ -230,7 +230,8 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.waitForFunction(() => fix.D.taxes[0].icms === 8);
     assert.equal(await page.locator('.fat-cfg tbody tr').first().locator('td.mut').innerText(), '13,80%');
     assert.equal(await page.locator('[data-pl="fat-refresh"]').count(), 1);
-    await page.locator('[data-pl="fat-tab"][data-tab="pre"]').click();
+    assert.equal(await page.locator('[data-pl="fat-tab"][data-tab="pre"]').count(), 0);
+    await page.locator('[data-pl="index"]').click(); await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
     assert.equal(await page.locator('[data-pl="fat-tab"][data-tab="acc"]').count(), 1);
     // ── Excel no modelo do Evolutivo de Margens (ExcelJS real quando PLANNING_EXCELJS_LIB aponta para a biblioteca)
     assert.equal(await page.locator('[data-pl="fat-export"]').count(), 1);
@@ -258,7 +259,8 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.locator('[data-pl="fat-access-save"]').click();
     await page.waitForFunction(() => fix.calls.some(c => c.name === 'planning_fat_write' && c.args.p_action === 'save_access'));
     assert.deepEqual(await page.evaluate(() => fix.calls.filter(c => c.args?.p_action === 'save_access').pop().args.p_payload.access.map(x => [x.coord_key, x.access_mode])), [['c-norte', 'write']]);
-    await page.locator('[data-pl="fat-tab"][data-tab="pre"]').click();
+    assert.equal(await page.locator('[data-pl="fat-tab"][data-tab="pre"]').count(), 0);
+    await page.locator('[data-pl="index"]').click(); await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
     // célula fora da cobertura da coordenação fica somente leitura para quem não é admin
     await page.evaluate(() => { fix.D.admin = false; fix.D.cell_modes = [{ region_key: 'BA', model_key: 'INGRAIN100', mode: 'write' }]; });
     await page.locator('[data-pl="index"]').click();

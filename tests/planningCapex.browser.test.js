@@ -8,7 +8,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
     const errors = [];page.on('pageerror',e=>errors.push(e.message));
     await page.setContent('<style>:root{--text:#25334a;--text-soft:#677994;--text-faint:#677994;--panel:white;--panel-alt:#f6f8fc;--line:#d7dfed;--blue:#365fe6}body{font:14px Arial;background:white;margin:0}.reports-card-grid{display:flex;gap:14px;flex-wrap:wrap}.reports-report-card{width:184px;border:1px solid var(--line);border-top:3px solid;padding:16px;border-radius:12px;background:white;text-align:left}.rrc-icon-wrap{display:inline-flex;padding:8px;border:1px solid;border-radius:9px}.rrc-icon-wrap svg{width:18px;height:18px}.reports-report-card strong,.rrc-subtitle{display:block;margin-top:9px}.rrc-subtitle{font-size:12px;color:var(--text-soft)}</style><main id="planning"></main>');
-    for(const name of ['planningCore','planningFatCore','planningFatViews','planningViews','planningModule','planningFatModule']) await page.addScriptTag({path:path.join(__dirname,`../src/modules/planning/${name}.js`)});
+    for(const name of ['planningCore','planningFatCore','planningFatViews','planningImportModule','planningViews','planningModule','planningFatModule']) await page.addScriptTag({path:path.join(__dirname,`../src/modules/planning/${name}.js`)});
     await page.addStyleTag({path:path.join(__dirname,'../src/modules/planning/planning.css')});
     await page.evaluate(async()=>{
       const scenario={id:'scenario',name:'Budget 2027',reference_year:2027,status:'open',planning_version:1};

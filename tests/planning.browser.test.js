@@ -10,6 +10,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningCore.js') });
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningFatCore.js') });
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningFatViews.js') });
+    await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningImportModule.js') });
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningViews.js') });
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningModule.js') });
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningFatModule.js') });
@@ -40,6 +41,18 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
       });
       return testModule.open(document.getElementById('planning'), scenario, () => {}, { manage: true });
     });
+    // Importar: popover com template, seleção e envio; o envio só confere o arquivo e informa o status.
+    await page.getByRole('button', { name: 'Importar', exact: true }).click();
+    assert.equal(await page.locator('.pl-import-pop [data-imp="template"]').count(), 1);
+    assert.equal(await page.locator('.pl-import-pop [data-imp="pick"]').count(), 1);
+    assert.equal(await page.locator('.pl-import-pop [data-imp="upload"]').isDisabled(), true);
+    assert.match(await page.locator('.pl-import-pop [data-imp="status"]').innerText(), /Baixe o template/);
+    await page.locator('.pl-import-pop [data-imp="file"]').setInputFiles({ name: 'x.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from('nao e excel') });
+    assert.equal(await page.locator('.pl-import-pop [data-imp="upload"]').isDisabled(), false);
+    await page.locator('.pl-import-pop [data-imp="upload"]').click();
+    await page.waitForFunction(() => /Não foi possível ler|indisponível/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.pl-import-pop').count(), 0);
     await page.getByRole('button', { name: 'Abrir →', exact: true }).click();
     await page.getByRole('textbox', { name: 'Software Jan', exact: true }).fill('1.234,56');
     await page.getByRole('button', { name: 'Salvar valores', exact: true }).click();

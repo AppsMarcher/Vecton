@@ -69,7 +69,7 @@
     // ── Formulário ─────────────────────────────────────────────────────────
     function form(vm) {
       const f = vm.form;
-      const tabs = [['pre', 'Preenchimento'], ...(vm.admin ? [['cfg', 'Configuração'], ['acc', 'Acessos']] : [])];
+      const tabs = [...(vm.tab === 'pre' ? [['pre', 'Preenchimento']] : []), ...(vm.admin ? [['cfg', 'Configuração'], ['acc', 'Acessos']] : [])];
       const head = `${vm.tab === 'pre' ? `<div class="pl-heading"><div class="pl-actions" style="margin-left:auto">${f.access_mode === 'write' ? btn('Integrar no DRE e OPEX', 'project', vm.locked || f.status !== 'released' ? 'disabled' : '', true) : ''}${exportButton}</div></div>` : ''}<div class="pl-heading"><div><small class="pl-muted">FORMULÁRIO ${esc(f.code)}</small><h2>${esc(f.name)}${vm.admin ? `<button type="button" class="pl-edit-name" data-pl="edit-form" ${vm.locked ? 'disabled' : ''} data-tip-text="Editar nome e código" aria-label="Editar nome e código"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>` : ''}</h2></div><span class="pl-badge${f.status === 'released' ? ' pl-badge--ok' : ''}">${f.status === 'released' ? 'Liberado' : 'Em construção'}</span></div>${tabs.length > 1 ? `<div class="pl-tabrow"><nav class="pl-tabs">${tabs.map(([id, name]) => btn(name, 'fat-tab', `data-tab="${id}" ${vm.tab === id ? 'aria-pressed="true"' : ''}`)).join('')}</nav>${vm.admin && vm.tab !== 'pre' ? `<div class="pl-actions" style="margin-left:auto">${btn(f.status === 'released' ? 'Voltar à construção' : 'Liberar', 'fat-release', vm.locked ? 'disabled' : '')}</div>` : ''}</div>` : ''}`;
       if (vm.tab === 'cfg') return head + config(vm);
       if (vm.tab === 'acc') return head + access(vm);
@@ -84,7 +84,7 @@
       return `<p>Estas contas já têm valores em outro formulário deste cenário e serão somadas no DRE:</p><table class="fat-grid fat-small"><tbody>${rows.map(r => `<tr><td>${esc(r.account_number)}</td><td class="l mut">${r.months.map(m => esc(months[m - 1])).join(', ')}</td></tr>`).join('')}</tbody></table>`;
     }
     function listRow(f, st) {
-      return `<div class="pl-list-row"><span class="pl-code">FAT</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(st.locked ? 'Somente leitura' : f.access_mode === 'write' ? 'Lançar volumes' : 'Visualizar')}</small></div><span class="pl-badge${f.status === 'released' ? ' pl-badge--ok' : ''}">${f.status === 'released' ? 'Liberado' : 'Em construção'}</span>${st.admin ? btn('Configurar', 'configure', `data-id="${f.id}"`) : ''}${btn('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`;
+      return `<div class="pl-list-row"><span class="pl-code">FAT</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(st.locked ? 'Somente leitura' : f.access_mode === 'write' ? 'Lançar volumes' : 'Visualizar')}</small></div><span class="pl-badge${f.status === 'released' ? ' pl-badge--ok' : ''}">${f.status === 'released' ? 'Liberado' : 'Em construção'}</span>${st.admin ? btn('Configurar', 'configure', `data-id="${f.id}"`) : ''}${st.admin ? btn('Importar', 'import-form', `data-id="${f.id}" ${st.locked ? 'disabled' : ''}`) : ''}${btn('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`;
     }
     return { form, grid, premises, dreBlock, config, access, overlapModal, listRow, fmt };
   }

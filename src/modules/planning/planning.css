@@ -143,3 +143,14 @@
 .pl-app .fat-ctl .fat-select--user{width:160px;flex:none}
 .fat-grid.fat-access{min-width:0}.fat-grid.fat-access td{height:71px;padding:0 17px;font-size:12px}.fat-grid.fat-access th{padding:0 17px}
 .fat-cfg .fat-pct{display:flex;align-items:center;justify-content:flex-end;gap:2px;min-height:34px}
+
+.pl-import-pop{position:fixed;z-index:1000;top:50%;left:50%;transform:translate(-50%,-50%);width:460px;max-width:calc(100vw - 24px);padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--panel);color:var(--text);box-shadow:0 12px 36px rgba(0,0,0,.18)}
+.pl-imp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.pl-imp-actions{display:flex;flex-wrap:nowrap;gap:8px}.pl-imp-actions .pl-button{flex:1 1 0;white-space:nowrap;padding-left:10px;padding-right:10px}
+.pl-imp-file{margin:10px 0 0;font-size:12px;color:var(--text-soft);overflow-wrap:anywhere}
+.pl-imp-status{margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:10px;min-height:72px;font-size:13px}
+.pl-imp-idle{margin:0;color:var(--text-soft)}
+.pl-imp-steps{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.pl-imp-steps li{display:flex;gap:8px;align-items:flex-start}
+.pl-imp-steps small{display:block;color:var(--text-soft)}
+.pl-imp-ok>span{color:var(--green,#16a34a)}.pl-imp-err>span{color:var(--red,#dc2626)}.pl-imp-run>span,.pl-imp-wait>span{color:var(--text-soft)}

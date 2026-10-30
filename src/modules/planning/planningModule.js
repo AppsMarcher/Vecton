@@ -336,6 +336,20 @@
         close();await refresh();await readForm();render();
       });
     }
+    // Popover de importação (planningImportModule.js): template por tipo de formulário; ainda não grava nos formulários.
+    const importer = global.VECTON_PLANNING_IMPORT.createImportPopover({ esc, scenarioName: () => scenario.name });
+    function importTemplate(f) {
+      const months12 = global.VECTON_PLANNING_IMPORT.MONTHS;
+      if (f.form_type === 'capex') return { slug: 'capex', fixed: 3, header: ['Investimento', 'Centro de custo', 'Tipo de imobilizado', ...months12], rows: [] };
+      if (f.form_type === 'fat') return { slug: 'fat', fixed: 2, header: ['Região', 'Modelo', ...months12], rows: [] };
+      const rows = (context.lines || []).filter(l => l.form_id === f.id && l.origin === 'input').sort((a, b) => a.seq - b.seq)
+        .map(l => [context.accounts.find(a => a.id === l.account_id)?.account_number || '', l.description, '']);
+      return { slug: `opex-${f.code}`, fixed: 3, header: ['Conta', 'Descrição', 'Centro de custo', ...months12], rows };
+    }
+    function importForm(button, id) {
+      const f = context.forms.find(x => x.id === id);
+      if (f) importer.open(button, { name: f.name, template: () => importTemplate(f) });
+    }
     async function action(name, el) {
       if (name.startsWith('fat-')) return fat.action(name, el);
       const d = el.dataset;
@@ -371,6 +385,7 @@
         case 'capex-toggle-dep': capexDepOpen = !capexDepOpen; return render();
         case 'open-form': capexDepOpen = false; return loadForm(d.id);
         case 'configure': return loadForm(d.id, 'structure');
+        case 'import-form': return importForm(el, d.id);
         case 'index': return leave(() => { formId = null; render(); });
         case 'form-tab': return leave(async () => { changes.clear(); formTab = d.tab; await readForm(); render(); });
         case 'new-line': return lineDialog();
