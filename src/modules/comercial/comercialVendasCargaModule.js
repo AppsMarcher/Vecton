@@ -365,7 +365,7 @@
         ${th("valor", "comven-col-valor", "FAT")}
         ${th("rl", "comven-col-rl", "RL")}
         ${th("mp", "comven-col-mp", "MP")}
-        ${th("mbPct", "comven-col-mb", "%MB")}
+        ${th("mbPct", "comven-col-mb", "MC1%")}
         ${th("validationStatus", "actuals-col-status", "Status")}
         <th class="actuals-col-action">Acao</th>
       `;

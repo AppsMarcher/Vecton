@@ -1464,7 +1464,7 @@
           ["nome", "Nome"], ["cargo", "Cargo"], ["cod_cliente", "Cód. cliente"],
           ["cliente", "Cliente"], ["cod_produto", "Cód. produto"], ["produto", "Produto"],
           ["grupo_produto", "Grupo"], ["cultura", "Cultura"], ["quantidade", "Quantidade"],
-          ["faturamento", "Faturamento"], ["margem_percentual", "% MB"],
+          ["faturamento", "Faturamento"], ["margem_percentual", "MC1%"],
           ["territorio", "Território"], ["regional", "Regional"],
           ["movimento_considerado", "Considerado"], ["motivo_exclusao", "Motivo da exclusão"],
         ].filter(([key]) => !HIDDEN_MOVEMENT_COLUMNS_BY_KIND[reportKind]?.has(key));
@@ -1498,7 +1498,7 @@
           });
         }
         // Rodapé totalizador, mesmo padrão do drilldown do Painel de Vendas:
-        // contagem de linhas + soma das colunas somáveis. "% MB" é razão, não
+        // contagem de linhas + soma das colunas somáveis. "MC1%" é razão, não
         // soma — fica vazio em vez de mostrar um número sem significado.
         const firstTotalIndex = columns.findIndex(([key]) => key === "quantidade");
         const footMarkup = (sorted) => {

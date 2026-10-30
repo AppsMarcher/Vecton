@@ -419,7 +419,7 @@
         ${th("codTerritorio", "comven-col-territorio", "Território")}
         ${th("quantidade", "comven-col-qtd", "Qtd")}
         ${th("valor", "comven-col-valor", "Valor")}
-        ${th("mbPct", "comven-col-mb", "%MB")}
+        ${th("mbPct", "comven-col-mb", "MC1%")}
         ${th("validationStatus", "actuals-col-status", "Status")}
         <th class="actuals-col-action">Acao</th>
       `;
@@ -1021,7 +1021,7 @@
         codTerritorio: ["territorio", "regional", "regionalmarcher"],
         quantidade: ["quantidade", "qtd", "qtde"],
         valor: ["valor", "valormeta"],
-        mbPct: ["mb", "mbpct", "margembruta", "margem", "percentmb"]
+        mbPct: ["mc1", "mc1pct", "mb", "mbpct", "margembruta", "margem", "percentmb"]
       };
       const result = {};
       headers.forEach((header) => {
