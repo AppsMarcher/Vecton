@@ -80,8 +80,10 @@
       return head + stale + orphans + grid(vm) + legend + foot + premises(vm) + dreBlock(vm);
     }
 
+    // Aviso de integração: o valor de outro formulário perde para o FAT/CPX; diz de qual formulário vem, em lista que quebra linha (sem tabela larga).
     function overlapModal(rows, source = 'FAT') {
-      return `<p>Estas contas já têm valores em outro formulário deste cenário. O ${source} prevalece e esses valores não entram no DRE:</p><table class="fat-grid fat-small"><tbody>${rows.map(r => `<tr><td>${esc(r.account_number)}</td><td class="l mut">${r.months.map(m => esc(months[m - 1])).join(', ')}</td></tr>`).join('')}</tbody></table>`;
+      const place = r => r.cost_center_number ? `centro de custo ${esc(r.cost_center_number)}` : 'sem centro de custo';
+      return `<p>O ${source} prevalece sobre os valores abaixo, lançados em outro formulário, que não entram no DRE:</p><ul class="pl-overlap">${rows.map(r => `<li><strong>${esc(r.form_code)} · ${esc(r.form_name)}</strong><span>Conta ${esc(r.account_number)}${r.account_name ? ' · ' + esc(r.account_name) : ''}</span><span>${place(r)} · ${r.months.map(m => esc(months[m - 1])).join(', ')}</span></li>`).join('')}</ul>`;
     }
     function listRow(f, st) {
       return `<div class="pl-list-row"><span class="pl-code">FAT</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(st.locked ? 'Somente leitura' : f.access_mode === 'write' ? 'Lançar volumes' : 'Visualizar')}</small></div><span class="pl-badge${f.status === 'released' ? ' pl-badge--ok' : ''}">${f.status === 'released' ? 'Liberado' : 'Em construção'}</span>${st.admin ? btn('Configurar', 'configure', `data-id="${f.id}"`) : ''}${st.admin ? btn('Importar', 'import-form', `data-id="${f.id}" ${st.locked ? 'disabled' : ''}`) : ''}${btn('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`;

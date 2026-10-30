@@ -181,7 +181,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.locator('[data-pl="project"]').click();
     await page.waitForFunction(() => fix.calls.some(c => c.name === 'planning_integrate_all'));
     assert.equal(await page.locator('dialog[open]').count(), 0, 'sem sobreposição integra direto');
-    await page.evaluate(() => { fix.overlap = [{ account_number: '31101001', months: [1, 2, 3] }]; fix.calls.length = 0; });
+    await page.evaluate(() => { fix.overlap = [{ account_number: '31101001', form_code: '08', form_name: 'Faturamento | Impostos | Matéria-prima', cost_center_number: null, months: [1, 2, 3] }]; fix.calls.length = 0; });
     await page.locator('[data-pl="project"]').click();
     await page.waitForSelector('dialog[open]');
     assert.match(await page.locator('dialog[open]').innerText(), /31101001[\s\S]*Jan, Fev, Mar/);
@@ -209,7 +209,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
 
     // ── Integrar a partir do OPEX também avisa a sobreposição do FAT
     await page.locator('[data-pl="index"]').click();
-    await page.evaluate(() => { fix.overlap = [{ account_number: '31101001', months: [1, 2] }]; fix.calls.length = 0; });
+    await page.evaluate(() => { fix.overlap = [{ account_number: '31101001', form_code: '08', form_name: 'Faturamento | Impostos | Matéria-prima', cost_center_number: null, months: [1, 2] }]; fix.calls.length = 0; });
     await page.locator('.pl-list:not(.pl-capex-list):not(.pl-fat-list) [data-pl="open-form"]').click(); await page.waitForSelector('[data-pl="project"]');
     await page.locator('[data-pl="project"]').click(); await page.waitForSelector('dialog[open]');
     assert.equal(await calls('planning_fat_overlap'), 1, 'consulta a sobreposição do FAT');

@@ -62,7 +62,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await noCcCell.fill('20'); await noCcCell.blur();
     await page.evaluate(() => { window.keyConflicts = [{ account_number: '42201', month: 1, cost_center_number: null, source: 'FAT' }]; window.savesBefore = calls.filter(c => c.args?.p_action === 'save_entries').length; });
     await page.getByRole('button', { name: 'Salvar valores', exact: true }).click();
-    assert.match(await page.locator('dialog').innerText(), /FAT e o CPX prevalecem[\s\S]*42201 · Jan · sem centro de custo · FAT/);
+    assert.match(await page.locator('dialog').innerText(), /FAT e o CPX prevalecem[\s\S]*Conta 42201 · Jan · sem centro de custo · alimentado pelo FAT/);
     assert.equal(await page.evaluate(() => calls.filter(c => c.args?.p_action === 'save_entries').length === savesBefore), true, 'nada foi salvo');
     await page.getByRole('button', { name: 'Entendi', exact: true }).click();
     await page.evaluate(() => { window.keyConflicts = []; });

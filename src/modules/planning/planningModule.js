@@ -251,7 +251,7 @@
       if (!isCapex()) {
         const hits = await rpc('planning_key_conflicts', { p_org: org, p_form: formId, p_cells: snapshot.filter(c => Number(c.amount) !== 0).map(c => ({ line_id: c.line_id, cost_center_id: c.cost_center_id, month: c.month, amount: String(c.amount) })) });
         if (Array.isArray(hits) && hits.length) {
-          const list = hits.map(h => `<li>${esc(h.account_number)} · ${months[h.month - 1]} · ${h.cost_center_number ? 'centro de custo ' + esc(h.cost_center_number) : 'sem centro de custo'} · ${esc(h.source)}</li>`).join('');
+          const list = hits.map(h => `<li>Conta ${esc(h.account_number)} · ${months[h.month - 1]} · ${h.cost_center_number ? 'centro de custo ' + esc(h.cost_center_number) : 'sem centro de custo'} · alimentado pelo ${esc(h.source)}</li>`).join('');
           return modal('Valor já alimentado pelo FAT ou CPX', `<p>O FAT e o CPX prevalecem nestas contas e meses. Nada foi salvo; remova ou zere estes valores para salvar:</p><ul>${list}</ul>`, null, true);
         }
       }

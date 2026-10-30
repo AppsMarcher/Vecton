@@ -59,6 +59,24 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
       await page.waitForFunction(() => /Faltam colunas no cabeçalho: mes/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
       assert.match(await text(), /Baixe o template e use-o como base/);
     }
+    // Aviso de integração: diz de qual formulário vem cada valor e cabe na janela, sem rolagem horizontal.
+    const overlap = await page.evaluate(() => {
+      const views = VECTON_PLANNING_FAT_VIEWS.createFatViews({ escapeHtml: s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])), months: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'] });
+      const dialog = document.createElement('dialog'); dialog.className = 'pl-dialog'; document.body.appendChild(dialog);
+      dialog.innerHTML = views.overlapModal([
+        { account_number: '42301001', account_name: 'DEPRECIACAO DE MAQUINAS E EQUIPAMENTOS DA PRODUCAO INDUSTRIAL', form_code: '04', form_name: 'Depreciação | Amortização', cost_center_number: '1101', months: [2, 3, 4, 5] },
+        { account_number: '31101001', account_name: 'VENDA DE MAQUINAS - NACIONAL', form_code: '08', form_name: 'Faturamento | Impostos | Matéria-prima', cost_center_number: null, months: [1] }], 'CPX');
+      dialog.showModal();
+      return { text: dialog.innerText, tables: dialog.querySelectorAll('table').length, overflow: dialog.scrollWidth > dialog.clientWidth };
+    });
+    assert.match(overlap.text, /04 · Depreciação \| Amortização/);
+    assert.match(overlap.text, /42301001/);
+    assert.match(overlap.text, /centro de custo 1101/);
+    assert.match(overlap.text, /Fev, Mar, Abr, Mai/);
+    assert.match(overlap.text, /08 · Faturamento[\s\S]*sem centro de custo/);
+    assert.match(overlap.text, /CPX prevalece/);
+    assert.equal(overlap.tables, 0, 'sem tabela larga no aviso');
+    assert.equal(overlap.overflow, false, 'sem rolagem horizontal no diálogo');
     assert.deepEqual(errors, []);
     console.log('Planning import browser: FAT import popover, CPX inert, status panel passed.');
   } finally { await browser.close(); }

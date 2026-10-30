@@ -346,7 +346,7 @@ const { createDb } = require('./helpers/planningFatDb');
     await db.exec('reset role');
     await db.query('insert into planning_entries(organization_id,form_id,line_id,cost_center_id,reference_month,amount) values($1,$2,$3,null,1,777)', [ids.org, o8, o8line]);
     await T.as(ids.admin);
-    assert.deepEqual((await db.query('select * from planning_fat_overlap($1,$2)', [ids.org, fatForm])).rows, [{ account_number: '31101001', months: [1] }]);
+    assert.deepEqual((await db.query('select * from planning_fat_overlap($1,$2)', [ids.org, fatForm])).rows, [{ account_number: '31101001', account_name: 'VENDA DE MAQUINAS - NACIONAL', form_code: '08', form_name: 'Faturamento | Impostos | Matéria-prima', cost_center_number: null, months: [1] }]);
     await T.as(ids.writer);
     assert.equal((await db.query('select * from planning_fat_overlap($1,$2)', [ids.org, fatForm])).rows.length, 1, 'quem lança vê a sobreposição, sem valores');
     await T.as(ids.reader);

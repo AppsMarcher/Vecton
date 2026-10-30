@@ -407,7 +407,7 @@ O formulário **FAT** lança volumes por região (território) e modelo, mês a 
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `332`, com 338 arquivos SQL numerados na raiz de `supabase/`. Há também diagnósticos, referências, cargas históricas e scripts operacionais; não execute todos indiscriminadamente.
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `333`, com 339 arquivos SQL numerados na raiz de `supabase/`. Há também diagnósticos, referências, cargas históricas e scripts operacionais; não execute todos indiscriminadamente.
 
 Resumo por fase:
 
@@ -494,6 +494,7 @@ Resumo por fase:
 | `330` | leitura do FAT informa se a pessoa enxerga o todo (admin, coordenação MARCHER ou todas as coordenações), para abrir em Marcher, Coordenação ou Região |
 | `331` | formulários de Planejamento aceitam até 1000 CCs por leitura (antes 100, o que quebrava a seleção "Marcher") |
 | `332` | importação de formulários: lançamento sem centro de custo, FAT/CPX prevalecem sobre o 08/04 no razão, RPCs `planning_import_entries`, `planning_fat_import`, `planning_key_conflicts`, `planning_capex_overlap` e carga de planejado vendas com todos os campos obrigatórios (cenários sem formulário) |
+| `333` | aviso de integração do FAT/CPX informa o formulário de origem, a conta e o centro de custo de cada valor que perde para o FAT/CPX (`planning_fat_overlap` e `planning_capex_overlap` com novas colunas; aplicar antes de publicar o front) |
 
 ### Divergências conhecidas do schema
 

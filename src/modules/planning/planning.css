@@ -154,3 +154,7 @@
 .pl-imp-steps li{display:flex;gap:8px;align-items:flex-start}
 .pl-imp-steps small{display:block;color:var(--text-soft)}
 .pl-imp-ok>span{color:var(--green,#16a34a)}.pl-imp-err>span{color:var(--red,#dc2626)}.pl-imp-run>span,.pl-imp-wait>span{color:var(--text-soft)}
+.pl-dialog{overflow-x:hidden}
+.pl-overlap{list-style:none;margin:10px 0;padding:0;display:grid;gap:10px}.pl-overlap li{display:grid;gap:2px;overflow-wrap:anywhere;font-size:13px}.pl-overlap span{color:var(--text-soft)}
+
+.pl-import-pop{overflow-x:hidden}.pl-imp-steps li,.pl-imp-file{overflow-wrap:anywhere}.pl-imp-status{max-height:40vh;overflow-y:auto}
