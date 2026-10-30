@@ -213,7 +213,11 @@
         const notes = result.notes || [], pending = result.fat?.pending || 0;
         deps.toast(`Integração concluída · ${result.rows_written} linhas${pending ? ` · ${pending} linhas do FAT sem premissa ignoradas` : ''}${notes.length ? ` · ${notes.join('; ')}` : ''}`, pending || notes.length ? 'warning' : 'success');
       };
-      if (rows.length) return deps.modal('Valores também em outro formulário', views.overlapModal(rows), run, false, 'Integrar mesmo assim');
+      if (rows.length) {
+        const canZero = !!deps.context()?.is_admin;
+        return deps.modal('Valores em conflito com outros formulários', views.overlapModal(rows) + views.overlapNote(canZero),
+          canZero ? async () => { await rpc('planning_zero_conflicts', { p_org: deps.org(), p_scenario: deps.scenario().id }); await run(); } : null, !canZero, 'Zerar estes valores e integrar');
+      }
       return run();
     }
     function adjust(el) {
@@ -328,7 +332,7 @@
           { key: 'quantidade', label: 'Quantidade' }, { key: 'valor', label: 'Valor' }],
         send: rows => rpc('planning_fat_import', { p_org: deps.org(), p_form: f.id, p_rows: rows.map(r => ({ row: r.row, cod_produto: text(r.cod_produto), month: text(r.month), territorio: text(r.territorio), quantidade: amt(r.quantidade), valor: amt(r.valor) })) }) };
     }
-    return { open, html, input, change, action, integrate, save, importInfo, dirty: () => changes.size > 0, discard: () => { changes = new Map(); persistDraft(); }, listRow: views.listRow, overlapHtml: views.overlapModal };
+    return { open, html, input, change, action, integrate, save, importInfo, dirty: () => changes.size > 0, discard: () => { changes = new Map(); persistDraft(); }, listRow: views.listRow, overlapHtml: views.overlapModal, overlapNote: views.overlapNote };
   }
   global.VECTON_PLANNING_FAT = { createFatController };
 })(window);

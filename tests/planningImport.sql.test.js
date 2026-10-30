@@ -178,6 +178,24 @@ const { createDb } = require('./helpers/planningFatDb');
     await T.planned([base, { month: 1, prod: 'PEC1', terr: null, qty: null, valor: 500 }], { scenario: null });
     assert.equal((await db.query("select count(*)::int n from comercial_planejado_ledger_entries where scenario_id is null and reference_month=1")).rows[0].n >= 2, true, 'Peças sem território e sem quantidade é aceita');
 
+    // ---- Zerar conflitos: o botão "Zerar estes valores e integrar" (só administrador) zera no formulário o que o FAT/CPX ocupam
+    await db.exec('reset role'); await db.exec(`select set_config('vecton.planning_write','${sid}',false)`);
+    await db.query('delete from forecast_ledger_entries where scenario_id=$1', [sid]);
+    await put(fatForm, null, 6, -1); await put(cpxForm, ids.cc, 7, 1);
+    const ent = (cc, m, a) => db.query('insert into planning_entries(organization_id,form_id,line_id,cost_center_id,reference_month,amount) values($1,$2,$3,$4,$5,$6) on conflict(line_id,cost_center_id,reference_month) do update set amount=excluded.amount', [ids.org, f08, l08, cc, m, a]);
+    await ent(null, 6, 50); await ent(ids.cc, 7, 60); await ent(ids.cc, 8, 70); await ent(null, 9, 80);
+    await T.as(ids.writer);
+    await assert.rejects(db.query('select planning_zero_conflicts($1,$2)', [ids.org, sid]), /Somente o administrador/);
+    await T.as(ids.admin);
+    assert.equal((await db.query('select planning_zero_conflicts($1,$2) n', [ids.org, sid])).rows[0].n, 2, 'zera só as chaves ocupadas pelo FAT e pelo CPX');
+    await db.exec('reset role');
+    const left2 = Object.fromEntries((await db.query('select reference_month m,cost_center_id is null nocc,amount::float8 a,row_version v from planning_entries where line_id=$1 and reference_month between 6 and 9', [l08])).rows.map(r => [r.m + (r.nocc ? 'n' : 'c'), [r.a, r.v]]));
+    assert.equal(left2['6n'][0], 0); assert.equal(left2['7c'][0], 0);
+    assert(left2['6n'][1] > 1 || left2['7c'][1] > 1, 'zerar sobe a versão');
+    assert.deepEqual([left2['8c'][0], left2['9n'][0]], [70, 80], 'o que não colide permanece');
+    assert((await db.query("select count(*)::int n from planning_entry_audit where line_id=$1 and reference_month=6 and new_amount=0", [l08])).rows[0].n >= 1, 'a alteração fica na auditoria');
+    await T.as(ids.admin);
+
     // grants: nenhuma função nova fica executável por anon/public
     await db.exec('reset role; grant usage on schema public to anon;');
     for (const [fn, args] of [['planning_import_entries', [ids.org, f08, '[]']], ['planning_fat_import', [ids.org, fatForm, '[]']], ['planning_key_conflicts', [ids.org, f08, '[]']], ['planning_capex_overlap', [ids.org, cpxForm]], ['planning_integrate_all', [ids.org, sid, f08]]]) {
