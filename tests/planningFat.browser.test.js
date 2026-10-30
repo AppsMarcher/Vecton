@@ -112,7 +112,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.deepEqual(await cells('#fat-grid tr.grp td'), ['Grãos', 'Pecuária', 'Cargograin', 'Transgrain', 'Acessórios']);
     assert.equal(await page.locator('.fat-chip').first().innerText(), 'Responsável · PENINHA (Grãos) · A definir (Pecuária)');
     assert.equal(await page.locator('#fat-grid input[data-fat="vol"]').count(), 6 * 12);
-    assert.deepEqual(await cells('.fat-legend span'), ['Histórico da região', 'Média Marcher', 'Edit manual'], 'legenda das bolinhas no fim da grade');
+    assert.deepEqual(await cells('.fat-legend span'), ['Histórico da região', 'Média Marcher', 'Edit manual', 'Sem premissa'], 'legenda das bolinhas no fim da grade');
     await page.locator('.fat-sect-h', { hasText: 'Premissas do local' }).click();
     assert.equal(await page.locator('.fat-sect [data-pl="fat-adjust"]').first().evaluate(el => el.getBoundingClientRect().height <= 24), true, 'botão Ajustar compacto cabe na linha');
     await page.locator('.fat-sect-h', { hasText: 'Premissas do local' }).click();
@@ -309,6 +309,12 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.locator('[data-pl="index"]').click();
     await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
     assert.equal(await page.locator('.fat-seg button.on').first().innerText(), 'Marcher', 'todas as coordenações: abre em Marcher');
+    // modelo sem premissa: o volume aparece em VOL (FAT = Painel), com a bolinha cinza e sem valores
+    await page.evaluate(() => { fix.D.models.push({ model_key: 'INGRAIN100+', group: 'Grãos', sort: 9, fat_driven: false }); fix.D.volumes.push({ region_key: 'BA', model_key: 'INGRAIN100+', reference_month: 4, amount: 7, row_version: 1 }); });
+    await page.locator('[data-pl="index"]').click();
+    await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    const pendRow = await page.evaluate(() => { const tr = [...document.querySelectorAll('#fat-grid tr')].find(t => t.cells[0] && t.cells[0].textContent.trim() === 'INGRAIN100+'); return tr ? { abr: tr.cells[6].textContent.trim(), dot: !!tr.querySelector('.fat-dot.n') } : null; });
+    assert.deepEqual(pendRow, { abr: '7', dot: true }, 'volume sem premissa conta em VOL, com a bolinha cinza');
     assert.deepEqual(errors, []);
     console.log('FAT browser: list, grid, formats, views, Peças, Exportação, draft, save, conflict, DRE block, premises, integration and config passed.');
   } finally { await browser.close(); }

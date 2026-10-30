@@ -72,13 +72,13 @@
     function editable() { const r = data.regions.find(x => x.region_key === regionKey); return view === 'vend' && !deps.locked() && r?.mode === 'write' && (deps.admin() || deps.form().status === 'released'); }
 
     function modelAgg(m) {
-      const cells = Array.from({ length: 12 }, zero); let r25 = zero(), r26 = zero(), anyVol = false, mar = false, adj = false;
+      const cells = Array.from({ length: 12 }, zero); let r25 = zero(), r26 = zero(), anyVol = false, mar = false, adj = false, pend = false;
       regionsIn().forEach(r => {
         if (!included(r, m)) return;
-        for (let j = 0; j < 12; j++) { if (amountOf(r, m.model_key, j + 1)) { cells[j] = core.add(cells[j], cellOf(r, m, j + 1)); anyVol = true; const origin = premiseOf(r, m.model_key).origin; if (origin === 'marcher') mar = true; else if (origin === 'adjusted') adj = true; } }
+        for (let j = 0; j < 12; j++) { if (amountOf(r, m.model_key, j + 1)) { cells[j] = core.add(cells[j], cellOf(r, m, j + 1)); anyVol = true; const origin = premiseOf(r, m.model_key).origin; if (origin === 'marcher') mar = true; else if (origin === 'adjusted') adj = true; else if (!origin) pend = true; } }
         r25 = core.add(r25, history(r, m.model_key, data.year - 2)); r26 = core.add(r26, history(r, m.model_key, data.year - 1));
       });
-      return { cells, r25, r26, year: sumCells(cells), anyVol, mar, adj };
+      return { cells, r25, r26, year: sumCells(cells), anyVol, mar, adj, pend };
     }
     const labelOf = () => (view === 'mar' ? 'Marcher' : view === 'coord' ? coordName : data.regions.find(r => r.region_key === regionKey)?.label || '');
     function responsible() {
@@ -96,7 +96,7 @@
         modelList().filter(m => m.group === g && !m.fat_driven).forEach(m => {
           const a = modelAgg(m); if (ro && !(a.year.q || a.r25.q || a.r26.q)) return;
           sub.push(a); if (MACHINE_GROUPS.includes(g)) total.push(a);
-          const row = { kind: 'model', name: modelLabel(m.model_key), months: a.cells, r25: a.r25, r26: a.r26, year: a.year, dot: view === 'vend' ? (premiseOf(regionKey, m.model_key).origin === 'adjusted' ? 'a' : data.premises.some(p => p.region_key === regionKey && p.model_key === m.model_key) ? 'l' : premiseOf(regionKey, m.model_key).origin ? 'm' : '') : (a.anyVol ? (a.adj ? 'a' : a.mar ? 'm' : 'l') : '') };
+          const row = { kind: 'model', name: modelLabel(m.model_key), months: a.cells, r25: a.r25, r26: a.r26, year: a.year, dot: view === 'vend' ? (premiseOf(regionKey, m.model_key).origin === 'adjusted' ? 'a' : data.premises.some(p => p.region_key === regionKey && p.model_key === m.model_key) ? 'l' : premiseOf(regionKey, m.model_key).origin ? 'm' : (a.year.q ? 'n' : '')) : (a.anyVol ? (a.pend ? 'n' : a.adj ? 'a' : a.mar ? 'm' : 'l') : '') };
           if (metric === 'vol' && can && canCell(regionKey, m.model_key)) row.inputs = Array.from({ length: 12 }, (_, j) => ({ model: m.model_key, month: j + 1, display: plain(amountOf(regionKey, m.model_key, j + 1)), dirty: changes.has(vkey(regionKey, m.model_key, j + 1)), disabled: !forms().includes(j + 1) }));
           rows.push(row);
         });
@@ -125,16 +125,16 @@
         return { rows: pr ? [{ name: 'Peças', fat: rl, rl: mp, mp: (rl - mp) / rl, mb: null, origin: pr.adjusted ? 'adjusted' : 'local', originLabel: ORIGIN[pr.adjusted ? 'adjusted' : 'local'], window: [...pr.window_months].map(ymLabel).join(' · '), adjustable: true, region: 'PECAS', key: 'PECAS' }] : [], total: { q: 0, fat: 0, rl: 0, mp: 0, mb: null } };
       }
       modelList().filter(m => !m.fat_driven).forEach(m => {
-        const a = modelAgg(m), rlu = c => (c.q ? c.rl / c.q : 0);
+        const a = modelAgg(m), pq = c => c.qp ?? c.q, rlu = c => (pq(c) ? c.rl / pq(c) : 0);
         if (view === 'vend') {
           const local = data.premises.find(p => p.region_key === regionKey && p.model_key === m.model_key), pr = premiseOf(regionKey, m.model_key);
           if (!(a.year.q || local)) return;
           const fu = Number(pr.fat_unit || 0), mu = Number(pr.mp_unit || 0);
           const rl = coordOf(regionKey, m.group) === 'Exportação' ? fu : fu * (1 - core.taxSum(taxes()[cls(m.group)]) / 100);
           const src = local || data.premises.find(p => p.region_key === 'marcher' && p.model_key === m.model_key);
-          rows.push({ name: modelLabel(m.model_key), fat: fu, rl, mp: mu, mb: rl ? (rl - mu) / rl : 0, origin: pr.origin || 'none', originLabel: ORIGIN[pr.origin] || 'sem premissa', window: [...(src?.window_months || [])].map(ymLabel).join(' · '), adjustable: true, region: regionKey, key: m.model_key });
-        } else if (a.year.q) rows.push({ name: modelLabel(m.model_key), fat: a.year.fat / a.year.q, rl: rlu(a.year), mp: a.year.mp / a.year.q, mb: core.mc1(a.year), origin: 'marcher', originLabel: 'média dos territórios', window: 'ponderada pelo volume', adjustable: false, region: '', key: m.model_key });
-        tot.q += a.year.q; tot.fat += a.year.fat; tot.rl += a.year.rl; tot.mp += a.year.mp;
+          rows.push({ name: modelLabel(m.model_key), fat: pr.origin ? fu : null, rl: pr.origin ? rl : null, mp: pr.origin ? mu : null, mb: pr.origin ? (rl ? (rl - mu) / rl : 0) : null, origin: pr.origin || 'none', originLabel: ORIGIN[pr.origin] || 'sem premissa', window: [...(src?.window_months || [])].map(ymLabel).join(' · '), adjustable: true, region: regionKey, key: m.model_key });
+        } else if (pq(a.year)) rows.push({ name: modelLabel(m.model_key), fat: a.year.fat / pq(a.year), rl: rlu(a.year), mp: a.year.mp / pq(a.year), mb: core.mc1(a.year), origin: 'marcher', originLabel: 'média dos territórios', window: 'ponderada pelo volume', adjustable: false, region: '', key: m.model_key });
+        tot.q += pq(a.year); tot.fat += a.year.fat; tot.rl += a.year.rl; tot.mp += a.year.mp;
       });
       return { rows, total: { q: tot.q, fat: tot.q ? tot.fat / tot.q : 0, rl: tot.q ? tot.rl / tot.q : 0, mp: tot.q ? tot.mp / tot.q : 0, mb: core.mc1(tot) } };
     }

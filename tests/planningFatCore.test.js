@@ -15,8 +15,10 @@ assert.equal(Number(c.taxSum(pec).toFixed(4)), 16.64);
 // célula de máquina: os mesmos números do SQL
 const m = c.cell(prem, maq, 8);
 assert.deepEqual([m.q, m.fat, Math.round(m.rl), m.mp], [8, 424000, 382024, 203200]);
-assert.deepEqual(J(c.cell(null, maq, 8)), { q: 0, fat: 0, rl: 0, mp: 0 }, 'sem premissa a célula fica zerada');
-assert.deepEqual(J(c.cell(prem, maq, 0)), { q: 0, fat: 0, rl: 0, mp: 0 });
+assert.deepEqual(J(c.cell(null, maq, 8)), { q: 8, fat: 0, rl: 0, mp: 0, qp: 0 }, 'sem premissa o volume conta em VOL, mas não tem valor');
+assert.equal(c.metric(c.add(c.cell(null, maq, 8), m), 'fat'), 53000, 'volume sem premissa não dilui o FAT por unidade');
+assert.equal(c.metric(c.add(c.cell(null, maq, 8), m), 'vol'), 16);
+assert.deepEqual(J(c.cell(prem, maq, 0)), { q: 0, fat: 0, rl: 0, mp: 0, qp: 0 });
 
 // Exportação: sem impostos, RL = FAT
 const ex = c.cell(prem, maq, 8, { exportation: true });

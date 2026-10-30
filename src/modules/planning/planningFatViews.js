@@ -35,7 +35,7 @@
     const section = (id, title, open, body, extra = '') => `<div class="fat-sect"><button type="button" class="fat-sect-h" data-pl="fat-toggle" data-id="${id}"><span class="fat-arrow">${open ? '▾' : '▸'}</span>${esc(title)}${extra}</button>${open ? body : ''}</div>`;
     function premises(vm) {
       const p = vm.prem; const consolidated = vm.view !== 'vend';
-      const val = v => (vm.pecas ? `${nf(v * 100, 1)}%` : nf(v));
+      const val = v => (v == null ? '–' : vm.pecas ? `${nf(v * 100, 1)}%` : nf(v));
       const rows = p.rows.map(r => `<tr><td>${esc(r.name)}</td><td>${val(r.fat)}</td><td>${val(r.rl)}</td><td>${val(r.mp)}</td><td>${r.mb == null ? '' : nf(r.mb * 100, 1) + '%'}</td><td class="l"><span class="fat-badge ${esc(r.origin)}">${esc(r.originLabel)}</span></td><td class="l mut">${esc(r.window)}</td><td>${vm.admin && !consolidated && r.adjustable ? btn('Ajustar', 'fat-adjust', `data-region="${esc(r.region)}" data-model="${esc(r.key)}"`) : ''}</td></tr>`).join('');
       const total = `<tr class="top"><td>Total ${esc(vm.label)}</td><td>${nf(p.total.fat)}</td><td>${nf(p.total.rl)}</td><td>${nf(p.total.mp)}</td><td>${p.total.mb == null ? '–' : nf(p.total.mb * 100, 1) + '%'}</td><td colspan="3" class="l mut">${nf(p.total.q)} un</td></tr>`;
       const body = `<div class="fat-scroll"><table class="fat-grid fat-small"><thead><tr><th>${vm.pecas ? 'Linha' : 'Modelo'}</th><th>${vm.pecas ? 'RL / FAT' : 'FAT/un'}</th><th>${vm.pecas ? 'MP / FAT' : 'RL/un'}</th><th>${vm.pecas ? 'MC1%' : 'MP/un'}</th><th>${vm.pecas ? '' : 'MC1%'}</th><th class="l">Origem</th><th class="l">Janela</th><th></th></tr></thead><tbody>${rows}${vm.pecas ? '' : total}</tbody></table></div>`;
@@ -76,7 +76,7 @@
       const orphans = vm.orphans && vm.admin ? `<div class="fat-stale"><span>${vm.orphans} combinação(ões) de região e modelo sem atribuição vigente não serão integradas</span></div>` : '';
       const stale = vm.stale && vm.admin ? `<div class="fat-stale"><span>Premissas defasadas · base ${esc(vm.windowLabel)}</span>${btn('Atualizar premissas', 'fat-refresh')}</div>` : '';
       const foot = `<div class="fat-foot"><span class="fat-state">${vm.dirty ? 'Alterações não salvas' : 'Valores salvos'}</span><div class="pl-actions">${btn('Descartar', 'fat-discard', vm.dirty ? '' : 'disabled')}${btn('Salvar valores', 'fat-save', vm.dirty ? '' : 'disabled', true)}</div></div>`;
-      const legend = vm.pecas ? '' : `<div class="fat-legend"><span><i class="fat-dot l"></i>Histórico da região</span><span><i class="fat-dot m"></i>Média Marcher</span><span><i class="fat-dot a"></i>Edit manual</span></div>`;
+      const legend = vm.pecas ? '' : `<div class="fat-legend"><span><i class="fat-dot l"></i>Histórico da região</span><span><i class="fat-dot m"></i>Média Marcher</span><span><i class="fat-dot a"></i>Edit manual</span><span><i class="fat-dot n"></i>Sem premissa</span></div>`;
       return head + stale + orphans + grid(vm) + legend + foot + premises(vm) + dreBlock(vm);
     }
 

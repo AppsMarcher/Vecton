@@ -3,7 +3,8 @@
   // Cálculo do FAT (projeção de vendas): puro, sem DOM nem servidor.
   // O servidor repete a mesma conta em planning_fat_calculate; os dois são testados com os mesmos números.
   const TAX_KEYS = ['ipi', 'icms', 'pis', 'cofins'];
-  const ZERO = () => ({ q: 0, fat: 0, rl: 0, mp: 0 });
+  // q = volume (VOL); qp = volume com premissa, a base dos valores unitários (volume sem premissa aparece em VOL, mas não dilui FAT/RL/MP por unidade).
+  const ZERO = () => ({ q: 0, fat: 0, rl: 0, mp: 0, qp: 0 });
 
   function taxSum(tax) { return TAX_KEYS.reduce((sum, key) => sum + Number((tax || {})[key] || 0), 0); }
 
@@ -17,17 +18,20 @@
   // opts.exportation: sem impostos (RL = FAT). opts.fatDriven: Peças, o valor digitado é o FAT e VOL = 1.
   function cell(premise, tax, volume, opts = {}) {
     const amount = Number(volume || 0);
-    if (!premise || premise.fat_unit == null || !amount) return ZERO();
+    if (!amount) return ZERO();
+    const q = opts.fatDriven ? 1 : amount;
+    if (!premise || premise.fat_unit == null) return { q, fat: 0, rl: 0, mp: 0, qp: 0 };
     const fat = amount * premise.fat_unit;
-    return { q: opts.fatDriven ? 1 : amount, fat, rl: opts.exportation ? fat : fat * (1 - taxSum(tax) / 100), mp: amount * premise.mp_unit };
+    return { q, fat, rl: opts.exportation ? fat : fat * (1 - taxSum(tax) / 100), mp: amount * premise.mp_unit, qp: q };
   }
-  const add = (a, b) => ({ q: a.q + b.q, fat: a.fat + b.fat, rl: a.rl + b.rl, mp: a.mp + b.mp });
+  const add = (a, b) => ({ q: a.q + b.q, fat: a.fat + b.fat, rl: a.rl + b.rl, mp: a.mp + b.mp, qp: (a.qp ?? a.q) + (b.qp ?? b.q) });
   const mc1 = c => (c.rl ? (c.rl - c.mp) / c.rl : null);
   // Valores unitários (total ÷ volume), como no Evolutivo de Margens; sem volume não há valor.
   function metric(c, key) {
     if (key === 'vol') return c.q;
     if (key === 'mb') return mc1(c);
-    return c.q ? c[key] / c.q : null;
+    const base = c.qp ?? c.q;
+    return base ? c[key] / base : null;
   }
 
   // Terceiro bloco (Faturamento | Impostos | Matéria-prima). parts: {maq, tra, ace, exp, pec}, cada um com 12 células
