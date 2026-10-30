@@ -151,7 +151,7 @@
     function accessModel() {
       if (!accessDraft) accessDraft = new Map(data.access.map(a => [`${a.user_id}|${a.coord_key}`, a.access_mode]));
       const users = deps.context().users || [];
-      return { users, userId: accessUser, dirty: accessDraft.__dirty === true, coords: (data.coords || []).map(c => ({ key: c.key, label: c.name, mode: accessDraft.get(`${accessUser}|${c.key}`) || 'none' })) };
+      return { users, userId: accessUser, dirty: accessDraft.__dirty === true, coords: (data.coords || []).filter(c => c.key !== 'MARCHER').map(c => ({ key: c.key, label: c.name, mode: accessDraft.get(`${accessUser}|${c.key}`) || 'none' })) };
     }
     function viewModel(f) {
       const tx = taxes(), pecas = isPecas(), win = (data.window_months || []).map(ymLabel).join(' · ');
