@@ -47,15 +47,15 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
       };
       const text = () => page.locator('.pl-import-pop [data-imp="status"]').innerText();
       await page.evaluate(() => { window.importResult = { ok: true, replaced: 0, inserted: 2 }; });
-      await send([['cod_produto', 'mes', 'territorio', 'quantidade', 'valor', 'MC1%'], ['0400007', 9, 'SP', 1, '78.863,91', 0.477], ['105132', 10, null, null, 1000, null]]);
+      await send([['mes', 'territorio', 'cod_produto', 'Quantidade', 'Valor'], [9, 'SP', '0400007', 1, '78.863,91'], [10, null, '105132', null, 1000]]);
       await page.waitForFunction(() => /0 valor\(es\) substituído\(s\) e 2 incluído\(s\)/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
       assert.deepEqual(await page.evaluate(() => calls.filter(c => c.name === 'planning_fat_import').pop().args.p_rows), [
-        { row: 2, cod_produto: '0400007', month: '9', territorio: 'SP', quantidade: '1', valor: '78863.91', mc1: '0.477' },
-        { row: 3, cod_produto: '105132', month: '10', territorio: '', quantidade: null, valor: '1000', mc1: null }]);
+        { row: 2, cod_produto: '0400007', month: '9', territorio: 'SP', quantidade: '1', valor: '78863.91' },
+        { row: 3, cod_produto: '105132', month: '10', territorio: '', quantidade: null, valor: '1000' }]);
       await page.evaluate(() => { window.importResult = { ok: false, errors: [{ row: 2, message: 'Linha 2: produto 9 não cadastrado' }] }; });
-      await send([['cod_produto', 'mes'], ['9', 1]]);
+      await send([['mes', 'cod_produto'], [1, '9']]);
       await page.waitForFunction(() => /1 erro\(s\) e nada foi importado[\s\S]*Linha 2: produto 9 não cadastrado/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
-      await send([['cod_produto', 'quantidade'], ['9', 1]]);
+      await send([['cod_produto', 'Quantidade'], ['9', 1]]);
       await page.waitForFunction(() => /Faltam colunas no cabeçalho: mes/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
       assert.match(await text(), /Baixe o template e use-o como base/);
     }

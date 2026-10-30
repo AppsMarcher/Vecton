@@ -99,7 +99,7 @@ Qualquer centro de custo cadastrado é aceito, em qualquer formulário (01 a 09)
 
 ## FAT (Vendas · Projeção de Faturamento)
 
-Decisão: o template da carga de planejado vendas (`templates/modelo-carga-vendas-planejado.xlsx`: mês, cod_produto, cod_territorio, quantidade, valor, MC1%) **sai da carga de planejado vendas e passa a ser o do botão Importar do FAT**, no cenário. O arquivo vai para o formulário FAT.
+Decisão: o template da carga de planejado vendas (origem das colunas: `templates/modelo-carga-vendas-planejado.xlsx`) **sai da carga de planejado vendas e passa a ser o do botão Importar do FAT**, no cenário. O arquivo vai para o formulário FAT.
 
 - **Regra da carga:** a mesma de hoje. **Volume é obrigatório**; em **Peças**, o valor em R$ é obrigatório. O restante (valor e MC1% dos demais) é opcional e, quando vazio, assume o que está no formulário FAT (premissas e impostos do cenário).
 - **Destino:** volumes do formulário FAT. A meta do Painel de Vendas segue atualizada pela integração do FAT.
@@ -123,3 +123,5 @@ Por enquanto **não há template de importação para o CPX**. O botão Importar
 ## Em análise (ainda sem decisão)
 
 - Teste, migration e publicação.
+
+**Atualização (FAT):** o template do FAT é `mes | territorio | cod_produto | Quantidade | Valor`, sem MC1% (o FAT é só volume; `Valor` só vale para Peças).
