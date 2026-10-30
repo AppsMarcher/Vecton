@@ -50,6 +50,7 @@
 .pl-cc-field .opex-cc-trigger{min-height:35px;min-width:260px;max-width:360px;padding:8px 28px 8px 12px;font-size:12px;border-radius:8px;background-color:var(--panel)}
 .pl-cc-field .opex-cc-trigger:hover:not(:disabled){border-color:var(--blue)}
 .pl-capex-grid{min-width:2250px}
+.pl-capex-grid td small{display:block;margin:6px 0 4px 2px;font-size:11px;color:var(--text-soft)}
 .pl-capex-grid th:nth-child(2),.pl-capex-grid td:nth-child(2){width:220px;text-align:left}
 .pl-capex-grid th:last-child,.pl-capex-grid td:last-child{width:180px}
 .pl-capex-grid .pl-input{font-size:11px}
