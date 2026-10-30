@@ -23,7 +23,7 @@
       return `<tr class="${row.kind === 'model' ? '' : row.kind}"><td>${first}</td>${cellTd(row.r25, metric, 'ref')}${cellTd(row.r26, metric, 'ref last')}${cells}${cellTd(row.year, metric, 'tot')}</tr>`;
     }
     function grid(vm) {
-      const head = `<colgroup><col style="width:190px"><col style="width:91px"><col style="width:91px">${months.map(() => '<col>').join('')}<col style="width:91px"></colgroup><thead><tr><th>Modelo</th><th class="ref">${vm.refYears[0]}</th><th class="ref last">${vm.refYears[1]}</th>${months.map(m => `<th>${esc(m)}</th>`).join('')}<th class="tot">${vm.year}</th></tr></thead>`;
+      const head = `<colgroup><col style="width:190px"><col style="width:91px"><col style="width:91px">${months.map(() => '<col>').join('')}<col style="width:91px"></colgroup><thead><tr><th></th><th class="ref">${vm.refYears[0]}</th><th class="ref last">${vm.refYears[1]}</th>${months.map(m => `<th>${esc(m)}</th>`).join('')}<th class="tot">${vm.year}</th></tr></thead>`;
       const selectors = vm.view === 'vend' ? select('region', vm.regions, vm.regionKey, ' fat-select--xs') : vm.view === 'coord' ? select('coord', vm.coords.map(c => ({ key: c, label: c })), vm.coordName, ' fat-select--sm') : '';
       const chips = [vm.view === 'vend' && vm.responsible ? `Responsável · ${vm.responsible}` : '', vm.tag].filter(Boolean).map(t => `<span class="fat-chip">${esc(t)}</span>`).join('');
       const tabs = seg([['mar', 'Marcher'], ['coord', 'Coordenação'], ['vend', 'Região']], 'fat-view', vm.view, 'v');

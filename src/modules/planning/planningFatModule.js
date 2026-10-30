@@ -8,6 +8,8 @@
     const views = global.VECTON_PLANNING_FAT_VIEWS.createFatViews({ escapeHtml: esc, months });
     const LINE = { 'Grãos': 'Grão', Cargograin: 'Grão', 'Pecuária': 'Pecuária', Transgrain: 'Outros', 'Acessórios': 'Grão', 'Linhas complementares': 'Peças' };
     const GROUPS = ['Grãos', 'Pecuária', 'Cargograin', 'Transgrain', 'Acessórios'];
+    // Total Máquinas: só Grãos + Pecuária + Cargograin (como o Total Máquinas do Evolutivo de Margens); Transgrain, Acessórios e Peças ficam fora.
+    const MACHINE_GROUPS = ['Grãos', 'Pecuária', 'Cargograin'];
     const ORIGIN = { local: 'histórico da região', marcher: 'média Marcher', adjusted: 'edit manual' };
     const LOWER = months.map(m => m.toLowerCase());
     let data = null, formId = null, view = 'mar', metric = 'vol', regionKey = null, coordName = 'Norte', tab = 'pre', premOpen = false, dreOpen = false;
@@ -82,7 +84,7 @@
         const sub = [], rows = [];
         modelList().filter(m => m.group === g && !m.fat_driven).forEach(m => {
           const a = modelAgg(m); if (ro && !(a.year.q || a.r25.q || a.r26.q)) return;
-          sub.push(a); total.push(a);
+          sub.push(a); if (MACHINE_GROUPS.includes(g)) total.push(a);
           const row = { kind: 'model', name: modelLabel(m.model_key), months: a.cells, r25: a.r25, r26: a.r26, year: a.year, dot: view === 'vend' ? (premiseOf(regionKey, m.model_key).origin === 'adjusted' ? 'a' : data.premises.some(p => p.region_key === regionKey && p.model_key === m.model_key) ? 'l' : premiseOf(regionKey, m.model_key).origin ? 'm' : '') : (a.anyVol ? (a.adj ? 'a' : a.mar ? 'm' : 'l') : '') };
           if (metric === 'vol' && can && canCell(regionKey, m.model_key)) row.inputs = Array.from({ length: 12 }, (_, j) => ({ model: m.model_key, month: j + 1, display: plain(amountOf(regionKey, m.model_key, j + 1)), dirty: changes.has(vkey(regionKey, m.model_key, j + 1)), disabled: !forms().includes(j + 1) }));
           rows.push(row);
@@ -90,8 +92,8 @@
         if (rows.length) body.push({ kind: 'grp', name: g }, ...rows, lvl('sub', 'Total ' + g, sub));
       });
       const pm = view === 'mar' && data.regions.some(r => r.region_key === 'PECAS') && data.models.find(x => x.fat_driven);
-      if (pm) { const pa = pecasAgg(pm); total.push(pa); body.push({ kind: 'grp', name: 'Linhas complementares' }, { kind: 'model', name: 'Peças', dot: 'l', months: pa.cells, r25: pa.r25, r26: pa.r26, year: pa.year }); }
-      return [lvl('top', 'Total ' + labelOf(), total), ...body];
+      if (pm) { const pa = pecasAgg(pm); body.push({ kind: 'grp', name: 'Linhas complementares' }, { kind: 'model', name: 'Peças', dot: 'l', months: pa.cells, r25: pa.r25, r26: pa.r26, year: pa.year }); }
+      return [lvl('top', 'Total Máquinas · ' + labelOf(), total), ...body];
     }
     function pecasAgg(m) {
       const pr = premiseOf('PECAS', m.model_key), cells = Array.from({ length: 12 }, (_, j) => core.cell(pr, taxes().pec, amountOf('PECAS', m.model_key, j + 1), { fatDriven: true }));
@@ -234,7 +236,7 @@
       const gen = ws.getCell('A4'); gen.value = `Gerado em ${new Date().toLocaleString('pt-BR')}`; gen.font = { size: 9, italic: true, color: { argb: 'FF7A8494' } };
       const headFill = xlFill('FFF1F3F7');
       const hd = (cell, text, align = 'center') => { cell.value = text; cell.font = { bold: true, size: 9.5, color: { argb: 'FF334055' } }; cell.fill = headFill; cell.border = XL_BORDER_ALL; cell.alignment = { horizontal: align, vertical: 'middle', wrapText: true }; };
-      ws.mergeCells('A5:A6'); hd(ws.getCell('A5'), 'Modelo', 'left');
+      ws.mergeCells('A5:A6'); hd(ws.getCell('A5'), '', 'left');
       XL_METRICS.forEach(([, label, unit], b) => {
         const c0 = 2 + b * blockW; ws.mergeCells(5, c0, 5, c0 + blockW - 1); hd(ws.getCell(5, c0), `${label} · ${unit}`);
         for (let c = c0 + 1; c < c0 + blockW; c++) { ws.getCell(5, c).fill = headFill; ws.getCell(5, c).border = XL_BORDER_ALL; }

@@ -68,7 +68,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
 
     // ── grade: 16 colunas, mesma largura em todas as métricas, fontes do Evolutivo
     assert.equal(await page.locator('#fat-grid thead th').count(), 16);
-    assert.deepEqual(await cells('#fat-grid thead th'), ['Modelo', '2025', '2026', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez', '2027']);
+    assert.deepEqual(await cells('#fat-grid thead th'), ['', '2025', '2026', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez', '2027']);
     const widths = async () => page.evaluate(() => [...document.querySelectorAll('#fat-grid thead th')].map(t => Math.round(t.getBoundingClientRect().width)).join(','));
     const base = await widths();
     for (const m of ['FAT', 'RL', 'MP', 'MC1%', 'VOL']) { await page.locator('.fat-seg button', { hasText: new RegExp('^' + m.replace('%', '\\%') + '$') }).click(); assert.equal(await widths(), base, 'largura igual em ' + m); }
@@ -78,12 +78,12 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.equal(await page.locator('.pl-app [title]').count(), 0, 'nenhum title nativo');
 
     // ── totalizador pelo nome da visão e Marcher sem Peças na grade
-    assert.equal((await cells('#fat-grid tr.top td:first-child'))[0], 'Total Marcher');
+    assert.equal((await cells('#fat-grid tr.top td:first-child'))[0], 'Total Máquinas · Marcher');
     assert.deepEqual((await cells('#fat-grid tr.grp td')).slice(-1), ['Linhas complementares'], 'Peças ao fim da grade da Marcher');
     assert.equal((await cells('#fat-grid tbody tr:last-child td'))[0], 'Peças');
     await page.locator('[data-pl="fat-view"][data-v="coord"]').click();
     await page.locator('select[data-fat="coord"]').selectOption('Exportação');
-    assert.equal((await cells('#fat-grid tr.top td:first-child'))[0], 'Total Exportação');
+    assert.equal((await cells('#fat-grid tr.top td:first-child'))[0], 'Total Máquinas · Exportação');
     assert.equal(await page.locator('.fat-chip').innerText(), 'Somente leitura · FAT = RL');
     const expTotal = async m => { await page.locator('.fat-seg button', { hasText: new RegExp('^' + m + '$') }).click(); return (await cells('#fat-grid tr.top td.tot'))[0]; };
     assert.equal(await expTotal('FAT'), await expTotal('RL'), 'Exportação: RL = FAT');
@@ -241,9 +241,9 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
       const file = path.join(require('node:os').tmpdir(), 'fat-export-test.xlsx'); await download.saveAs(file);
       const ExcelJS = require(process.env.PLANNING_EXCELJS_LIB.replace(/dist[\/].*$/, ''));
       const wb = new ExcelJS.Workbook(); await wb.xlsx.readFile(file); const ws = wb.worksheets[0];
-      assert.equal(ws.getCell('A5').value, 'Modelo'); assert.equal(ws.getCell('B5').value, 'VOL · unidades'); assert.equal(ws.getCell('B6').value, '2025'); assert.equal(ws.getCell('P6').value, '2027');
+      assert.equal(ws.getCell('A5').value, ''); assert.equal(ws.getCell('B5').value, 'VOL · unidades'); assert.equal(ws.getCell('B6').value, '2025'); assert.equal(ws.getCell('P6').value, '2027');
       assert.equal(ws.getCell(5, 17).value, 'FAT · R$/un');
-      const names = []; ws.eachRow(r => names.push(r.getCell(1).value)); assert(names.includes('Total Marcher')); assert(names.includes('GRÃOS')); assert(names.includes('INGRAIN100'));
+      const names = []; ws.eachRow(r => names.push(r.getCell(1).value)); assert(names.includes('Total Máquinas · Marcher')); assert(names.includes('GRÃOS')); assert(names.includes('INGRAIN100'));
     } else {
       await page.evaluate(() => { window.exportedCells = []; window.ExcelJS = { Workbook: class { constructor() { this.xlsx = { writeBuffer: async () => new Uint8Array() }; } addWorksheet() { const cells = new Map(), get = (r, c) => { const k = r + ':' + c; if (!cells.has(k)) cells.set(k, {}); return cells.get(k); }; window.exportedCells = cells; return { getColumn: () => ({}), getRow: () => ({}), mergeCells() {}, getCell: (r, c) => get(typeof r === 'string' ? r : r, c) }; } } }; });
       await page.locator('[data-pl="fat-export"]').click(); await page.waitForFunction(() => window.exportedCells.size > 50);
@@ -279,6 +279,15 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
     await page.locator('[data-pl="fat-view"][data-v="vend"]').click(); await page.locator('select[data-fat="region"]').selectOption('BA');
     assert.equal(await page.locator('#fat-grid .fat-dot.a').count(), 1, 'premissa ajustada pelo admin ganha a bolinha roxa');
+    // ── Total Máquinas = Grãos + Pecuária + Cargograin (Transgrain, Acessórios e Peças ficam fora, como no Evolutivo de Margens)
+    await page.evaluate(() => { fix.D.volumes.push({ region_key: 'BA', model_key: 'TRANSGRAIN 215', reference_month: 3, amount: 5, row_version: 1 }); });
+    await page.locator('[data-pl="index"]').click();
+    await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    await page.locator('[data-pl="fat-view"][data-v="mar"]').click();
+    const subs = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#fat-grid tr.sub')].map(tr => [tr.cells[0].textContent.trim(), Number(tr.querySelector('td.tot').textContent.replace(/\./g, '').replace(',', '.'))])));
+    const topTotal = Number((await cells('#fat-grid tr.top td.tot'))[0].replace(/\./g, '').replace(',', '.'));
+    assert(subs['Total Transgrain'] > 0, 'o Transgrain tem volume nesta prova');
+    assert.equal(topTotal, (subs['Total Grãos'] || 0) + (subs['Total Pecuária'] || 0) + (subs['Total Cargograin'] || 0), 'Total Máquinas só soma Grãos + Pecuária + Cargograin');
     assert.deepEqual(errors, []);
     console.log('FAT browser: list, grid, formats, views, Peças, Exportação, draft, save, conflict, DRE block, premises, integration and config passed.');
   } finally { await browser.close(); }
