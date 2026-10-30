@@ -288,6 +288,11 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     const topTotal = Number((await cells('#fat-grid tr.top td.tot'))[0].replace(/\./g, '').replace(',', '.'));
     assert(subs['Total Transgrain'] > 0, 'o Transgrain tem volume nesta prova');
     assert.equal(topTotal, (subs['Total Grãos'] || 0) + (subs['Total Pecuária'] || 0) + (subs['Total Cargograin'] || 0), 'Total Máquinas só soma Grãos + Pecuária + Cargograin');
+    // ── o formulário abre sempre na visão Marcher, inclusive para quem só tem uma região
+    await page.evaluate(() => { fix.D.regions = fix.D.regions.filter(r => r.region_key === 'BA'); });
+    await page.locator('[data-pl="index"]').click();
+    await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    assert.equal(await page.locator('.fat-seg button.on').first().innerText(), 'Marcher', 'abre em Marcher');
     assert.deepEqual(errors, []);
     console.log('FAT browser: list, grid, formats, views, Peças, Exportação, draft, save, conflict, DRE block, premises, integration and config passed.');
   } finally { await browser.close(); }

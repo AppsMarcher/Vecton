@@ -29,7 +29,7 @@
     async function open(id, targetTab = 'pre') {
       formId = id; tab = targetTab; changes = new Map(); data = await read(); index();
       const first = data.regions.find(r => r.region_key !== 'PECAS') || data.regions[0];
-      view = deps.admin() && data.regions.length > 1 ? 'mar' : 'vend'; metric = 'vol'; regionKey = first?.region_key || null; coordName = 'Norte';
+      view = 'mar'; metric = 'vol'; regionKey = first?.region_key || null; coordName = 'Norte';
       accessUser = deps.context().users?.[0]?.user_id || null; accessDraft = null;
       try {
         const draft = JSON.parse(localStorage.getItem(draftKey()) || 'null');
