@@ -203,6 +203,7 @@
       changes = new Map(); persistDraft(); data = await read(); index(); deps.render();
     }
     async function integrate() {
+      if (changes.size) await save();
       const rows = await rpc('planning_fat_overlap', { p_org: deps.org(), p_form: formId });
       const run = async () => {
         const result = await rpc('planning_integrate_all', { p_org: deps.org(), p_scenario: deps.scenario().id, p_form: formId });
@@ -319,7 +320,7 @@
         default: return undefined;
       }
     }
-    return { open, html, input, change, action, integrate, dirty: () => changes.size > 0, discard: () => { changes = new Map(); persistDraft(); }, listRow: views.listRow, overlapHtml: views.overlapModal };
+    return { open, html, input, change, action, integrate, save, dirty: () => changes.size > 0, discard: () => { changes = new Map(); persistDraft(); }, listRow: views.listRow, overlapHtml: views.overlapModal };
   }
   global.VECTON_PLANNING_FAT = { createFatController };
 })(window);

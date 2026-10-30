@@ -241,7 +241,7 @@
       root.querySelector('[data-pl="save"]').disabled = !changes.size;
       root.querySelector('[data-pl="discard"]').disabled = !changes.size;
     }
-    async function save() {
+    async function save(silent = false) {
       if (!changes.size) return;
       const snapshot = [...changes.values()];
       const result = isCapex() ? await capexWrite('save_values', { cells: snapshot }) : await write('save_entries', { form_id: formId, form_revision: revision, cells: snapshot });
@@ -249,7 +249,7 @@
       if (!result.ok) { modal('Outra pessoa alterou os valores', `<p>Nenhuma célula deste lote foi salva. Os valores na grade serão preservados para revisão.</p><ul>${result.conflicts.map(c => `<li>${esc(lines().find(l => l.id === c.line_id)?.description || '')} · ${months[c.month - 1]}: atual ${fmt(c.current_amount)}, seu valor ${fmt(c.amount)}</li>`).join('')}</ul><p>Confirme para atualizar as versões mantendo sua digitação. Revise e salve novamente para substituir os valores atuais.</p>`, async () => { await readForm(); changes.forEach((c, k) => { c.version = Number(entry(k)?.row_version || 0); }); close(); render(); }); return; }
       snapshot.forEach(c => { const k = key(c.line_id, c.cost_center_id, c.month); if (changes.get(k)?.amount === c.amount) changes.delete(k); });
       if (!changes.size) storage('removeItem', draftKey()); await readForm(); render();
-      modal('Valores salvos', '<p>O conteúdo foi salvo, mas ainda não chegou ao DRE nem ao OPEX.</p><p>Para atualizar o DRE e o OPEX, clique em <strong>Integrar no DRE e OPEX</strong>.</p>', null, true);
+      if (!silent) modal('Valores salvos', '<p>O conteúdo foi salvo, mas ainda não chegou ao DRE nem ao OPEX.</p><p>Para atualizar o DRE e o OPEX, clique em <strong>Integrar no DRE e OPEX</strong>.</p>', null, true);
     }
     async function openFormDialog(f = null) {
       const next = String(Math.max(0,...context.forms.filter(x=>x.form_type!=='capex' && /^\d+$/.test(x.code)).map(x=>Number(x.code)))+1).padStart(2,'0');
@@ -382,7 +382,9 @@
         case 'project': { if (form()?.form_type === 'fat') return fat.integrate();
           const fatForm = context.forms.find(f => f.scenario_id === scenario.id && f.form_type === 'fat' && f.status === 'released');
           let overlap = []; if (fatForm) { try { overlap = await rpc('planning_fat_overlap', { p_org: org, p_form: fatForm.id }); } catch (_) { overlap = []; } }
-          return modal(`Integrar ao DRE e OPEX do ${scenario.name}?`, `<p>Integra os valores projetados nos formulários de OPEX, CAPEX e FAT ao DRE e demais relatórios derivados.</p>${overlap.length ? fat.overlapHtml(overlap) : ''}${changes.size ? '<p class="pl-note">Sua digitação não salva não será incluída.</p>' : ''}`, async () => {
+          return modal(`Integrar ao DRE e OPEX do ${scenario.name}?`, `<p>Integra os valores projetados nos formulários de OPEX, CAPEX e FAT ao DRE e demais relatórios derivados.</p>${overlap.length ? fat.overlapHtml(overlap) : ''}${changes.size || fat.dirty() ? '<p class="pl-note">Sua digitação não salva será salva antes de integrar.</p>' : ''}`, async () => {
+          if (changes.size) { await save(true); if (changes.size) throw Error('Revise os valores marcados e salve novamente antes de integrar'); }
+          if (fat.dirty()) await fat.save();
           const result = await rpc('planning_integrate_all', { p_org: org, p_scenario: scenario.id, p_form: formId });
           invalidateScenarioCachesFor?.(scenario.id, scenario.reference_year);
           if (!result.ok) { await refresh(); throw Error(result.error || 'Falha na integração'); }
