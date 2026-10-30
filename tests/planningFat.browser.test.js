@@ -293,6 +293,22 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.locator('[data-pl="index"]').click();
     await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
     assert.equal(await page.locator('.fat-seg button.on').first().innerText(), 'Marcher', 'abre em Marcher');
+    // ── abertura por perfil: quem enxerga uma região abre nela; quem enxerga coordenações abre em Coordenação (a 1ª em ordem alfabética)
+    await page.evaluate(() => { fix.context.is_admin = false; fix.D.admin = false; fix.D.regions = [{ region_key: 'SP', label: 'SP', mode: 'write' }]; fix.D.cell_modes = [{ region_key: 'SP', model_key: 'INGRAIN100', mode: 'write' }]; });
+    await page.locator('[data-pl="index"]').click();
+    await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    assert.equal(await page.locator('.fat-seg button.on').first().innerText(), 'Região', 'uma região só: abre na região');
+    assert.equal(await page.locator('select[data-fat="region"]').inputValue(), 'SP');
+    await page.evaluate(() => { fix.D.regions = [{ region_key: 'BA', label: 'BA', mode: 'write' }, { region_key: 'EX', label: 'EX', mode: 'write' }]; fix.D.cell_modes = [{ region_key: 'BA', model_key: 'INGRAIN90', mode: 'write' }, { region_key: 'BA', model_key: 'INGRAIN100', mode: 'write' }]; });
+    await page.locator('[data-pl="index"]').click();
+    await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    assert.equal(await page.locator('.fat-seg button.on').first().innerText(), 'Coordenação', 'enxerga coordenações: abre em Coordenação');
+    assert.equal(await page.locator('select[data-fat="coord"]').inputValue(), 'Norte', 'a primeira coordenação em ordem alfabética');
+    // quem tem todas as coordenações liberadas (whole) abre em Marcher
+    await page.evaluate(() => { fix.D.whole = true; });
+    await page.locator('[data-pl="index"]').click();
+    await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    assert.equal(await page.locator('.fat-seg button.on').first().innerText(), 'Marcher', 'todas as coordenações: abre em Marcher');
     assert.deepEqual(errors, []);
     console.log('FAT browser: list, grid, formats, views, Peças, Exportação, draft, save, conflict, DRE block, premises, integration and config passed.');
   } finally { await browser.close(); }

@@ -29,7 +29,18 @@
     async function open(id, targetTab = 'pre') {
       formId = id; tab = targetTab; changes = new Map(); data = await read(); index();
       const first = data.regions.find(r => r.region_key !== 'PECAS') || data.regions[0];
-      view = 'mar'; metric = 'vol'; regionKey = first?.region_key || null; coordName = 'Norte';
+      metric = 'vol'; regionKey = first?.region_key || null; coordName = 'Norte';
+      // Abertura: quem enxerga o todo (admin, ou com todas as coordenações liberadas) abre em Marcher; quem enxerga uma coordenação, em Coordenação (a primeira em ordem alfabética);
+      // quem enxerga uma região só, nela.
+      view = 'mar';
+      if (!((deps.admin() && data.admin !== false) || data.whole === true)) {
+        if (data.regions.length <= 1) { view = 'vend'; regionKey = data.regions[0]?.region_key || null; }
+        else {
+          const mine = [...new Set((data.cell_modes || []).map(c => { const m = data.models.find(x => x.model_key === c.model_key); return m ? coordOf(c.region_key, m.group) : ''; }).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+          if (mine.length) { view = 'coord'; coordName = mine[0]; } else view = 'vend';
+        }
+        if (isPecas() && metric === 'vol') metric = 'fat';
+      }
       accessUser = deps.context().users?.[0]?.user_id || null; accessDraft = null;
       try {
         const draft = JSON.parse(localStorage.getItem(draftKey()) || 'null');

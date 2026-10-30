@@ -165,6 +165,7 @@ const { createDb } = require('./helpers/planningFatDb');
     assert.deepEqual(rd.access, [], 'a lista completa de acessos é só do admin');
     assert.deepEqual(rd.coordination.filter(c => c.region_key === BA).map(c => c.line + ':' + c.coordination + ':' + c.responsible).sort(), ['Grão:Norte:PENINHA', 'Outros:Norte:PENINHA', 'Pecuária:Pecuária:A definir'], 'coordenação e responsável por linha');
     assert.equal(rd.premises.some(p => 'calc_fat_unit' in p), false, 'quem não é admin não recebe o valor do histórico nem o ajuste');
+    assert.equal(rd.whole, false, 'quem só tem a coordenação Norte não enxerga o todo');
     // conflito e validação não salvam nada
     const conflict = await fwRev('save_volumes', { cells: [cellv(BA, 'INGRAIN100', 1, '9', 0), cellv(BA, 'INGRAIN100', 2, '3', 0)] });
     assert.equal(conflict.ok, false);
@@ -196,6 +197,7 @@ const { createDb } = require('./helpers/planningFatDb');
     assert.equal(rd.stale, false); assert.deepEqual(rd.window_months, [202609, 202608]);
     assert.equal((await fr('2026-11-15')).stale, true, 'mês novo fechado depois da janela da última atualização');
     assert.equal(rd.access.length, 4, 'o admin recebe a matriz de acessos');
+    assert.equal(rd.whole, true, 'admin enxerga o todo');
     assert.deepEqual(rd.coords.map(c => c.name).sort(), ['Exportação', 'Marcher', 'Norte', 'Pecuária', 'Peças', 'Sul'].sort(), 'coordenações para o admin configurar'); assert.equal(rd.coords[0].name, 'Marcher');
     assert.deepEqual(rd.cell_modes, [], 'o admin não precisa do mapa de células');
     const pBA = rd.premises.find(p => p.region_key === BA && p.model_key === 'INGRAIN100');
@@ -460,6 +462,15 @@ const { createDb } = require('./helpers/planningFatDb');
     await setVol(SP, 'INGRAIN100', 6, 1); await setVol(BA, 'CARGOGRAIN 14000', 6, 1);
     const calc6 = await calcSys();
     assert.equal(calc6['31101001/6'], -(70000 + 90000), 'as premissas ajustadas entram no cálculo');
+    // 330: a coordenação MARCHER, ou todas as coordenações liberadas, também enxerga o todo
+    await fw('save_access', { access: [{ user_id: ids.reader, coord_key: 'MARCHER', access_mode: 'read' }, { user_id: ids.outsider, coord_key: SUL, access_mode: 'read' }, { user_id: ids.outsider, coord_key: NORTE, access_mode: 'read' }] });
+    await T.as(ids.reader); assert.equal((await fr()).whole, true, 'MARCHER enxerga o todo');
+    await T.as(ids.outsider); assert.equal((await fr()).whole, false, 'só duas coordenações não é o todo');
+    await T.as(ids.admin);
+    const allCoords = (await fr()).coords.filter(c => c.key !== 'MARCHER').map(c => ({ user_id: ids.outsider, coord_key: c.key, access_mode: 'read' }));
+    await fw('save_access', { access: allCoords });
+    await T.as(ids.outsider); assert.equal((await fr()).whole, true, 'todas as coordenações individualmente liberadas enxergam o todo');
+    await T.as(ids.admin);
     await db.exec('reset role');
     console.log('FAT SQL: schema, regions, models, premises, calculation, read, write, integration, overlap, meta, context, clone, creation and review fixes passed.');
   } finally { await db.close(); }
