@@ -147,11 +147,9 @@
     }
 
     // ── Grade de preenchimento ─────────────────────────────────────────────
-    function costCenterPicker(st) {
-      const { selectedCC } = st, context = { cost_centers: st.costCenters || st.context.cost_centers };
-      const summary = selectedCC.length === 1 ? esc(context.cost_centers.find(c => c.id === selectedCC[0])?.cost_center_name || '') : `${selectedCC.length} centros marcados (soma)`;
-      const items = context.cost_centers.map(c => `<label class="pl-choice"><input type="checkbox" data-cc="${c.id}" ${selectedCC.includes(c.id) ? 'checked' : ''}>${esc(c.cost_center_number)} · ${esc(c.cost_center_name)}</label>`).join('');
-      return `<details class="pl-cc"><summary>${summary}</summary><div class="pl-cc-list">${items}</div></details>`;
+    // O seletor em si (gestões + CCs) é montado pelo módulo depois do render, no [data-pl-cc].
+    function costCenterPicker() {
+      return `<div class="pl-cc-field"><span class="pl-cc-label">CCs</span><div class="opex-cc-slot" data-pl-cc></div></div>`;
     }
     function gridCell(st, l, i, values, editable) {
       if (l.origin === 'label') return '<td></td>';

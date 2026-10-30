@@ -43,7 +43,9 @@
 /* CAPEX has its own item structure and shares the form header / CC picker. */
 .pl-capex-list{margin-top:28px}
 .pl-capex-toolbar{margin:24px 0}
-.pl-capex-toolbar .pl-cc{margin-left:auto}
+.pl-capex-toolbar .pl-cc-field{margin-left:auto}
+.pl-cc-field{display:inline-flex;align-items:center;gap:8px}
+.pl-cc-label{font-size:.75rem;font-weight:600;color:var(--text-soft)}
 .pl-capex-grid{min-width:2250px}
 .pl-capex-grid th:nth-child(2),.pl-capex-grid td:nth-child(2){width:220px;text-align:left}
 .pl-capex-grid th:last-child,.pl-capex-grid td:last-child{width:180px}

@@ -65,11 +65,23 @@
       const box = active && root && root.querySelector('.pl-grid-scroll'); if (!box) return;
       box.style.maxHeight = Math.max(260, innerHeight - box.getBoundingClientRect().top - 12) + 'px';
     }
+    function mountCostCenterPicker() {
+      const slot = root.querySelector('[data-pl-cc]'), picker = global.VECTON_OPEX_CC_PICKER;
+      if (!slot || !picker) return;
+      const ccs = costCenters().map(c => ({ id: c.id, number: c.cost_center_number, name: c.cost_center_name, management: c.cost_center_management || 'Sem gestão' }));
+      const tree = picker.buildTree(ccs, [...new Set(ccs.map(c => c.management))].sort((a, b) => a.localeCompare(b, 'pt-BR')), null);
+      const { mgmt, customIds } = picker.resolveSelection(tree, selectedCC.map(String), true);
+      picker.mount(slot, {
+        tree, canAll: true, customIds, ariaLabel: 'Centros de custo',
+        selectedMgmt: customIds?.length ? picker.customLabel(tree, customIds) : mgmt,
+        onApply: r => { const next = [...picker.currentIds(tree, { selectedMgmt: r.mgmt, customIds: r.customIds })]; void run(() => leave(async () => { changes.clear(); selectedCC = next; await readForm(); render(); })); }
+      });
+    }
     function render() {
       if (!active) return;
       const body = wizard ? views.wizard(st) : views.scenario(st);
       container.innerHTML = `<section class="pl-app"><div class="pl-error" role="alert" hidden></div>${body}<dialog class="pl-dialog"></dialog></section>`;
-      root = container.querySelector('.pl-app'); fitGrid(); root.onclick = e => { hideTip(); const el = e.target.closest('[data-pl]'); if (el && !el.disabled) void run(() => action(el.dataset.pl, el)); };
+      root = container.querySelector('.pl-app'); mountCostCenterPicker(); fitGrid(); root.onclick = e => { hideTip(); const el = e.target.closest('[data-pl]'); if (el && !el.disabled) void run(() => action(el.dataset.pl, el)); };
       root.onchange = e => void run(() => change(e.target));
       root.oninput = e => {
         if (e.target.dataset.fat === 'vol') return fat.input(e.target);

@@ -56,7 +56,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     fs.mkdirSync(path.join(__dirname,'../artifacts/capex'),{recursive:true});
     await page.screenshot({path:path.join(__dirname,'../artifacts/capex/formularios.png'),fullPage:true});
     await page.locator('.pl-capex-list [data-pl="open-form"]').click();
-    const addBox=await page.getByRole('button',{name:'+ Investimentos',exact:true}).boundingBox(),ccBox=await page.locator('.pl-cc').boundingBox();assert(addBox.x<ccBox.x);
+    const addBox=await page.getByRole('button',{name:'+ Investimentos',exact:true}).boundingBox(),ccBox=await page.locator('.pl-cc-field').boundingBox();assert(addBox.x<ccBox.x);
     assert.equal(await page.locator('.pl-reports').count(),0);
     assert.equal(await page.getByRole('textbox',{name:'Centro de usinagem CNC Jan',exact:true}).isDisabled(),true);
     assert.equal(await page.getByRole('textbox',{name:'Centro de usinagem CNC Mar',exact:true}).isDisabled(),false);
@@ -72,7 +72,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.getByRole('button',{name:'+ Investimentos',exact:true}).click();await page.locator('#pl-item-name').fill('Bancada');await page.getByRole('button',{name:'Confirmar',exact:true}).click();assert.equal(await page.locator('[data-capex-field="description"]').count(),2);
     await page.locator('[data-capex-field="description"]').first().fill('Bancada revisada');await page.locator('[data-capex-field="description"]').first().press('Tab');await page.waitForFunction(()=>calls.some(c=>c.args?.p_action==='save_item'&&c.args.p_payload.description==='Bancada revisada'));
     await page.screenshot({path:path.join(__dirname,'../artifacts/capex/formulario.png'),fullPage:true});
-    await page.locator('.pl-cc summary').click();await page.locator('[data-cc="admin"]').check();assert.equal(await page.getByRole('button',{name:'+ Investimentos',exact:true}).isDisabled(),true);assert.equal(await page.locator('[data-capex-field="description"]').first().isDisabled(),true);
+    await page.locator('.opex-cc-trigger').click();await page.locator('.opex-cc-pop [data-c="admin"]').check();await page.locator('.opex-cc-apply').click();assert.equal(await page.getByRole('button',{name:'+ Investimentos',exact:true}).isDisabled(),true);assert.equal(await page.locator('[data-capex-field="description"]').first().isDisabled(),true);
     await page.getByRole('button',{name:'Voltar para o cenário',exact:true}).click();await page.locator('.pl-capex-list [data-pl="open-form"]').click();await page.getByRole('button',{name:'Parâmetros CAPEX',exact:true}).click();assert.match(await page.locator('.pl-app').innerText(),/10,00%/);
     await page.screenshot({path:path.join(__dirname,'../artifacts/capex/parametros.png'),fullPage:true});
     await page.evaluate(async()=>{fixture.is_admin=false;fixture.forms.find(f=>f.form_type==='capex').access_mode='read';fixture.capex_types=fixture.capex_types.map(t=>({id:t.id,name:t.name,active:t.active}));await testModule.open(document.getElementById('planning'),fixture.scenarios[0],()=>{});});
