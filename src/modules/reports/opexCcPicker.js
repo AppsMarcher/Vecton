@@ -82,7 +82,7 @@
   // slot: elemento que recebe o botao; o popover vai para o <body> (position: fixed).
   function mount(slot, opts) {
     closeOpen();
-    const { tree, canAll, allOption = ALL, selectedMgmt, customIds, partial, onApply, ariaLabel } = opts;
+    const { tree, canAll, allOption = ALL, selectedMgmt, customIds, partial, onApply, ariaLabel, allowEmpty = false } = opts;
     const total = tree.reduce((n, group) => n + group.ccs.length, 0);
     const label = customIds?.length ? selectedMgmt : `${selectedMgmt}${partial ? " · parcial" : ""}`;
     const disabled = !canAll && total <= 1;
@@ -93,11 +93,11 @@
     trigger.addEventListener("click", () => {
       if (openPopover?.trigger === trigger) { closeOpen(); return; }
       closeOpen();
-      openPopover = open(trigger, { tree, canAll, allOption, draft: currentIds(tree, { selectedMgmt, customIds, allOption }), selectedMgmt, onApply });
+      openPopover = open(trigger, { tree, canAll, allOption, draft: currentIds(tree, { selectedMgmt, customIds, allOption }), selectedMgmt, onApply, allowEmpty });
     });
   }
 
-  function open(trigger, { tree, canAll, allOption, draft, selectedMgmt, onApply }) {
+  function open(trigger, { tree, canAll, allOption, draft, selectedMgmt, onApply, allowEmpty }) {
     const total = tree.reduce((n, group) => n + group.ccs.length, 0);
     const expanded = new Set(tree
       .filter((group) => {
@@ -131,7 +131,7 @@
         }
       });
       pop.innerHTML = `<div class="opex-cc-list">${rows.join("")}</div>
-        <div class="opex-cc-foot"><span class="opex-cc-count">${allCount ? `${allCount} de ${total} CCs` : "Selecione ao menos um CC"}</span><button type="button" class="opex-cc-apply" data-apply>Aplicar</button></div>`;
+        <div class="opex-cc-foot"><span class="opex-cc-count">${allCount ? `${allCount} de ${total} CCs` : (allowEmpty ? "Nenhum CC: lançamento sem centro de custo" : "Selecione ao menos um CC")}</span><button type="button" class="opex-cc-apply" data-apply>Aplicar</button></div>`;
       pop.querySelector(".opex-cc-list").scrollTop = scroll;
       const allBox = pop.querySelector("input[data-all]");
       if (allBox) { allBox.checked = allCount === total; allBox.indeterminate = allCount > 0 && allCount < total; }
@@ -173,7 +173,12 @@
         return;
       }
       if (event.target.closest("[data-apply]")) {
-        if (!draft.size) return;
+        if (!draft.size) {
+          if (!allowEmpty) return;
+          closeOpen();
+          onApply({ mgmt: allOption, customIds: null, empty: true });
+          return;
+        }
         const result = resolveSelection(tree, [...draft], canAll, allOption);
         closeOpen();
         onApply(result);

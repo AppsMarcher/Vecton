@@ -12,6 +12,10 @@ assert.ok(!/selectedScenarioTarget\s*[!=]==\s*"budget"/.test(carga), 'carga come
 assert.ok(/pickDefaultLoadTarget/.test(carga), 'carga comercial pré-seleciona o Budget do ano');
 assert.ok(/select=id,name,reference_year/.test(carga), 'carga comercial lê o ano do cenário');
 
+// A carga de planejado vendas só aceita cenários sem formulário (como a carga do DRE); os formulários usam o botão Importar do FAT.
+assert.ok(/!s\.planning_version && s\.kind !== "built"/.test(carga), 'carga comercial lista só cenários sem formulário');
+assert.ok(/const required = \["codProduto", "referenceMonth", "codTerritorio", "quantidade", "valor"\]/.test(carga), 'carga comercial exige todas as colunas');
+
 const relatorios = read('src/modules/reports/comercialReportsModule.js');
 assert.ok(!/<option value="" \$\{!scenarioId \? "selected" : ""\}>Budget<\/option>/.test(relatorios), 'relatórios comerciais sem opção fixa Budget');
 assert.ok(/`Budget \$\{year\}`/.test(relatorios), 'relatórios comerciais usam o cenário "Budget {ano}" como padrão');

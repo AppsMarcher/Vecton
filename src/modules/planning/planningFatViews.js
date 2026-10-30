@@ -80,8 +80,8 @@
       return head + stale + orphans + grid(vm) + legend + foot + premises(vm) + dreBlock(vm);
     }
 
-    function overlapModal(rows) {
-      return `<p>Estas contas já têm valores em outro formulário deste cenário e serão somadas no DRE:</p><table class="fat-grid fat-small"><tbody>${rows.map(r => `<tr><td>${esc(r.account_number)}</td><td class="l mut">${r.months.map(m => esc(months[m - 1])).join(', ')}</td></tr>`).join('')}</tbody></table>`;
+    function overlapModal(rows, source = 'FAT') {
+      return `<p>Estas contas já têm valores em outro formulário deste cenário. O ${source} prevalece e esses valores não entram no DRE:</p><table class="fat-grid fat-small"><tbody>${rows.map(r => `<tr><td>${esc(r.account_number)}</td><td class="l mut">${r.months.map(m => esc(months[m - 1])).join(', ')}</td></tr>`).join('')}</tbody></table>`;
     }
     function listRow(f, st) {
       return `<div class="pl-list-row"><span class="pl-code">FAT</span><div class="pl-grow"><strong>${esc(f.name)}</strong><small>${esc(st.locked ? 'Somente leitura' : f.access_mode === 'write' ? 'Lançar volumes' : 'Visualizar')}</small></div><span class="pl-badge${f.status === 'released' ? ' pl-badge--ok' : ''}">${f.status === 'released' ? 'Liberado' : 'Em construção'}</span>${st.admin ? btn('Configurar', 'configure', `data-id="${f.id}"`) : ''}${st.admin ? btn('Importar', 'import-form', `data-id="${f.id}" ${st.locked ? 'disabled' : ''}`) : ''}${btn('Abrir →', 'open-form', `data-id="${f.id}"`)}</div>`;

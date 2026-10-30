@@ -248,9 +248,10 @@
         const orgId = await resolveOrganizationId();
         const rows = await fetchSupabaseRowsSafe(
           "forecast_scenarios",
-          `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name,reference_year`
+          `organization_id=eq.${orgId}&reference_year=eq.${year}&order=sort_order.asc,created_at.asc&select=id,name,reference_year,planning_version,kind`
         );
-        availableScenarios = rows || [];
+        // Só cenários sem formulário (como a carga do DRE): o FAT dos cenários com formulários é alimentado pelo botão Importar do formulário.
+        availableScenarios = (rows || []).filter((s) => !s.planning_version && s.kind !== "built");
         availableScenariosYear = year;
       } catch (err) {
         console.warn("Nao foi possivel carregar cenarios de planejamento:", err);
@@ -1000,9 +1001,11 @@
     function parseSheetRows(rows) {
       if (!Array.isArray(rows) || !rows.length) throw new Error("Arquivo sem linhas para importacao.");
       const headerMap = mapHeaders(Object.keys(rows[0]));
-      // A meta e de volume: valor e opcional (so Pecas, em R$, exige valor — o banco valida por linha).
-      if (!headerMap.codProduto) throw new Error("Colunas obrigatorias ausentes: cod_produto");
-      if (!headerMap.quantidade && !headerMap.valor) throw new Error("Colunas obrigatorias ausentes: quantidade");
+      // Todos os campos sao obrigatorios (o banco valida por linha; territorio so e dispensado em Pecas).
+      const required = ["codProduto", "referenceMonth", "codTerritorio", "quantidade", "valor"];
+      const labels = { codProduto: "cod_produto", referenceMonth: "mes", codTerritorio: "territorio", quantidade: "quantidade", valor: "valor" };
+      const missing = required.filter((key) => !headerMap[key]);
+      if (missing.length) throw new Error(`Colunas obrigatorias ausentes: ${missing.map((key) => labels[key]).join(", ")}`);
       return rows.map((sourceRow) => ({
         referenceMonth: headerMap.referenceMonth ? sourceRow[headerMap.referenceMonth] : "",
         codProduto: sourceRow[headerMap.codProduto],

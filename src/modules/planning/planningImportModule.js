@@ -1,19 +1,31 @@
 (function (global) {
   'use strict';
-  // Popover de importação de um formulário: baixar template, selecionar Excel, enviar e acompanhar o status.
-  // Só lê o arquivo e confere o cabeçalho; a gravação nos formulários depende das regras de carga (ainda não definidas).
+  // Popover de importação de um formulário: baixar template, selecionar o Excel, enviar e acompanhar o status.
+  // O popover só lê a planilha e monta as linhas; quem valida e grava é a função `info.send(rows)` (RPC do formulário).
+  // Qualquer erro bloqueia o arquivo inteiro e o painel lista cada linha com o aviso.
   const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const MAX_ERRORS_SHOWN = 30;
+  const norm = v => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 
-  function createImportPopover({ esc, scenarioName, formInfo }) {
+  // Mesmo critério de `parseLocalizedAmount` (src/core/utils.js): número do Excel como está; texto com ponto de milhar e vírgula decimal.
+  function normalizeAmount(value) {
+    if (value && typeof value === 'object' && !(value instanceof Date)) value = value.result ?? value.text ?? '';
+    if (value === null || value === undefined || String(value).trim() === '') return '';
+    const n = typeof value === 'number' ? value : Number(String(value).replace(/\s/g, '').replace(/\./g, '').replace(',', '.'));
+    return Number.isFinite(n) ? String(Math.round(n * 100) / 100) : String(value).trim();
+  }
+
+  const cellText = v => v == null ? '' : v instanceof Date ? v.toISOString().slice(0, 10) : typeof v === 'object' ? String(v.text ?? v.result ?? (v.richText || []).map(t => t.text).join('')) : String(v);
+
+  function createImportPopover({ esc, scenarioName }) {
     let pop, anchor, file, running = false, steps = [];
 
-    const cellText = v => v == null ? '' : typeof v === 'object' ? String(v.text ?? v.result ?? '') : String(v);
     function status(list) { steps = list; const box = pop?.querySelector('[data-imp="status"]'); if (box) box.innerHTML = statusHtml(); }
     function statusHtml() {
       if (!steps.length) return '<p class="pl-imp-idle">Baixe o template, selecione o Excel preenchido e envie o arquivo.</p>';
       const mark = { ok: '✓', err: '✕', run: '…', wait: '•' };
-      return `<ol class="pl-imp-steps">${steps.map(s => `<li class="pl-imp-${s.state}"><span aria-hidden="true">${mark[s.state]}</span><div><strong>${esc(s.text)}</strong>${s.detail ? `<small>${esc(s.detail)}</small>` : ''}</div></li>`).join('')}</ol>`;
+      return `<ol class="pl-imp-steps">${steps.map(s => `<li class="pl-imp-${s.state}"><span aria-hidden="true">${mark[s.state]}</span><div><strong>${esc(s.text)}</strong>${s.detail ? `<small>${esc(s.detail)}</small>` : ''}${(s.items || []).map(i => `<small>${esc(i)}</small>`).join('')}</div></li>`).join('')}</ol>`;
     }
     function html(info) {
       return `<div class="pl-imp-head"><strong>Importar · ${esc(info.name)}</strong><button type="button" class="pl-dialog-x" data-imp="close" aria-label="Fechar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
@@ -45,15 +57,36 @@
       status(f ? [{ state: 'ok', text: 'Arquivo selecionado', detail: 'Clique em Enviar arquivo para iniciar.' }] : []);
     }
 
+    // info.columns: [{ key, label, required, aliases? }]; info.slug: nome do arquivo; info.sheet: nome da aba.
     async function download(info) {
       if (!global.ExcelJS) { status([{ state: 'err', text: 'Biblioteca de Excel indisponível' }]); return; }
-      const wb = new global.ExcelJS.Workbook(), ws = wb.addWorksheet('Importação'), spec = info.template();
-      ws.addRow(spec.header); ws.getRow(1).font = { bold: true }; spec.rows.forEach(r => ws.addRow(r));
-      ws.views = [{ state: 'frozen', xSplit: spec.fixed, ySplit: 1 }];
-      spec.header.forEach((_, i) => { ws.getColumn(i + 1).width = i < spec.fixed ? 34 : 14; });
+      const wb = new global.ExcelJS.Workbook(), ws = wb.addWorksheet(info.sheet || 'Importação');
+      ws.addRow(info.columns.map(c => c.label)); ws.getRow(1).font = { bold: true };
+      info.columns.forEach((_, i) => { ws.getColumn(i + 1).width = 22; });
+      ws.views = [{ state: 'frozen', ySplit: 1 }];
       const blob = new Blob([await wb.xlsx.writeBuffer()], { type: XLSX_TYPE }), url = URL.createObjectURL(blob), a = document.createElement('a');
-      a.href = url; a.download = `template-${spec.slug}-${scenarioName()}.xlsx`.replace(/\s+/g, '-'); a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-      status([{ state: 'ok', text: 'Template baixado', detail: `${spec.rows.length} linha(s) de exemplo · preencha os meses e salve.` }]);
+      a.href = url; a.download = `template-${info.slug}-${scenarioName()}.xlsx`.replace(/\s+/g, '-'); a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      status([{ state: 'ok', text: 'Template baixado', detail: 'Preencha uma linha por lançamento e salve o arquivo.' }]);
+    }
+
+    // Lê a planilha: cabeçalho por nome (sem acento e sem diferença de maiúsculas), linhas em branco ignoradas.
+    async function readRows(info) {
+      if (!global.ExcelJS) throw Error('Biblioteca de Excel indisponível');
+      const wb = new global.ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer());
+      const ws = wb.worksheets[0];
+      if (!ws) throw Error('O arquivo não tem nenhuma planilha.');
+      const head = {}; ws.getRow(1).eachCell({ includeEmpty: false }, (cell, col) => { const k = norm(cellText(cell.value)); if (k && !(k in head)) head[k] = col; });
+      const index = Object.fromEntries(info.columns.map(c => [c.key, head[norm(c.label)] ?? (c.aliases || []).map(a => head[norm(a)]).find(Boolean)]));
+      const missing = info.columns.filter(c => c.required && !index[c.key]).map(c => c.label);
+      if (missing.length) throw Object.assign(Error(`Faltam colunas no cabeçalho: ${missing.join(', ')}. Baixe o template e use-o como base.`), { header: true });
+      const rows = [];
+      ws.eachRow((row, n) => {
+        if (n === 1) return;
+        const item = { row: n }; let any = false;
+        info.columns.forEach(c => { const raw = index[c.key] ? row.getCell(index[c.key]).value : null; item[c.key] = raw; if (cellText(raw).trim() !== '') any = true; });
+        if (any) rows.push(item);
+      });
+      return { rows, sheet: ws.name };
     }
 
     async function upload(info) {
@@ -62,20 +95,21 @@
       const log = [{ state: 'ok', text: 'Arquivo selecionado', detail: file.name }, { state: 'run', text: 'Lendo o arquivo' }];
       status(log);
       try {
-        if (!global.ExcelJS) throw Error('Biblioteca de Excel indisponível');
-        const wb = new global.ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer());
-        const ws = wb.getWorksheet('Importação') || wb.worksheets[0];
-        if (!ws) throw Error('O arquivo não tem nenhuma planilha.');
-        log[1] = { state: 'ok', text: 'Arquivo lido', detail: `Planilha “${ws.name}” · ${Math.max(ws.rowCount - 1, 0)} linha(s) de dados` };
-        const spec = info.template(), found = spec.header.map((_, i) => cellText(ws.getRow(1).getCell(i + 1).value).trim());
-        const bad = spec.header.filter((h, i) => found[i].toLowerCase() !== h.toLowerCase());
-        if (bad.length) { log.push({ state: 'err', text: 'Cabeçalho diferente do template', detail: `Colunas esperadas: ${bad.join(', ')}. Baixe o template e use-o como base.` }); return status(log); }
-        let filled = 0; ws.eachRow((row, n) => { if (n > 1 && row.values.some(v => cellText(v).trim() !== '')) filled++; });
-        log.push({ state: 'ok', text: 'Cabeçalho conferido', detail: `${filled} linha(s) preenchida(s).` });
-        log.push({ state: 'wait', text: 'Validação e gravação no formulário', detail: 'Aguardando a definição das regras de carga. Nada foi gravado.' });
+        const { rows, sheet } = await readRows(info);
+        log[1] = { state: 'ok', text: 'Arquivo lido', detail: `Planilha “${sheet}” · ${rows.length} linha(s) preenchida(s)` };
+        if (!rows.length) { log.push({ state: 'err', text: 'O arquivo não tem linhas de dados', detail: 'Preencha ao menos uma linha abaixo do cabeçalho.' }); return status(log); }
+        log.push({ state: 'run', text: 'Validando e importando' }); status(log);
+        const result = await info.send(rows);
+        if (result.ok) {
+          log[2] = { state: 'ok', text: 'Importação concluída', detail: result.summary || `${result.replaced ?? 0} valor(es) substituído(s) e ${result.inserted ?? 0} incluído(s).` };
+        } else {
+          const errors = result.errors || [], shown = errors.slice(0, MAX_ERRORS_SHOWN).map(e => e.message);
+          if (errors.length > shown.length) shown.push(`… e mais ${errors.length - shown.length} erro(s).`);
+          log[2] = { state: 'err', text: `O arquivo tem ${errors.length} erro(s) e nada foi importado`, detail: 'Corrija as linhas indicadas no Excel e envie o arquivo de novo.', items: shown };
+        }
         status(log);
       } catch (err) {
-        log[log.length - 1] = { state: 'err', text: 'Não foi possível ler o arquivo', detail: err.message || String(err) }; status(log);
+        log[log.length - 1] = { state: 'err', text: err.header ? 'Cabeçalho diferente do template' : 'Não foi possível importar o arquivo', detail: err.message || String(err) }; status(log);
       } finally { running = false; const b = pop?.querySelector('[data-imp="upload"]'); if (b) b.disabled = !file; }
     }
 
@@ -85,7 +119,7 @@
       if (name === 'pick') return pop.querySelector('[data-imp="file"]').click();
       if (name === 'upload') return upload(info);
     }
-    return { open, close, MONTHS };
+    return { open, close };
   }
-  global.VECTON_PLANNING_IMPORT = { createImportPopover, MONTHS };
+  global.VECTON_PLANNING_IMPORT = { createImportPopover, normalizeAmount, cellText, MONTHS };
 })(window);

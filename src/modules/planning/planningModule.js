@@ -82,9 +82,9 @@
       const tree = picker.buildTree(ccs, [...new Set(ccs.map(c => c.management))].sort((a, b) => a.localeCompare(b, 'pt-BR')), null);
       const { mgmt, customIds } = picker.resolveSelection(tree, selectedCC.map(String), true);
       picker.mount(slot, {
-        tree, canAll: true, customIds, ariaLabel: 'Centros de custo',
-        selectedMgmt: customIds?.length ? picker.customLabel(tree, customIds) : mgmt,
-        onApply: r => { const next = [...picker.currentIds(tree, { selectedMgmt: r.mgmt, customIds: r.customIds })]; void run(() => leave(async () => { changes.clear(); selectedCC = next; await readForm(); render(); })); }
+        tree, canAll: true, customIds, ariaLabel: 'Centros de custo', allowEmpty: noCcMode(),
+        selectedMgmt: !selectedCC.length && noCcMode() ? 'Sem centro de custo' : customIds?.length ? picker.customLabel(tree, customIds) : mgmt,
+        onApply: r => { const next = r.empty ? [] : [...picker.currentIds(tree, { selectedMgmt: r.mgmt, customIds: r.customIds })]; void run(() => leave(async () => { changes.clear(); selectedCC = next; await readForm(); render(); })); }
       });
     }
     function render() {
@@ -178,7 +178,9 @@
       const source = wizard.base || (wizard.loadForms ? wizard.formsBase : '');
       wizard.forms = source ? (await rpc('planning_context', { p_org: org, p_scenario: source })).forms.map(f => f.id) : [];
     }
-    function key(l, cc, m) { return [l, cc, m].join('|'); }
+    // Lançamento sem centro de custo: só o administrador, em formulário de lançamento; a seleção vazia mostra e edita esses valores.
+    const noCcMode = () => !!context?.is_admin && manage && !isCapex() && form()?.form_type !== 'fat';
+    function key(l, cc, m) { return [l, cc ?? '', m].join('|'); }
     function entry(k) { return entryIndex.get(k); }
     function indexForm() {
       entryIndex = new Map(entries.map(e => [key(e.line_id, e.cost_center_id, e.reference_month), e]));
@@ -188,7 +190,7 @@
     }
     function cellValue(l, m, savedOnly = false) {
       if (!inputMonths().includes(m)) return copiedIndex.get(accountNumbers.get(l.account_id) + '|' + m) || 0;
-      return selectedCC.reduce((n, cc) => { const k = key(l.id, cc, m); return n + Number((savedOnly ? null : changes.get(k))?.amount ?? entry(k)?.amount ?? 0); }, 0);
+      return (selectedCC.length ? selectedCC : [null]).reduce((n, cc) => { const k = key(l.id, cc, m); return n + Number((savedOnly ? null : changes.get(k))?.amount ?? entry(k)?.amount ?? 0); }, 0);
     }
     function computed(savedOnly = false) {
       if (isCapex()) return months.map((_, i) => Object.fromEntries(capexItems.map(item => {
@@ -202,6 +204,7 @@
       const request = ++generation;
       clearTimeout(previewTimer); previewRequest++;
       const capex = context.forms.find(f => f.id === id)?.form_type === 'capex';
+      if (!capex && !selectedCC.length && !context.is_admin) { entries = []; copied = []; indexForm(); revision = form()?.revision ?? 0; return; }
       const data = await rpc(capex ? 'planning_capex_read' : 'planning_read_form', { p_org: org, p_form: id, p_cc_ids: selectedCC });
       if (request !== generation) return; entries = data.entries; copied = data.copied || [];
       if (capex) { capexItems = data.items; capexDepreciation = data.depreciation; }
@@ -214,7 +217,7 @@
       const draft = storage('getItem', draftKey());
       if (draft && targetTab === 'input') { try { const data = JSON.parse(draft); if (data.revision === revision && Array.isArray(data.cells)) modal('Recuperar rascunho local?', '<p>Há alterações não salvas neste navegador. A gravação verificará eventuais conflitos.</p>', () => { changes = new Map(data.cells.map(c => [key(c.line_id, c.cost_center_id, c.month), c])); close(); render(); if(isCapex())scheduleCapexPreview(); }); } catch (_) { /* Ignore corrupt browser data. */ } }
     }
-    function setChange(k, amount) { if (isCapex() && amount < 0) throw Error('CAPEX aceita apenas valores positivos ou zero para limpar a célula'); const [line_id, cost_center_id, m] = k.split('|'); const base = entry(k); changes.set(k, { line_id, cost_center_id, month: Number(m), amount, version: Number(base?.row_version || 0) }); storage('setItem', draftKey(), JSON.stringify({ revision, cells: [...changes.values()] })); if (isCapex()) scheduleCapexPreview(); }
+    function setChange(k, amount) { if (isCapex() && amount < 0) throw Error('CAPEX aceita apenas valores positivos ou zero para limpar a célula'); const [line_id, cc, m] = k.split('|'), cost_center_id = cc || null; const base = entry(k); changes.set(k, { line_id, cost_center_id, month: Number(m), amount, version: Number(base?.row_version || 0) }); storage('setItem', draftKey(), JSON.stringify({ revision, cells: [...changes.values()] })); if (isCapex()) scheduleCapexPreview(); }
     function scheduleCapexPreview() {
       clearTimeout(previewTimer); const request = ++previewRequest, id = formId, centers = [...selectedCC];
       const status = root?.querySelector('#pl-capex-preview-state'); if (status) status.textContent = 'Atualizando cálculo…';
@@ -244,6 +247,14 @@
     async function save(silent = false) {
       if (!changes.size) return;
       const snapshot = [...changes.values()];
+      // FAT e CPX prevalecem: o servidor também recusa; aqui o aviso aparece antes, sem salvar nada.
+      if (!isCapex()) {
+        const hits = await rpc('planning_key_conflicts', { p_org: org, p_form: formId, p_cells: snapshot.filter(c => Number(c.amount) !== 0).map(c => ({ line_id: c.line_id, cost_center_id: c.cost_center_id, month: c.month, amount: String(c.amount) })) });
+        if (Array.isArray(hits) && hits.length) {
+          const list = hits.map(h => `<li>${esc(h.account_number)} · ${months[h.month - 1]} · ${h.cost_center_number ? 'centro de custo ' + esc(h.cost_center_number) : 'sem centro de custo'} · ${esc(h.source)}</li>`).join('');
+          return modal('Valor já alimentado pelo FAT ou CPX', `<p>O FAT e o CPX prevalecem nestas contas e meses. Nada foi salvo; remova ou zere estes valores para salvar:</p><ul>${list}</ul>`, null, true);
+        }
+      }
       const result = isCapex() ? await capexWrite('save_values', { cells: snapshot }) : await write('save_entries', { form_id: formId, form_revision: revision, cells: snapshot });
       if (isCapex() && !result.ok) { modal('Outra pessoa alterou os valores', '<p>Nenhuma célula deste lote foi salva. Reabra o formulário para atualizar as versões antes de tentar novamente.</p>', async () => { storage('removeItem',draftKey());changes.clear();close();await refresh();await readForm();render(); }); return; }
       if (!result.ok) { modal('Outra pessoa alterou os valores', `<p>Nenhuma célula deste lote foi salva. Os valores na grade serão preservados para revisão.</p><ul>${result.conflicts.map(c => `<li>${esc(lines().find(l => l.id === c.line_id)?.description || '')} · ${months[c.month - 1]}: atual ${fmt(c.current_amount)}, seu valor ${fmt(c.amount)}</li>`).join('')}</ul><p>Confirme para atualizar as versões mantendo sua digitação. Revise e salve novamente para substituir os valores atuais.</p>`, async () => { await readForm(); changes.forEach((c, k) => { c.version = Number(entry(k)?.row_version || 0); }); close(); render(); }); return; }
@@ -336,19 +347,18 @@
         close();await refresh();await readForm();render();
       });
     }
-    // Popover de importação (planningImportModule.js): template por tipo de formulário; ainda não grava nos formulários.
+    // Popover de importação (planningImportModule.js): o CPX ainda não tem importação; o FAT e os formulários de lançamento têm.
     const importer = global.VECTON_PLANNING_IMPORT.createImportPopover({ esc, scenarioName: () => scenario.name });
-    function importTemplate(f) {
-      const months12 = global.VECTON_PLANNING_IMPORT.MONTHS;
-      if (f.form_type === 'capex') return { slug: 'capex', fixed: 3, header: ['Investimento', 'Centro de custo', 'Tipo de imobilizado', ...months12], rows: [] };
-      if (f.form_type === 'fat') return { slug: 'fat', fixed: 2, header: ['Região', 'Modelo', ...months12], rows: [] };
-      const rows = (context.lines || []).filter(l => l.form_id === f.id && l.origin === 'input').sort((a, b) => a.seq - b.seq)
-        .map(l => [context.accounts.find(a => a.id === l.account_id)?.account_number || '', l.description, '']);
-      return { slug: `opex-${f.code}`, fixed: 3, header: ['Conta', 'Descrição', 'Centro de custo', ...months12], rows };
+    function importInfo(f) {
+      const { normalizeAmount, cellText } = global.VECTON_PLANNING_IMPORT, text = v => cellText(v).trim();
+      return { name: f.name, slug: `lancamentos-${f.code}`, sheet: 'Lançamentos',
+        columns: [{ key: 'account', label: 'Conta', required: true }, { key: 'month', label: 'Mês', required: true }, { key: 'amount', label: 'Valor', required: true }, { key: 'cost_center', label: 'Centro de custo' }],
+        send: rows => rpc('planning_import_entries', { p_org: org, p_form: f.id, p_rows: rows.map(r => ({ row: r.row, account: text(r.account), month: text(r.month), amount: normalizeAmount(r.amount), cost_center: text(r.cost_center) || null })) }) };
     }
     function importForm(button, id) {
       const f = context.forms.find(x => x.id === id);
-      if (f) importer.open(button, { name: f.name, template: () => importTemplate(f) });
+      if (!f || f.form_type === 'capex') return;
+      importer.open(button, f.form_type === 'fat' ? fat.importInfo(f) : importInfo(f));
     }
     async function action(name, el) {
       if (name.startsWith('fat-')) return fat.action(name, el);
@@ -397,7 +407,9 @@
         case 'project': { if (form()?.form_type === 'fat') return fat.integrate();
           const fatForm = context.forms.find(f => f.scenario_id === scenario.id && f.form_type === 'fat' && f.status === 'released');
           let overlap = []; if (fatForm) { try { overlap = await rpc('planning_fat_overlap', { p_org: org, p_form: fatForm.id }); } catch (_) { overlap = []; } }
-          return modal(`Integrar ao DRE e OPEX do ${scenario.name}?`, `<p>Integra os valores projetados nos formulários de OPEX, CAPEX e FAT ao DRE e demais relatórios derivados.</p>${overlap.length ? fat.overlapHtml(overlap) : ''}${changes.size || fat.dirty() ? '<p class="pl-note">Sua digitação não salva será salva antes de integrar.</p>' : ''}`, async () => {
+          const cpxForm = context.forms.find(f => f.scenario_id === scenario.id && f.form_type === 'capex' && f.status === 'released');
+          let cpxOverlap = []; if (cpxForm) { try { cpxOverlap = await rpc('planning_capex_overlap', { p_org: org, p_form: cpxForm.id }); } catch (_) { cpxOverlap = []; } }
+          return modal(`Integrar ao DRE e OPEX do ${scenario.name}?`, `<p>Integra os valores projetados nos formulários de OPEX, CAPEX e FAT ao DRE e demais relatórios derivados.</p>${overlap.length ? fat.overlapHtml(overlap, 'FAT') : ''}${Array.isArray(cpxOverlap) && cpxOverlap.length ? fat.overlapHtml(cpxOverlap, 'CPX') : ''}${changes.size || fat.dirty() ? '<p class="pl-note">Sua digitação não salva será salva antes de integrar.</p>' : ''}`, async () => {
           if (changes.size) { await save(true); if (changes.size) throw Error('Revise os valores marcados e salve novamente antes de integrar'); }
           if (fat.dirty()) await fat.save();
           const result = await rpc('planning_integrate_all', { p_org: org, p_scenario: scenario.id, p_form: formId });

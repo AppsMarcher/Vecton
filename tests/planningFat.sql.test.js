@@ -4,7 +4,7 @@ const { createDb } = require('./helpers/planningFatDb');
   const T = await createDb();
   const { db, ids, k } = T;
   try {
-    await T.loadFat();
+    await T.loadFat(); await T.loadImport();
     await T.as(ids.admin);
     const months = Array.from({ length: 12 }, () => ({ type: 'forms' }));
     const sid = (await T.write('create', null, { name: 'Budget', year: 2027, months, forms: [] })).id;
@@ -336,7 +336,16 @@ const { createDb } = require('./helpers/planningFatDb');
     const o8line = (await write('save_line', sid, { form_id: o8, seq: 1, description: 'VENDA DE MAQUINAS - NACIONAL', origin: 'input', formula_name: 'VENDA', account_id: acct31101001 })).id;
     await write('save_form', sid, { id: o8, code: '08', name: 'Faturamento | Impostos | Matéria-prima', status: 'released' });
     const rev8 = (await db.query('select revision from planning_forms where id=$1', [o8])).rows[0].revision;
-    await write('save_entries', sid, { form_id: o8, form_revision: rev8, cells: [{ line_id: o8line, cost_center_id: ids.cc, month: 1, amount: 777, version: 0 }] });
+    // com o FAT ocupando a chave (conta + mês, sem centro de custo) o servidor recusa lançar no 08; o aviso de integração vale para o que já existia antes
+    // FAT em rascunho não integra, então não ocupa a chave: o 08 pode lançar
+    const setFat = async st => { await db.exec('reset role'); await db.query("update planning_forms set status=$2 where id=$1", [fatForm, st]); await T.as(ids.admin); };
+    await setFat('draft');
+    assert.notEqual((await write('save_entries', sid, { form_id: o8, form_revision: rev8, cells: [{ line_id: o8line, cost_center_id: null, month: 1, amount: 777, version: 0 }] })).ok, false, 'FAT em rascunho não bloqueia');
+    await db.exec('reset role'); await db.query('delete from planning_entries where form_id=$1', [o8]); await setFat('released');
+    await assert.rejects(write('save_entries', sid, { form_id: o8, form_revision: rev8, cells: [{ line_id: o8line, cost_center_id: null, month: 1, amount: 777, version: 0 }] }), /alimentado pelo FAT/);
+    await db.exec('reset role');
+    await db.query('insert into planning_entries(organization_id,form_id,line_id,cost_center_id,reference_month,amount) values($1,$2,$3,null,1,777)', [ids.org, o8, o8line]);
+    await T.as(ids.admin);
     assert.deepEqual((await db.query('select * from planning_fat_overlap($1,$2)', [ids.org, fatForm])).rows, [{ account_number: '31101001', months: [1] }]);
     await T.as(ids.writer);
     assert.equal((await db.query('select * from planning_fat_overlap($1,$2)', [ids.org, fatForm])).rows.length, 1, 'quem lança vê a sobreposição, sem valores');
@@ -355,7 +364,7 @@ const { createDb } = require('./helpers/planningFatDb');
     const led = await fatLedger();
     assert.deepEqual(Object.fromEntries(led.map(r => [r.a + '/' + r.m, r.v])), expected);
     assert(led.every(r => r.cc === null && r.h === 'FAT: FAT'), 'sem centro de custo e histórico FAT: FAT');
-    assert.deepEqual(await ledgerOf(o8), opexBefore, 'o 08 não é tocado pelo FAT');
+    assert.equal((await ledgerOf(o8)).n, 0, 'o FAT prevalece: a linha do 08 na mesma chave (conta, mês e sem centro de custo) sai do razão');
     assert.equal((await ledgerOf(cpxId)).n, 1, 'o CPX não é tocado pelo FAT');
     await fw('project');
     assert.deepEqual(await fatLedger(), led, 'reintegrar não duplica');

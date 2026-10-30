@@ -385,6 +385,17 @@ O CSS do relatório usa o prefixo `cmm-` (isolado do Ranking Geográfico, que us
 
 O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano do filtro e o anterior); todas as visões são calculadas no cliente.
 
+### Importação de formulários do cenário
+
+O botão **Importar** de cada linha da lista de formulários (só no modo de edição do cenário, só para o administrador) abre um popover com **Baixar template**, **Selecionar arquivo**, **Enviar arquivo** e um painel de status. Código: `src/modules/planning/planningImportModule.js`; banco: migration `332`.
+
+- **Formulários 01 a 09:** template `Conta | Mês | Valor | Centro de custo`, uma linha por lançamento (mês de 1 a 12; centro de custo opcional; o ano é o do cenário). A chave é conta + centro de custo + mês (sem centro de custo, conta + mês): chave existente é **substituída** (sem checar versão, que sobe), chave nova é incluída, o que o arquivo não cita permanece. **Qualquer erro bloqueia o arquivo inteiro** e o painel lista cada linha com o aviso (`planning_import_entries`; até 5.000 linhas; número no formato da carga do realizado).
+- **Sem centro de custo:** `planning_entries.cost_center_id` aceita vazio. Só o administrador vê e edita esses lançamentos; na grade, desmarcar todos os centros de custo no seletor mostra a visão "Sem centro de custo". A integração grava no razão sem centro de custo.
+- **FAT e CPX prevalecem:** no 08 (FAT) e no 04 (CPX), vale um valor só por chave no razão. A linha do formulário em conflito sai do razão ao integrar (`planning_ledger_resolve_overlaps`). Há alertas ao integrar, ao importar (a linha é recusada) e ao digitar (o salvamento da célula é bloqueado, também no servidor). Zerar a célula continua permitido.
+- **FAT:** o botão Importar usa o template da carga de planejado vendas (`cod_produto, mes, territorio, quantidade, valor, MC1%`) e grava os volumes do formulário (`planning_fat_import`). Volume obrigatório (Peças: valor em R$), território obrigatório exceto Peças; valor e MC1% dos demais modelos são aceitos e o FAT segue usando as premissas.
+- **CPX:** o botão aparece sem ação por enquanto.
+- **Carga de planejado vendas** (Parâmetros → Carga de Planejado): agora só lista cenários **sem formulário** e todos os campos são obrigatórios (`cod_produto, mes, territorio, quantidade, valor`; território dispensado em Peças, quantidade opcional em Peças). O template perdeu a coluna MC1%.
+
 ### FAT (projeção de vendas do Budget)
 
 O formulário **FAT** lança volumes por região (território) e modelo, mês a mês; Peças é lançado em R$. Estado em `planning_fat_*`; código em `src/modules/planning/planningFat*.js`; migrations `316–319`, `321–324`, `328` e `330`.
@@ -392,11 +403,11 @@ O formulário **FAT** lança volumes por região (território) e modelo, mês a 
 - **Premissas:** FAT/un e MP/un por região e modelo vêm do histórico de vendas (`Atualizar premissas`), com ajuste manual (bolinha roxa) e fallback para a média Marcher. Impostos de referência por linha (`maq`, `tra`, `pec`, `ace`). RL = FAT − IPI − ICMS − PIS/COFINS; em Peças, sem IPI. Volume de modelo sem premissa conta em VOL e é sinalizado com bolinha vermelha piscando.
 - **Acesso e visões:** matriz de acesso por coordenação (Visualizar ou Lançar). O formulário abre por perfil: Marcher (quem enxerga o todo), Coordenação ou Região. Há total de Máquinas (só Grãos, Pecuária e Cargograin) e Excel no modelo do Evolutivo de Margens.
 - **Integração:** o botão único **Integrar no DRE e OPEX** integra OPEX, CAPEX e FAT na mesma chamada (`planning_integrate_all`), grava o FAT no DRE sem centro de custo e atualiza a meta por modelo. Antes de integrar, qualquer formulário salva a digitação pendente.
-- **Painel de Vendas:** a carga de planejado alimenta os volumes do FAT e, no sentido inverso, o volume salvo no FAT ajusta a meta do Painel (`328`). Na carga, valor e MC1% vazios assumem as premissas do cenário (`326–327`); o antigo %MB passou a se chamar MC1%.
+- **Painel de Vendas:** o volume salvo no FAT ajusta a meta do Painel (`328`) e o Painel continua alimentado só pelo FAT (o template do 08 não traz modelo nem região). Os volumes do FAT agora entram pelo botão **Importar** do formulário (ver "Importação de formulários do cenário"); a carga de planejado vendas deixou de aceitar cenários com formulários. Os gatilhos das migrations `323–329` permanecem no banco para esse caminho antigo; o antigo %MB passou a se chamar MC1%.
 
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `331`, com 337 arquivos SQL numerados na raiz de `supabase/`. Há também diagnósticos, referências, cargas históricas e scripts operacionais; não execute todos indiscriminadamente.
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `332`, com 338 arquivos SQL numerados na raiz de `supabase/`. Há também diagnósticos, referências, cargas históricas e scripts operacionais; não execute todos indiscriminadamente.
 
 Resumo por fase:
 
@@ -482,6 +493,7 @@ Resumo por fase:
 | `328` | FAT → Painel: volume salvo ou apagado no FAT ajusta a meta do Painel de Vendas (lote manual "Ajustes do formulário FAT"); FAT e Painel ficam sempre iguais |
 | `330` | leitura do FAT informa se a pessoa enxerga o todo (admin, coordenação MARCHER ou todas as coordenações), para abrir em Marcher, Coordenação ou Região |
 | `331` | formulários de Planejamento aceitam até 1000 CCs por leitura (antes 100, o que quebrava a seleção "Marcher") |
+| `332` | importação de formulários: lançamento sem centro de custo, FAT/CPX prevalecem sobre o 08/04 no razão, RPCs `planning_import_entries`, `planning_fat_import`, `planning_key_conflicts`, `planning_capex_overlap` e carga de planejado vendas com todos os campos obrigatórios (cenários sem formulário) |
 
 ### Divergências conhecidas do schema
 

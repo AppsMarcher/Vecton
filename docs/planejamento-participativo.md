@@ -140,3 +140,11 @@ Medição opcional: `PLANNING_BENCH=1 node tests/planning.sql.test.js` (e `PLANN
 ## Referência da `planning_write`
 
 A função `planning_write` é recriada nas migrations 278, 280, 282, 283 e 284; só a última vale no banco. A versão vigente fica em `supabase/_referencia/planning_write_atual.sql` (não é migration e não deve ser executada como tal). Para alterá-la, parta desse arquivo, crie uma migration nova com o resultado e atualize a referência junto.
+
+### Importação de formulários (migration 332)
+
+Aplicar `332_planning_importacao.sql` antes de publicar os arquivos do front (depende das migrations 278–331). A migration renomeia e reembrulha `planning_write`, `planning_integrate_all`, `planning_fat_write` e `planning_capex_write` (padrão da `319`); não aplicar em partes.
+
+O administrador importa um Excel por formulário pelo botão **Importar** da lista (modo de edição). Detalhes de regra, chave, prevalência do FAT/CPX, alertas e validação: README, seção "Importação de formulários do cenário", e `docs/superpowers/specs/2026-10-30-importacao-formularios-planejado-design.md`.
+
+Testes: `node tests/planningImport.sql.test.js` (PGlite), `node tests/planning.browser.test.js` e `node tests/planningImport.browser.test.js` (Edge; com `PLANNING_EXCELJS_LIB` apontando para o ExcelJS, os testes também leem planilhas reais).
