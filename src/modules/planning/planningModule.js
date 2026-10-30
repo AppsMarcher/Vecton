@@ -65,6 +65,16 @@
       const box = active && root && root.querySelector('.pl-grid-scroll'); if (!box) return;
       box.style.maxHeight = Math.max(260, innerHeight - box.getBoundingClientRect().top - 12) + 'px';
     }
+    // Abertura do formulário: admin em Marcher (todos); quem tem gestão(ões) abre nela(s); só CCs avulsos, abre no primeiro por ordem alfabética.
+    function defaultCostCenters() {
+      const ccs = costCenters(), profile = deps.state?.profile || {};
+      if (!ccs.length) return [];
+      if (deps.isAdmin?.()) return ccs.map(c => c.id);
+      const mgmts = new Set([profile.management, ...(profile.extraManagements || [])].map(m => String(m || '').trim()).filter(Boolean));
+      const own = ccs.filter(c => mgmts.has(String(c.cost_center_management || '').trim()));
+      if (own.length) return own.map(c => c.id);
+      return [[...ccs].sort((a, b) => String(a.cost_center_name).localeCompare(String(b.cost_center_name), 'pt-BR'))[0].id];
+    }
     function mountCostCenterPicker() {
       const slot = root.querySelector('[data-pl-cc]'), picker = global.VECTON_OPEX_CC_PICKER;
       if (!slot || !picker) return;
@@ -199,7 +209,7 @@
     }
     async function loadForm(id, targetTab = 'input') {
       if (context.forms.find(f => f.id === id)?.form_type === 'fat') { formId = id; formTab = targetTab; changes.clear(); await fat.open(id, targetTab === 'structure' ? 'cfg' : 'pre'); return render(); }
-      formId = id; formTab = targetTab; selectedCC = costCenters().length ? [costCenters()[0].id] : []; changes.clear();
+      formId = id; formTab = targetTab; selectedCC = defaultCostCenters(); changes.clear();
       await readForm(); render();
       const draft = storage('getItem', draftKey());
       if (draft && targetTab === 'input') { try { const data = JSON.parse(draft); if (data.revision === revision && Array.isArray(data.cells)) modal('Recuperar rascunho local?', '<p>Há alterações não salvas neste navegador. A gravação verificará eventuais conflitos.</p>', () => { changes = new Map(data.cells.map(c => [key(c.line_id, c.cost_center_id, c.month), c])); close(); render(); if(isCapex())scheduleCapexPreview(); }); } catch (_) { /* Ignore corrupt browser data. */ } }
