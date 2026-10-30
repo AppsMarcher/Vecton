@@ -1000,12 +1000,9 @@
     function parseSheetRows(rows) {
       if (!Array.isArray(rows) || !rows.length) throw new Error("Arquivo sem linhas para importacao.");
       const headerMap = mapHeaders(Object.keys(rows[0]));
-      const required = ["codProduto", "quantidade", "valor"];
-      const missing = required.filter((key) => !headerMap[key]);
-      if (missing.length) {
-        const labels = { codProduto: "cod_produto", quantidade: "quantidade", valor: "valor" };
-        throw new Error(`Colunas obrigatorias ausentes: ${missing.map((k) => labels[k]).join(", ")}`);
-      }
+      // A meta e de volume: valor e opcional (so Pecas, em R$, exige valor — o banco valida por linha).
+      if (!headerMap.codProduto) throw new Error("Colunas obrigatorias ausentes: cod_produto");
+      if (!headerMap.quantidade && !headerMap.valor) throw new Error("Colunas obrigatorias ausentes: quantidade");
       return rows.map((sourceRow) => ({
         referenceMonth: headerMap.referenceMonth ? sourceRow[headerMap.referenceMonth] : "",
         codProduto: sourceRow[headerMap.codProduto],
