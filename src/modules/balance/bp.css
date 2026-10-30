@@ -78,7 +78,6 @@
 .bp-load-layout .bp-load-history { min-height: 150px; max-height: 190px; margin-top: 16px; flex: auto; }
 .bp-load-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
 .bp-load-layout .vecton-file-field { display: grid; gap: 10px; }
-.bp-load-layout .budget-target-wrap { margin-bottom: 16px; }
 .bp-load-editor { margin: 16px 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; }
 .bp-load-layout .actuals-summary-card strong { overflow-wrap: anywhere; }
 .bp-load-layout > section { min-width: 0; }
