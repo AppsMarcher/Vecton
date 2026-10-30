@@ -7,7 +7,7 @@ SPA de planejamento financeiro, acompanhamento gerencial e gestão comercial da 
 - Backend: Supabase (PostgreSQL, Auth, REST, RPC, RLS e Edge Functions)
 - Modelo de dados: multitenant por `organization_id`
 
-## Estado da revisão — 28/10/2026
+## Estado da revisão — 30/10/2026
 
 Documentação conferida com o código, histórico Git, módulos, migrations e testes deste checkout. A presença de um SQL ou de uma implementação no repositório não comprova sua aplicação no Supabase ou sua instalação no servidor do robô.
 
@@ -237,8 +237,8 @@ O módulo `src/modules/planning/` amplia o repositório de cenários com constru
 - **Composição mensal:** cada um dos 12 meses recebe inputs de formulários ou um snapshot de Real/outro cenário. Budget pode começar com 12 meses zerados; Forecast pode combinar fontes. A fonte mensal fica imutável após a criação. Meses copiados ficam em leitura e mantêm o saldo no ano de destino.
 - **Construtor:** linhas Digitado, Fórmula e Linha normal, com sequência, descrição, agrupamento visual e negrito. Para Digitado, a conta DRE analítica aparece antes da descrição; sua escolha sugere o nome da conta, preservando textos personalizados. Fórmulas usam a **sequência**, como `<1> + <2>`; não há campo de referência no cadastro. A migration `279` converte fórmulas antigas e mantém a coluna interna `formula_name` sincronizada apenas por compatibilidade. Há importação de contas e cópia de estruturas dentro do cenário.
 - **Participação:** cada formulário tem acessos por pessoa, com Visualizar ou Lançar valores. O escopo de centros de custo é a interseção com as concessões do perfil. Um CC permite editar; vários mostram a soma em leitura. Visualizar não integra. Não há acesso geral por ausência de escopo.
-- **Preenchimento:** grade de 12 meses, salvamento explícito, fórmulas locais, colagem tabular, navegação por teclado, repetição, distribuição em centavos, cópia entre centros autorizados e exportação dos valores salvos. Rascunhos locais dependem da revisão da estrutura; conflitos de versão rejeitam o lote inteiro para revisão.
-- **Integração:** qualquer participante com Lançar valores em formulário liberado pode integrar. Cada clique reconsolida **todos os formulários do cenário**, usando somente inputs salvos de linhas Digitado. Substitui a projeção anterior sem duplicar valores e preserva snapshots; fórmulas não geram lançamentos. Despesas positivas e receitas negativas seguem a convenção do ledger. A estrela continua global por organização.
+- **Preenchimento:** grade de 12 meses, salvamento explícito, fórmulas locais, colagem tabular, navegação por teclado, repetição, distribuição em centavos, cópia entre centros autorizados e exportação dos valores salvos. Rascunhos locais dependem da revisão da estrutura; conflitos de versão (mesma linha, CC e mês alterados por outra pessoa) rejeitam o lote inteiro para revisão.
+- **Integração:** qualquer participante com Lançar valores em formulário liberado pode integrar. Cada clique reconsolida **todos os formulários do cenário**, usando somente inputs salvos de linhas Digitado: antes de integrar, o botão salva a digitação pendente do formulário aberto (e a do FAT, se houver), de modo que a integração sempre reflete o que está na tela. Se o salvamento acusar conflito, a integração não segue. Substitui a projeção anterior sem duplicar valores e preserva snapshots; fórmulas não geram lançamentos. Despesas positivas e receitas negativas seguem a convenção do ledger. A estrela continua global por organização.
 - **Proteções:** após haver valores salvos, sequência, origem, conta, fórmula e exclusão de linhas ficam protegidas. Descrição, agrupamento, negrito e novas linhas continuam disponíveis. Bloqueio manual/agendado impede alterações inclusive de administradores. A exclusão do cenário usa o diálogo padrão `VECTON_DIALOGS.appConfirm` e apresenta eventuais erros no app.
 - **Banco:** tabelas de meses, formulários, linhas, acessos, inputs, execuções e auditoria; leitura com RLS e escrita por RPC (`planning_context`, `planning_read_form`, `planning_write`). Cenários gerenciados não são destinos de cargas por arquivo nem aceitam escrita pelos caminhos legados. A proteção dos campos administrativos de `user_profiles` está na migration `281`.
 
@@ -385,9 +385,18 @@ O CSS do relatório usa o prefixo `cmm-` (isolado do Ranking Geográfico, que us
 
 O RPC devolve um único `jsonb` com as linhas agregadas por produto e mês (ano do filtro e o anterior); todas as visões são calculadas no cliente.
 
+### FAT (projeção de vendas do Budget)
+
+O formulário **FAT** lança volumes por região (território) e modelo, mês a mês; Peças é lançado em R$. Estado em `planning_fat_*`; código em `src/modules/planning/planningFat*.js`; migrations `316–319`, `321–324`, `328` e `330`.
+
+- **Premissas:** FAT/un e MP/un por região e modelo vêm do histórico de vendas (`Atualizar premissas`), com ajuste manual (bolinha roxa) e fallback para a média Marcher. Impostos de referência por linha (`maq`, `tra`, `pec`, `ace`). RL = FAT − IPI − ICMS − PIS/COFINS; em Peças, sem IPI. Volume de modelo sem premissa conta em VOL e é sinalizado com bolinha vermelha piscando.
+- **Acesso e visões:** matriz de acesso por coordenação (Visualizar ou Lançar). O formulário abre por perfil: Marcher (quem enxerga o todo), Coordenação ou Região. Há total de Máquinas (só Grãos, Pecuária e Cargograin) e Excel no modelo do Evolutivo de Margens.
+- **Integração:** o botão único **Integrar no DRE e OPEX** integra OPEX, CAPEX e FAT na mesma chamada (`planning_integrate_all`), grava o FAT no DRE sem centro de custo e atualiza a meta por modelo. Antes de integrar, qualquer formulário salva a digitação pendente.
+- **Painel de Vendas:** a carga de planejado alimenta os volumes do FAT e, no sentido inverso, o volume salvo no FAT ajusta a meta do Painel (`328`). Na carga, valor e MC1% vazios assumem as premissas do cenário (`326–327`); o antigo %MB passou a se chamar MC1%.
+
 ## Supabase e migrations
 
-As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `312`, com 317 arquivos SQL numerados na raiz de `supabase/`. Há também diagnósticos, referências, cargas históricas e scripts operacionais; não execute todos indiscriminadamente.
+As migrations estão em `supabase/` e devem ser aplicadas em ordem. O checkout atual vai de `001` até `331`, com 337 arquivos SQL numerados na raiz de `supabase/`. Há também diagnósticos, referências, cargas históricas e scripts operacionais; não execute todos indiscriminadamente.
 
 Resumo por fase:
 
@@ -461,11 +470,22 @@ Resumo por fase:
 | `311–312` | foto vigente da carteira por entrega e validação de datas CART |
 | `313` | renomeia os territórios `GO_MG NORTE` → `GO` e `GO_MG SUL` → `MG` (mesmos IDs; aplicada no Supabase do app em 28/10/2026) |
 | `314` | mapa de municípios de GO/MG passa a seguir a UF (183 de MG → `MG`, 24 de GO → `GO`); não reprocessa o razão |
+| `315` | correção pontual do razão: 5 lançamentos de 2023 (Itumbiara e Mineiros/GO) gravados em `MG` passam para `GO`, conforme o mapa da `314` |
 | `316`–`319` | FAT (projeção de vendas do Planejamento): formulário `fat`, regiões por território, premissas do histórico, percentuais de impostos, integração conta × mês somada ao formulário 08 e meta por modelo |
+| `320` | o bloqueio do cenário de planejamento não vale para administradores |
+| `321` | administrador pode renomear o formulário FAT (o código `FAT` continua reservado) |
+| `322` | acesso do FAT por coordenação (`planning_fat_coord_access`) em vez de por região |
+| `323` | carga de planejado alimenta os volumes do formulário FAT do cenário |
+| `324` | grupo Acessórios no FAT (impostos `ace`, conta `31101006`) |
+| `325–326`, `329` | carga de planejado só de volume (Peças continua exigindo valor); valor e MC1% vazios assumem as premissas e os impostos do cenário; a `329` corrige o `valor := 0` herdado da `325` |
+| `327` | o razão da carga de planejado é recalculado quando premissas ou impostos do cenário mudam |
+| `328` | FAT → Painel: volume salvo ou apagado no FAT ajusta a meta do Painel de Vendas (lote manual "Ajustes do formulário FAT"); FAT e Painel ficam sempre iguais |
+| `330` | leitura do FAT informa se a pessoa enxerga o todo (admin, coordenação MARCHER ou todas as coordenações), para abrir em Marcher, Coordenação ou Região |
+| `331` | formulários de Planejamento aceitam até 1000 CCs por leitura (antes 100, o que quebrava a seleção "Marcher") |
 
 ### Divergências conhecidas do schema
 
-- Numeração duplicada: `025` (`025_create_custom_reports.sql` e `025_extra_managements.sql`), `074` (`074_comercial_report_movements_segment.sql` e `074_remove_legacy_bateu_levou_catalog.sql`), `219` (`219_fc_chart_of_accounts.sql` e `219_rps_capture_backup_purge_expired_locks.sql`), `307` (`307_bp_add_accounts_marcher.sql` e `307_bp_protect_accounts_with_balances.sql`) e `251` (`251_comercial_painel_pecuaria_gestor_nao_orfao.sql` e `251_garantia_ativacoes_uf_exterior.sql`). A ordem entre pares com o mesmo número precisa ser controlada manualmente (checar `created_at`/histórico do Supabase, não o nome do arquivo).
+- Numeração duplicada: `025` (`025_create_custom_reports.sql` e `025_extra_managements.sql`), `074` (`074_comercial_report_movements_segment.sql` e `074_remove_legacy_bateu_levou_catalog.sql`), `219` (`219_fc_chart_of_accounts.sql` e `219_rps_capture_backup_purge_expired_locks.sql`), `307` (`307_bp_add_accounts_marcher.sql` e `307_bp_protect_accounts_with_balances.sql`), `314` (`314_municipios_go_mg_territorio_por_uf.sql` e `314_painel_detalhe_ordem_estavel.sql`) e `251` (`251_comercial_painel_pecuaria_gestor_nao_orfao.sql` e `251_garantia_ativacoes_uf_exterior.sql`). A ordem entre pares com o mesmo número precisa ser controlada manualmente (checar `created_at`/histórico do Supabase, não o nome do arquivo).
 - O frontend usa `headcount_import_batches`, `headcount_import_rows`, `headcount_entries` e `forecast_headcount_entries`, mas as migrations de criação dessas tabelas continuam fora deste checkout.
 - `supabase/README.md` ainda documenta somente a base inicial e não é a fonte completa do schema atual.
 - Os arquivos `_diag_*.sql` (9) e `exportar_produtos_csv.sql` são diagnóstico/utilitário avulso, não migrations de produção.
