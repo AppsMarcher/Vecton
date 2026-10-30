@@ -2913,7 +2913,7 @@ async function openHeadcountFromCatalog(loadType, returnView) {
   // ano da competência ("Budget {ano}" se existir); sem cenário, cai no catálogo.
   if (loadType === "planejado") {
     const year = Number(state.currentPeriod?.year || 2026);
-    const targetId = window.VECTON_SCENARIO_SOURCES.pickDefaultLoadTarget(await fetchAllScenarios(), year);
+    const targetId = window.VECTON_SCENARIO_SOURCES.pickDefaultLoadTarget(await fetchAllScenarios(), year, { includeBuilt: true });
     loadType = targetId ? `cenario:${targetId}` : null;
   }
   selectedHeadcountLoadType = loadType;
@@ -7328,17 +7328,19 @@ function ensureHeadcountViewShell() {
 
   view.innerHTML = `
     <div id="headcount-catalog" class="actuals-catalog">
-      <div class="actuals-catalog-grid">
-        <button class="actuals-catalog-card" type="button" data-hc-load-type="realizado">
-          <span class="actuals-catalog-kicker">01</span>
+      <div class="load-catalog-grid">
+        <button class="load-catalog-card load-catalog-card--green" type="button" data-hc-load-type="realizado">
+          <span class="lcc-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
           <strong>Realizado</strong>
-          <p>Quadro de colaboradores ativos por CC no período.</p>
         </button>
-        <div class="actuals-catalog-card" style="cursor:default;display:flex;flex-direction:column;gap:8px">
-          <span class="actuals-catalog-kicker">02</span>
+        <div class="load-catalog-card load-catalog-card--sky load-catalog-card--static">
+          <span class="lcc-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
           <strong>Planejado (Cenário)</strong>
-          <p>Quadro de colaboradores planejados por cenário (Budget, Forecast etc.).</p>
-          <select id="hc-scenario-select" class="vp-source-sel" style="width:100%;margin-top:4px">
+          <select id="hc-scenario-select" class="vp-source-sel" style="width:100%">
             <option value="">Carregando cenários...</option>
           </select>
           <button id="hc-open-scenario" class="primary-button" type="button" style="width:100%">Abrir</button>
@@ -7743,7 +7745,7 @@ function renderHeadcountCatalog() {
         if (scenarioTarget.dataset.year !== String(year)) {
           scenarioTarget.dataset.year = String(year);
           fetchAllScenarios().then(scenarios => {
-            const targets = window.VECTON_SCENARIO_SOURCES.loadTargetsForYear(scenarios, year);
+            const targets = window.VECTON_SCENARIO_SOURCES.loadTargetsForYear(scenarios, year, { includeBuilt: true });
             scenarioTarget.innerHTML = targets.length
               ? targets.map(s => `<option value="cenario:${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("")
               : `<option value="">Nenhum cenário em ${year} — crie no Repositório</option>`;
@@ -7766,11 +7768,11 @@ function renderHeadcountCatalog() {
       const year = Number(state.currentPeriod?.year || 2026);
       fetchAllScenarios().then(allScenarios => {
         const { loadTargetsForYear, pickDefaultLoadTarget } = window.VECTON_SCENARIO_SOURCES;
-        const scenarios = loadTargetsForYear(allScenarios, year);
+        const scenarios = loadTargetsForYear(allScenarios, year, { includeBuilt: true });
         scenarioSel.innerHTML = scenarios.length
           ? scenarios.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join("")
           : `<option value="">Nenhum cenário em ${year} — crie no Repositório</option>`;
-        if (scenarios.length) scenarioSel.value = pickDefaultLoadTarget(allScenarios, year);
+        if (scenarios.length) scenarioSel.value = pickDefaultLoadTarget(allScenarios, year, { includeBuilt: true });
       }).catch(() => {
         scenarioSel.innerHTML = `<option value="">Erro ao carregar cenários</option>`;
       });

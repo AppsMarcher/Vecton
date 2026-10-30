@@ -63,13 +63,14 @@ function chooseSource({ scenarios = [], realYears = [], current, toggleYear, inc
 
 // Destinos possíveis da carga: cenários do ano da competência (o ano do cenário
 // e o da competência coincidem, então os lotes continuam listados no período).
-function loadTargetsForYear(scenarios = [], year) {
-  return scenarios.filter((s) => Number(s.reference_year) === Number(year) && !s.planning_version && s.kind !== 'built');
+// includeBuilt: o headcount não tem formulário de input, então também carrega nos cenários montados.
+function loadTargetsForYear(scenarios = [], year, { includeBuilt = false } = {}) {
+  return scenarios.filter((s) => Number(s.reference_year) === Number(year) && (includeBuilt || (!s.planning_version && s.kind !== 'built')));
 }
 
 // Destino pré-selecionado: "Budget {ano}" se existir; senão o primeiro do ano; senão "".
-function pickDefaultLoadTarget(scenarios = [], year) {
-  const targets = loadTargetsForYear(scenarios, year);
+function pickDefaultLoadTarget(scenarios = [], year, options) {
+  const targets = loadTargetsForYear(scenarios, year, options);
   const budget = targets.find((s) => s.name === `Budget ${year}`);
   return (budget || targets[0])?.id || "";
 }

@@ -29,6 +29,7 @@ assert.equal(
 );
 assert.equal(pickDefaultLoadTarget(scenarios, 2030), '', 'sem cenário no ano, destino vazio');
 assert.equal(loadTargetsForYear([{id:'built',reference_year:2026,planning_version:1,kind:'built'}],2026).length,0,'formulários não recebem carga direta');
+assert.equal(loadTargetsForYear([{id:'built',reference_year:2026,planning_version:1,kind:'built'}],2026,{includeBuilt:true}).length,1,'headcount carrega também em cenário montado');
 
 // ── A tela de carga não oferece mais o "Budget" legado como destino ─────────
 const budget = read('src/modules/budget/budgetModule.js');
