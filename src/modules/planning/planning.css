@@ -162,3 +162,13 @@
 /* Padrão de fonte dos formulários (OPEX 01 a 09, CPX e FAT): tabelas (cabeçalho e conteúdo) em 10,5px e todos os botões em 11px. */
 .pl-app.pl-app table,.pl-app.pl-app table th,.pl-app.pl-app table td,.pl-app.pl-app table small,.pl-app.pl-app table span,.pl-app.pl-app table label,.pl-app.pl-app table input,.pl-app.pl-app table select,.pl-app.pl-app table textarea{font-size:10.5px}
 .pl-app.pl-app .pl-button,.pl-app.pl-app .vp-export-btn,.pl-app.pl-app .fat-seg button,.pl-app.pl-app table button,.pl-import-pop .pl-button,.pl-dialog .pl-button{font-size:11px}
+/* Padrão das janelas e popovers do Planejamento: diálogos e popover Importar no mesmo chassi (24px, canto 14, borda --line, sombra, fundo escurecido, título 17px, texto 13px); menus e seletor de CCs com texto em 11px; uma só cor de erro e de sucesso. */
+.pl-dialog{box-shadow:0 12px 36px rgba(0,0,0,.18);font-size:13px}
+.pl-import-pop{border:1px solid var(--line);padding:24px;font-size:13px}
+.pl-import-backdrop{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.45)}
+.pl-imp-head{margin-bottom:12px}.pl-imp-head strong{font-size:17px}
+.pl-imp-file{font-size:13px}.pl-imp-status{border:1px solid var(--line)}.pl-imp-steps small{font-size:12px}
+.pl-imp-ok>span{color:var(--green,#16a34a)}.pl-imp-err>span,.pl-modal-error{color:var(--red,#ef4444)}
+.pl-ctx button{font-size:11px}
+.pl-cc-pop,.pl-cc-pop .opex-cc-row,.pl-cc-pop .opex-cc-name,.pl-cc-pop .opex-cc-num{font-size:11px}
+.pl-cc-pop .opex-cc-apply{height:auto;min-height:35px;padding:8px 12px;border-color:var(--blue);background:var(--blue);color:#fff;font-size:11px;font-weight:400}

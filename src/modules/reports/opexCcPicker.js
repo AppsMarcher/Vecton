@@ -82,7 +82,7 @@
   // slot: elemento que recebe o botao; o popover vai para o <body> (position: fixed).
   function mount(slot, opts) {
     closeOpen();
-    const { tree, canAll, allOption = ALL, selectedMgmt, customIds, partial, onApply, ariaLabel, allowEmpty = false } = opts;
+    const { tree, canAll, allOption = ALL, selectedMgmt, customIds, partial, onApply, ariaLabel, allowEmpty = false, popClass = "" } = opts;
     const total = tree.reduce((n, group) => n + group.ccs.length, 0);
     const label = customIds?.length ? selectedMgmt : `${selectedMgmt}${partial ? " · parcial" : ""}`;
     const disabled = !canAll && total <= 1;
@@ -93,11 +93,11 @@
     trigger.addEventListener("click", () => {
       if (openPopover?.trigger === trigger) { closeOpen(); return; }
       closeOpen();
-      openPopover = open(trigger, { tree, canAll, allOption, draft: currentIds(tree, { selectedMgmt, customIds, allOption }), selectedMgmt, onApply, allowEmpty });
+      openPopover = open(trigger, { tree, canAll, allOption, draft: currentIds(tree, { selectedMgmt, customIds, allOption }), selectedMgmt, onApply, allowEmpty, popClass });
     });
   }
 
-  function open(trigger, { tree, canAll, allOption, draft, selectedMgmt, onApply, allowEmpty }) {
+  function open(trigger, { tree, canAll, allOption, draft, selectedMgmt, onApply, allowEmpty, popClass }) {
     const total = tree.reduce((n, group) => n + group.ccs.length, 0);
     const expanded = new Set(tree
       .filter((group) => {
@@ -107,7 +107,7 @@
       .map((group) => group.mgmt));
 
     const pop = document.createElement("div");
-    pop.className = "opex-cc-pop";
+    pop.className = popClass ? `opex-cc-pop ${popClass}` : "opex-cc-pop";
     pop.setAttribute("role", "dialog");
     pop.setAttribute("aria-label", "Gestões e centros de custo");
     document.body.appendChild(pop);

@@ -36,6 +36,7 @@
     }
     function close() {
       pop?.remove(); pop = null; file = null; steps = [];
+      document.querySelectorAll('.pl-import-backdrop').forEach(el => el.remove());
       document.removeEventListener('mousedown', onOutside, true); document.removeEventListener('keydown', onKey, true);
     }
     const onOutside = e => { if (pop && !pop.contains(e.target) && !anchor?.contains(e.target)) close(); };
@@ -45,6 +46,7 @@
       const same = pop && anchor === button; close(); if (same) return;
       anchor = button; file = null; steps = [];
       pop = document.createElement('div'); pop.className = 'pl-import-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Importar formulário');
+      const backdrop = document.createElement('div'); backdrop.className = 'pl-import-backdrop'; document.body.appendChild(backdrop);
       pop.innerHTML = html(info); document.body.appendChild(pop);
       pop.addEventListener('click', e => { const b = e.target.closest('[data-imp]'); if (b && b.dataset.imp !== 'file') action(b.dataset.imp, info); });
       pop.querySelector('[data-imp="file"]').addEventListener('change', e => picked(e.target.files[0]));

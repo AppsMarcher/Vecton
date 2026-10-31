@@ -82,7 +82,7 @@
       const tree = picker.buildTree(ccs, [...new Set(ccs.map(c => c.management))].sort((a, b) => a.localeCompare(b, 'pt-BR')), null);
       const { mgmt, customIds } = picker.resolveSelection(tree, selectedCC.map(String), true);
       picker.mount(slot, {
-        tree, canAll: true, customIds, ariaLabel: 'Centros de custo', allowEmpty: noCcMode(),
+        tree, canAll: true, customIds, ariaLabel: 'Centros de custo', allowEmpty: noCcMode(), popClass: 'pl-cc-pop',
         selectedMgmt: !selectedCC.length && noCcMode() ? 'Sem centro de custo' : customIds?.length ? picker.customLabel(tree, customIds) : mgmt,
         onApply: r => { const next = r.empty ? [] : [...picker.currentIds(tree, { selectedMgmt: r.mgmt, customIds: r.customIds })]; void run(() => leave(async () => { changes.clear(); selectedCC = next; await readForm(); render(); })); }
       });

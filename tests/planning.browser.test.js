@@ -16,6 +16,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningModule.js') });
     await page.addScriptTag({ path: path.join(__dirname, '../src/modules/planning/planningFatModule.js') });
     await page.addStyleTag({ path: path.join(__dirname, '../src/modules/planning/planning.css') });
+    await page.addStyleTag({ content: ':root{--line:#d7dfed;--panel:#fff;--panel-alt:#f6f8fc;--text:#25334a;--text-soft:#677994;--blue:#365fe6;--red:#ef4444;--green:#16a34a}' });
     await page.evaluate(() => {
       const scenario = { id: 'scenario', organization_id: 'org', planning_version: 1, name: 'Budget 2027', reference_year: 2027, status: 'open' };
       const form = { id: 'form', scenario_id: 'scenario', code: '01', name: 'Tecnologia', status: 'released', revision: 1, access_mode: 'write' };
@@ -68,6 +69,32 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.evaluate(() => { window.keyConflicts = []; });
     await page.getByRole('button', { name: 'Descartar', exact: true }).click();
     await page.locator('[data-pl="index"]').click();
+    // Padrão das janelas e popovers: diálogos e popover Importar no mesmo chassi; menus e seletor de CCs com texto de 11px e botão sólido.
+    const css = (sel, prop) => page.locator(sel).first().evaluate((el, p) => getComputedStyle(el)[p], prop);
+    await page.getByRole('button', { name: 'Abrir →', exact: true }).click();
+    await page.locator('.opex-cc-trigger').click();
+    assert.match(await page.locator('.opex-cc-pop').getAttribute('class'), /pl-cc-pop/);
+    assert.equal(await css('.opex-cc-pop .opex-cc-apply', 'fontSize'), '11px', 'Aplicar em 11px');
+    assert.equal(await css('.opex-cc-pop .opex-cc-apply', 'backgroundColor'), 'rgb(54, 95, 230)', 'Aplicar é botão sólido como os demais');
+    await page.keyboard.press('Escape');
+    await page.locator('.pl-cell').first().dispatchEvent('contextmenu', { bubbles: true, clientX: 400, clientY: 400 });
+    assert.equal(await css('.pl-ctx button', 'fontSize'), '11px', 'itens do menu em 11px');
+    await page.keyboard.press('Escape'); await page.mouse.click(5, 5);
+    await page.getByRole('button', { name: 'Integrar no DRE e OPEX', exact: true }).click();
+    assert.notEqual(await css('dialog[open]', 'boxShadow'), 'none', 'diálogo com sombra');
+    assert.equal(await css('dialog[open]', 'fontSize'), '13px', 'texto do diálogo em 13px');
+    await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+    await page.locator('[data-pl="index"]').click();
+    await page.getByRole('button', { name: 'Importar', exact: true }).click();
+    assert.equal(await css('.pl-import-pop', 'borderTopWidth'), '1px', 'popover com borda');
+    assert.equal(await css('.pl-import-pop', 'padding'), '24px');
+    assert.equal(await css('.pl-import-pop .pl-imp-head strong', 'fontSize'), '17px', 'título como o do diálogo');
+    assert.equal(await css('.pl-import-pop', 'fontSize'), '13px');
+    assert.equal(await page.locator('.pl-import-backdrop').count(), 1, 'fundo escurecido como nos diálogos');
+    await page.evaluate(() => { const e = document.createElement('div'); e.className = 'pl-modal-error'; e.textContent = 'x'; document.body.appendChild(e); const i = document.createElement('div'); i.className = 'pl-imp-err'; i.innerHTML = '<span>x</span>'; document.body.appendChild(i); });
+    assert.equal(await css('.pl-imp-err > span', 'color'), await css('.pl-modal-error', 'color'), 'uma só cor de erro');
+    await page.getByRole('button', { name: 'Fechar', exact: true }).click();
+    assert.equal(await page.locator('.pl-import-backdrop').count(), 0, 'fechar remove o fundo');
     // Importar: popover com template, seleção e envio; o envio só confere o arquivo e informa o status.
     await page.getByRole('button', { name: 'Importar', exact: true }).click();
     assert.equal(await page.locator('.pl-import-pop [data-imp="template"]').count(), 1);
