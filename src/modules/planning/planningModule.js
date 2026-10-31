@@ -60,10 +60,19 @@
       render();
     }
     async function open(target, s, onBack, opts = {}) { mount(target, onBack); manage = !!opts.manage; scenario = s; wizard = null; formId = null; changes.clear(); tab = 'forms'; await refresh(s.id); render(); }
-    // A grade rola dentro da tela: a altura vai até o rodapé da janela, então a barra horizontal fica sempre visível.
+    // A tabela ocupa a janela inteira (altura = janela menos o espaço do rodapé, que segue o fluxo da página). Ao rolar, ela fica no topo.
     function fitGrid() {
       const box = active && root && root.querySelector('.pl-grid-scroll'); if (!box) return;
-      box.style.maxHeight = Math.max(260, innerHeight - box.getBoundingClientRect().top - 12) + 'px';
+      const footer = root.querySelector('.pl-footer'), below = (footer ? footer.offsetHeight + (parseFloat(getComputedStyle(footer).marginTop) || 0) : 0) + (parseFloat(getComputedStyle(box).marginBottom) || 0) + (parseFloat(getComputedStyle(root).paddingBottom) || 0);
+      box.style.maxHeight = Math.max(260, innerHeight - below - 8) + 'px';
+    }
+    // Toda tela nova (lista, formulário, configuração, assistente) abre no topo da página; re-renderizar a mesma tela mantém a rolagem.
+    let lastView = '';
+    function resetScroll() {
+      const view = [scenario?.id, wizard ? 'wizard' + wizard.step : '', formId, formTab, tab].join('|');
+      if (view === lastView) return; lastView = view;
+      for (let el = root; el; el = el.parentElement) if (el.scrollTop) el.scrollTop = 0;
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
     }
     // Abertura do formulário: admin em Marcher (todos); quem tem gestão(ões) abre nela(s); só CCs avulsos, abre no primeiro por ordem alfabética.
     function defaultCostCenters() {
@@ -91,7 +100,7 @@
       if (!active) return;
       const body = wizard ? views.wizard(st) : views.scenario(st);
       container.innerHTML = `<section class="pl-app"><div class="pl-error" role="alert" hidden></div>${body}<dialog class="pl-dialog"></dialog></section>`;
-      root = container.querySelector('.pl-app'); mountCostCenterPicker(); fitGrid(); root.onclick = e => { hideTip(); const el = e.target.closest('[data-pl]'); if (el && !el.disabled) void run(() => action(el.dataset.pl, el)); };
+      root = container.querySelector('.pl-app'); mountCostCenterPicker(); fitGrid(); resetScroll(); root.onclick = e => { hideTip(); const el = e.target.closest('[data-pl]'); if (el && !el.disabled) void run(() => action(el.dataset.pl, el)); };
       root.onchange = e => void run(() => change(e.target));
       root.oninput = e => {
         if (e.target.dataset.fat === 'vol') return fat.input(e.target);

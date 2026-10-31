@@ -25,7 +25,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
         months: Array.from({ length: 12 }, (_, i) => ({ reference_month: i + 1, source_type: 'forms' })),
         cost_centers: [{ id: 'cc', cost_center_name: 'TI', cost_center_number: '101' }],
         accounts: [{ id: 'account', account_number: '42201', account_name: 'Software' }], users: [{ user_id: 'writer', full_name: 'Gestor TI' }], access: [], runs: [],
-        lines: [{ id: 'line', form_id: 'form', seq: 1, description: 'Software', origin: 'input', formula_name: 'SOFT', account_id: 'account', style: {} }, { id: 'total', form_id: 'form', seq: 2, description: 'Total', origin: 'formula', formula_name: 'TOTAL', formula_text: '<1>*2', style: {} }]
+        lines: [{ id: 'line', form_id: 'form', seq: 1, description: 'Software', origin: 'input', formula_name: 'SOFT', account_id: 'account', style: {} }, { id: 'total', form_id: 'form', seq: 2, description: 'Total', origin: 'formula', formula_name: 'TOTAL', formula_text: '<1>*2', style: {} }].concat(Array.from({ length: 40 }, (_, i) => ({ id: 'x' + i, form_id: 'form', seq: 10 + i, description: 'Extra ' + i, origin: 'input', formula_name: 'X' + i, account_id: 'account', style: {} })))
       };
       let entries = []; window.calls = [];
       window.fixture = fixture;
@@ -46,6 +46,29 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
       return testModule.open(document.getElementById('planning'), scenario, () => {}, { manage: true });
     });
     // Sem centro de custo: o administrador desmarca todos os centros e lança valores sem centro de custo.
+    await page.getByRole('button', { name: 'Abrir →', exact: true }).click();
+    // Área de trabalho: toda tela abre no topo (nunca rolada para baixo); a tabela tem a altura da janela e, ao rolar a página até ela, fica no topo; linhas compactas (34px).
+    const scrollTop = () => page.evaluate(() => Math.round(document.scrollingElement.scrollTop));
+    assert.equal(await scrollTop(), 0, 'o formulário abre no topo');
+    const layout = await page.evaluate(() => {
+      const foot = document.querySelector('.pl-footer').getBoundingClientRect(), box = document.querySelector('.pl-grid-scroll').getBoundingClientRect();
+      const row = document.querySelector('.pl-grid tbody tr:nth-child(8)').getBoundingClientRect();
+      return { vh: innerHeight, boxTop: Math.round(box.top), boxH: Math.round(box.height), boxBottom: Math.round(box.bottom), footTop: Math.round(foot.top), row: Math.round(row.height) };
+    });
+    assert(layout.boxTop > 100, `o cabeçalho continua visível acima da tabela: ${JSON.stringify(layout)}`);
+    assert(layout.boxH >= layout.vh - 140, `tabela com a altura da janela: ${JSON.stringify(layout)}`);
+    assert.equal(await page.locator('.pl-footer').evaluate(el => getComputedStyle(el).position), 'static', 'o rodapé não é fixo: acompanha o fluxo da página');
+    assert(layout.boxBottom <= layout.footTop, 'a tabela termina antes do rodapé');
+    await page.evaluate(() => document.querySelector('.pl-grid-scroll').scrollIntoView({ block: 'start' }));
+    const stuck = await page.evaluate(() => document.querySelector('.pl-grid-scroll').getBoundingClientRect().top);
+    assert(stuck >= 0 && stuck <= 16, `ao rolar até a tabela ela fica no topo: ${stuck}`);
+    await page.evaluate(() => document.scrollingElement.scrollTo(0, 99999));
+    const atEnd = await page.evaluate(() => ({ foot: document.querySelector('.pl-footer').getBoundingClientRect(), box: document.querySelector('.pl-grid-scroll').getBoundingClientRect(), vh: innerHeight }));
+    assert(atEnd.foot.bottom <= atEnd.vh && atEnd.box.bottom <= atEnd.foot.top, 'no fim da página o rodapé aparece abaixo da tabela, sem sobrepor');
+    assert(layout.row <= 34, `linhas de até 34px: ${layout.row}`);
+    // trocar de tela volta ao topo: lista e Configurar também abrem no topo
+    await page.locator('[data-pl="index"]').click();
+    assert.equal(await scrollTop(), 0, 'a lista abre no topo');
     await page.getByRole('button', { name: 'Abrir →', exact: true }).click();
     await page.locator('.opex-cc-trigger').click();
     await page.locator('.opex-cc-pop input[data-all]').uncheck();
