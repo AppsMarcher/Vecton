@@ -139,7 +139,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.match(await page.locator('.pl-error').innerText(), /Outra pessoa/);
     assert.equal(await page.locator('#fat-grid input[data-model="INGRAIN100"][data-month="3"]').inputValue(), '5');
     await page.locator('[data-pl="fat-save"]').click();
-    assert.equal(await page.locator('.fat-state').innerText(), 'Valores salvos', 'depois do conflito, salvar de novo usa a versão relida');
+    assert.equal(await page.locator('.fat-state').innerText(), '', 'depois do conflito, salvar de novo usa a versão relida');
     const saveCall = await page.evaluate(() => fix.calls.filter(c => c.name === 'planning_fat_write' && c.args.p_action === 'save_volumes').pop().args.p_payload);
     assert.deepEqual(saveCall.cells, [{ region_key: 'BA', model_key: 'INGRAIN100', month: 3, amount: '5', version: 1 }]);
     assert.equal(await calls('planning_fat_overlap'), overlapBefore, 'Salvar valores não consulta a sobreposição');
@@ -220,7 +220,8 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
 
     // ── configuração: percentuais recalculam grade, premissas e bloco; Atualizar premissas
-    await page.locator('[data-pl="fat-tab"][data-tab="cfg"]').click();
+    assert.equal(await page.locator('[data-pl="fat-tab"]').count(), 0, 'Abrir → não mostra as abas de configuração');
+    await page.locator('[data-pl="index"]').click(); await page.locator('.pl-fat-list [data-pl="configure"]').click(); await page.waitForSelector('.fat-cfg');
     assert.deepEqual(await cells('.fat-cfg thead th'), ['Linha', 'IPI', 'ICMS', 'PIS', 'COFINS', 'Total do FAT']);
     assert.equal(await page.locator('.fat-cfg input').count(), 16);
     assert.deepEqual(await cells('.fat-cfg tbody tr td:first-child'), ['Máquinas', 'Transgrain', 'Acessórios', 'Peças']);
@@ -232,7 +233,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.equal(await page.locator('[data-pl="fat-refresh"]').count(), 1);
     assert.equal(await page.locator('[data-pl="fat-tab"][data-tab="pre"]').count(), 0);
     await page.locator('[data-pl="index"]').click(); await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
-    assert.equal(await page.locator('[data-pl="fat-tab"][data-tab="acc"]').count(), 1);
+    assert.equal(await page.locator('[data-pl="fat-tab"][data-tab="acc"]').count(), 0);
     // ── Excel no modelo do Evolutivo de Margens (ExcelJS real quando PLANNING_EXCELJS_LIB aponta para a biblioteca)
     assert.equal(await page.locator('[data-pl="fat-export"]').count(), 1);
     if (process.env.PLANNING_EXCELJS_LIB) {
@@ -251,7 +252,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     }
     // ── acessos por coordenação
     await page.evaluate(() => { fix.D.coords = [{ key: 'MARCHER', name: 'Marcher' }, { key: 'c-norte', name: 'Norte' }, { key: 'c-sul', name: 'Sul' }]; });
-    await page.locator('[data-pl="index"]').click(); await page.locator('.pl-fat-list [data-pl="open-form"]').click(); await page.waitForSelector('#fat-grid');
+    await page.locator('[data-pl="index"]').click(); await page.locator('.pl-fat-list [data-pl="configure"]').click(); await page.waitForSelector('.fat-cfg');
     await page.locator('[data-pl="fat-tab"][data-tab="acc"]').click();
     assert.deepEqual(await cells('.fat-small tbody tr td:first-child'), ['Norte', 'Sul']);
     assert.equal(await page.locator('.fat-small thead').count(), 0);

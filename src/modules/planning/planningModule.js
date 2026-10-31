@@ -240,7 +240,7 @@
         root.querySelectorAll('[data-capex-sum]').forEach(e => e.textContent = fmt(sums[Number(e.dataset.capexSum)]));
         root.querySelector('[data-capex-grand]').textContent = fmt(sums.reduce((a,b)=>a+b,0));
       }
-      root.querySelector('#pl-save-state').textContent = `${changes.size} alterações não salvas`;
+      root.querySelector('#pl-save-state').textContent = changes.size ? `${changes.size} alterações não salvas` : '';
       root.querySelector('[data-pl="save"]').disabled = !changes.size;
       root.querySelector('[data-pl="discard"]').disabled = !changes.size;
     }

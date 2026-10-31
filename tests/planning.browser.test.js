@@ -104,6 +104,13 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('.pl-import-pop').count(), 0);
     await page.getByRole('button', { name: 'Abrir →', exact: true }).click();
+    // Rodapé da grade: sem a linha e sem "Valores salvos"; o contador só aparece com alteração pendente.
+    assert.equal(await page.locator('#pl-save-state').innerText(), '');
+    assert.equal(await page.locator('.pl-footer').evaluate(el => getComputedStyle(el).borderTopWidth), '0px');
+    await page.getByRole('textbox', { name: 'Software Jan', exact: true }).fill('1');
+    assert.match(await page.locator('#pl-save-state').innerText(), /1 alterações não salvas/);
+    await page.getByRole('button', { name: 'Descartar', exact: true }).click();
+    assert.equal(await page.locator('#pl-save-state').innerText(), '');
     await page.getByRole('textbox', { name: 'Software Jan', exact: true }).fill('1.234,56');
     await page.getByRole('button', { name: 'Salvar valores', exact: true }).click();
     await page.getByRole('button', { name: 'Entendi', exact: true }).click();
@@ -113,7 +120,12 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
     assert.equal(await page.evaluate(() => calls.filter(c => c.name === 'planning_integrate_all').length), 1);
     // Mudar a sequência de uma linha não invalida as fórmulas que a usam (renumeradas junto).
-    await page.getByRole('button', { name: 'Estrutura', exact: true }).click();
+    // Estrutura e Acessos só aparecem em Configurar; ao abrir o formulário (Abrir →) não há essas abas.
+    assert.equal(await page.getByRole('button', { name: 'Estrutura', exact: true }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Acessos', exact: true }).count(), 0);
+    await page.locator('[data-pl="index"]').click();
+    await page.getByRole('button', { name: 'Configurar', exact: true }).click();
+    assert.equal(await page.getByRole('button', { name: 'Estrutura', exact: true }).count(), 1);
     await page.getByRole('button', { name: 'Editar', exact: true }).first().click();
     await page.locator('#pl-line-seq').fill('5');
     await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
