@@ -9,7 +9,8 @@
     const textInput = (id, value = '', attrs = '') => `<input class="pl-input" id="${id}" value="${esc(value)}" ${attrs}>`;
     const off = locked => (locked ? 'disabled' : '');
     const releaseButton = (st, f) => (st.admin() && st.formTab !== 'input' ? `<div class="pl-actions" style="margin-left:auto">${button(f.status === 'released' ? 'Voltar à construção' : 'Liberar', 'release', off(st.locked()))}</div>` : '');
-    const editName = st => (st.admin() ? `<button type="button" class="pl-edit-name" data-pl="edit-form" ${off(st.locked())} data-tip-text="Editar nome e código" aria-label="Editar nome e código"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>` : '');
+    // O botão de editar nome e código só existe em Configurar (nunca na tela de preenchimento).
+    const editName = st => (st.admin() && st.formTab !== 'input' ? `<button type="button" class="pl-edit-name" data-pl="edit-form" ${off(st.locked())} data-tip-text="Editar nome e código" aria-label="Editar nome e código"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>` : '');
     const statusBadge = f => `<span class="pl-badge${f.status === 'released' ? ' pl-badge--ok' : ''}">${f.status === 'released' ? 'Liberado' : 'Em construção'}</span>`;
     const tabButtons = (tabs, action, current) => tabs.map(([id, name]) => button(name, action, `data-tab="${id}" ${current === id ? 'aria-pressed="true"' : ''}`)).join('');
 

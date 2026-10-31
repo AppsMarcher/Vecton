@@ -159,3 +159,6 @@
 
 .pl-import-pop{overflow-x:hidden}.pl-imp-steps li,.pl-imp-file{overflow-wrap:anywhere}.pl-imp-status{max-height:40vh;overflow-y:auto}
 .pl-footer,.fat-foot{border-top:0;padding-top:0}.pl-footer .pl-actions,.fat-foot .pl-actions{margin-left:auto}
+/* Padrão de fonte dos formulários (OPEX 01 a 09, CPX e FAT): tabelas (cabeçalho e conteúdo) em 10,5px e todos os botões em 11px. */
+.pl-app.pl-app table,.pl-app.pl-app table th,.pl-app.pl-app table td,.pl-app.pl-app table small,.pl-app.pl-app table span,.pl-app.pl-app table label,.pl-app.pl-app table input,.pl-app.pl-app table select,.pl-app.pl-app table textarea{font-size:10.5px}
+.pl-app.pl-app .pl-button,.pl-app.pl-app .vp-export-btn,.pl-app.pl-app .fat-seg button,.pl-app.pl-app table button,.pl-import-pop .pl-button,.pl-dialog .pl-button{font-size:11px}

@@ -123,8 +123,10 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     // Estrutura e Acessos só aparecem em Configurar; ao abrir o formulário (Abrir →) não há essas abas.
     assert.equal(await page.getByRole('button', { name: 'Estrutura', exact: true }).count(), 0);
     assert.equal(await page.getByRole('button', { name: 'Acessos', exact: true }).count(), 0);
+    assert.equal(await page.locator('.pl-edit-name').count(), 0, 'o botão de editar nome só existe em Configurar');
     await page.locator('[data-pl="index"]').click();
     await page.getByRole('button', { name: 'Configurar', exact: true }).click();
+    assert.equal(await page.locator('.pl-edit-name').count(), 1);
     assert.equal(await page.getByRole('button', { name: 'Estrutura', exact: true }).count(), 1);
     await page.getByRole('button', { name: 'Editar', exact: true }).first().click();
     await page.locator('#pl-line-seq').fill('5');

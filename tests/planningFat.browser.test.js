@@ -73,7 +73,7 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     const base = await widths();
     for (const m of ['FAT', 'RL', 'MP', 'MC1%', 'VOL']) { await page.locator('.fat-seg button', { hasText: new RegExp('^' + m.replace('%', '\\%') + '$') }).click(); assert.equal(await widths(), base, 'largura igual em ' + m); }
     const fonts = await page.evaluate(() => ({ v: getComputedStyle(document.querySelector('#fat-grid td .v')).fontSize, th: getComputedStyle(document.querySelector('#fat-grid thead th')).fontSize, grp: getComputedStyle(document.querySelector('#fat-grid tr.grp td')).fontSize, row: Math.round(document.querySelector('#fat-grid tbody tr:nth-child(3) td').getBoundingClientRect().height) }));
-    assert.deepEqual(fonts, { v: '11.5px', th: '10.5px', grp: '10.5px', row: 34 });
+    assert.deepEqual(fonts, { v: '10.5px', th: '10.5px', grp: '10.5px', row: 34 });
     assert.equal(await page.locator('.fat-card .pl-note, .fat-card small, .fat-card-h .s, #fat-grid [title]').count(), 0, 'sem subtítulo nem nota na tela');
     assert.equal(await page.locator('.pl-app [title]').count(), 0, 'nenhum title nativo');
 

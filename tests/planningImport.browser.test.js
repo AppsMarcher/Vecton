@@ -77,6 +77,19 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     assert.match(overlap.text, /CPX prevalece/);
     assert.equal(overlap.tables, 0, 'sem tabela larga no aviso');
     assert.equal(overlap.overflow, false, 'sem rolagem horizontal no diálogo');
+    // Padrão de fonte: tabelas (cabeçalho e conteúdo) em 10,5px e todos os botões em 11px, em todos os formulários.
+    const fonts = await page.evaluate(() => {
+      const host = document.querySelector('.pl-app'), box = document.createElement('div');
+      const table = cls => `<table class="${cls}"><thead><tr><th>Cab <small>x</small></th></tr></thead><tbody><tr><td>Linha <small>pq</small> <span>s</span> <input value="1"> <select class="fat-select fat-select--acc"><option>a</option></select> <button type="button" class="pl-button" data-pl="fat-adjust">Ajustar</button></td></tr></tbody></table>`;
+      box.innerHTML = ['', 'pl-grid', 'pl-grid pl-capex-grid', 'pl-grid pl-capex-depreciation', 'pl-capex-destinations', 'fat-grid', 'fat-grid fat-cfg', 'fat-grid fat-small', 'fat-grid fat-small fat-access'].map(table).join('')
+        + '<button type="button" class="pl-button">Salvar</button><button type="button" class="pl-button pl-primary">Integrar</button><div class="fat-seg"><button type="button">Mês</button></div><button type="button" class="vp-export-btn">Excel</button>';
+      host.appendChild(box);
+      const size = el => getComputedStyle(el).fontSize, bad = [];
+      box.querySelectorAll('table').forEach(t => t.querySelectorAll('th,td,small,span,input,select').forEach(el => { if (size(el) !== '10.5px') bad.push(`${t.className || 'table'} ${el.tagName.toLowerCase()} ${size(el)}`); }));
+      box.querySelectorAll('button').forEach(el => { if (size(el) !== '11px') bad.push(`botão ${el.textContent} ${size(el)}`); });
+      return bad;
+    });
+    assert.deepEqual(fonts, [], 'tabelas em 10,5px e botões em 11px');
     assert.deepEqual(errors, []);
     console.log('Planning import browser: FAT import popover, CPX inert, status panel passed.');
   } finally { await browser.close(); }
