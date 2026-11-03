@@ -61,6 +61,29 @@ const { PGlite } = require(process.env.PLANNING_PGLITE_TEST_LIB || '../artifacts
     await db.exec(`update bp_plan_nodes set sort_order=${flat.find(r=>r.account_code==='1.1.1.02').sort_order} where id='${caixa.id}'`);
     flat=await check();
     assert.ok(flat.find(r=>r.account_code==='1.1.1.01').sort_order<flat.find(r=>r.account_code==='1.1.1.02').sort_order,'CAIXA subiu para antes de BANCOS');
+    // Mover UMA analítica: só ela vai; as que estavam entre a origem e o destino se reacomodam (tapando o buraco) e o resto fica.
+    const bank=flat.find(r=>r.account_code==='1.1.1.03'),leaves=flat.filter(r=>r.parent_id===bank.id);
+    assert.ok(leaves.length>=3);
+    const snapshot=new Map(flat.map(r=>[r.id,r.sort_order])), from=leaves[0], to=leaves[leaves.length-1];
+    await db.exec(`update bp_plan_nodes set sort_order=${to.sort_order} where id='${from.id}'`);
+    flat=await check();
+    assert.equal(flat.find(r=>r.id===from.id).sort_order,to.sort_order,'foi para a posição pedida');
+    for(const r of flat){
+      const old=snapshot.get(r.id);
+      if(r.id===from.id)continue;
+      if(old>from.sort_order&&old<=to.sort_order)assert.equal(r.sort_order,old-1,`${r.account_code} subiu uma posição para tapar o buraco`);
+      else assert.equal(r.sort_order,old,`${r.account_code} não deveria mudar`);
+    }
+    const mid=new Map(flat.map(r=>[r.id,r.sort_order]));
+    await db.exec(`update bp_plan_nodes set sort_order=${from.sort_order} where id='${from.id}'`);
+    flat=await check();
+    assert.equal(flat.find(r=>r.id===from.id).sort_order,from.sort_order,'voltou para a posição de origem');
+    for(const r of flat){
+      const old=mid.get(r.id);
+      if(r.id===from.id)continue;
+      if(old>=from.sort_order&&old<to.sort_order)assert.equal(r.sort_order,old+1,`${r.account_code} desceu uma posição`);
+      else assert.equal(r.sort_order,old,`${r.account_code} não deveria mudar`);
+    }
     // Alterar outros campos não mexe na ordem; remover fecha o buraco; trocar de conta pai mantém tudo sequencial.
     const snap=JSON.stringify(flat.map(r=>[r.id,r.sort_order]));
     await db.exec(`update bp_plan_nodes set name='RENOMEADA' where id='${caixa.id}'`);

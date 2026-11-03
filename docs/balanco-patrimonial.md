@@ -143,7 +143,7 @@ Exceção: na Reserva de Lucros do ano em andamento o popover mostra uma linha �
 
 ## Ordem de exibição do Plano BP: SQL 336 e 337
 
-A ordem de exibição é uma sequência corrida de 1 a N no plano inteiro, na ordem da árvore (cada conta seguida do bloco das suas filhas), sem números repetidos. Triggers na tabela `bp_plan_nodes` mantêm isso para qualquer origem de gravação: inserir ou mover uma conta para a posição N faz todas as seguintes avançarem, e remover fecha o buraco. Uma conta fica sempre dentro do bloco da sua conta pai; um número que cairia no bloco de outra conta vira a posição válida mais próxima, e a tela mostra o número real ao recarregar o plano depois de salvar.
+A ordem de exibição é uma sequência corrida de 1 a N no plano inteiro, na ordem da árvore (cada conta seguida do bloco das suas filhas), sem números repetidos. Triggers na tabela `bp_plan_nodes` mantêm isso para qualquer origem de gravação: inserir uma conta na posição N faz todas as seguintes avançarem; remover fecha o buraco. Mover uma conta já existente leva só ela: as que estavam entre a origem e o destino se reacomodam tapando o buraco e as demais não mudam. Mover uma sintética leva as filhas junto. Uma conta fica sempre dentro do bloco da sua conta pai; um número que cairia no bloco de outra conta vira a posição válida mais próxima, e a tela mostra o número real ao recarregar o plano depois de salvar.
 
 A 336 (ordem sequencial por conta pai) foi substituída pela 337, que renumera o plano inteiro na ordem atual da árvore e é reexecutável. A mudança de números altera a "assinatura" do plano usada nas cargas BP; rascunhos abertos são revalidados ao aplicar.
 
