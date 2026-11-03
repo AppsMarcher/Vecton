@@ -33,6 +33,21 @@ const {chromium}=require('playwright');
   await page.waitForFunction(()=>document.querySelector('[data-status]').textContent==='Conta salva.');
   assert.equal(await page.evaluate(()=>window.saves[0].group_key),'Caixa e equivalente de Caixa');
   assert.equal(await page.evaluate(()=>window.saves[0].source_name),'1.1.1.02.002');
+  // Ordem de exibição: a conta salva fica na posição digitada e as irmãs são empurradas, sem repetir posição.
+  assert.equal(await page.evaluate(()=>{const n=(id,code,parent,order)=>({id,account_code:code,parent_id:parent,sort_order:order});
+   return JSON.stringify(window.VECTON_BP_PLAN.spreadSiblings([n('a','1.1','p',4),n('b','1.2','p',4),n('c','1.3','p',5),n('d','2.1','q',4)],n('n','1.0','p',4)));}),
+   JSON.stringify([{id:'a',sort_order:5},{id:'b',sort_order:6},{id:'c',sort_order:7}]));
+  assert.equal(await page.evaluate(()=>window.VECTON_BP_PLAN.spreadSiblings([{id:'a',account_code:'1',parent_id:null,sort_order:2},{id:'b',account_code:'2',parent_id:null,sort_order:9}],{id:'n',account_code:'3',parent_id:null,sort_order:5}).length),0); // sem colisão, nada muda
+  await page.locator('[data-search]').fill('');
+  await page.evaluate(()=>{window.saves.length=0;});
+  const sibling=await page.evaluate(()=>{const me=window.rows.find(n=>n.node_class==='Analitica'&&window.rows.some(o=>o.id!==n.id&&o.parent_id===n.parent_id)),sibs=window.rows.filter(n=>n.parent_id===me.parent_id&&n.id!==me.id).sort((a,b)=>a.sort_order-b.sort_order);return{me:me.id,code:me.account_code,id:sibs[0].id,order:sibs[0].sort_order,parent:me.parent_id};});
+  await page.locator('.bp-plan-select').filter({hasText:sibling.code+' ·'}).first().click();
+  await page.locator('[name="sort_order"]').fill(String(sibling.order));
+  await page.locator('button[type="submit"]').click();
+  await page.waitForFunction(()=>/reordenad/.test(document.querySelector('[data-status]').textContent));
+  const orders=await page.evaluate(parent=>window.rows.filter(n=>n.parent_id===parent).map(n=>n.sort_order),sibling.parent);
+  assert.equal(new Set(orders).size,orders.length,'sem posições repetidas entre irmãs');
+  assert.equal(await page.evaluate(id=>window.rows.find(n=>n.id===id).sort_order,sibling.id)>sibling.order,true);
   fs.mkdirSync('artifacts/bp',{recursive:true});
   await page.screenshot({path:'artifacts/bp/plan-config-desktop.png',fullPage:true});
   await page.locator('[data-search]').fill('');
