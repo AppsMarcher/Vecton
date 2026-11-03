@@ -466,6 +466,7 @@
     }
 
     // Box lateral (largura de 2 cards): Peças / Transgrain / Acessórios — só R$.
+    const DRILL_TIPOS = ["Transgrain", "Acessórios"];
     function renderTiposSide() {
       const order = ["Peças", "Transgrain", "Acessórios"];
       const byName = {};
@@ -474,7 +475,12 @@
       const rows = order.map((nome) => {
         const r = byName[nome] || {};
         tot.fat_val += Number(r.fat_val) || 0; tot.cart_val += Number(r.cart_val) || 0; tot.meta_val += Number(r.meta_val) || 0;
-        return `<tr><td>${nome}</td><td>${fmtR$(r.fat_val)}</td><td>${fmtR$(r.cart_val)}</td><td>${fmtR$(r.meta_val)}</td></tr>`;
+        // Transgrain/Acessórios: Fatur./Fat.+Cart. abrem o drill por tipo de
+        // produto (338). Peças já tem o seu na coordenação 'Peças'.
+        const sc = DRILL_TIPOS.includes(nome) ? { tipo: nome, label: nome } : null;
+        const fatTd = sc ? `<td${drillAttrs("FAT", sc, escapeHtml)}>` : "<td>";
+        const cartTd = sc ? `<td${drillAttrs("FAT,CART", sc, escapeHtml)}>` : "<td>";
+        return `<tr><td>${nome}</td>${fatTd}${fmtR$(r.fat_val)}</td>${cartTd}${fmtR$(r.cart_val)}</td><td>${fmtR$(r.meta_val)}</td></tr>`;
       }).join("");
       // 4 barras em blocos, empilhadas uma embaixo da outra (Peças/Transgrain/
       // Acessórios/Total), cada uma comparando FATUR. (fat_val) vs META
@@ -568,7 +574,7 @@
         openDetailPopover(th, {
           coord: th.dataset.coord || null, terr: th.dataset.terr || null, terrs,
           label: th.dataset.label || null, tipos: th.dataset.tipos === "1",
-          pecas: th.dataset.pecas === "1",
+          pecas: th.dataset.pecas === "1", tipo: th.dataset.tipo || null,
           vend: th.dataset.vend || null, vendModo: th.dataset.vendModo || null,
           linhas
         }, origens);
@@ -799,22 +805,29 @@
           // O Supabase devolve no maximo 1.000 linhas por chamada: busca em paginas
           // ate vir uma incompleta (a RPC tem ordem estavel, ver migration 314).
           const PAGE = 1000;
-          const fetchAllPages = async (payload) => {
+          const fetchAllPages = async (payload, rpc = "comercial_painel_detalhe") => {
             const all = [];
             // Teto de 200 paginas (200 mil linhas): garante que nunca trava em loop.
             for (let from = 0; from < PAGE * 200; from += PAGE) {
-              const page = (await callSupabaseRpc("comercial_painel_detalhe", payload, { range: [from, from + PAGE - 1] })) || [];
+              const page = (await callSupabaseRpc(rpc, payload, { range: [from, from + PAGE - 1] })) || [];
               all.push(...page);
               if (page.length < PAGE) break;
             }
             return all;
           };
-          const results = await Promise.all(terrList.map((terr) => fetchAllPages({
-            p_org: org, p_year: year, p_month: month, p_period: period,
-            p_origens: origens, p_linhas: scope.linhas || [],
-            p_coordenacao: scope.coord || null, p_territorio: terr,
-            p_cod_vendedor: scope.vend || null, p_vendedor_modo: scope.vendModo || null
-          })));
+          // Drill por tipo de produto (Transgrain/Acessórios, 338): sem
+          // coordenação/território, então uma única busca.
+          const results = scope.tipo
+            ? [await fetchAllPages({
+                p_org: org, p_year: year, p_month: month, p_period: period,
+                p_origens: origens, p_tipo: scope.tipo
+              }, "comercial_painel_detalhe_tipo")]
+            : await Promise.all(terrList.map((terr) => fetchAllPages({
+                p_org: org, p_year: year, p_month: month, p_period: period,
+                p_origens: origens, p_linhas: scope.linhas || [],
+                p_coordenacao: scope.coord || null, p_territorio: terr,
+                p_cod_vendedor: scope.vend || null, p_vendedor_modo: scope.vendModo || null
+              })));
           rows = results.flat().filter(Boolean);
         }
       } catch (e) { console.error("detalhe:", e); }

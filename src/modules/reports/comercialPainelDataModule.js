@@ -270,8 +270,9 @@
   // (usado pelo RPS Comercial, que só mostra os cartões, sem abrir o
   // popover de transações do desktop).
   function drillAttrs(origens, scope, escapeHtml) {
-    if (!scope || !(scope.linhas || []).length) return "";
+    if (!scope || !((scope.linhas || []).length || scope.tipo)) return "";
     return ` class="cvp-drill" data-origens="${origens}" data-linhas="${escapeHtml((scope.linhas || []).join(","))}"`
+      + (scope.tipo ? ` data-tipo="${escapeHtml(scope.tipo)}"` : "")
       + (scope.coord ? ` data-coord="${escapeHtml(scope.coord)}"` : "")
       + (scope.terr ? ` data-terr="${escapeHtml(scope.terr)}"` : "")
       + (scope.terrs && scope.terrs.length ? ` data-terrs="${escapeHtml(scope.terrs.join(","))}"` : "")
