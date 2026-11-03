@@ -27,20 +27,6 @@
     }
     return node;
   }
-  // A conta salva fica na posição digitada; as irmãs (mesma conta pai) que empatariam ou ficariam antes dela
-  // são empurradas para frente. Intervalos existentes são preservados e duplicados antigos se desfazem.
-  function spreadSiblings(nodes, node) {
-    const parent = id => id || null, byCode = (a, b) => a.account_code.localeCompare(b.account_code, "pt-BR", { numeric: true });
-    const group = [node, ...nodes.filter(n => n.id !== node.id && parent(n.parent_id) === parent(node.parent_id))]
-      .sort((a, b) => a.sort_order - b.sort_order || (a.id === node.id ? -1 : b.id === node.id ? 1 : byCode(a, b)));
-    const changes = []; let last = -1;
-    for (const n of group) {
-      const order = Math.max(n.sort_order, last + 1);
-      if (n.id !== node.id && order !== n.sort_order) changes.push({ id: n.id, sort_order: order });
-      last = order;
-    }
-    return changes;
-  }
   function createBpPlanModule(d) {
     const root = d.root, esc = d.escapeHtml;
     let nodes = [], selected = null, draft = null, user = null, org = null, loaded = false, pending = false, busy = false, mounted = false, request = 0;
@@ -104,16 +90,9 @@
           if (!current(key)) return;
           if (result.length !== 1) throw new Error('A conta não foi gravada. Atualize o plano.');
           nodes = [...nodes.filter(n => n.id !== node.id),result[0]]; selected = node.id; draft = null;
-          const shifted = spreadSiblings(nodes, result[0]);
-          try {
-            for (const change of shifted) {
-              const saved = await d.update(org,change.id,{ sort_order: change.sort_order });
-              if (!current(key)) return;
-              if (saved.length !== 1) throw new Error('Reordenação incompleta.');
-              nodes = nodes.map(n => n.id === change.id ? saved[0] : n);
-            }
-          } catch (error) { if (current(key)) { status(`Conta salva, mas a reordenação das demais falhou: ${error.message} Atualize o plano.`,true); drawTree(); drawEditor(); } return; }
-          status(shifted.length ? `Conta salva. ${shifted.length} ${shifted.length === 1 ? 'conta foi reordenada' : 'contas foram reordenadas'}.` : 'Conta salva.'); drawTree(); drawEditor();
+          // O banco renumera as irmãs (ordem sequencial, sem repetição): recarrega para mostrar a ordem atual.
+          try { const fresh = await d.fetch(org); if (!current(key)) return; nodes = fresh; } catch (_) { /* mantém a lista local; "Atualizar" recarrega */ }
+          status('Conta salva.'); drawTree(); drawEditor();
         } catch (error) { if (current(key)) status(error.message,true); }
         finally { busy = false; if (current(key)) controls(); }
       };
@@ -124,7 +103,11 @@
         if (!await d.confirm(`Remover a conta ${node.account_code} — ${node.name}?`)) return;
         if (!current(key) || busy) return;
         busy = true; controls();
-        try { await d.remove(org,node.id); if (!current(key)) return; nodes = nodes.filter(n => n.id !== node.id); selected = null; drawTree(); drawEditor(); status('Conta removida.'); }
+        try {
+          await d.remove(org,node.id); if (!current(key)) return; nodes = nodes.filter(n => n.id !== node.id); selected = null;
+          try { const fresh = await d.fetch(org); if (!current(key)) return; nodes = fresh; } catch (_) { /* mantém a lista local */ }
+          drawTree(); drawEditor(); status('Conta removida.');
+        }
         catch (error) { if (current(key)) status(error.message,true); }
         finally { busy = false; if (current(key)) controls(); }
       };
@@ -180,5 +163,5 @@
     }
     return { render };
   }
-  window.VECTON_BP_PLAN = { createBpPlanModule, validateNode, spreadSiblings };
+  window.VECTON_BP_PLAN = { createBpPlanModule, validateNode };
 })(window);
