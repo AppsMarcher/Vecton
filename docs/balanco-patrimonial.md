@@ -140,3 +140,11 @@ Cadastra três aplicações financeiras em Caixa e equivalente de Caixa, Cliente
 Clicar no saldo de uma linha (coluna atual ou 31/12 anterior) abre o mesmo popover do DRE Gerencial com as contas analíticas que compõem a linha: Conta, Descrição e Saldo, ordenável, com total e exportação para Excel. Contas iguais em filiais diferentes são somadas e contas com saldo zero não aparecem. Totais e subtotais não são clicáveis. O detalhe vem do próprio fechamento já carregado, sem nova consulta.
 
 Exceção: na Reserva de Lucros do ano em andamento o popover mostra uma linha única, "Resultado do DRE Societário (jan–mês)", conta 51401001, com o valor do DRE. Na coluna do ano anterior vale a lista de contas da carga BP.
+
+## Ordem de exibição do Plano BP: SQL 336 e 337
+
+A ordem de exibição é uma sequência corrida de 1 a N no plano inteiro, na ordem da árvore (cada conta seguida do bloco das suas filhas), sem números repetidos. Triggers na tabela `bp_plan_nodes` mantêm isso para qualquer origem de gravação: inserir ou mover uma conta para a posição N faz todas as seguintes avançarem, e remover fecha o buraco. Uma conta fica sempre dentro do bloco da sua conta pai; um número que cairia no bloco de outra conta vira a posição válida mais próxima, e a tela mostra o número real ao recarregar o plano depois de salvar.
+
+A 336 (ordem sequencial por conta pai) foi substituída pela 337, que renumera o plano inteiro na ordem atual da árvore e é reexecutável. A mudança de números altera a "assinatura" do plano usada nas cargas BP; rascunhos abertos são revalidados ao aplicar.
+
+Teste: `node tests/bpPlanOrder.sql.test.js`.

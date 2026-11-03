@@ -14,49 +14,59 @@ const { PGlite } = require(process.env.PLANNING_PGLITE_TEST_LIB || '../artifacts
       insert into user_profiles values('${org}','${admin}','admin',true,'{}');
       select set_config('test.user','${admin}',false);grant usage on schema public,auth to authenticated;`);
     await db.exec(fs.readFileSync('supabase/301_bp_account_plan.sql','utf8'));await db.exec(fs.readFileSync('supabase/302_seed_bp_plan_marcher.sql','utf8'));
-    // Empates de hoje: todas as irmãs de um grupo na mesma posição.
-    const parent=(await db.query(`select parent_id from bp_plan_nodes where parent_id is not null group by parent_id having count(*)>=4 order by count(*) desc limit 1`)).rows[0].parent_id;
-    await db.exec(`update bp_plan_nodes set sort_order=4 where parent_id='${parent}'`);
-    const migration=fs.readFileSync('supabase/336_bp_plan_sequential_order.sql','utf8');
+    // As contas que o usuário criou à mão na posição 4 e 5, empatando com BANCOS.
+    await db.exec(`insert into bp_plan_nodes(organization_id,account_code,name,node_class,parent_id,sort_order) values('${org}','1.1.1.01','CAIXA','Sintetica',(select id from bp_plan_nodes where account_code='1.1.1'),4)`);
+    await db.exec(`insert into bp_plan_nodes(organization_id,account_code,name,node_class,parent_id,group_key,sort_order) values('${org}','1.1.1.01.003','DEPOSITOS NAO IDENTIFICADOS','Analitica',(select id from bp_plan_nodes where account_code='1.1.1.01'),'Caixa e equivalente de Caixa',5)`);
+    // Estado de produção antes da 337: empates por grupo (336 aplicada, depois bagunçada à mão).
+    await db.exec(`update bp_plan_nodes set sort_order=4 where parent_id=(select id from bp_plan_nodes where account_code='1.1.1')`);
+    await db.exec(fs.readFileSync('supabase/336_bp_plan_sequential_order.sql','utf8'));
+    const migration=fs.readFileSync('supabase/337_bp_plan_global_order.sql','utf8');
     await db.exec(migration);await db.exec(migration); // reexecutável
-    const group=async p=>(await db.query(`select id,account_code,sort_order from bp_plan_nodes where parent_id ${p?`='${p}'`:'is null'} order by sort_order`)).rows;
-    const sequential=rows=>rows.every((r,i)=>r.sort_order===i+1);
-    const all=async()=>{const bad=(await db.query(`select parent_id from bp_plan_nodes group by parent_id having count(*)<>count(distinct sort_order) or min(sort_order)<>1 or max(sort_order)<>count(*)`)).rows;return bad.length;};
-    assert.equal(await all(),0,'migration deixa todos os grupos em 1..n');
-    const base=await group(parent), codes=base.map(r=>r.account_code), n=base.length;
-    assert.deepEqual(codes,[...codes].sort((a,b)=>a.localeCompare(b,'en',{numeric:true})),'empates antigos seguem o código contábil');
-    const parentCode=(await db.query(`select account_code from bp_plan_nodes where id='${parent}'`)).rows[0].account_code;
-    // Inserir no meio: a nova conta fica na posição pedida e as seguintes avançam.
-    await db.exec(`insert into bp_plan_nodes(organization_id,account_code,name,node_class,parent_id,group_key,sort_order) values('${org}','${parentCode}.9999','NOVA','Analitica','${parent}','Teste',2)`);
-    let rows=await group(parent);
-    assert.equal(rows.length,n+1);assert.ok(sequential(rows));assert.equal(rows[1].account_code,`${parentCode}.9999`);
-    assert.deepEqual(rows.filter(r=>r.account_code!==`${parentCode}.9999`).map(r=>r.account_code),codes,'as demais mantêm a ordem relativa');
-    // Mover para baixo (da 1ª para a 3ª) e para cima (da última para a 1ª).
-    const first=rows[0].id;
-    await db.exec(`update bp_plan_nodes set sort_order=3 where id='${first}'`);
-    rows=await group(parent);assert.ok(sequential(rows));assert.equal(rows[2].id,first);
-    const last=rows[rows.length-1].id;
-    await db.exec(`update bp_plan_nodes set sort_order=1 where id='${last}'`);
-    rows=await group(parent);assert.ok(sequential(rows));assert.equal(rows[0].id,last);
-    // Posição além do fim é compactada; alterar outros campos não mexe na ordem.
-    await db.exec(`update bp_plan_nodes set sort_order=500 where id='${last}'`);
-    rows=await group(parent);assert.ok(sequential(rows));assert.equal(rows[rows.length-1].id,last);
-    const snapshot=JSON.stringify(rows.map(r=>[r.id,r.sort_order]));
-    await db.exec(`update bp_plan_nodes set name='RENOMEADA' where id='${last}'`);
-    assert.equal(JSON.stringify((await group(parent)).map(r=>[r.id,r.sort_order])),snapshot);
-    // Remover fecha o buraco.
-    await db.exec(`delete from bp_plan_nodes where id='${rows[1].id}'`);
-    rows=await group(parent);assert.equal(rows.length,n);assert.ok(sequential(rows));
-    // Trocar de conta pai compacta os dois grupos.
-    const other=(await db.query(`select id,account_code from bp_plan_nodes where node_class='Sintetica' and id<>'${parent}' and account_code like '${parentCode.split('.').slice(0,-1).join('.')}.%' and parent_id=(select parent_id from bp_plan_nodes where id='${parent}') limit 1`)).rows[0];
-    if(other){
-      const moved=rows[0];
-      if(moved.account_code.startsWith(other.account_code+'.')){
-        await db.exec(`update bp_plan_nodes set parent_id='${other.id}',sort_order=1 where id='${moved.id}'`);
-        assert.ok(sequential(await group(parent)));assert.ok(sequential(await group(other.id)));
-      }
-    }
-    assert.equal(await all(),0,'nenhum grupo com repetição ou buraco no fim');
-    console.log('BP plan order: sequential 1..n, middle insert, move up/down, delete, tie cleanup and idempotence OK');
+
+    const rows=async()=>(await db.query('select id,parent_id,account_code,node_class,sort_order from bp_plan_nodes')).rows;
+    // O plano inteiro é uma sequência 1..N igual à ordem da árvore (cada conta seguida do seu bloco de filhas).
+    const check=async()=>{
+      const all=await rows(),kids=new Map();
+      all.forEach(r=>{const k=kids.get(r.parent_id)||[];k.push(r);kids.set(r.parent_id,k);});
+      const walk=(parent,out)=>{(kids.get(parent)||[]).sort((a,b)=>a.sort_order-b.sort_order).forEach(r=>{out.push(r);walk(r.id,out);});return out;};
+      const flat=walk(null,[]);
+      assert.equal(flat.length,all.length,'nenhuma conta fora da árvore');
+      flat.forEach((r,i)=>assert.equal(r.sort_order,i+1,`posição de ${r.account_code}`));
+      return flat;
+    };
+    let flat=await check();
+    const total=flat.length;
+    assert.equal(flat[0].account_code,'1');
+    const pos=code=>flat.find(r=>r.account_code===code).sort_order;
+    assert.ok(pos('1.1.1.01')<pos('1.1.1.01.003')&&pos('1.1.1.01.003')<pos('1.1.1.02'),'CAIXA, sua filha e depois BANCOS');
+
+    // Inserir no meio: a nova conta ocupa a posição pedida e todas as seguintes avançam.
+    const leaf=flat.find(r=>r.account_code==='1.1.1.02.002'),parent=flat.find(r=>r.id===leaf.parent_id);
+    const before=new Map(flat.map(r=>[r.id,r.sort_order]));
+    await db.exec(`insert into bp_plan_nodes(organization_id,account_code,name,node_class,parent_id,group_key,sort_order) values('${org}','${parent.account_code}.9999','NOVA','Analitica','${parent.id}','Teste',${leaf.sort_order})`);
+    flat=await check();assert.equal(flat.length,total+1);
+    assert.equal(flat.find(r=>r.account_code===`${parent.account_code}.9999`).sort_order,leaf.sort_order);
+    flat.filter(r=>before.has(r.id)).forEach(r=>assert.equal(r.sort_order,before.get(r.id)+(before.get(r.id)>=leaf.sort_order?1:0)));
+    // Número que cai no bloco de outra conta vira a posição válida mais próxima, dentro da conta pai.
+    await db.exec(`insert into bp_plan_nodes(organization_id,account_code,name,node_class,parent_id,group_key,sort_order) values('${org}','${parent.account_code}.9998','FORA','Analitica','${parent.id}','Teste',${total+500})`);
+    flat=await check();
+    const fora=flat.find(r=>r.account_code===`${parent.account_code}.9998`),sibs=flat.filter(r=>r.parent_id===parent.id);
+    assert.equal(fora.sort_order,Math.max(...sibs.map(r=>r.sort_order)),'além do fim: última filha da conta pai');
+    // Mover para baixo e para cima, também uma conta com filhas (leva o bloco junto).
+    const caixa=flat.find(r=>r.account_code==='1.1.1.01'),bancos=flat.find(r=>r.account_code==='1.1.1.02');
+    await db.exec(`update bp_plan_nodes set sort_order=${bancos.sort_order} where id='${caixa.id}'`);
+    flat=await check();
+    assert.ok(flat.find(r=>r.account_code==='1.1.1.01').sort_order>flat.find(r=>r.account_code==='1.1.1.02').sort_order,'CAIXA desceu para depois de BANCOS');
+    assert.equal(flat.find(r=>r.account_code==='1.1.1.01.003').sort_order,flat.find(r=>r.account_code==='1.1.1.01').sort_order+1,'a filha acompanha a conta pai');
+    await db.exec(`update bp_plan_nodes set sort_order=${flat.find(r=>r.account_code==='1.1.1.02').sort_order} where id='${caixa.id}'`);
+    flat=await check();
+    assert.ok(flat.find(r=>r.account_code==='1.1.1.01').sort_order<flat.find(r=>r.account_code==='1.1.1.02').sort_order,'CAIXA subiu para antes de BANCOS');
+    // Alterar outros campos não mexe na ordem; remover fecha o buraco; trocar de conta pai mantém tudo sequencial.
+    const snap=JSON.stringify(flat.map(r=>[r.id,r.sort_order]));
+    await db.exec(`update bp_plan_nodes set name='RENOMEADA' where id='${caixa.id}'`);
+    assert.equal(JSON.stringify((await check()).map(r=>[r.id,r.sort_order])),snap);
+    await db.exec(`delete from bp_plan_nodes where account_code='${parent.account_code}.9999'`);
+    flat=await check();assert.equal(flat.length,total+1);
+    console.log('BP plan order: global 1..N in tree order, middle insert, clamp to parent block, move with subtree, delete, tie cleanup and idempotence OK');
   }finally{await db.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
