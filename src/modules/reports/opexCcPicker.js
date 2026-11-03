@@ -76,7 +76,41 @@
 
   let openPopover = null;
   function closeOpen() {
+    hideFull();
     if (openPopover) { openPopover.close(); openPopover = null; }
+  }
+
+  // Nome cortado com "…": ao passar o mouse, o texto completo aparece por cima da
+  // linha (cartao padrao .cockpit-tip), alinhado ao inicio do nome e livre para
+  // ultrapassar a borda da caixa.
+  let fullTip = null;
+  function hideFull() {
+    if (fullTip) fullTip.hidden = true;
+  }
+  function showFull(el) {
+    if (!el || el.scrollWidth <= el.clientWidth + 1) { hideFull(); return; }
+    if (!fullTip || !document.body.contains(fullTip)) {
+      fullTip = document.createElement("div");
+      fullTip.className = "cockpit-tip opex-cc-fulltip";
+      document.body.appendChild(fullTip);
+    }
+    fullTip.innerHTML = `<div class="cockpit-tip-row"><strong>${esc(el.textContent)}</strong></div>`;
+    fullTip.hidden = false;
+    const box = el.getBoundingClientRect();
+    const row = (el.closest(".opex-cc-row") || el).getBoundingClientRect();
+    const tip = fullTip.getBoundingClientRect();
+    const left = Math.max(8, Math.min(box.left - 10, window.innerWidth - tip.width - 8));
+    fullTip.style.left = `${left}px`;
+    fullTip.style.top = `${row.top + (row.height - tip.height) / 2}px`;
+  }
+  function bindFull(host, selector) {
+    host.addEventListener("mouseover", (event) => {
+      const el = event.target.closest?.(selector);
+      if (el && host.contains(el)) showFull(el);
+    });
+    host.addEventListener("mouseout", (event) => {
+      if (event.target.closest?.(selector)) hideFull();
+    });
   }
 
   // slot: elemento que recebe o botao; o popover vai para o <body> (position: fixed).
@@ -90,7 +124,20 @@
     const trigger = slot.querySelector("button");
     if (disabled) return;
 
+    // Rotulo do botao cortado (ex.: "Marketing · 12 CCs" em largura curta): mesmo cartao por cima.
+    trigger.addEventListener("mouseenter", () => {
+      if (trigger.scrollWidth <= trigger.clientWidth + 1 || openPopover?.trigger === trigger) return;
+      if (!fullTip || !document.body.contains(fullTip)) { fullTip = document.createElement("div"); fullTip.className = "cockpit-tip opex-cc-fulltip"; document.body.appendChild(fullTip); }
+      fullTip.innerHTML = `<div class="cockpit-tip-row"><strong>${esc(trigger.textContent)}</strong></div>`;
+      fullTip.hidden = false;
+      const box = trigger.getBoundingClientRect();
+      const tip = fullTip.getBoundingClientRect();
+      fullTip.style.left = `${Math.max(8, Math.min(box.left, window.innerWidth - tip.width - 8))}px`;
+      fullTip.style.top = `${box.top + (box.height - tip.height) / 2}px`;
+    });
+    trigger.addEventListener("mouseleave", hideFull);
     trigger.addEventListener("click", () => {
+      hideFull();
       if (openPopover?.trigger === trigger) { closeOpen(); return; }
       closeOpen();
       openPopover = open(trigger, { tree, canAll, allOption, draft: currentIds(tree, { selectedMgmt, customIds, allOption }), selectedMgmt, onApply, allowEmpty, popClass });
@@ -111,8 +158,11 @@
     pop.setAttribute("role", "dialog");
     pop.setAttribute("aria-label", "Gestões e centros de custo");
     document.body.appendChild(pop);
+    bindFull(pop, ".opex-cc-name");
+    pop.addEventListener("scroll", hideFull, true);
 
     function paint() {
+      hideFull();
       const scroll = pop.querySelector(".opex-cc-list")?.scrollTop || 0;
       const allCount = draft.size;
       const rows = [];
