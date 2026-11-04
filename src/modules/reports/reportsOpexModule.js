@@ -29,13 +29,15 @@
       rowsForSource,
       resolveSourceRef,
       fetchScenarioLedgerForYear,
-      fetchScenarioReportRowsForYear
+      fetchScenarioReportRowsForYear,
+      ensureReportsDataForYear
     } = deps;
 
     // Fonte comparativa do OPEX Real (Mes/Acumulado x Real/Cenario/Var) — mesma
     // dinamica dos DRE Real (reportsDreModule.js). null = ainda nao resolvida ->
     // assume a estrela global, ou "Budget {ano}" se nao houver (valores: "real:{ano}" | "scenario:{id}").
     let _compareSource = null;
+    const _ensureTried = new Set();
 
     function renderSelectedOpexReport(detailPanel, selectedReportId) {
       if (selectedReportId === "opexBudget") {
@@ -227,6 +229,20 @@
       function paintReal() {
         if (selectedMgmt === allOption) {
           const cacheEntry = reportsLedgerCache.get(year);
+          if (!cacheEntry) {
+            // Cache descartado (carga externa/aviso novo) ou ainda não carregado: mostra o
+            // skeleton e busca; o ensure redesenha o relatório ao terminar. Antes pintava
+            // a tabela vazia (tudo "—") sem disparar a busca. Uma tentativa por ano: se a
+            // busca falhar, o redesenho seguinte cai na tabela vazia em vez de repetir.
+            if (!_ensureTried.has(year)) {
+              _ensureTried.add(year);
+              tableInner.innerHTML = window.vpSkeletonTable();
+              void ensureReportsDataForYear?.(year);
+              return;
+            }
+          } else {
+            _ensureTried.delete(year);
+          }
           renderTable(cacheEntry?.rows || [], null);
         } else {
           const mgmtCacheKey = isPartial

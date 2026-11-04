@@ -1631,6 +1631,7 @@ const reportsOpexModule = createReportsOpexModule({
   resolveSourceRef,
   fetchScenarioLedgerForYear,
   fetchScenarioReportRowsForYear,
+  ensureReportsDataForYear,
 });
 const { createReportsHeadcountModule } = window.VECTON_REPORTS_HEADCOUNT;
 const reportsHeadcountModule = createReportsHeadcountModule({
