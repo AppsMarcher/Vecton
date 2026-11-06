@@ -116,6 +116,10 @@
         .cvp-mini-status { display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; color:var(--cvp-soft); white-space:nowrap; flex-shrink:0; }
         .cvp-mini-status::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--dot-color,#6b7280); box-shadow:0 0 0 3px var(--dot-glow,rgba(107,114,128,.15)); flex-shrink:0; }
         .cvp-mini.sum { border-color:var(--accent); } .cvp-mini.sum .cvp-mini-head { background:var(--accent-soft); } .cvp-mini.sum .cvp-mini-terr { color:var(--accent); }
+        /* Destaque do card sob o mouse, só nas áreas de detalhe da coordenação (.cvp-mini-grid). */
+        .cvp-mini-grid .cvp-mini { transition:border-color .15s; }
+        .cvp-mini-grid .cvp-mini:hover { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+        .cvp-mini-grid .cvp-mini:hover .cvp-mini-head { background:var(--accent-soft); }
         .cvp-mini-wrap { overflow-x:auto; }
         .cvp-mini-tbl { width:100%; border-collapse:collapse; table-layout:fixed; }
         .cvp-mini-tbl th, .cvp-mini-tbl td { padding:5px 4px; font-size:10.3px; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
