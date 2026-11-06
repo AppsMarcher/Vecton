@@ -287,6 +287,7 @@
       if (!_fixedAnchors) {
         _fixedAnchors = new Set();
         PRINT_COL_LAYOUT.forEach((col) => col.forEach((slot) => {
+          if (slot.extra) return; // slot de desmembramento: não entra na ordem do rótulo
           if (slot.terrs) _fixedAnchors.add(slot.terrs[0]);
           else if (slot.terr) _fixedAnchors.add(slot.terr);
         }));
@@ -935,31 +936,41 @@
     // fixa, igual à planilha. A COR de cada card segue a coordenação de ORIGEM
     // (casa geográfica), não a coluna física — por isso RR/Nabor e TO ficam
     // pintados de verde (Norte) mesmo fisicamente nas colunas 1 e 3.
+    // Retrato, 2 colunas de 14 cards (ordem de cima para baixo). Slots com `top`
+    // são os cards consolidados (Geral e cada região); `pecas` é o card da Peças.
     const PRINT_COL_LAYOUT = [
       [
+        { top: "geral" },
+        { top: "Exportação" },
+        { top: "Sul" },
         { terr: "SP" },
         { terr: "PR", mode: "grao" },
         { terr: "PR", mode: "pec" },
         { terr: "RS SUL" },
         { terr: "RS NORTE" },
-        { pecas: true },
-        { terr: "RR" }
+        { top: "Oeste" },
+        { terr: "MT OESTE" },
+        { terr: "MT CENTRO" },
+        { terr: "MT LESTE" },
+        { terr: "RO" },
+        { terr: "MS" }
       ],
       [
+        { top: "Pecuária" },
+        { pecas: true },
+        { top: "Norte" },
         { terr: "MG" },
         { terr: "GO" },
         { terr: "BA", mode: "grao" },
         { terr: "BA", mode: "pec" },
         { terr: "PA" },
         { terr: "SEALBA" },
-        { terrs: ["MA", "PI"] }
-      ],
-      [
-        { terr: "MT OESTE" },
-        { terr: "MT CENTRO" },
-        { terr: "MT LESTE" },
-        { terr: "RO" },
-        { terr: "MS" },
+        { terrs: ["MA", "PI"] },
+        // Card próprio do PI: só aparece quando o PI tem responsável diferente do
+        // MA. Enquanto o mesmo gestor cobre os dois, o card fundido MA_PI acima já
+        // o consome e este slot é ignorado (drawnGroups).
+        { terr: "PI", extra: true, color: "norte" },
+        { terr: "RR" },
         { terr: "TO", mode: "grao" },
         { terr: "TO", mode: "pec" }
       ]
@@ -967,7 +978,7 @@
     const HOME_COLOR_KEY = { "Sul": "sul", "Norte": "norte", "Oeste": "oeste", "Exportação": "exportacao" };
 
     // Monta o MODELO do report (dados, sem HTML nem Excel): qual card vai em
-    // cada uma das 3 colunas, na ordem. As duas saídas (pageModelToHtml pro
+    // cada uma das 2 colunas, na ordem. As duas saídas (pageModelToHtml pro
     // Imprimir/e-mail, buildExcelWorkbook pro Baixar Excel) pintam esse mesmo
     // modelo -- garante que os dois formatos nunca divirjam entre si.
     function buildPageModel(data, subtitle, scenarioName) {
@@ -978,27 +989,26 @@
       const tot = companyTotals(pc, pt);
       const numLine = (qMap) => { const o = {}; METRICS.forEach((m) => { o[m] = { q: qMap[m], v: 0 }; }); return o; };
       const geralCard = buildCard({
-        name: "Pedro", terr: "BRASIL", colors: PRINT_COLORS.geral, label: "GERAL",
+        name: "Pedro", terr: "BRASIL", colors: PRINT_COLORS.geral,
         grao: numLine(tot.grao), pec: numLine(tot.pec), fatVals: tot.fatv
       });
-      const consolidated = (nome, terrLabel, colors, label) => {
+      const consolidated = (nome, terrLabel, colors) => {
         const c = coord(nome); if (!c) return null;
         const pec = sumTerrLine(c, "pecuaria");
         // Sem Pecuaria no roteamento (Sul/Norte) -> mostra a da CASA geografica
         // como linha memo, ilustrativa. Mesma regra do painel ao vivo.
         const memo = pec ? null : sumTerrLine(pr.find((x) => x.nome === nome), "pecuaria");
         return cardFromLines(c.gestor || nome, terrLabel, colors,
-          sumTerrLine(c, "grao"), pec, sumTerrLine(c, "pecas"), label, memo);
+          sumTerrLine(c, "grao"), pec, sumTerrLine(c, "pecas"), null, memo);
       };
-      const col1Top = [geralCard, consolidated("Sul", "SUL", PRINT_COLORS.sul, "REG. SUL")].filter(Boolean);
-      const col2Top = [
-        consolidated("Pecuária", "PECUÁRIA", PRINT_COLORS.pecuaria, "PECUÁRIA"),
-        consolidated("Norte", "NORTE", PRINT_COLORS.norte, "REG. NORTE")
-      ].filter(Boolean);
-      const col3Top = [
-        consolidated("Exportação", "EXPO", PRINT_COLORS.exportacao, "EXPORTAÇÃO"),
-        consolidated("Oeste", "OESTE", PRINT_COLORS.oeste, "REG. OESTE")
-      ].filter(Boolean);
+      const topCards = {
+        geral: geralCard,
+        "Sul": consolidated("Sul", "SUL", PRINT_COLORS.sul),
+        "Pecuária": consolidated("Pecuária", "PECUÁRIA", PRINT_COLORS.pecuaria),
+        "Norte": consolidated("Norte", "NORTE", PRINT_COLORS.norte),
+        "Exportação": consolidated("Exportação", "EXPO", PRINT_COLORS.exportacao),
+        "Oeste": consolidated("Oeste", "OESTE", PRINT_COLORS.oeste)
+      };
 
       // --- cards de território: posição fixa (ver PRINT_COL_LAYOUT acima) ---
       // terrHome guarda a casa geográfica de cada território (só pra cor — a
@@ -1045,6 +1055,25 @@
         mergedGroups.push(...mergeSameRespCards(atomicCards));
       });
 
+      // PI desmembrado do MA (gestor próprio): a META que já era do card do
+      // Claudemir (MA_PI) fica com ele; o card do PI sai com meta zerada.
+      // Só mexe na coluna META (quantidade e valor) -- realizado e anos
+      // anteriores seguem o território.
+      const groupOf = (terr) => mergedGroups.find((g) => g.terrs.includes(terr));
+      const gMA = groupOf("MA"), gPI = groupOf("PI");
+      if (gMA && gPI && gMA !== gPI) {
+        ["grao", "pec"].forEach((k) => {
+          const pi = gPI[k];
+          if (!pi || !(pi.meta.q || pi.meta.v)) return;
+          if (!gMA[k]) {
+            gMA[k] = {}; METRICS.forEach((m) => { gMA[k][m] = { q: 0, v: 0 }; });
+            gMA[k].resp = gMA.resp || ""; gMA[k].orfao = false;
+          }
+          gMA[k].meta.q += pi.meta.q; gMA[k].meta.v += pi.meta.v;
+          pi.meta.q = 0; pi.meta.v = 0;
+        });
+      }
+
       // territorio+linha -> indice do grupo fundido que o contém.
       const ownerIdx = {};
       mergedGroups.forEach((group, idx) => {
@@ -1058,12 +1087,14 @@
       // território da grade fixa primeiro, nunca a ordem de chegada da RPC.
       const labelFor = (g) => combinedTerrLabel(g.terrs);
       const drawnGroups = new Set();   // evita desenhar o mesmo grupo fundido 2x
-      const groupCard = (idx, colorTerr) => {
+      const groupCard = (idx, colorTerr, colorKey) => {
         const g = mergedGroups[idx];
-        return cardFromLines(g.resp || "A definir", labelFor(g), colorFor(colorTerr), g.grao, g.pec, null);
+        const colors = colorKey ? PRINT_COLORS[colorKey] : colorFor(colorTerr);
+        return cardFromLines(g.resp || "A definir", labelFor(g), colors, g.grao, g.pec, null);
       };
 
       const flow = PRINT_COL_LAYOUT.map((col) => col.map((slot) => {
+        if (slot.top) return topCards[slot.top] || null;
         if (slot.pecas) {
           const cp = coord("Peças");
           return cp ? cardFromLines(cp.gestor || "—", "PEÇAS", PRINT_COLORS.pecas, null, null, sumTerrLine(cp, "pecas")) : null;
@@ -1072,7 +1103,7 @@
         const idx = findGroupIdx(anchorTerr, slot.mode);
         if (idx == null || drawnGroups.has(idx)) return null;
         drawnGroups.add(idx);
-        return groupCard(idx, anchorTerr);
+        return groupCard(idx, anchorTerr, slot.color);
       }).filter(Boolean));
 
       // Território fora da grade fixa (cadastro novo na Atribuição): qualquer
@@ -1090,7 +1121,7 @@
         subtitle, scenarioName,
         emitted: new Date().toLocaleDateString("pt-BR"),
         empty: !pc.length,
-        cols: [col1Top.concat(flow[0]), col2Top.concat(flow[1]), col3Top.concat(flow[2])]
+        cols: [flow[0], flow[1]]
       };
     }
 
@@ -1108,7 +1139,6 @@
         <div class="cols">
           <div class="col">${cols[0].map(cardHtml).join("")}</div>
           <div class="col">${cols[1].map(cardHtml).join("")}</div>
-          <div class="col">${cols[2].map(cardHtml).join("")}</div>
         </div>`}
       </section>`;
     }
@@ -1130,17 +1160,17 @@
 <title>One Page Report — Painel de Vendas ${mLabel}/${year}</title>
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
-  @page { size: A4 landscape; margin: 7mm; }
+  @page { size: A4 portrait; margin: 7mm; }
   html, body { background:var(--theme-surface-muted, #fff); color:var(--theme-ink-muted, #1a1a1a); font-family:"Segoe UI", Calibri, Arial, sans-serif;
     -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .page { width:283mm; page-break-after:always; }
+  .page { width:196mm; page-break-after:always; }
   .page:last-child { page-break-after:auto; }
   .ph { display:flex; justify-content:space-between; align-items:baseline; gap:6mm;
     border-bottom:1.5px solid var(--theme-border, #1F3864); padding-bottom:1.4mm; margin-bottom:2.4mm; }
   .ph h1 { font-size:11px; font-weight:700; color:var(--theme-ink-muted, #1F3864); }
   .ph .per { font-size:10px; font-weight:600; }
   .ph .meta { font-size:8px; color:var(--theme-ink-muted, #666); }
-  .cols { display:grid; grid-template-columns:repeat(3, 1fr); gap:0 3.4mm; align-items:start; }
+  .cols { display:grid; grid-template-columns:repeat(2, 1fr); gap:0 4mm; align-items:start; }
   .col { display:flex; flex-direction:column; }
   .plab { font-size:6.4px; font-weight:700; letter-spacing:.07em; color:var(--theme-ink-muted, #555); margin:1.3mm 0 .4mm; }
   .pc { margin-top:1.3mm; }
@@ -1150,18 +1180,18 @@
   .pc th, .pc td { font-size:6.6px; line-height:1.15; padding:.42mm .7mm; text-align:right;
     border:.25px solid var(--theme-border, #e4e4e4); font-variant-numeric:tabular-nums; overflow:hidden; white-space:nowrap; }
   .pc thead th { color:var(--theme-ink, #fff); font-weight:600; font-size:6px; letter-spacing:.03em; border-color:var(--theme-border, rgba(0,0,0,.18)); }
-  .pc th.nm { text-align:left; font-size:7px; font-weight:700; }
+  .pc th.nm { text-align:left; font-size:6px; font-weight:700; }
   .pc th.nm .nmw { display:flex; align-items:center; gap:.8mm; }
-  .pc th.nm .av { flex:none; width:3.2mm; height:3.2mm; line-height:3.2mm; border-radius:50%;
+  .pc th.nm .av { flex:none; width:2.8mm; height:2.8mm; line-height:2.8mm; border-radius:50%;
     background:var(--theme-surface-muted, #fff); font-size:5px; font-weight:700; text-align:center; }
   .pc th.nm .nmx { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .pc th.nm .tr { flex:none; font-weight:600; font-size:6.2px; opacity:.92; }
+  .pc th.nm .tr { flex:none; font-weight:600; font-size:5.4px; opacity:.92; }
   .pc td.lab { text-align:left; font-size:6.3px; font-weight:600; letter-spacing:.02em; color:var(--theme-ink-muted, #333); }
   .pc td.lab.off { color:var(--theme-ink-secondary, #b8b8b8); font-weight:400; }
   /* Linha memo (ilustrativa, fora do TTL/FATURA): italico cinza no fundo claro. */
   .pc tr.memo td { color:var(--theme-ink-secondary, #8a8a8a); font-style:italic; font-weight:400; }
   .pc tr.ttl td { font-weight:700; }
-  .pc tr.fat td { font-weight:600; background:var(--theme-surface-muted, #f5f5f5); }
+  .pc tr.fat td { font-size:6px; font-weight:600; background:var(--theme-surface-muted, #f5f5f5); }
   .pempty { padding:20mm; text-align:center; color:var(--theme-ink-secondary, #888); font-size:11px; }
   ${autoPrint ? `@media screen {
     body { background:var(--theme-surface-muted, #8a8f98); padding:14px; }
@@ -1249,7 +1279,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
     const XLS_BORDER_ALL = { top: XLS_BORDER_THIN, left: XLS_BORDER_THIN, bottom: XLS_BORDER_THIN, right: XLS_BORDER_THIN };
     const XLS_NUMFMT = '#,##0;(#,##0);"-"'; // mesmo criterio do pfmt: zero vira "-", negativo entre parenteses
     const XLS_CARD_W = 8; // 2 cols (nome/terr mesclado) + 6 metricas, igual ao colgroup do card impresso
-    const XLS_BLOCK_STARTS = [1, 10, 19]; // col inicial de cada uma das 3 colunas do report (8 + 1 de respiro)
+    const XLS_BLOCK_STARTS = [1, 10]; // col inicial de cada uma das 2 colunas do report (8 + 1 de respiro)
     const XLS_TOTAL_COLS = XLS_BLOCK_STARTS[XLS_BLOCK_STARTS.length - 1] + XLS_CARD_W - 1;
 
     function xlsHex(hex) { return `FF${hex.replace("#", "").toUpperCase()}`; }
@@ -1334,7 +1364,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       const ws = workbook.addWorksheet(name, {
         views: [{ showGridLines: false }],
         pageSetup: {
-          paperSize: 9, orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 1,
+          paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 1,
           margins: { left: marginIn, right: marginIn, top: marginIn, bottom: marginIn, header: 0, footer: 0 }
         }
       });
@@ -1419,6 +1449,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
         subject: `Painel de Vendas — ${mLabel}/${year}`,
         bodyText: `Olá,\n\nSegue em anexo o Painel de Vendas de ${mLabel}/${year} (mês e acumulado YTD).\n\nAtenciosamente,\n${signature}`,
         filename: reportFilename(),
+        orientation: "portrait",
         buildHtml: buildReportHtmlForEmail
       });
     }
@@ -1536,6 +1567,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
           subject: `Painel de Vendas — ${mLabel}/${year}`,
           filename: reportFilename(),
           bodyText: `Olá,\n\nSegue em anexo o Painel de Vendas de ${mLabel}/${year} (mês e acumulado YTD).\n\n${assinatura ? `Atenciosamente,\n${assinatura}` : ""}`.trim(),
+          orientation: "portrait",
           html
         };
       }

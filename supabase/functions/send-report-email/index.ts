@@ -172,6 +172,7 @@ Deno.serve(async (req) => {
     const filename = String(body.filename ?? "relatorio.pdf").trim();
     const bodyText = String(body.body_text ?? "Segue em anexo o relatório solicitado.").trim();
     const html = String(body.html ?? "");
+    const orientation = body.orientation === "portrait" ? "portrait" : "landscape";
 
     if (!to.length) return json({ error: "Informe ao menos um destinatário" }, 400);
     if (!to.every((e: string) => EMAIL_RE.test(e))) return json({ error: "Endereço de e-mail inválido em Para" }, 400);
@@ -199,7 +200,7 @@ Deno.serve(async (req) => {
         html,
         options: {
           printBackground: true,
-          landscape: true,
+          landscape: orientation !== "portrait",
           format: "A4",
           margin: { top: "7mm", right: "7mm", bottom: "7mm", left: "7mm" },
           scale: 1,

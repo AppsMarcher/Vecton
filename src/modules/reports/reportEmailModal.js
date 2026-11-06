@@ -80,7 +80,7 @@
       okBtn.focus();
     }
 
-    function open({ subtitle, subject: defaultSubject, bodyText: defaultBody, filename, buildHtml, isSessionValid }) {
+    function open({ subtitle, subject: defaultSubject, bodyText: defaultBody, filename, buildHtml, isSessionValid, orientation }) {
       closeEmailModal();
       const suggestOn = getSuggestEnabled();
 
@@ -246,6 +246,7 @@
             cc: cc.length ? cc : undefined,
             subject: subjectInput.value.trim(),
             filename,
+            orientation,
             body_text: textInput.value,
             html
           });

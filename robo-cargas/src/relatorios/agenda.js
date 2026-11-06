@@ -29,6 +29,7 @@ export function montarEnvio(construido, destinatarios) {
     subject: construido.subject,
     filename: construido.filename,
     body_text: construido.bodyText,
+    ...(construido.orientation ? { orientation: construido.orientation } : {}),
     html: construido.html
   };
 }
