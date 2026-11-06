@@ -1055,25 +1055,6 @@
         mergedGroups.push(...mergeSameRespCards(atomicCards));
       });
 
-      // PI desmembrado do MA (gestor próprio): a META que já era do card do
-      // Claudemir (MA_PI) fica com ele; o card do PI sai com meta zerada.
-      // Só mexe na coluna META (quantidade e valor) -- realizado e anos
-      // anteriores seguem o território.
-      const groupOf = (terr) => mergedGroups.find((g) => g.terrs.includes(terr));
-      const gMA = groupOf("MA"), gPI = groupOf("PI");
-      if (gMA && gPI && gMA !== gPI) {
-        ["grao", "pec"].forEach((k) => {
-          const pi = gPI[k];
-          if (!pi || !(pi.meta.q || pi.meta.v)) return;
-          if (!gMA[k]) {
-            gMA[k] = {}; METRICS.forEach((m) => { gMA[k][m] = { q: 0, v: 0 }; });
-            gMA[k].resp = gMA.resp || ""; gMA[k].orfao = false;
-          }
-          gMA[k].meta.q += pi.meta.q; gMA[k].meta.v += pi.meta.v;
-          pi.meta.q = 0; pi.meta.v = 0;
-        });
-      }
-
       // territorio+linha -> indice do grupo fundido que o contém.
       const ownerIdx = {};
       mergedGroups.forEach((group, idx) => {
