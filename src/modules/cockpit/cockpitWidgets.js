@@ -198,14 +198,14 @@
     const headers = [
       th(data.areaLabel || "CC", "name", areasSort.key === "name", areasSort.dir),
       th("HC", "actual", areasSort.key === "actual", areasSort.dir),
-      th("Gasto com Pessoal", "personnelOpex", areasSort.key === "personnelOpex", areasSort.dir),
+      th("Pessoal", "personnelOpex", areasSort.key === "personnelOpex", areasSort.dir),
       th("Demais Opex", "otherOpex", areasSort.key === "otherOpex", areasSort.dir)
     ];
     // Clique numa área abre a lista de pessoas dessa área direto (data-hc-area);
     // clique no Total abre antes o resumo por área (data-hc-total, mesmo
     // padrão do card de Headcount) — tratado em cockpitModule.js.
     const rowAttrs = sorted.map(area => area.actual ? ` class="ger-drillable" data-hc-area="${e(area.code || area.name)}"` : "");
-    return table("Raio-X por Área", headers, sorted.map(row), row({ name: "Total", actual: data.headcount.actual, personnelOpex: data.personnelOpex, otherOpex: data.otherOpex }), rowAttrs, data.headcount.actual ? " data-hc-total" : "");
+    return table("Raio-X por Área", headers, sorted.map(row), row({ name: "Total", actual: data.headcount.actual, personnelOpex: data.personnelOpex, otherOpex: data.otherOpex }), rowAttrs, data.headcount.actual ? " data-hc-total" : "", "cockpit-table-areas");
   }
   // { actual, budget } de uma das duas fatias do OPEX (Pessoal ou Demais),
   // lidas do aggregate() de um periodType específico (month/YTD) — source

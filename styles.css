@@ -187,6 +187,12 @@
 #cockpit-view .cockpit-table .ger-row-subtotal th { background: var(--blue-soft); font-weight: 700; border-top: 1px solid var(--blue); }
 /* OPEX por Grupo de Despesa: coluna Grupo larga (nome em uma linha) e as 4 de valores com largura igual. */
 #cockpit-view .cockpit-table.cockpit-table-groups { min-width: 640px; table-layout: fixed; }
+#cockpit-view .cockpit-table.cockpit-table-areas { min-width: 0; width: 100%; table-layout: fixed; }
+#cockpit-view .cockpit-table-areas th:first-child { width: 34%; }
+#cockpit-view .cockpit-table-areas th:nth-child(2) { width: 14%; }
+#cockpit-view .cockpit-table-areas th:nth-child(n+3) { width: 26%; }
+#cockpit-view .cockpit-table-areas th, #cockpit-view .cockpit-table-areas td { padding-left: 6px; padding-right: 6px; }
+#cockpit-view .cockpit-table-areas tbody th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #cockpit-view .cockpit-table-groups th:first-child { width: 36%; }
 #cockpit-view .cockpit-table-groups th:not(:first-child) { width: 16%; }
 #cockpit-view .cockpit-table-groups tbody th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
