@@ -632,7 +632,15 @@
         // Funde os territórios com o MESMO responsável nomeado em territórios
         // diferentes (ex.: MA+PI) -- único passo que fica só no desktop; é
         // agrupamento visual, não muda nenhum total (ver nota em buildCoordDetail).
-        mergeSameRespCards(det.territorios).forEach((card) => {
+        const merged = mergeSameRespCards(det.territorios);
+        // Norte: o card do PI (gestor próprio) troca de lugar com o card combinado
+        // PE_CE_AP_RJ_AM_PB_ES_RN_AC (André).
+        if (c.nome === "Norte") {
+          const iPI = merged.findIndex((x) => x.terrs.length === 1 && x.terrs[0] === "PI");
+          const iPE = merged.findIndex((x) => x.terrs.includes("PE"));
+          if (iPI >= 0 && iPE >= 0 && iPI !== iPE) [merged[iPI], merged[iPE]] = [merged[iPE], merged[iPI]];
+        }
+        merged.forEach((card) => {
           cards.push(miniHtml(card.terr, card.resp, card.grao, card.pec, null, false, { terr: card.terr, terrs: card.terrs, linhas: card.linhas }));
         });
       }
