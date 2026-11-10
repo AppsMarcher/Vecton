@@ -178,3 +178,6 @@
 .pl-capex-grid .pl-input{padding:5px 8px}
 .pl-capex-grid .pl-capex-row-actions .pl-button,.pl-capex-grid th .pl-button{padding:3px 7px;min-height:24px}
 .pl-grid-scroll{position:sticky;top:8px;z-index:5;scroll-margin-top:8px}
+
+.pl-imp-mode{display:grid;gap:8px}.pl-imp-mode-actions{display:flex;flex-wrap:wrap;gap:8px}.pl-imp-mode small{display:block;color:var(--text-soft);font-size:12px}
+.pl-button.pl-danger{color:var(--red,#c0392b);border-color:currentColor}

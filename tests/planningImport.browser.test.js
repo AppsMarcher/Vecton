@@ -40,10 +40,11 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     if (process.env.PLANNING_EXCELJS_LIB) {
       await page.addScriptTag({ path: process.env.PLANNING_EXCELJS_LIB });
       const ExcelJS = require(path.dirname(path.dirname(process.env.PLANNING_EXCELJS_LIB)));
-      const send = async rows => {
+      const send = async (rows, mode = 'incremental') => {
         const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('Meta Vendas'); rows.forEach(r => ws.addRow(r));
         await page.locator('.pl-import-pop [data-imp="file"]').setInputFiles({ name: 'fat.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(await wb.xlsx.writeBuffer()) });
         await page.locator('.pl-import-pop [data-imp="upload"]').click();
+        await page.locator(`.pl-import-pop [data-imp="mode:${mode}"]`).click();
       };
       const text = () => page.locator('.pl-import-pop [data-imp="status"]').innerText();
       await page.evaluate(() => { window.importResult = { ok: true, replaced: 0, inserted: 2 }; });
@@ -52,6 +53,10 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
       assert.deepEqual(await page.evaluate(() => calls.filter(c => c.name === 'planning_fat_import').pop().args.p_rows), [
         { row: 2, cod_produto: '0400007', month: '9', territorio: 'SP', quantidade: '1', valor: '78863.91' },
         { row: 3, cod_produto: '105132', month: '10', territorio: '', quantidade: null, valor: '1000' }]);
+      assert.equal(await page.evaluate(() => calls.filter(c => c.name === 'planning_fat_import').pop().args.p_mode), 'incremental');
+      await send([['mes', 'territorio', 'cod_produto', 'Quantidade', 'Valor'], [9, 'SP', '0400007', 1, null]], 'completa');
+      await page.waitForFunction(() => /Importação concluída/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
+      assert.equal(await page.evaluate(() => calls.filter(c => c.name === 'planning_fat_import').pop().args.p_mode), 'completa');
       await page.evaluate(() => { window.importResult = { ok: false, errors: [{ row: 2, message: 'Linha 2: produto 9 não cadastrado' }] }; });
       await send([['mes', 'cod_produto'], [1, '9']]);
       await page.waitForFunction(() => /1 erro\(s\) e nada foi importado[\s\S]*Linha 2: produto 9 não cadastrado/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));

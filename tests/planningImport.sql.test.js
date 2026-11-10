@@ -137,7 +137,7 @@ const { createDb } = require('./helpers/planningFatDb');
     const tipoMaq = k['tipo:Máquinas'];
     await db.query("insert into comercial_produtos values(gen_random_uuid(),$1,'777','Sem modelo',null,$2,null)", [ids.org, tipoMaq]);
     await db.query("insert into comercial_territorios values(gen_random_uuid(),$1,'RJ')", [ids.org]);
-    const fimp = async rows => (await db.query('select planning_fat_import($1,$2,$3::jsonb) r', [ids.org, fatForm, JSON.stringify(rows)])).rows[0].r;
+    const fimp = async (rows, mode) => (await (mode ? db.query('select planning_fat_import($1,$2,$3::jsonb,$4) r', [ids.org, fatForm, JSON.stringify(rows), mode]) : db.query('select planning_fat_import($1,$2,$3::jsonb) r', [ids.org, fatForm, JSON.stringify(rows)]))).rows[0].r;
     const fr = (row, cod_produto, month, territorio, quantidade, valor = null, mc1 = null) => ({ row, cod_produto, month, territorio, quantidade, valor, mc1 });
     const fmsgs = async rows => (await fimp(rows)).errors.map(e => e.message);
     await T.as(ids.writer);
@@ -161,9 +161,22 @@ const { createDb } = require('./helpers/planningFatDb');
     assert.deepEqual(v1['PECAS/PECAS/1'], [1500, 1]);
     const second = await fimp([fr(2, cING100a, 1, 'BA', '5')]);
     assert.deepEqual([second.ok, second.replaced, second.inserted], [true, 1, 0], 'chave existente é substituída');
+    const BA0 = k['territorio:BA'];
     const v2 = await vols();
     assert.deepEqual(v2[k['territorio:BA'] + '/INGRAIN100/1'], [5, 2], 'substituir sobe a versão');
     assert.deepEqual(v2['PECAS/PECAS/1'], [1500, 1], 'o que o arquivo não cita permanece');
+
+    // Carga completa: apaga tudo do formulário e grava só o arquivo; erro de validação não apaga nada; modo inválido é recusado.
+    await assert.rejects(fimp([fr(2, cING100a, 1, 'BA', '1')], 'outro'), /Modo de carga inválido/);
+    const bad = await fimp([fr(2, '9999', 1, 'BA', '1')], 'completa');
+    assert.equal(bad.ok, false); assert.equal(Object.keys(await vols()).length, 2, 'arquivo com erro não apaga nada');
+    const inc = await fimp([fr(2, cING100a, 2, 'BA', '3')], 'incremental');
+    assert.deepEqual([inc.ok, inc.removed, inc.inserted], [true, 0, 1], 'incremental não apaga');
+    assert.equal(Object.keys(await vols()).length, 3);
+    const comp = await fimp([fr(2, cING100a, 2, 'BA', '4')], 'completa');
+    assert.deepEqual([comp.ok, comp.removed, comp.replaced, comp.inserted], [true, 3, 0, 1], 'completa apaga as 3 células e grava a do arquivo');
+    assert.deepEqual(await vols(), { [BA0 + '/INGRAIN100/2']: [4, 1] }, 'só o arquivo permanece');
+    await fimp([fr(2, cING100a, 1, 'BA', '5'), fr(3, cPEC1, 1, '', null, '1000'), fr(4, cPEC2, 1, null, null, '500')], 'completa');
 
     // ---- Task 9: carga de planejado vendas (cenário sem formulário): todos os campos obrigatórios
     await db.exec('reset role');

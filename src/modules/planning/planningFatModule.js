@@ -330,7 +330,9 @@
       return { name: f.name, slug: 'fat', sheet: 'Meta Vendas',
         columns: [{ key: 'month', label: 'mes', required: true }, { key: 'territorio', label: 'territorio' }, { key: 'cod_produto', label: 'cod_produto', required: true },
           { key: 'quantidade', label: 'Quantidade' }, { key: 'valor', label: 'Valor' }],
-        send: rows => rpc('planning_fat_import', { p_org: deps.org(), p_form: f.id, p_rows: rows.map(r => ({ row: r.row, cod_produto: text(r.cod_produto), month: text(r.month), territorio: text(r.territorio), quantidade: amt(r.quantidade), valor: amt(r.valor) })) }) };
+        modes: [{ key: 'incremental', label: 'Carga incremental', detail: 'grava e atualiza só o que está no arquivo; o resto permanece.' },
+          { key: 'completa', label: 'Carga completa', danger: true, detail: 'apaga tudo o que existe no formulário e grava só o arquivo.' }],
+        send: (rows, mode) => rpc('planning_fat_import', { p_org: deps.org(), p_form: f.id, p_mode: mode === 'completa' ? 'completa' : 'incremental', p_rows: rows.map(r => ({ row: r.row, cod_produto: text(r.cod_produto), month: text(r.month), territorio: text(r.territorio), quantidade: amt(r.quantidade), valor: amt(r.valor) })) }) };
     }
     return { open, html, input, change, action, integrate, save, importInfo, dirty: () => changes.size > 0, discard: () => { changes = new Map(); persistDraft(); }, listRow: views.listRow, overlapHtml: views.overlapModal, overlapNote: views.overlapNote };
   }

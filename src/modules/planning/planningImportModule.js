@@ -27,6 +27,11 @@
       const mark = { ok: '✓', err: '✕', run: '…', wait: '•' };
       return `<ol class="pl-imp-steps">${steps.map(s => `<li class="pl-imp-${s.state}"><span aria-hidden="true">${mark[s.state]}</span><div><strong>${esc(s.text)}</strong>${s.detail ? `<small>${esc(s.detail)}</small>` : ''}${(s.items || []).map(i => `<small>${esc(i)}</small>`).join('')}</div></li>`).join('')}</ol>`;
     }
+    // Pergunta o tipo de carga (só para quem declara info.modes): incremental grava/atualiza o que está no arquivo; completa apaga tudo e sobrescreve.
+    function askMode(info) {
+      const box = pop?.querySelector('[data-imp="status"]'); if (!box) return;
+      box.innerHTML = `<div class="pl-imp-mode"><strong>Tipo de carga</strong><div class="pl-imp-mode-actions">${info.modes.map(m => `<button type="button" class="pl-button${m.danger ? ' pl-danger' : ''}" data-imp="mode:${esc(m.key)}">${esc(m.label)}</button>`).join('')}<button type="button" class="pl-button" data-imp="mode-cancel">Cancelar</button></div>${info.modes.map(m => `<small><b>${esc(m.label)}:</b> ${esc(m.detail)}</small>`).join('')}</div>`;
+    }
     function html(info) {
       return `<div class="pl-imp-head"><strong>Importar · ${esc(info.name)}</strong><button type="button" class="pl-dialog-x" data-imp="close" aria-label="Fechar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
         <div class="pl-imp-actions"><button type="button" class="pl-button" data-imp="template">Baixar template</button><button type="button" class="pl-button" data-imp="pick">Selecionar arquivo</button><button type="button" class="pl-button pl-primary" data-imp="upload" disabled>Enviar arquivo</button></div>
@@ -91,7 +96,7 @@
       return { rows, sheet: ws.name };
     }
 
-    async function upload(info) {
+    async function upload(info, mode) {
       if (!file || running) return;
       running = true; pop.querySelector('[data-imp="upload"]').disabled = true;
       const log = [{ state: 'ok', text: 'Arquivo selecionado', detail: file.name }, { state: 'run', text: 'Lendo o arquivo' }];
@@ -101,7 +106,7 @@
         log[1] = { state: 'ok', text: 'Arquivo lido', detail: `Planilha “${sheet}” · ${rows.length} linha(s) preenchida(s)` };
         if (!rows.length) { log.push({ state: 'err', text: 'O arquivo não tem linhas de dados', detail: 'Preencha ao menos uma linha abaixo do cabeçalho.' }); return status(log); }
         log.push({ state: 'run', text: 'Validando e importando' }); status(log);
-        const result = await info.send(rows);
+        const result = await info.send(rows, mode);
         if (result.ok) {
           log[2] = { state: 'ok', text: 'Importação concluída', detail: result.summary || `${result.replaced ?? 0} valor(es) substituído(s) e ${result.inserted ?? 0} incluído(s).` };
         } else {
@@ -119,7 +124,9 @@
       if (name === 'close') return close();
       if (name === 'template') return download(info);
       if (name === 'pick') return pop.querySelector('[data-imp="file"]').click();
-      if (name === 'upload') return upload(info);
+      if (name === 'upload') return info.modes ? askMode(info) : upload(info);
+      if (name === 'mode-cancel') return status(file ? [{ state: 'ok', text: 'Arquivo selecionado', detail: 'Clique em Enviar arquivo para iniciar.' }] : []);
+      if (name.startsWith('mode:')) return upload(info, name.slice(5));
     }
     return { open, close };
   }
