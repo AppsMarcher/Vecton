@@ -402,6 +402,12 @@
         case 'capex-delete': return leave(()=>modal('Excluir investimento?','<p>O investimento e seus valores serão excluídos. Integre novamente para atualizar o DRE.</p>',async()=>{const item=capexItems.find(i=>i.id===d.id);await capexWrite('delete_item',{id:item.id,version:item.row_version});close();await refresh();await readForm();render();}));
         case 'capex-sort': capexSort={field:d.sort,direction:capexSort.field===d.sort?-capexSort.direction:1};return render();
         case 'edit-form': return openFormDialog(form());
+        case 'rename-scenario': return modal('Renomear cenário', field('Nome', textInput('pl-scenario-name', scenario.name, 'maxlength="80"')), async () => {
+          const name = root.querySelector('#pl-scenario-name').value.trim();
+          if (!name) throw Error('Informe o nome do cenário');
+          if (name !== scenario.name) { await rpc('planning_rename_scenario', { p_org: org, p_scenario: scenario.id, p_name: name }); invalidateScenarioCachesFor?.(scenario.id, scenario.reference_year); }
+          close(); await refresh(); render();
+        });
         case 'capex-toggle-dep': capexDepOpen = !capexDepOpen; return render();
         case 'open-form': capexDepOpen = false; return loadForm(d.id);
         case 'configure': return loadForm(d.id, 'structure');
