@@ -84,8 +84,9 @@ Matriz de leitura e escrita por pessoa e por **região**, como no OPEX e no CPX.
 
 Para cada **região (território) × modelo**:
 
-- **FAT/un** e **MP/un** = média ponderada pelo volume dos **2 últimos meses fechados com venda do modelo naquele território**. Se um dos meses não tiver venda, recua mês a mês até achar 2.
-- Sem nenhuma venda do modelo no território: usa a **média Marcher** do modelo, calculada pela mesma regra.
+- **FAT/un** = média ponderada pelo volume dos **2 últimos meses fechados com venda do modelo naquele território**. Se um dos meses não tiver venda, recua mês a mês até achar 2.
+- Sem nenhuma venda do modelo no território: o FAT/un usa a **média Marcher** do modelo, calculada pela mesma regra.
+- **MP/un** (custo do produto) = a **média Marcher** do modelo, igual para todos os territórios, pois a produção é uma só. Peças continua com MP ÷ FAT.
 - A premissa é do **território**, não da pessoa: trocar o responsável não a altera.
 - **Congelada**: calculada e gravada no cenário quando o formulário é liberado. O admin pode clicar em **Atualizar premissas**, que registra quem, quando e quais meses foram usados.
 - O admin pode **sobrescrever qualquer premissa**. A sobrescrita é marcada, guarda o valor original do histórico ao lado e **sobrevive** a "Atualizar premissas"; só deixa de valer se o admin a desfizer.
