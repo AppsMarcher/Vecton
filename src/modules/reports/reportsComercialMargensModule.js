@@ -879,7 +879,10 @@
       else load();
       return true;
     }
-    return { renderSelectedMargens, REPORT_ID };
+    // Descarta o modelo em memória: carga de vendas aplicada (aqui ou pelo robô) muda o razão, e o próximo
+    // acesso ao relatório busca de novo em vez de reaproveitar o ano já carregado.
+    function invalidate() { model = null; loadedYear = null; tmodel = null; tKey = ""; }
+    return { renderSelectedMargens, invalidate, REPORT_ID };
   }
   window.VECTON_COMERCIAL_MARGENS = { createComercialMargensModule, calculateMarginBridge };
 })(window);

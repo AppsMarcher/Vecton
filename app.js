@@ -1202,6 +1202,7 @@ const comercialModules = {
 // acessada pelo card "Volumes de Vendas" do catalogo Carga de Realizado.
 const comVendasCargaMod = createComercialVendasCargaModule({
   state,
+  onRealizadoChanged: (year) => invalidateReportsAfterVendasLoad(year),
   views,
   periodTrigger,
   getActiveView: () => activeView,
@@ -6184,7 +6185,14 @@ async function fetchDreVendasMonthsForYear(year) {
 function invalidateReportsAfterExternalLoad() {
   const anos = new Set([Number(state.currentPeriod?.year), new Date().getFullYear()].filter(Boolean));
   anos.forEach((ano) => invalidateReportsForYear(ano));
+  comercialMargensModule.invalidate?.();
   if (activeView === "reports") renderReportsView();
+}
+
+// Carga de vendas aplicada (ou lote excluído) pela tela: relatórios que leem o razão de vendas buscam de novo.
+function invalidateReportsAfterVendasLoad(year) {
+  invalidateReportsForYear(year);
+  comercialMargensModule.invalidate?.();
 }
 
 function invalidateReportsForYear(year) {

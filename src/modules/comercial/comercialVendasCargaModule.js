@@ -36,6 +36,7 @@
       upsertSupabaseRows,
       appConfirm,
       onBack,
+      onRealizadoChanged,
       MAX_BROWSER_TEXT_IMPORT_BYTES,
       MAX_BROWSER_XLSX_BYTES,
       UPSERT_CHUNK_SIZE
@@ -618,6 +619,7 @@
         setSyncStatus(auto ? "Aplicando carga no BD..." : "Aplicando lote no BD...", "warn");
         await callSupabaseRpc("apply_comercial_realizado_import_batch", { target_batch_id: batch.id });
         await refreshBatch(batch.id);
+        onRealizadoChanged?.(batch.referenceYear);
         setSyncStatus(auto ? "Carga aplicada no BD" : "Lote aplicado no BD", "ok");
         return true;
       }
@@ -639,6 +641,7 @@
         if (isSupabaseConfigured()) {
           if (batch.status === "applied") {
             await callSupabaseRpc("delete_comercial_realizado_import_batch", { target_batch_id: batch.id });
+            onRealizadoChanged?.(batch.referenceYear);
           } else {
             await deleteSupabaseRows("comercial_realizado_import_batches", `id=eq.${encodeURIComponent(batch.id)}`);
           }
