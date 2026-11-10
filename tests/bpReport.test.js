@@ -70,6 +70,11 @@ const oddPlan=[...plan,{...node('odd','9.9.9','Outra'),active:false},{...node('o
 assert.doesNotThrow(()=>M.build(oddPlan,[batch('01',1)],[],{year:2026,month:10}));
 // ...mas com saldo o erro continua visível.
 assert.throws(()=>M.build(oddPlan,[{branch_id:'01',rows:[{account_id:'odd2',amount:5}]}],[],{year:2026,month:10}),/grupo BP/);
+// Conta do Ativo com chave de linha do Passivo compensa nessa linha, sem criar grupo extra no Ativo.
+const crossPlan=[...plan,{...node('rem','1.1.5.03.00009','Estoques de Terceiros'),active:true},{...node('liab','2.1.6.01.00008','Estoques de Terceiros'),active:true}];
+const cross=M.build(crossPlan,[{branch_id:'01',rows:[{account_id:'rem',amount:-100},{account_id:'liab',amount:100}]}],[],{year:2026,month:10});
+assert.equal(cross.sections.flatMap(s=>s.lines).find(l=>l.id==='thirdPartyInventory').current,0);
+assert.equal(cross.sections.filter(s=>s.side==='asset').flatMap(s=>s.lines).some(l=>/terceiros/i.test(l.label)),false);
 // Item 3: a classificação vem do snapshot do lote, não do plano atual.
 const moved=plan.map(n=>n.id==='cash'?{...n,group_key:'Estoques'}:n);
 const snapBatch={branch_id:'01',plan_snapshot:plan,rows:[{account_id:'cash',amount:7}]};

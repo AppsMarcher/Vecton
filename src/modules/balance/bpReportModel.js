@@ -50,6 +50,7 @@
     if (/^2\.3(?:\.|$)/.test(code)) return "equity";
     throw new Error(`A conta ${code || node.name} não pertence a um grupo BP reconhecido.`);
   }
+  const otherSideLine = (section, key) => SECTIONS.filter(s => s.side !== section.side).flatMap(s => s.lines).find(l => l.keys.some(k => normalize(k) === key));
   function aggregate(batches, plan, dreReplacesProfitReserve = false) {
     const values = new Map(), extras = new Map(), scopes = new Set(), accounts = new Map();
     const currentIds = new Map(plan.map(n => [n.id, n])), currentCodes = new Map(plan.map(n => [n.account_code || n.source_name, n]));
@@ -70,6 +71,8 @@
         const sectionId = sectionFor(node), section = SECTIONS.find(s => s.id === sectionId), key = normalize(node.group_key);
         let target = section.lines.find(l => l.keys.some(k => normalize(k) === key));
         if (key === normalize("Impostos a Recuperar")) target = section.lines.find(l => l.id === (sectionId === "assetNoncurrent" ? "taxNoncurrent" : "taxCurrent"));
+        // Chave que só existe no outro lado (ex.: conta 1.1 com "Estoques de Terceiros") entra nessa linha, para compensar contas do outro lado.
+        if (!target) target = otherSideLine(section, key);
         if (!target) {
           const id = `extra:${sectionId}:${key}`;
           target = { id, label: node.group_key, keys: [node.group_key] };
@@ -102,7 +105,7 @@
       const configuredExtras = plan.filter(n => n.node_class === "Analitica" && n.group_key && n.active).filter(n => { try { return sectionFor(n) === section.id; } catch { return false; } });
       for (const node of configuredExtras) {
         const key = normalize(node.group_key);
-        if (!section.lines.some(l => l.keys.some(k => normalize(k) === key))) {
+        if (!section.lines.some(l => l.keys.some(k => normalize(k) === key)) && !otherSideLine(section, key)) {
           const id = `extra:${section.id}:${key}`;
           if (!extraLines.has(id)) extraLines.set(id, { id, label: node.group_key, sectionId: section.id });
         }
