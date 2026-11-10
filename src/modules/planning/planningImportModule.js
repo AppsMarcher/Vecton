@@ -6,6 +6,9 @@
   const MONTHS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const MAX_ERRORS_SHOWN = 30;
+  // Tipos de carga oferecidos ao enviar o arquivo (`info.modes`); `send(rows, mode)` recebe a chave escolhida.
+  const LOAD_MODES = [{ key: 'incremental', label: 'Carga incremental', detail: 'grava e atualiza só o que está no arquivo; o resto permanece.' },
+    { key: 'completa', label: 'Carga completa', danger: true, detail: 'apaga tudo o que existe no formulário e grava só o arquivo.' }];
   const norm = v => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
 
   // Mesmo critério de `parseLocalizedAmount` (src/core/utils.js): número do Excel como está; texto com ponto de milhar e vírgula decimal.
@@ -130,5 +133,5 @@
     }
     return { open, close };
   }
-  global.VECTON_PLANNING_IMPORT = { createImportPopover, normalizeAmount, cellText, MONTHS };
+  global.VECTON_PLANNING_IMPORT = { createImportPopover, normalizeAmount, cellText, MONTHS, LOAD_MODES };
 })(window);

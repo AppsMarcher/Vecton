@@ -362,7 +362,8 @@
       const { normalizeAmount, cellText } = global.VECTON_PLANNING_IMPORT, text = v => cellText(v).trim();
       return { name: f.name, slug: `lancamentos-${f.code}`, sheet: 'Lançamentos',
         columns: [{ key: 'account', label: 'Conta', required: true }, { key: 'month', label: 'Mês', required: true }, { key: 'amount', label: 'Valor', required: true }, { key: 'cost_center', label: 'Centro de custo' }],
-        send: rows => rpc('planning_import_entries', { p_org: org, p_form: f.id, p_rows: rows.map(r => ({ row: r.row, account: text(r.account), month: text(r.month), amount: normalizeAmount(r.amount), cost_center: text(r.cost_center) || null })) }) };
+        modes: global.VECTON_PLANNING_IMPORT.LOAD_MODES,
+        send: (rows, mode) => rpc('planning_import_entries', { p_org: org, p_form: f.id, p_mode: mode === 'completa' ? 'completa' : 'incremental', p_rows: rows.map(r => ({ row: r.row, account: text(r.account), month: text(r.month), amount: normalizeAmount(r.amount), cost_center: text(r.cost_center) || null })) }) };
     }
     function importForm(button, id) {
       const f = context.forms.find(x => x.id === id);

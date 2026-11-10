@@ -113,6 +113,19 @@ const { createDb } = require('./helpers/planningFatDb');
     assert(afterRows.find(x => x.m === 1 && x.c === null).v > before.find(x => x.m === 1 && x.c === null).v, 'substituir sobe a versão');
     assert.equal(afterRows.find(x => x.m === 1 && x.c === ids.cc).a, 70, 'o que o arquivo não cita permanece');
     assert.equal(afterRows.find(x => x.m === 2 && x.c === ids.cc).a, 5);
+    // Carga completa dos formulários de lançamento (em transação, para não alterar o que os testes seguintes usam)
+    const impm = async (rows, mode) => (await db.query('select planning_import_entries($1,$2,$3::jsonb,$4) r', [ids.org, f08, JSON.stringify(rows), mode])).rows[0].r;
+    const nEntries = async () => (await db.query('select count(*)::int n from planning_entries where form_id=$1', [f08])).rows[0].n;
+    await assert.rejects(impm([r(2, '31101001', 1, '1')], 'outro'), /Modo de carga inválido/);
+    await db.exec('begin');
+    const nBefore = await nEntries();
+    assert.equal((await impm([r(3, '999', 1, '1')], 'completa')).ok, false); assert.equal(await nEntries(), nBefore, 'arquivo com erro não apaga nada');
+    const comp8 = await impm([r(2, '31101001', 3, '9')], 'completa');
+    assert.deepEqual([comp8.ok, comp8.removed, comp8.replaced, comp8.inserted], [true, nBefore, 0, 1], 'completa apaga tudo do formulário e grava só o arquivo');
+    assert.equal(await nEntries(), 1);
+    assert((await db.query("select count(*)::int n from planning_entry_audit where form_id=$1 and action='DELETE'", [f08])).rows[0].n >= nBefore, 'o apagamento fica na auditoria');
+    await db.exec('rollback'); await T.as(ids.admin);
+    assert.equal(await nEntries(), nBefore, 'rollback do teste restaura o formulário');
     // ruling: o bloqueio do cenário não vale para administrador (migration 320); a importação segue o mesmo critério
     // ---- Task 5: alertas de conflito (digitação e integração)
     await db.exec('reset role'); await db.exec(`select set_config('vecton.planning_write','${sid}',false)`);

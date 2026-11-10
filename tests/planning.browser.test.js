@@ -127,12 +127,14 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
     await page.locator('.pl-import-pop [data-imp="file"]').setInputFiles({ name: 'x.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from('nao e excel') });
     assert.equal(await page.locator('.pl-import-pop [data-imp="upload"]').isDisabled(), false);
     await page.locator('.pl-import-pop [data-imp="upload"]').click();
+    assert.equal(await page.locator('.pl-import-pop [data-imp^="mode:"]').count(), 2, 'ao enviar pergunta o tipo de carga');
+    await page.locator('.pl-import-pop [data-imp="mode:incremental"]').click();
     await page.waitForFunction(() => /Não foi possível importar|indisponível/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
     if (process.env.PLANNING_EXCELJS_LIB) {
       await page.addScriptTag({ path: process.env.PLANNING_EXCELJS_LIB });
       const ExcelJS = require(path.dirname(path.dirname(process.env.PLANNING_EXCELJS_LIB)));
       const book = async rows => { const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('x'); rows.forEach(r => ws.addRow(r)); return Buffer.from(await wb.xlsx.writeBuffer()); };
-      const send = async rows => { await page.locator('.pl-import-pop [data-imp="file"]').setInputFiles({ name: 'a.xlsx', mimeType: 'application/octet-stream', buffer: await book(rows) }); await page.locator('.pl-import-pop [data-imp="upload"]').click(); };
+      const send = async (rows, mode = 'incremental') => { await page.locator('.pl-import-pop [data-imp="file"]').setInputFiles({ name: 'a.xlsx', mimeType: 'application/octet-stream', buffer: await book(rows) }); await page.locator('.pl-import-pop [data-imp="upload"]').click(); await page.locator(`.pl-import-pop [data-imp="mode:${mode}"]`).click(); };
       const status = () => page.locator('.pl-import-pop [data-imp="status"]');
       await send([['Conta', 'Valor'], ['42201', 1]]);
       await page.waitForFunction(() => /Faltam colunas no cabeçalho: Mês/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
@@ -143,9 +145,10 @@ const { chromium } = require(process.env.PLANNING_PLAYWRIGHT_LIB || 'playwright'
         [{ row: 2, account: '42201', month: '1', amount: '1234.56', cost_center: '101' }, { row: 4, account: '42201', month: '02', amount: '10', cost_center: null }]);
       await page.evaluate(() => { window.importResult = { ok: true, replaced: 0, inserted: 1 }; });
       { const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('x'); ws.addRow(['Conta', 'Mês', 'Valor']); ws.addRow(['42201', 1, { formula: '10*12', result: 120 }]);
-        await page.locator('.pl-import-pop [data-imp="file"]').setInputFiles({ name: 'f.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(await wb.xlsx.writeBuffer()) }); await page.locator('.pl-import-pop [data-imp="upload"]').click(); }
+        await page.locator('.pl-import-pop [data-imp="file"]').setInputFiles({ name: 'f.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(await wb.xlsx.writeBuffer()) }); await page.locator('.pl-import-pop [data-imp="upload"]').click(); await page.locator('.pl-import-pop [data-imp="mode:completa"]').click(); }
       await page.waitForFunction(() => /0 valor\(es\) substituído\(s\) e 1 incluído\(s\)/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
       assert.equal(await page.evaluate(() => calls.filter(c => c.name === 'planning_import_entries').pop().args.p_rows[0].amount), '120', 'célula com fórmula usa o resultado');
+      assert.equal(await page.evaluate(() => calls.filter(c => c.name === 'planning_import_entries').pop().args.p_mode), 'completa');
       await page.evaluate(() => { window.importResult = { ok: false, errors: [{ row: 3, message: 'Linha 3: conta 9 não cadastrada' }] }; });
       await send([['Conta', 'Mês', 'Valor'], ['9', 1, 5]]);
       await page.waitForFunction(() => /1 erro\(s\) e nada foi importado[\s\S]*Linha 3: conta 9 não cadastrada/.test(document.querySelector('.pl-import-pop [data-imp="status"]').innerText));
