@@ -50,7 +50,8 @@
     if (/^2\.3(?:\.|$)/.test(code)) return "equity";
     throw new Error(`A conta ${code || node.name} não pertence a um grupo BP reconhecido.`);
   }
-  const otherSideLine = (section, key) => SECTIONS.filter(s => s.side !== section.side).flatMap(s => s.lines).find(l => l.keys.some(k => normalize(k) === key));
+  // Linha de outra seção com a mesma chave: primeiro no mesmo lado (2.1 com chave de Não Circulante), depois no outro lado.
+  const otherSideLine = (section, key) => SECTIONS.filter(s => s !== section).sort((a, b) => (b.side === section.side) - (a.side === section.side)).flatMap(s => s.lines).find(l => l.keys.some(k => normalize(k) === key));
   function aggregate(batches, plan, dreReplacesProfitReserve = false) {
     const values = new Map(), extras = new Map(), scopes = new Set(), accounts = new Map();
     const currentIds = new Map(plan.map(n => [n.id, n])), currentCodes = new Map(plan.map(n => [n.account_code || n.source_name, n]));

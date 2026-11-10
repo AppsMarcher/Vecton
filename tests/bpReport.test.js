@@ -75,6 +75,11 @@ const crossPlan=[...plan,{...node('rem','1.1.5.03.00009','Estoques de Terceiros'
 const cross=M.build(crossPlan,[{branch_id:'01',rows:[{account_id:'rem',amount:-100},{account_id:'liab',amount:100}]}],[],{year:2026,month:10});
 assert.equal(cross.sections.flatMap(s=>s.lines).find(l=>l.id==='thirdPartyInventory').current,0);
 assert.equal(cross.sections.filter(s=>s.side==='asset').flatMap(s=>s.lines).some(l=>/terceiros/i.test(l.label)),false);
+// Conta 2.1 com chave de linha do Não Circulante entra nessa linha, sem criar linha extra no Circulante.
+const ncPlan=[...plan,{...node('cont','2.1.6.03.003','Provisões para Contingências'),active:true}];
+const nc=M.build(ncPlan,[{branch_id:'01',rows:[{account_id:'cont',amount:-50}]}],[],{year:2026,month:10});
+assert.equal(nc.sections.flatMap(s=>s.lines).find(l=>l.id==='contingencies').current,-5000);
+assert.equal(nc.sections.find(s=>s.id==='liabilityCurrent').lines.some(l=>/conting/i.test(l.label)),false);
 // Item 3: a classificação vem do snapshot do lote, não do plano atual.
 const moved=plan.map(n=>n.id==='cash'?{...n,group_key:'Estoques'}:n);
 const snapBatch={branch_id:'01',plan_snapshot:plan,rows:[{account_id:'cash',amount:7}]};
