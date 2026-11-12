@@ -6186,7 +6186,12 @@ function invalidateReportsAfterExternalLoad() {
   const anos = new Set([Number(state.currentPeriod?.year), new Date().getFullYear()].filter(Boolean));
   anos.forEach((ano) => invalidateReportsForYear(ano));
   comercialMargensModule.invalidate?.();
-  if (activeView === "reports") renderReportsView();
+  if (activeView === "reports") {
+    // Cache do ano descartado: redesenhar já não basta (os DREs pintariam o razão vazio = tudo zero até
+    // sair e voltar). O ensure marca o ano como "carregando" (skeleton), busca de novo e redesenha ao fim.
+    const anoAberto = Number(state.currentPeriod?.year || new Date().getFullYear());
+    void ensureReportsDataForYear(anoAberto);
+  }
 }
 
 // Carga de vendas aplicada (ou lote excluído) pela tela: relatórios que leem o razão de vendas buscam de novo.
