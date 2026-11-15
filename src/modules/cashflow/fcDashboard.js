@@ -13,12 +13,15 @@
     let simulation=null, scenarioList=[], saving=false;
     let vendasMonths = null, vendasLoading = false, vendasError = false, vendasRequestYear = null;
     let bridgeDetail = null;
+    // Ponte multi-ano: intervalo escolhido no card (null = só o ano do cabeçalho) e cache das
+    // cargas oficiais dos outros anos (undefined = não pedido, "loading", null = sem carga).
+    let bridgeFrom = null, bridgeTo = null, bridgeReports = {};
     const expanded = new Set();
     let observer, width = 0, frame;
     const q = selector => root.querySelector(selector);
     const access = () => Boolean(deps.getUserId()) && deps.canAccess();
-    function reset() { simulation=null; scenarioList=[]; saving=false; revision++; loaded = null; loadKey = ""; declinedKey = null; switchingKey = null; error = ""; detail = false; editMode = false; loading = false; entered = false; expanded.clear(); observer?.disconnect(); vendasMonths = null; vendasLoading = false; vendasError = false; vendasRequestYear = null; bridgeDetail = null; }
-    function invalidate() { simulation=null; revision++; loadKey = ""; declinedKey = null; switchingKey = null; loading = false; loaded = null; editMode = false; vendasMonths = null; vendasRequestYear = null; bridgeDetail = null; }
+    function reset() { simulation=null; scenarioList=[]; saving=false; revision++; loaded = null; loadKey = ""; declinedKey = null; switchingKey = null; error = ""; detail = false; editMode = false; loading = false; entered = false; expanded.clear(); observer?.disconnect(); vendasMonths = null; vendasLoading = false; vendasError = false; vendasRequestYear = null; bridgeDetail = null; bridgeFrom = null; bridgeTo = null; bridgeReports = {}; }
+    function invalidate() { simulation=null; revision++; loadKey = ""; declinedKey = null; switchingKey = null; loading = false; loaded = null; editMode = false; vendasMonths = null; vendasRequestYear = null; bridgeDetail = null; bridgeReports = {}; }
     function leave() { entered = false; observer?.disconnect(); }
     function renderSelected(panel, id) {
       if (id !== "cashFlow") { observer?.disconnect(); entered = false; return false; }
@@ -48,7 +51,7 @@
     }
     async function refresh() {
       const token = ++revision, session = deps.getUserId(), year = Number(deps.getPeriod().year);
-      simulation=null; saving=false; scenarioList=[]; loadKey = `${session}:${year}`; loading = true; error = ""; loaded = null; bridgeDetail = null; render();
+      simulation=null; saving=false; scenarioList=[]; loadKey = `${session}:${year}`; loading = true; error = ""; loaded = null; bridgeDetail = null; bridgeFrom = null; bridgeTo = null; bridgeReports = {}; render();
       void refreshVendas(year);
       try {
         const result = await deps.service.load(year);
@@ -89,7 +92,7 @@
         ${error ? `<p class="fc-message fc-negative" role="alert">${esc(error)}</p>` : ""}
         ${detail ? `<div class="fc-simulation-bar">${report ? `<input data-fc-scenario-name aria-label="Nome do novo cenário" maxlength="15" placeholder="Nome do novo cenário" ${saving ? "disabled" : ""}><button class="ghost-button" data-fc-save ${saving ? "disabled" : ""}>${saving ? "Salvando…" : "Salvar novo cenário"}</button><button class="ghost-button" data-fc-restore ${!simulation || saving ? "disabled" : ""}>Desfazer alterações</button>` : ""}${canDeleteScenario() ? `<button class="delete-button secondary-danger" data-fc-delete ${saving || loading ? "disabled" : ""}>Excluir cenário</button>` : ""}<span role="status">${simulation ? "Simulação com alterações não salvas" : loaded?.scenario ? "Cenário salvo · " + esc(loaded.scenario.name) : officialLabel}</span>${report ? `<button type="button" class="ghost-button fc-edit-toggle ${editMode ? "fc-edit-toggle--active" : ""}" data-fc-edit-toggle aria-pressed="${editMode}" ${saving ? "disabled" : ""}>${editMode ? "Concluir edição" : "Editar"}</button>` : ""}</div>` : ""}
         ${detail ? detailMarkup(report, year, month) : dashboardMarkup(report, year, month, period)}
-        ${!detail && report && bridgeDetail ? bridgeDetailMarkup(report, bridgeDetail, M.select(report, type, month), period) : ""}
+        ${!detail && report && bridgeDetail ? bridgeDetailMarkup(report, bridgeDetail, bridgeContext(report, year, month, period)) : ""}
       </div>`;
       root = host.querySelector(".fc-dashboard");
       window.VECTON_FC_EXPORT.bind(root,()=>({report:simulation||loaded?.report,type,month,detail,period,scenario:loaded?.scenario?.name||officialLabel,dirty:Boolean(simulation)}),deps);
@@ -113,8 +116,16 @@
         q("[data-fc-bridge-popover-close]")?.addEventListener("click", () => { bridgeDetail = null; render(); });
         bridgeBackdrop.focus();
       }
+      root.querySelectorAll("[data-fc-bridge-from],[data-fc-bridge-to]").forEach(select => {
+        select.onchange = () => {
+          const value = Number(select.value);
+          if ("fcBridgeFrom" in select.dataset) bridgeFrom = value === year ? null : value; else bridgeTo = value === year ? null : value;
+          bridgeDetail = null; render();
+        };
+      });
       if (report && !detail) {
-        const draw = () => { if (!root?.isConnected || !q(".fc-trend")) return; drawTrend(report, month); drawBridge(report, month); };
+        ensureBridgeReports(year);
+        const draw = () => { if (!root?.isConnected || !q(".fc-trend")) return; drawTrend(report, month); drawBridge(report, year, month, period); };
         draw(); width = root.clientWidth;
         observer = new ResizeObserver(() => { if (root.clientWidth !== width) { width = root.clientWidth; cancelAnimationFrame(frame); frame = requestAnimationFrame(draw); } });
         observer.observe(root);
@@ -248,7 +259,7 @@
       const cards = [["Saldo em Caixa", selected?.closing, selected ? `Posição em ${MONTHS[selected.end - 1]}/${year}` : period], ["Caixa operacional", selected?.sum("operacional"), period], ["Geração líquida", selected?.sum("net"), period]];
       return `<div class="fc-kpis">${cards.map(([label, value, caption]) => `<article class="fc-kpi"><span>${label}</span><strong class="${negative(value)}"><small>R$</small> ${fmt(value)}</strong><small>${caption}</small></article>`).join("")}${vendasCardMarkup(report, selected, period)}</div>
         <div class="fc-chart-grid"><section class="fc-panel"><header><h3>Evolução do saldo</h3><span>R$</span></header><div class="fc-trend">${emptyChart}</div><div class="fc-legend"><span class="fc-legend-real">Real</span><span class="fc-legend-fcst">Fcst</span><span class="fc-legend-bud">Bud</span><span class="fc-legend-volume">Máquinas vendidas</span></div></section><section class="fc-panel"><header><h3>Saídas operacionais</h3><span>R$</span></header>${ranking(selected)}</section></div>
-        <section class="fc-panel"><header><h3>Ponte do FC</h3><span>${period} · R$</span></header><div class="fc-bridge">${emptyChart}</div></section>
+        <section class="fc-panel"><header><h3>Ponte do FC</h3><div class="fc-bridge-meta">${bridgeRangeMarkup(year)}</div></header><div class="fc-bridge">${emptyChart}</div></section>
         <section class="fc-panel"><header><h3>Demonstrativo gerencial</h3><button class="ghost-button" type="button" data-fc-detail>Ver FC detalhado</button></header><div class="fc-table-scroll"><table><thead><tr><th>Atividade</th>${(type === "year" ? [`Até ${MONTHS[month - 1]}`, "Restante do ano", String(year)] : [period]).map(label => `<th>${label}</th>`).join("")}</tr></thead><tbody>${summary(report, month)}</tbody></table></div>${footer}</section>`;
     }
     function ranking(selected) {
@@ -344,8 +355,46 @@
       chart.onpointerleave = hide; chart.onblur = hide; chart.onfocus = () => show(index);
       chart.onkeydown = event => { if (["ArrowLeft", "ArrowRight"].includes(event.key)) { event.preventDefault(); show(Math.max(0, Math.min(values.length - 1, index + (event.key === "ArrowLeft" ? -1 : 1)))); } if (event.key === "Escape") hide(); };
     }
-    function drawBridge(report, month) {
-      const holder = q(".fc-bridge"), s = M.select(report, type, month), values = [s.opening, ...M.PILLARS.map(key => s.sum(key)), s.closing];
+    function bridgeYears(year) { return { from: Math.min(bridgeFrom ?? year, year), to: Math.max(bridgeTo ?? year, year) }; }
+    function bridgeRangeMarkup(year) {
+      const { from, to } = bridgeYears(year);
+      const options = (start, end, current) => Array.from({ length: end - start + 1 }, (_, i) => start + i).map(y => `<option value="${y}" ${y === current ? "selected" : ""}>${y}</option>`).join("");
+      return `<label class="fc-bridge-range"><span>De</span><select data-fc-bridge-from aria-label="Ponte do FC: ano inicial">${options(year - 3, year, from)}</select></label><label class="fc-bridge-range"><span>Até</span><select data-fc-bridge-to aria-label="Ponte do FC: ano final">${options(year, year + 3, to)}</select></label>`;
+    }
+    // Carrega (uma vez) as cargas oficiais dos outros anos do intervalo escolhido; ao chegar, redesenha.
+    function ensureBridgeReports(year) {
+      const { from, to } = bridgeYears(year), cache = bridgeReports, session = deps.getUserId();
+      for (let y = from; y <= to; y++) {
+        if (y === year || cache[y] !== undefined) continue;
+        cache[y] = "loading";
+        deps.service.load(y).then(result => result?.report || null, () => null).then(report => {
+          if (cache !== bridgeReports || session !== deps.getUserId()) return;
+          cache[y] = report;
+          if (access() && deps.isActive() && !detail) render();
+        });
+      }
+    }
+    // Recorte da ponte: um ano segue o seletor Mês/YTD/Ano; vários anos acumulam anos fechados (jan do primeiro a dez do último).
+    function bridgeContext(report, year, month, period) {
+      const { from, to } = bridgeYears(year);
+      if (from === to) {
+        const s = M.select(report, type, month);
+        return { ready: true, label: period, opening: s.opening, closing: s.closing, sum: s.sum, cols: Array.from({ length: Math.max(0, s.end - s.start) }, (_, i) => ({ report, i: s.start + i, label: MONTHS[s.start + i] })) };
+      }
+      const years = Array.from({ length: to - from + 1 }, (_, i) => from + i), reports = years.map(y => y === year ? report : bridgeReports[y]);
+      const label = `${from}–${to}`, missing = years.filter((y, k) => reports[k] === null);
+      if (missing.length) return { ready: false, label, message: `Sem carga anual aplicada para ${missing.join(", ")}` };
+      if (reports.some(r => !r || r === "loading")) return { ready: false, label, message: "Carregando os anos selecionados…" };
+      return {
+        ready: true, label, opening: reports[0].opening, closing: reports[reports.length - 1].values.balance[11],
+        sum: key => reports.reduce((total, r) => total + (r.values[key] || Array(12).fill(0)).reduce((a, b) => a + b, 0), 0),
+        cols: reports.flatMap((r, k) => Array.from({ length: 12 }, (_, i) => ({ report: r, i, label: `${MONTHS[i]}/${String(years[k]).slice(2)}` })))
+      };
+    }
+    function drawBridge(report, year, month, period) {
+      const holder = q(".fc-bridge"), s = bridgeContext(report, year, month, period);
+      if (!s.ready) { holder.innerHTML = `<div class="fc-chart-empty">${esc(s.message)}</div>`; return; }
+      const values = [s.opening, ...M.PILLARS.map(key => s.sum(key)), s.closing];
       const labels = ["Saldo inicial de caixa", "Operacional", "Investimentos", "Financeiro", "Saldo final de caixa"], levels = [0, values[0], values[0]+values[1], values[0]+values[1]+values[2], 0];
       const w = Math.max(300, holder.clientWidth), h = w < 520 ? 245 : 215, bottom = h - 52;
       const low = Math.min(0, ...levels, ...levels.map((v,i) => v + values[i])), high = Math.max(0, ...levels, ...levels.map((v,i) => v + values[i])), span = Math.max(1, high - low);
@@ -371,29 +420,30 @@
       const rows = [];
       const visit = (parentKey, depth) => {
         report.structure.filter(n => n.parent_key === parentKey).sort((a,b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, "pt-BR")).forEach(n => {
-          if (n.node_class === "Analitica") rows.push({ name: n.name, values: report.values[n.seed_key], depth, leaf: true });
+          if (n.node_class === "Analitica") rows.push({ name: n.name, key: n.seed_key, depth, leaf: true });
           else { rows.push({ name: n.name, depth, leaf: false }); visit(n.seed_key, depth + 1); }
         });
       };
       visit(key, 0);
       return rows;
     }
-    function bridgeDetailMarkup(report, key, selected, period) {
-      const label = PILLAR_LABELS[key] || key;
-      const months = Array.from({ length: Math.max(0, selected.end - selected.start) }, (_, i) => selected.start + i);
+    function bridgeDetailMarkup(report, key, ctx) {
+      if (!ctx.ready) return "";
+      const label = PILLAR_LABELS[key] || key, cols = ctx.cols, cell = (col, k) => (col.report.values[k] || [])[col.i] || 0;
       const rows = pillarRows(report, key);
-      const totals = report.values[key] || Array(12).fill(0);
-      const periodTotal = months.reduce((sum, i) => sum + (totals[i] || 0), 0);
+      const totals = cols.map(col => cell(col, key));
+      const periodTotal = totals.reduce((a, b) => a + b, 0);
       return `<div class="fc-bridge-backdrop" data-fc-bridge-backdrop tabindex="-1">
         <div class="fc-bridge-popover" role="dialog" aria-modal="true" aria-label="Composição de ${esc(label)}">
-          <header><h3>${esc(label)} <small>${esc(period)}</small></h3><button type="button" class="fc-bridge-popover-close" data-fc-bridge-popover-close aria-label="Fechar">✕</button></header>
+          <header><h3>${esc(label)} <small>${esc(ctx.label)}</small></h3><button type="button" class="fc-bridge-popover-close" data-fc-bridge-popover-close aria-label="Fechar">✕</button></header>
           <div class="fc-bridge-popover-scroll"><table>
-            <thead><tr><th>Conta</th>${months.map(i => `<th>${MONTHS[i]}</th>`).join("")}<th>Total</th></tr></thead>
-            <tbody>${rows.length ? rows.map(row => row.leaf
-              ? `<tr class="fc-detail-analytic"><th scope="row" style="padding-left:${10 + row.depth * 16}px">${esc(row.name)}</th>${months.map(i => `<td class="${negative(row.values[i])}">${fmt(num(row.values[i]))}</td>`).join("")}<td class="${negative(months.reduce((s,i) => s + row.values[i], 0))}">${fmt(num(months.reduce((s,i) => s + row.values[i], 0)))}</td></tr>`
-              : `<tr class="fc-bridge-group-row"><th scope="row" colspan="${months.length + 2}" style="padding-left:${10 + row.depth * 16}px">${esc(row.name)}</th></tr>`
-            ).join("") : `<tr><td colspan="${months.length + 2}">Nenhuma conta encontrada para este pilar.</td></tr>`}</tbody>
-            <tfoot><tr class="fc-total-row"><th scope="row">Total ${esc(label)}</th>${months.map(i => `<td class="${negative(totals[i])}">${fmt(num(totals[i]))}</td>`).join("")}<td class="${negative(periodTotal)}">${fmt(num(periodTotal))}</td></tr></tfoot>
+            <thead><tr><th>Conta</th>${cols.map(col => `<th>${col.label}</th>`).join("")}<th>Total</th></tr></thead>
+            <tbody>${rows.length ? rows.map(row => {
+              if (!row.leaf) return `<tr class="fc-bridge-group-row"><th scope="row" colspan="${cols.length + 2}" style="padding-left:${10 + row.depth * 16}px">${esc(row.name)}</th></tr>`;
+              const vals = cols.map(col => cell(col, row.key)), total = vals.reduce((a, b) => a + b, 0);
+              return `<tr class="fc-detail-analytic"><th scope="row" style="padding-left:${10 + row.depth * 16}px">${esc(row.name)}</th>${vals.map(v => `<td class="${negative(v)}">${fmt(num(v))}</td>`).join("")}<td class="${negative(total)}">${fmt(num(total))}</td></tr>`;
+            }).join("") : `<tr><td colspan="${cols.length + 2}">Nenhuma conta encontrada para este pilar.</td></tr>`}</tbody>
+            <tfoot><tr class="fc-total-row"><th scope="row">Total ${esc(label)}</th>${totals.map(v => `<td class="${negative(v)}">${fmt(num(v))}</td>`).join("")}<td class="${negative(periodTotal)}">${fmt(num(periodTotal))}</td></tr></tfoot>
           </table></div>
         </div>
       </div>`;

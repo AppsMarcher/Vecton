@@ -180,3 +180,8 @@
   .fc-bridge-popover { width: 94vw; height: 94vh; }
   .fc-bridge-popover-scroll th:first-child, .fc-bridge-popover-scroll td:first-child { min-width: 160px; }
 }
+
+.fc-bridge-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.fc-bridge-meta > span { font-size: .72rem; color: var(--text-soft); }
+.fc-bridge-range { display: inline-flex; align-items: center; gap: 6px; font-size: .72rem; color: var(--text-soft); }
+.fc-bridge-range select { width: auto; height: 28px; padding: 0 8px; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 12px; }
