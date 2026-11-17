@@ -5680,7 +5680,9 @@ textarea[disabled] {
 .cockpit-drill-pop .gap-table-wrap { overflow-x: hidden; }
 .cockpit-drill-pop .gap-table th, .cockpit-drill-pop .gap-table td { font-size: 10.5px; padding: 7px 8px; }
 .cockpit-drill-pop .gap-table th { font-size: 10px; }
-.cockpit-drill-pop .gap-table th:nth-child(1), .cockpit-drill-pop .gap-table th:nth-child(3) { width: 84px; }
+.cockpit-drill-pop .gap-table th:nth-child(1) { width: 124px; }
+.cockpit-drill-pop .gap-table th:nth-child(3) { width: 72px; }
+.cockpit-drill-pop .gap-table :is(th, td):is(:nth-child(2), :nth-child(3), :nth-child(4)) { padding-left: 18px; }
 .cockpit-drill-pop .gap-table th:nth-child(2) { width: 24%; }
 .cockpit-drill-pop .gap-table th:nth-child(4) { width: 24%; }
 .cockpit-drill-pop .gap-table th:nth-child(n+5) { width: 10%; }
