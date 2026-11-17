@@ -5674,6 +5674,17 @@ textarea[disabled] {
 .hc-pop-table .hc-col-cc { width: 72px; }
 .hc-pop-table .hc-col-ccname { width: 200px; }
 .hc-pop-table .hc-col-mat { width: 56px; }
+/* Drilldown "OPEX por Grupo de Despesa" (Cockpit): 8 colunas, fonte igual à
+   do card (10.5px) e largura maior pra caber sem scroll horizontal. */
+.ger-audit-popover.cockpit-drill-pop { width: 1280px; max-width: 96vw; overflow-x: hidden; }
+.cockpit-drill-pop .gap-table-wrap { overflow-x: hidden; }
+.cockpit-drill-pop .gap-table th, .cockpit-drill-pop .gap-table td { font-size: 10.5px; padding: 7px 8px; }
+.cockpit-drill-pop .gap-table th { font-size: 10px; }
+.cockpit-drill-pop .gap-table th:nth-child(1), .cockpit-drill-pop .gap-table th:nth-child(3) { width: 84px; }
+.cockpit-drill-pop .gap-table th:nth-child(2) { width: 24%; }
+.cockpit-drill-pop .gap-table th:nth-child(4) { width: 24%; }
+.cockpit-drill-pop .gap-table th:nth-child(n+5) { width: 10%; }
+.cockpit-drill-pop .gap-table .gap-code { width: auto; min-width: 0; font-size: 10.5px; }
 .hc-pop-loading {
   padding: 24px;
   color: var(--text-faint);

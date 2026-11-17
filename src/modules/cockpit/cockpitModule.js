@@ -139,20 +139,23 @@
       closeGroupDrilldown();
       let sortKey = "actual", sortDir = -1;
       const money = F.formatCompactCurrency;
+      const textKeys = new Set(["code", "name", "ccNumber", "ccName"]);
       const sortedAccounts = () => group.accounts.slice().sort((a, b) => {
-        if (sortKey === "name") return sortDir * a.name.localeCompare(b.name, "pt-BR");
+        if (textKeys.has(sortKey)) return sortDir * String(a[sortKey] ?? "").localeCompare(String(b[sortKey] ?? ""), "pt-BR", { numeric: true });
         return sortDir * ((a[sortKey] ?? 0) - (b[sortKey] ?? 0));
       });
+      const trendHtml = value => `<span class="kpi-trend ${F.tone(value)}">${value < 0 ? "↓ " : value > 0 ? "↑ " : ""}${F.escape(F.formatDelta(value, F.formatPercent))}</span>`;
+      const deltaHtml = value => `<span class="kpi-trend ${F.tone(value)}">${F.escape(F.formatDelta(value))}</span>`;
       const th = (key, label, align) => {
         const active = sortKey === key;
         const arrow = active ? (sortDir === 1 ? " ↑" : " ↓") : "";
         return `<th data-sort="${key}" style="cursor:pointer;user-select:none${align ? `;text-align:${align}` : ""}${active ? ";color:var(--blue)" : ""}">${F.escape(label)}${arrow}</th>`;
       };
-      const renderThead = () => `${th("name", "Conta")}${th("actual", "Real", "center")}${th("budget", data.comparisonLabel || "Meta", "center")}`;
-      const renderRows = () => sortedAccounts().map(a => `<tr><td class="gap-name" title="${F.escape(a.code)}">${F.escape(a.name)}</td><td class="gap-val">${F.escape(money(a.actual))}</td><td class="gap-val">${F.escape(money(a.budget))}</td></tr>`).join("");
+      const renderThead = () => `${th("code", "Conta")}${th("name", "Nome da conta")}${th("ccNumber", "CC")}${th("ccName", "Nome do CC")}${th("actual", "Real", "right")}${th("budget", "Meta", "right")}${th("variance", "Var.", "right")}${th("variancePercent", "Var. %", "right")}`;
+      const renderRows = () => sortedAccounts().map(a => `<tr><td class="gap-code">${F.escape(a.code)}</td><td class="gap-name" title="${F.escape(a.name)}">${F.escape(a.name)}</td><td class="gap-code">${F.escape(a.ccNumber)}</td><td class="gap-name" title="${F.escape(a.ccName)}">${F.escape(a.ccName)}</td><td class="gap-val">${F.escape(money(a.actual))}</td><td class="gap-val">${F.escape(money(a.budget))}</td><td class="gap-val">${deltaHtml(a.variance)}</td><td class="gap-val">${trendHtml(a.variancePercent)}</td></tr>`).join("");
       const periodBadge = { month: "Mês", YTD: "YTD", year: "Ano" }[data.periodType] || "";
       const popover = document.createElement("div");
-      popover.className = "ger-audit-popover";
+      popover.className = "ger-audit-popover cockpit-drill-pop";
       // Total de cada coluna embutido no próprio <tfoot> — table-layout:fixed
       // garante o mesmo alinhamento das linhas de conta, em vez de um rodapé
       // solto fora da tabela (ficava deslocado das colunas Real/Fcst).
@@ -165,7 +168,7 @@
         <div class="gap-table-wrap"><table class="gap-table">
           <thead><tr>${renderThead()}</tr></thead>
           <tbody>${renderRows()}</tbody>
-          <tfoot><tr class="gap-total-row"><td class="gap-name">Total</td><td class="gap-val">${F.escape(money(group.actual))}</td><td class="gap-val">${F.escape(money(group.budget))}</td></tr></tfoot>
+          <tfoot><tr class="gap-total-row"><td class="gap-name" colspan="4">Total</td><td class="gap-val">${F.escape(money(group.actual))}</td><td class="gap-val">${F.escape(money(group.budget))}</td><td class="gap-val">${deltaHtml(group.variance)}</td><td class="gap-val">${trendHtml(group.variancePercent)}</td></tr></tfoot>
         </table></div>`;
       // Direto no body, sem overlay escuro por trás — mesmo padrão dos
       // popovers de auditoria do app (buildAuditPopover), fechado clicando

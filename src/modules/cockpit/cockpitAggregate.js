@@ -63,9 +63,17 @@
     // "vazios" pra esse filtro, por isso o teste é de truthiness, não `!== 0`.
     // `accounts` (drilldown) só traz as contas do próprio grupo com movimento —
     // mesma regra do grupo, e ordenadas pelo Real absoluto (maior primeiro).
+    // Drilldown: uma linha por conta × centro de custo (conta, CC, Real, Meta, Var., Var.%).
+    const ccNames = new Map(costCenters.map(cc => [norm(cc.number), cc.name]));
+    const accountCcRows = code => {
+      const aRows = actualAccounts.get(code) || [], bRows = compareAccounts.get(code) || [];
+      const ccs = [...new Set([...aRows, ...bRows].map(ccOf))];
+      return ccs.map(cc => ({ code, name: accountNames.get(code) || code, ccNumber: cc, ccName: ccNames.get(cc) || "",
+        ...financialPair(aRows.filter(row => ccOf(row) === cc), bRows.filter(row => ccOf(row) === cc)) }));
+    };
     const expenseGroups = groups.map(group => {
       const codes = group.accounts.map(norm);
-      const accountRows = codes.map(code => ({ code, name: accountNames.get(code) || code, ...accountPair([code]) }))
+      const accountRows = codes.flatMap(accountCcRows)
         .filter(row => row.actual || row.budget)
         .sort((a, b) => Math.abs(b.actual || 0) - Math.abs(a.actual || 0));
       return { name: group.name, ...accountPair(codes), accounts: accountRows };
