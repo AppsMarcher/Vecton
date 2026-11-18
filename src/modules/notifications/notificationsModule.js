@@ -55,7 +55,16 @@
       rps_backup_failed: "vp-icon-shield",
       strategic_kpi_off_target: "vp-icon-target",
       strategic_action_due: "vp-icon-activity",
-      strategic_action_assigned: "vp-icon-users"
+      strategic_action_assigned: "vp-icon-users",
+      opex_action_assigned: "vp-icon-target",
+      opex_action_unassigned: "vp-icon-users",
+      opex_action_changed: "vp-icon-activity",
+      opex_action_acknowledged: "vp-icon-target",
+      opex_action_due_soon: "vp-icon-activity",
+      opex_action_overdue: "vp-icon-activity",
+      opex_action_submitted: "vp-icon-target",
+      opex_action_validated: "vp-icon-target",
+      opex_action_returned: "vp-icon-activity"
     };
 
     // 0=domingo..6=sábado — mesma convenção do extract(dow) do Postgres,
@@ -342,7 +351,10 @@
         if (!item) return;
         void markRead([item.id]);
         closePopover();
-        if (item.target_report_id) {
+        // Ação de OPEX: abre a ação específica em "Minhas ações" (o servidor revalida o acesso). Abrir o sino NÃO confirma ciência.
+        if (item.ref_action_id && deps.openOpexAction) {
+          deps.openOpexAction(item.ref_action_id);
+        } else if (item.target_report_id) {
           openReportFromNotification(item.target_report_id, item.ref_year, item.ref_month);
         }
       });

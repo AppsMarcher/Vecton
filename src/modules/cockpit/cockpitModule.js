@@ -1,11 +1,11 @@
 (function attachCockpitModule(window) {
   "use strict";
-  function createCockpitModule({ getActiveView, getPeriod, canAccess, service, getManagementAccess, syncHeaderPeriod, setSelectedReportId, setActiveView, renderNavigation, renderReportsView }) {
+  function createCockpitModule({ review, getActiveView, getPeriod, canAccess, service, getManagementAccess, syncHeaderPeriod, setSelectedReportId, setActiveView, renderNavigation, renderReportsView }) {
     const F = window.VECTON_COCKPIT_FORMAT;
     const W = window.VECTON_COCKPIT_WIDGETS;
     let management = "Marcher", customIds = null, periodType = "month", lastKey = "", requestId = 0; // customIds: CCs escolhidos no seletor (multi-seleção)
     let scenarioId = "", scenariosLoaded = false; // "" = favorito da organização (padrão do service)
-    let controls, root, body, status, mobileHost, home, controlsHome, periodHome, hideTrendTip, lastData, drillPopover, hcPopover;
+    let bindTips, controls, root, body, status, mobileHost, home, controlsHome, periodHome, hideTrendTip, lastData, drillPopover, hcPopover;
     let hcSortKey = "colab", hcSortDir = 1;
     const HC_SORT_FIELDS = {
       cc: entry => (entry.cc || "").padStart(10, "0"),
@@ -50,7 +50,7 @@
       const fillTip = point => {
         let rows = [];
         try { rows = JSON.parse(point.dataset.tipRows || "[]"); } catch { rows = []; }
-        tip.innerHTML = rows.map(row => `<div class="cockpit-tip-row"><span>${F.escape(row.label)}</span><strong${row.tone ? ` class="kpi-trend ${F.escape(row.tone)}"` : ""}>${F.escape(row.value)}</strong></div>`).join("");
+        tip.innerHTML = rows.map(row => `<div class="cockpit-tip-row"><span>${F.escape(row.label)}</span><strong${row.tone || row.wrap ? ` class="${[row.tone ? `kpi-trend ${F.escape(row.tone)}` : "", row.wrap ? "cockpit-tip-wrap" : ""].filter(Boolean).join(" ")}"` : ""}>${F.escape(row.value)}</strong></div>`).join("");
         tip.hidden = false;
       };
       const positionTip = (clientX, clientY) => {
@@ -62,28 +62,34 @@
       // Também acessível fora do listener: some o cartão se a view for trocada
       // com o mouse/foco ainda "em cima" de um elemento (sem pointerout/focusout).
       hideTrendTip = hideTip;
-      root.addEventListener("pointerover", event => {
-        const point = event.target.closest("[data-tip]");
-        if (point) fillTip(point);
-      });
-      root.addEventListener("pointermove", event => {
-        if (event.target.closest("[data-tip]")) positionTip(event.clientX, event.clientY);
-      });
-      root.addEventListener("pointerout", event => {
-        if (event.target.closest("[data-tip]") && !event.relatedTarget?.closest?.("[data-tip]")) hideTip();
-      });
-      root.addEventListener("focusin", event => {
-        const point = event.target.closest("[data-tip]");
-        if (!point) return;
-        fillTip(point);
-        const rect = point.getBoundingClientRect();
-        positionTip(rect.left + rect.width / 2, rect.top);
-      });
-      root.addEventListener("focusout", event => {
-        if (event.target.closest("[data-tip]")) hideTip();
-      });
+      // Reutilizado no popover do drilldown (fora do #cockpit-view), que também usa o cartão .cockpit-tip.
+      bindTips = host => {
+        host.addEventListener("pointerover", event => {
+          const point = event.target.closest("[data-tip]");
+          if (point) fillTip(point);
+        });
+        host.addEventListener("pointermove", event => {
+          if (event.target.closest("[data-tip]")) positionTip(event.clientX, event.clientY);
+        });
+        host.addEventListener("pointerout", event => {
+          if (event.target.closest("[data-tip]") && !event.relatedTarget?.closest?.("[data-tip]")) hideTip();
+        });
+        host.addEventListener("focusin", event => {
+          const point = event.target.closest("[data-tip]");
+          if (!point) return;
+          fillTip(point);
+          const rect = point.getBoundingClientRect();
+          positionTip(rect.left + rect.width / 2, rect.top);
+        });
+        host.addEventListener("focusout", event => {
+          if (event.target.closest("[data-tip]")) hideTip();
+        });
+      };
+      bindTips(root);
+      root.querySelectorAll("[data-opex-hub]").forEach(button => { button.hidden = !review; });
       root.addEventListener("click", event => {
-        if (event.target.closest("[data-cockpit-retry], [data-cockpit-refresh]")) { service.invalidate?.(); refresh(); return; }
+        if (event.target.closest("[data-cockpit-retry], [data-cockpit-refresh]")) { service.invalidate?.(); review?.invalidate?.(); refresh(); return; }
+        if (event.target.closest("[data-opex-hub]")) { review?.openHub?.(); return; }
         // "Ver OPEX completo" no card Atingimento do OPEX — mesmo destino do
         // drilldown de OPEX do Dashboard (navigateToOpexReport em
         // dashboardCards.js): relatório "OPEX Realizado" já filtrado pela
@@ -133,14 +139,16 @@
     // grupo com Real e o comparativo (Fcst 5+7/Budget), ordenável — mesma
     // linguagem visual dos popovers de auditoria (.gap-*) usados no resto do
     // app, só que próprio do Cockpit (dado já vem agregado, não por lançamento).
-    function openGroupDrilldown(groupName, data) {
+    function openGroupDrilldown(groupName, data, initialSort) {
       const group = data.expenseGroups.find(g => g.name === groupName);
       if (!group) return;
       closeGroupDrilldown();
-      let sortKey = "actual", sortDir = -1;
+      let sortKey = initialSort?.key || "actual", sortDir = initialSort?.dir || -1;
+      const V = window.VECTON_OPEX_REVIEW_VIEWS, rv = data.review, hasCtl = Boolean(rv && V);
       const money = F.formatCompactCurrency;
       const textKeys = new Set(["code", "name", "ccNumber", "ccName"]);
       const sortedAccounts = () => group.accounts.slice().sort((a, b) => {
+        if (sortKey === "signal" && hasCtl) return sortDir * (V.signalSortValue(rv, a.actual, a.budget) - V.signalSortValue(rv, b.actual, b.budget));
         if (textKeys.has(sortKey)) return sortDir * String(a[sortKey] ?? "").localeCompare(String(b[sortKey] ?? ""), "pt-BR", { numeric: true });
         return sortDir * ((a[sortKey] ?? 0) - (b[sortKey] ?? 0));
       });
@@ -151,11 +159,13 @@
         const arrow = active ? (sortDir === 1 ? " ↑" : " ↓") : "";
         return `<th data-sort="${key}" style="cursor:pointer;user-select:none${align ? `;text-align:${align}` : ""}${active ? ";color:var(--blue)" : ""}">${F.escape(label)}${arrow}</th>`;
       };
-      const renderThead = () => `${th("code", "Conta")}${th("name", "Nome da conta")}${th("ccNumber", "CC")}${th("ccName", "Nome do CC")}${th("actual", "Real", "right")}${th("budget", "Meta", "right")}${th("variance", "Var.", "right")}${th("variancePercent", "Var. %", "right")}`;
-      const renderRows = () => sortedAccounts().map(a => `<tr><td class="gap-code">${F.escape(a.code)}</td><td class="gap-name" title="${F.escape(a.name)}">${F.escape(a.name)}</td><td class="gap-code">${F.escape(a.ccNumber)}</td><td class="gap-name" title="${F.escape(a.ccName)}">${F.escape(a.ccName)}</td><td class="gap-val">${F.escape(money(a.actual))}</td><td class="gap-val">${F.escape(money(a.budget))}</td><td class="gap-val">${deltaHtml(a.variance)}</td><td class="gap-val">${trendHtml(a.variancePercent)}</td></tr>`).join("");
-      const periodBadge = { month: "Mês", YTD: "YTD", year: "Ano" }[data.periodType] || "";
+      const renderThead = () => `${hasCtl ? V.recHeader : ""}${th("code", "Conta")}${th("name", "Nome da conta")}${th("ccNumber", "CC")}${th("ccName", "Nome do CC")}${th("actual", "Real", "right")}${th("budget", "Meta", "right")}${th("variance", "Var.", "right")}${th("variancePercent", "Var. %", "right")}${hasCtl ? V.signalHeader(sortKey === "signal", sortDir) : ""}`;
+      // Identidade da linha = CC + conta (nunca o índice visual): sobrevive a reordenação.
+      const rowId = a => `${a.ccId || a.ccNumber}|${a.code}`;
+      const renderRows = () => sortedAccounts().map(a => `<tr${hasCtl ? ` class="opex-row" data-row="${F.escape(rowId(a))}" tabindex="0"` : ""}>${hasCtl ? `<td class="opex-col-rec">${V.recordCell(a.ccId ? rv.presence.get(`${a.ccId}|${a.code}`) : null)}</td>` : ""}<td class="gap-code">${F.escape(a.code)}</td><td class="gap-name" title="${F.escape(a.name)}">${F.escape(a.name)}</td><td class="gap-code">${F.escape(a.ccNumber)}</td><td class="gap-name" title="${F.escape(a.ccName)}">${F.escape(a.ccName)}</td><td class="gap-val">${F.escape(money(a.actual))}</td><td class="gap-val">${F.escape(money(a.budget))}</td><td class="gap-val">${deltaHtml(a.variance)}</td><td class="gap-val">${trendHtml(a.variancePercent)}</td>${hasCtl ? `<td class="opex-col-sig">${V.signalCell(rv, a.actual, a.budget)}</td>` : ""}</tr>`).join("");
+      const periodBadge = F.periodBadge(data.periodType, data.month, data.year);
       const popover = document.createElement("div");
-      popover.className = "ger-audit-popover cockpit-drill-pop";
+      popover.className = `ger-audit-popover cockpit-drill-pop${hasCtl ? " cockpit-drill-pop--ctl" : ""}`;
       // Total de cada coluna embutido no próprio <tfoot> — table-layout:fixed
       // garante o mesmo alinhamento das linhas de conta, em vez de um rodapé
       // solto fora da tabela (ficava deslocado das colunas Real/Fcst).
@@ -168,7 +178,7 @@
         <div class="gap-table-wrap"><table class="gap-table">
           <thead><tr>${renderThead()}</tr></thead>
           <tbody>${renderRows()}</tbody>
-          <tfoot><tr class="gap-total-row"><td class="gap-name" colspan="4">Total</td><td class="gap-val">${F.escape(money(group.actual))}</td><td class="gap-val">${F.escape(money(group.budget))}</td><td class="gap-val">${deltaHtml(group.variance)}</td><td class="gap-val">${trendHtml(group.variancePercent)}</td></tr></tfoot>
+          <tfoot><tr class="gap-total-row">${hasCtl ? '<td class="opex-col-rec"></td>' : ""}<td class="gap-name" colspan="4">Total</td><td class="gap-val">${F.escape(money(group.actual))}</td><td class="gap-val">${F.escape(money(group.budget))}</td><td class="gap-val">${deltaHtml(group.variance)}</td><td class="gap-val">${trendHtml(group.variancePercent)}</td>${hasCtl ? '<td class="opex-col-sig"></td>' : ""}</tr></tfoot>
         </table></div>`;
       // Direto no body, sem overlay escuro por trás — mesmo padrão dos
       // popovers de auditoria do app (buildAuditPopover), fechado clicando
@@ -176,7 +186,16 @@
       document.body.appendChild(popover);
       drillPopover = popover;
       popover.querySelector(".gap-close").addEventListener("click", closeGroupDrilldown);
+      bindTips?.(popover);
+      // Conta + CC → direto em "Analisar variação" (não abre lançamentos).
+      const openRow = target => {
+        const tr = target.closest("tr[data-row]");
+        const account = tr && sortedAccounts().find(a => rowId(a) === tr.dataset.row);
+        if (account && review?.openAnalysis) { const sort = { key: sortKey, dir: sortDir }; closeGroupDrilldown(); review.openAnalysis({ data, group, account, sort }); }
+      };
+      popover.addEventListener("keydown", event => { if ((event.key === "Enter" || event.key === " ") && event.target.matches("tr[data-row]")) { event.preventDefault(); openRow(event.target); } });
       popover.addEventListener("click", event => {
+        if (!event.target.closest("th[data-sort]")) { openRow(event.target); return; }
         const sortTh = event.target.closest("th[data-sort]");
         if (!sortTh) return;
         const key = sortTh.dataset.sort;
@@ -387,6 +406,7 @@
           body.hidden = true;
         } else {
           data.opexAttainment = { month: attainmentMonth, ytd: attainmentYtd };
+          if (review) { await review.decorate(data); if (token !== requestId) return; }
           lastData = data;
           W.render(body, data);
           const sourceEl = root.querySelector(".cockpit-source");
@@ -437,7 +457,10 @@
       void render();
     }
     function refresh() { lastKey = ""; return render(); }
-    return { render, mount, unmount, refresh };
+    review?.attach?.({ refresh: () => refresh(), reopenGroupDrilldown: (groupName, sort) => reopenGroupDrilldown(groupName, sort), bindTips: element => bindTips?.(element) });
+    // Reabre o drilldown do mesmo grupo (volta da análise), preservando a ordenação.
+    function reopenGroupDrilldown(groupName, sort) { if (lastData) openGroupDrilldown(groupName, lastData, sort); }
+    return { render, mount, unmount, refresh, reopenGroupDrilldown };
   }
   window.VECTON_COCKPIT = { createCockpitModule };
 })(window);

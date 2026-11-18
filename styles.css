@@ -196,6 +196,28 @@
 #cockpit-view .cockpit-table-groups th:first-child { width: 36%; }
 #cockpit-view .cockpit-table-groups th:not(:first-child) { width: 16%; }
 #cockpit-view .cockpit-table-groups tbody th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Acompanhamento de OPEX — card de grupos com ícone de registro (1ª coluna) e sinaleira (última). */
+#cockpit-view .cockpit-table.cockpit-table-groups--ctl { min-width: 700px; }
+#cockpit-view .cockpit-table-groups--ctl th:first-child { width: 34px; }
+#cockpit-view .cockpit-table-groups--ctl th:nth-child(2) { width: 30%; }
+#cockpit-view .cockpit-table-groups--ctl th:nth-child(n+3):nth-child(-n+6) { width: 15%; }
+#cockpit-view .cockpit-table-groups--ctl th:last-child { width: 58px; }
+#cockpit-view .cockpit-table-groups--ctl :is(th, td):is(:first-child, :last-child) { text-align: center; padding-left: 4px; padding-right: 4px; }
+#cockpit-view .cockpit-table-groups--ctl :is(thead th, tbody th):nth-child(2) { text-align: left; }
+.cockpit-card-actions { display: inline-flex; gap: 6px; margin-left: auto; }
+.cockpit-card-actions[hidden], .cockpit-card-actions > [hidden] { display: none; }
+.opex-rec { display: inline-flex; align-items: center; justify-content: center; color: var(--text-faint); border-radius: 4px; outline-offset: 2px; }
+.opex-rec:hover, .opex-rec:focus-visible { color: var(--blue); }
+.opex-rec--cancelled { box-shadow: 0 0 0 1.5px var(--red, #d64550); border-radius: 6px; padding: 2px; color: var(--red, #d64550); }
+.opex-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--text-faint); cursor: pointer; }
+.opex-icon-btn:hover:not(:disabled) { color: var(--red, #d64550); border-color: var(--red, #d64550); }
+.opex-icon-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.opex-row-actions { display: inline-flex; align-items: center; gap: 8px; }
+.opex-signal { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: middle; outline-offset: 3px; }
+.opex-signal--red { background: var(--red); }
+.opex-signal--yellow { background: var(--amber); }
+.opex-signal--green { background: var(--green); }
+.opex-signal--na { width: auto; height: auto; border-radius: 0; color: var(--text-faint); font-size: 0.72rem; }
 /* Cabeçalho ordenável (OPEX por Grupo de Despesa) — mesmo padrão ↑/↓ clicável
    dos popovers de auditoria do resto do app. */
 #cockpit-view .cockpit-table th.cockpit-sortable { cursor: pointer; user-select: none; }
@@ -5687,6 +5709,148 @@ textarea[disabled] {
 .cockpit-drill-pop .gap-table th:nth-child(4) { width: 24%; }
 .cockpit-drill-pop .gap-table th:nth-child(n+5) { width: 10%; }
 .cockpit-drill-pop .gap-table .gap-code { width: auto; min-width: 0; font-size: 10.5px; }
+/* Analisar variação (módulo opexReview): cabeçalho, resumo, abas, formulário e lançamentos. */
+/* Tamanho fixo entre as abas (sem "pulo" ao trocar) e fundo esmaecido atrás da análise. */
+.ger-audit-popover.opex-analysis-pop { width: 980px; max-width: 96vw; height: min(90vh, 800px); display: flex; flex-direction: column; overflow: hidden; z-index: 221; }
+.opex-analysis-pop > * { flex: 0 0 auto; }
+.opex-analysis-pop > .opex-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.ger-audit-popover.opex-params-pop { width: 760px; max-width: 96vw; z-index: 221; }
+.opex-form.opex-form--params { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.opex-checks { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.opex-check { display: inline-flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text); cursor: pointer; }
+.opex-field .opex-check input { width: 16px; height: 16px; margin: 0; padding: 0; flex: 0 0 auto; accent-color: var(--blue); }
+.opex-check span { white-space: nowrap; }
+@media (max-width: 720px) { .opex-form.opex-form--params { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.opex-analysis-pop .opex-back { font-size: 0.7rem; padding: 3px 10px; }
+.opex-crumbs { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 10px 14px 4px; }
+.opex-crumb { display: flex; flex-direction: column; min-width: 0; }
+.opex-crumb span, .opex-summary span, .opex-field > span { font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-faint); }
+.opex-crumb strong { font-size: 0.74rem; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.opex-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 8px 14px 12px; border-bottom: 1px solid var(--line); }
+.opex-summary > div { display: flex; flex-direction: column; gap: 2px; }
+.opex-summary strong { font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.opex-tabs { display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.opex-tab { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--text-faint); font: inherit; font-size: 0.76rem; padding: 10px 12px; cursor: pointer; white-space: nowrap; }
+.opex-tab[aria-selected="true"] { color: var(--blue); border-bottom-color: var(--blue); }
+.opex-tab:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.opex-draft { margin-left: 6px; font-size: 0.6rem; padding: 1px 6px; border-radius: 999px; background: var(--blue-soft); color: var(--blue); text-transform: uppercase; letter-spacing: 0.04em; }
+.opex-body { padding: 14px; }
+.opex-banner { margin: 10px 14px 0; padding: 8px 12px; border-radius: 8px; background: rgba(239, 68, 68, 0.12); color: var(--text); font-size: 0.74rem; }
+.opex-banner--warn { margin: 0 0 12px; background: rgba(245, 158, 11, 0.14); }
+.opex-banner[hidden] { display: none; }
+.opex-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; align-items: end; }
+.opex-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.opex-field--wide { grid-column: 1 / -1; }
+.opex-field :is(select, input, textarea) { font: inherit; font-size: 0.78rem; color: var(--text); background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; width: 100%; box-sizing: border-box; }
+.opex-field textarea { resize: vertical; }
+.opex-check { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; padding-bottom: 8px; }
+.opex-form.opex-form--cause { grid-template-columns: 220px 220px minmax(0, 1fr); }
+.opex-form--cause .opex-field--narrow { grid-column: 1; }
+.opex-form--cause .opex-field--narrow input { max-width: 170px; text-align: right; }
+.opex-form > .opex-check { justify-self: end; justify-content: flex-start; width: auto; gap: 8px; }
+.opex-form > .opex-check input { width: 16px; height: 16px; margin: 0; padding: 0; flex: 0 0 auto; accent-color: var(--blue); }
+.opex-form > .opex-check span { text-transform: none; letter-spacing: 0; font-size: 0.78rem; color: var(--text); }
+.opex-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.opex-meta { color: var(--text-faint); font-size: 0.7rem; }
+.opex-empty { padding: 28px 12px; text-align: center; color: var(--text-faint); font-size: 0.78rem; }
+.opex-ledger th.cockpit-sortable { cursor: pointer; user-select: none; }
+.opex-ledger th.cockpit-sort-active { color: var(--blue); }
+.opex-ledger th:nth-child(1) { width: 92px; }
+.opex-ledger th:nth-child(2) { width: 64px; }
+.opex-ledger th:nth-child(4) { width: 190px; }
+.opex-ledger td:nth-child(4) { text-overflow: clip; }
+.opex-ledger th:nth-child(5) { width: 130px; }
+@media (max-width: 720px) {
+  .opex-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .opex-form, .opex-form.opex-form--cause { grid-template-columns: 1fr; }
+  .opex-form--cause .opex-field--narrow input { max-width: none; }
+}
+/* Plano de ação, ação operacional, anexos, Minhas ações, consolidado e popover de entrada (módulo opexReview). */
+.opex-plan-head { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.opex-plan-head:empty { display: none; }
+.opex-plan-table { width: 100%; }
+.opex-plan-table tbody tr, .opex-my-table tbody tr, .opex-hub-table tbody tr { cursor: pointer; }
+.opex-row-selected td { background: var(--blue-soft); }
+.opex-subform { margin: 10px 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: transparent; }
+.opex-form.opex-form--plan { grid-template-columns: max-content max-content minmax(0, 1fr); }
+.opex-field--fit { width: max-content; max-width: 100%; }
+.opex-field--fit input[type="date"] { width: 160px; }
+.opex-picker { position: relative; }
+.opex-picker-btn { display: inline-flex; align-items: center; gap: 8px; min-width: 200px; max-width: 320px; font: inherit; font-size: 0.78rem; color: var(--text); background: var(--panel-alt); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; cursor: pointer; text-align: left; }
+.opex-picker-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.opex-picker-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opex-picker-label.is-empty { color: var(--text-faint); }
+.opex-picker-caret { font-size: 0.7rem; color: var(--text-faint); }
+.opex-picker-list { position: absolute; z-index: 5; left: 0; top: calc(100% + 4px); min-width: 100%; width: max-content; max-width: 320px; max-height: 188px; overflow-y: auto; margin: 0; padding: 3px; list-style: none; background: var(--theme-surface, #14161d); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 28px var(--theme-shadow-color, rgba(15, 23, 42, 0.25)); }
+.opex-picker-list[hidden] { display: none; }
+.opex-picker-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 8px; border-radius: 6px; font-size: 0.74rem; line-height: 1.25; color: var(--text); cursor: pointer; }
+.opex-picker-list li:hover, .opex-picker-list li.is-active, .opex-picker-list li:focus-visible { background: var(--panel-hover); outline: none; }
+.opex-picker-list li[aria-selected="true"] { font-weight: 600; }
+.opex-picker-flag { display: inline-flex; color: var(--amber, #c9871a); }
+.opex-warning { margin: 0; padding: 8px 10px; border-radius: 8px; background: rgba(245, 158, 11, 0.14); font-size: 0.74rem; color: var(--text); }
+.opex-warning[hidden] { display: none; }
+.opex-action { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.opex-action-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.opex-action-head h3 { margin: 0; font-size: 0.9rem; }
+.opex-action-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; margin: 0; }
+.opex-action-facts dt { font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-faint); }
+.opex-action-facts dd { margin: 2px 0 0; font-size: 0.78rem; overflow-wrap: anywhere; }
+.opex-action-facts .opex-field--wide { grid-column: 1 / -1; }
+.opex-action-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.opex-action-buttons:empty { display: none; }
+.opex-primary { border-color: var(--blue); color: var(--blue); }
+.opex-chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.66rem; background: var(--panel-alt); border: 1px solid var(--line); color: var(--text-soft); white-space: nowrap; }
+.opex-chip--awaiting_ack { border-color: var(--amber); }
+.opex-chip--in_progress { border-color: var(--blue); }
+.opex-chip--awaiting_validation { border-color: var(--blue); background: var(--blue-soft); }
+.opex-chip--adjustments_requested { border-color: var(--amber); }
+.opex-chip--completed { border-color: var(--green); }
+.opex-chip--overdue { border-color: var(--red); color: var(--red); }
+.opex-tag { margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 0.6rem; background: var(--blue-soft); color: var(--blue); }
+.opex-timeline ol { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.74rem; }
+.opex-timeline li { display: flex; flex-direction: column; }
+.opex-timeline-meta { font-size: 0.64rem; color: var(--text-faint); }
+.opex-attach { margin-top: 12px; }
+.opex-attach-host { padding: 0 14px 14px; }
+.opex-attach-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.78rem; }
+.opex-attach-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.opex-attach-list li { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 0.74rem; }
+.opex-attach-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.opex-attach-meta { color: var(--text-faint); font-size: 0.66rem; }
+.opex-attach-failed { border-color: var(--red) !important; }
+.opex-screen { padding: 16px; }
+.opex-screen-head { margin-bottom: 10px; }
+.opex-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+.opex-hub-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 10px 0 14px; }
+.opex-hub-table th.cockpit-sortable { cursor: pointer; user-select: none; }
+.opex-hub-table th.cockpit-sort-active { color: var(--blue); }
+.ger-audit-popover.opex-entry-pop { width: 640px; z-index: 221; }
+.opex-entry-section h4 { margin: 12px 0 6px; font-size: 0.78rem; }
+.opex-entry-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.opex-entry-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.opex-entry-main { display: flex; flex-direction: column; min-width: 0; }
+.opex-entry-main strong { font-size: 0.78rem; overflow-wrap: anywhere; }
+.opex-entry-actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+@media (max-width: 720px) { .opex-action-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Drilldown com ícone de registro (1ª) e sinaleira (última, fixa à direita): 10 colunas. */
+.cockpit-drill-pop--ctl .gap-table th:nth-child(1) { width: 36px; }
+.cockpit-drill-pop--ctl .gap-table th:nth-child(2) { width: 112px; }
+.cockpit-drill-pop--ctl .gap-table th:nth-child(3) { width: 22%; }
+.cockpit-drill-pop--ctl .gap-table th:nth-child(4) { width: 64px; }
+.cockpit-drill-pop--ctl .gap-table th:nth-child(5) { width: 22%; }
+.cockpit-drill-pop--ctl .gap-table th:nth-child(n+6):nth-child(-n+9) { width: 10%; }
+.cockpit-drill-pop--ctl .gap-table th:nth-child(10) { width: 58px; }
+.cockpit-drill-pop--ctl .gap-table :is(th, td):is(:nth-child(1), :nth-child(10)) { text-align: center; padding-left: 4px; padding-right: 4px; }
+.cockpit-drill-pop--ctl .gap-table :is(th, td):is(:nth-child(2), :nth-child(3), :nth-child(4), :nth-child(5)) { padding-left: 10px; }
+.cockpit-drill-pop--ctl .gap-table :is(th, td):nth-child(10) { position: sticky; right: 0; background: var(--panel); }
+.cockpit-drill-pop--ctl .gap-table tfoot td:nth-child(10), .cockpit-drill-pop--ctl .gap-table tfoot td:nth-child(1) { background: linear-gradient(var(--blue-soft), var(--blue-soft)), var(--theme-surface, #14161d); }
+.cockpit-drill-pop--ctl .gap-table tbody tr:hover td:nth-child(10) { background: var(--panel-hover); }
+.cockpit-drill-pop--ctl .gap-table tr.opex-row { cursor: pointer; }
+.cockpit-drill-pop--ctl .gap-table tr.opex-row:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+@media (max-width: 900px) {
+  .cockpit-drill-pop--ctl .gap-table-wrap { overflow-x: auto; }
+  .cockpit-drill-pop--ctl .gap-table { min-width: 860px; }
+}
 .hc-pop-loading {
   padding: 24px;
   color: var(--text-faint);
@@ -13440,6 +13604,7 @@ td.capex-z { color: var(--text-faint); }
 .period-nav-button:disabled, .period-month-button:disabled { opacity: 0.35; cursor: not-allowed; }
 .period-month-button:disabled:hover { background: var(--theme-surface-tint, rgba(255, 255, 255, 0.03)); color: var(--text-soft); }
 
+
 /* ===== Padrão de popover (todo o app) =====
    Fundo da tela esmaecido e desfocado + cartão branco (cor de superfície do tema), sem faixas ou rodapés coloridos.
    O esmaecimento dos popovers sem camada própria vem de src/core/modalScrim.js (automático); as camadas dos modais
@@ -13466,3 +13631,43 @@ td.capex-z { color: var(--text-faint); }
 .gap-table tfoot .gap-total-row td, .cockpit-drill-pop--ctl .gap-table tfoot td:nth-child(10), .cockpit-drill-pop--ctl .gap-table tfoot td:nth-child(1) {
   background: var(--theme-surface, #14161d) !important; border-top: 1px solid var(--line);
 }
+.opex-attach-list label { display: inline-flex; align-items: center; gap: 8px; }
+.opex-attach-list input[type="checkbox"] { width: 16px; height: 16px; margin: 0; padding: 0; flex: 0 0 auto; accent-color: var(--blue); }
+
+/* Botão padrão de voltar (círculo com seta) — mesmo visual do Planejamento (.pl-back). */
+.opex-back-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; padding: 0; border: 0; background: transparent; color: var(--text-faint); cursor: pointer; border-radius: 50%; line-height: 0; }
+.opex-back-icon:hover { color: var(--blue); }
+.opex-back-icon:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.opex-signal-screen { max-width: 860px; }
+
+/* Análises e planos de ação: cartões empilhados (Minhas ações e consolidado), a página rola inteira. */
+.opex-report-host.opex-split { display: flex; flex-direction: column; gap: 16px; }
+.opex-title-icon { display: inline-flex; vertical-align: -3px; margin-right: 8px; color: var(--blue); }
+
+/* Botão "Abrir →" (mesmo visual dos botões do Planejamento). */
+.opex-open-btn { font: inherit; font-size: 12px; color: var(--text); background: transparent; border: 1px solid var(--line); padding: 6px 12px; border-radius: 8px; cursor: pointer; min-height: 32px; white-space: nowrap; }
+.opex-open-btn:hover:not(:disabled) { border-color: var(--blue); }
+.opex-open-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* Tabelas do consolidado, de Minhas ações e do plano: todo o texto das linhas no mesmo tamanho das colunas de data/período (11,52px). */
+.opex-hub-table td, .opex-my-table td, .opex-plan-table td, .opex-hub-table .gap-name, .opex-my-table .gap-name, .opex-plan-table .gap-name { font-size: 0.72rem; }
+
+/* Consolidado: layout automático com porcentagens (somam 100%) e larguras mínimas; CC · Conta tem largura mínima para o código da conta aparecer inteiro (só o nome é cortado). Colunas curtas (Tipo, Período, Prazo, Situação, ações)
+   nunca são cortadas; só Causa / ação, Gestão, CC · Conta e Responsável truncam (legenda com o texto completo). Com a barra lateral
+   recolhida, a largura extra é repartida proporcionalmente entre todas as colunas, sem abrir um vazio no meio. */
+.opex-hub-table { table-layout: auto; width: 100%; min-width: 960px; }
+.opex-hub-table th { white-space: nowrap; }
+.opex-hub-table th:nth-child(1) { width: 6%; min-width: 78px; }
+.opex-hub-table th:nth-child(2) { width: 18%; }
+.opex-hub-table th:nth-child(3) { width: 10%; min-width: 106px; }
+.opex-hub-table th:nth-child(4) { width: 20%; min-width: 172px; }
+.opex-hub-table th:nth-child(5) { width: 11%; min-width: 118px; }
+.opex-hub-table th:nth-child(6) { width: 12%; }
+.opex-hub-table th:nth-child(7) { width: 8%; min-width: 88px; }
+.opex-hub-table th:nth-child(8) { width: 10%; min-width: 108px; }
+.opex-hub-table th:nth-child(9) { width: 5%; min-width: 122px; }
+.opex-hub-table td:nth-child(2), .opex-hub-table td:nth-child(3), .opex-hub-table td:nth-child(4), .opex-hub-table td:nth-child(6) { max-width: 0; }
+.opex-hub-table td:nth-child(1), .opex-hub-table td:nth-child(5), .opex-hub-table td:nth-child(7), .opex-hub-table td:nth-child(8), .opex-hub-table td:nth-child(9) { overflow: visible; text-overflow: clip; }
+.opex-hub-table td:nth-child(9) { padding-left: 4px; padding-right: 6px; }
+.cockpit-tip-wrap { white-space: normal !important; max-width: 340px; text-align: right; line-height: 1.35; }

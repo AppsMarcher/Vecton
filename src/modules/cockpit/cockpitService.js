@@ -114,7 +114,7 @@
         const scoped = rows => rows.map(row => ({ ...row, cost_center_number: ccById.get(String(row.cost_center_id))?.number ?? row.cost_center_number })).filter(row => !allowed || allowed.has(norm(row.cost_center_number)));
         return { actualRows: scoped(sources[0]), comparisonRows: scoped(sources[1]), headcountRows: scoped(sources[2]), comparisonHeadcountRows: scoped(sources[3]),
           revenueActual: sources[4], revenueComparison: sources[5], groups, costCenters: state.costCenters, accountNames,
-          personnelAccounts: [...deps.getPersonnelAccounts()], hasForecast, comparisonLabel: scenario?.name || budgetName,
+          personnelAccounts: [...deps.getPersonnelAccounts()], hasForecast, comparisonLabel: scenario?.name || budgetName, comparisonScenarioId: scenario?.id ?? null, comparisonSourceYear: scenario ? compareYear : null,
           warnings: !scenario ? [`Sem cenário favorito e sem ${budgetName} cadastrado: não há comparativo.`]
             : hasForecast ? [] : [`${scenario.name} é o comparativo. Sem cenário Forecast favorito, os meses futuros não são estimados.`] };
       });

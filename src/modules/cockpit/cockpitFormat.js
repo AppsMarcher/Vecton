@@ -12,5 +12,13 @@
   const formatDelta = (value, formatter = formatCompactCurrency) => value == null ? "—" : `${value > 0 ? "+" : ""}${formatter(value)}`;
   const escape = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
   const tone = value => value == null || Math.abs(value) < 0.000001 ? "neutral" : value < 0 ? "positive" : "negative";
-  window.VECTON_COCKPIT_FORMAT = { number, formatCurrency, formatCompactCurrency, formatPercent, formatInteger, formatDelta, escape, tone };
+  const MONTHS_ABBR = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  /** Selo do período nos popovers: "Out/2026", "Acumulado Jan–Out/2026" ou "Ano 2026". */
+  function periodBadge(periodType, month, year) {
+    const m = MONTHS_ABBR[Number(month) - 1];
+    if (periodType === "year") return `Ano ${year}`;
+    if (periodType === "YTD") return m ? `Acumulado Jan–${m}/${year}` : `Acumulado ${year}`;
+    return m ? `${m}/${year}` : String(year ?? "");
+  }
+  window.VECTON_COCKPIT_FORMAT = { periodBadge, number, formatCurrency, formatCompactCurrency, formatPercent, formatInteger, formatDelta, escape, tone };
 })(window);

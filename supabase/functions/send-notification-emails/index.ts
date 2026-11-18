@@ -49,6 +49,7 @@ function json(body: unknown, status = 200) {
 // volume esperado (algumas cargas por mês).
 const BATCH_SIZE = 10;      // itens drenados por execução
 const MAX_ATTEMPTS = 5;     // depois disso o item vira 'failed' e para de tentar
+const LEASE_SECONDS = 300;  // reserva do item; expira se a execução morrer no meio
 const APP_URL = "https://vecton.marcher.com.br";
 const RETENTION_DAYS = 90;  // notificações mais antigas que isso são apagadas
 
@@ -135,12 +136,14 @@ function buildHtml(subject: string, bodyText: string, linkPath?: string | null):
   // link_path vem da trigger (migration 093) como "?report=...&ano=&mes=", e
   // abre o relatorio do evento no mes certo. Sem ele o botao cai na home.
   // Aceita so o formato esperado -- o conteudo vai pra dentro de um href.
-  const safePath = linkPath && /^\?[A-Za-z0-9_=&]+$/.test(linkPath) ? linkPath : "";
+  // "?acao=<uuid>" (ações de OPEX, migration 350) também é aceito: só letras, números, "_", "=", "&" e "-".
+  const safePath = linkPath && /^\?[A-Za-z0-9_=&-]+$/.test(linkPath) ? linkPath : "";
+  const isAction = safePath.startsWith("?acao=");
   return buildEmailLayout({
     tag: "Aviso do Vecton",
     title,
     paragraphs: lines,
-    buttonLabel: safePath ? "Abrir o relatório" : "Abrir o Vecton",
+    buttonLabel: isAction ? "Abrir ação no Vecton" : safePath ? "Abrir o relatório" : "Abrir o Vecton",
     href: APP_URL + safePath,
     footer: "Aviso automático do Vecton · Marcher Brasil Agroindustrial",
   });
@@ -175,31 +178,20 @@ Deno.serve(async (req) => {
 
     const db = createClient(url, serviceKey);
 
-    // Claim atômico: marca os candidatos como tentados ANTES de enviar. Se duas
-    // execuções se sobrepuserem, só a primeira leva as linhas (o filtro
-    // status='pending' + o retorno do update decidem quem ficou com o quê).
-    const { data: candidates, error: pickErr } = await db
-      .from("notification_email_outbox")
-      .select("id")
-      .eq("status", "pending")
-      .lt("attempts", MAX_ATTEMPTS)
-      .order("created_at", { ascending: true })
-      .limit(BATCH_SIZE);
-    if (pickErr) return json({ error: `Falha ao ler a fila: ${pickErr.message}` }, 500);
-
-    const ids = (candidates ?? []).map((r: { id: string }) => r.id);
-    if (!ids.length) {
+    // Claim real (migration 351): reserva transacional com token e lease (FOR UPDATE SKIP LOCKED). Duas execuções
+    // sobrepostas nunca recebem o mesmo item; worker interrompido devolve o item sozinho quando o lease expira.
+    // A tentativa já vem contada (attempts) e o resultado só é gravado por quem tem o token.
+    const token_ = crypto.randomUUID();
+    const { data: claimed, error: claimErr } = await db.rpc("notification_email_claim", {
+      p_limit: BATCH_SIZE, p_lease_seconds: LEASE_SECONDS, p_token: token_, p_max_attempts: MAX_ATTEMPTS,
+    });
+    if (claimErr) return json({ error: `Falha ao reservar itens: ${claimErr.message}` }, 500);
+    if (!claimed?.length) {
       await purgeOld(db);
       return json({ ok: true, sent: 0, failed: 0, message: "Fila vazia" });
     }
-
-    const { data: claimed, error: claimErr } = await db
-      .from("notification_email_outbox")
-      .update({ status: "pending" })
-      .in("id", ids)
-      .eq("status", "pending")
-      .select("id, recipients, subject, body_text, attempts, link_path");
-    if (claimErr) return json({ error: `Falha ao reservar itens: ${claimErr.message}` }, 500);
+    const finish = (id: string, status: string, error: string | null) =>
+      db.rpc("notification_email_finish", { p_id: id, p_token: token_, p_status: status, p_error: error });
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
@@ -211,15 +203,19 @@ Deno.serve(async (req) => {
     let failed = 0;
 
     for (const item of claimed ?? []) {
-      const attempts = (item.attempts ?? 0) + 1;
+      const attempts = item.attempts ?? 1; // já contada na reserva
       const recipients: string[] = Array.isArray(item.recipients) ? item.recipients.filter(Boolean) : [];
 
       if (!recipients.length) {
-        await db.from("notification_email_outbox")
-          .update({ status: "failed", attempts, last_error: "Sem destinatários configurados" })
-          .eq("id", item.id);
+        await finish(item.id, "failed", "Sem destinatários configurados");
         failed++;
         continue;
+      }
+
+      // Mensagens operacionais de OPEX: revalida destinatário ativo e atribuição vigente antes de enviar.
+      if (item.opex_action_id) {
+        const { data: reason } = await db.rpc("opex_email_check", { p_outbox_id: item.id });
+        if (reason) { await finish(item.id, "suppressed", `Suprimido: ${reason}`); continue; }
       }
 
       try {
@@ -228,6 +224,8 @@ Deno.serve(async (req) => {
           headers: {
             Authorization: `Bearer ${resendApiKey}`,
             "Content-Type": "application/json",
+            // Chave de idempotência do provedor derivada da outbox: reenvio do mesmo item não duplica no Resend.
+            "Idempotency-Key": `vecton-outbox-${item.id}`,
           },
           body: JSON.stringify({
             from,
@@ -240,21 +238,12 @@ Deno.serve(async (req) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data?.message || `Resend ${res.status}`);
 
-        await db.from("notification_email_outbox")
-          .update({ status: "sent", attempts, sent_at: new Date().toISOString(), last_error: null })
-          .eq("id", item.id);
+        await finish(item.id, "sent", null);
         sent++;
       } catch (e) {
         const msg = String((e as Error)?.message ?? e).slice(0, 500);
-        // Estourou as tentativas → para de tentar. Senão volta pra fila e o
-        // próximo tick tenta de novo.
-        await db.from("notification_email_outbox")
-          .update({
-            status: attempts >= MAX_ATTEMPTS ? "failed" : "pending",
-            attempts,
-            last_error: msg,
-          })
-          .eq("id", item.id);
+        // Estourou as tentativas → falha visível e para de tentar. Senão volta pra fila para o próximo tick.
+        await finish(item.id, attempts >= MAX_ATTEMPTS ? "failed" : "pending", msg);
         failed++;
       }
     }

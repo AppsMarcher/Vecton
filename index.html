@@ -14,14 +14,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261118pop1">
+  <link rel="stylesheet" href="styles.css?v=20261118pop23">
   <link rel="stylesheet" href="src/modules/balance/bp.css?v=20261026bpdrill2">
   <link rel="stylesheet" href="src/modules/reports/dreExport.css?v=20261023dfs1">
   <link rel="stylesheet" href="src/modules/cashflow/fcDashboard.css?v=20261014em1">
   <link rel="stylesheet" href="src/modules/planning/planning.css?v=20261030imp14">
   <link rel="stylesheet" href="src/styles/appearance.css?v=20260924maps1">
   <script src="src/core/appearance.js?v=20260924a"></script>
-  <script src="src/core/modalScrim.js?v=20261118pop1"></script>
 </head>
 <body class="auth-only">
   <svg aria-hidden="true" class="icon-sprite" width="0" height="0" focusable="false">
@@ -396,6 +395,7 @@
               <button class="submenu-button" type="button" data-view="bpPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-accounts"></use></svg><span>Plano de Contas BP</span></button>
               <button class="submenu-button" type="button" data-view="managements"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-managements"></use></svg><span>Gestões</span></button>
               <button class="submenu-button" type="button" data-view="ccPlan"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-cost"></use></svg><span>Centro de Custos</span></button>
+              <button class="submenu-button" type="button" data-view="opexSignal" style="display:none"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-gauge"></use></svg><span>Sinaleira OPEX</span></button>
               <button class="submenu-button" type="button" data-view="actualsLoad"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-upload"></use></svg><span>Carga de Realizado</span></button>
               <button class="submenu-button" type="button" data-view="budgetLoad"><svg class="submenu-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-upload"></use></svg><span>Carga de Planejado</span></button>
               <div class="submenu-section-label">Comercial</div>
@@ -809,6 +809,26 @@
                 <span class="rrc-edit-btn" role="button" data-edit-card="opexBudget" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
               </button>
 
+              <button class="reports-report-card" type="button" data-report-id="opexAnalises">
+                <div class="rrc-top">
+                  <span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-layers"></use></svg></span>
+                  <span class="rrc-fav" role="button" data-fav-id="opexAnalises" aria-label="Favoritar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                </div>
+                <strong class="rrc-label">Análises e planos de ação</strong>
+                <span class="rrc-subtitle"></span>
+                <span class="rrc-edit-btn" role="button" data-edit-card="opexAnalises" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+              </button>
+
+              <button class="reports-report-card" type="button" data-report-id="minhasAcoes">
+                <div class="rrc-top">
+                  <span class="rrc-icon-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#vp-icon-target"></use></svg></span>
+                  <span class="rrc-fav" role="button" data-fav-id="minhasAcoes" aria-label="Favoritar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+                </div>
+                <strong class="rrc-label">Minhas ações</strong>
+                <span class="rrc-subtitle"></span>
+                <span class="rrc-edit-btn" role="button" data-edit-card="minhasAcoes" aria-label="Editar" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+              </button>
+
                 </div>
               </div>
 
@@ -937,6 +957,7 @@
       <section id="fcLoad-view" class="content-view"></section>
       <section id="fcPlan-view" class="content-view"></section>
       <section id="bpPlan-view" class="content-view"></section>
+      <section id="opexSignal-view" class="content-view" aria-label="Sinaleira OPEX"></section>
       <section id="bpLoad-view" class="content-view"></section>
 
       <section id="drePlan-view" class="content-view">
@@ -1762,11 +1783,24 @@
   <script src="src/modules/reports/reportsGarantiaAtivacoesModule.js?v=20261014gar23"></script>
   <script src="src/modules/reports/reportsMarcherCampoModule.js?v=20261016mc5"></script>
   <script src="src/modules/reports/comercialReportsModule.js?v=20261019a"></script>
-  <script src="src/modules/cockpit/cockpitAggregate.js?v=20260910g"></script>
-  <script src="src/modules/cockpit/cockpitService.js?v=20261021cc2"></script>
-  <script src="src/modules/cockpit/cockpitFormat.js?v=20260910b"></script>
-  <script src="src/modules/cockpit/cockpitWidgets.js?v=20260910q"></script>
-  <script src="src/modules/cockpit/cockpitModule.js?v=20261021cc2"></script>
+  <script src="src/modules/cockpit/cockpitAggregate.js?v=20261117opx1"></script>
+  <script src="src/modules/cockpit/cockpitService.js?v=20261117opx1"></script>
+  <script src="src/modules/cockpit/cockpitFormat.js?v=20261118pb1"></script>
+  <script src="src/modules/cockpit/cockpitWidgets.js?v=20261118sig1"></script>
+  <script src="src/modules/cockpit/cockpitModule.js?v=20261118tp1"></script>
+  <script src="src/modules/opexReview/opexReviewCore.js?v=20261118opx6"></script>
+  <script src="src/modules/opexReview/opexReviewService.js?v=20261118del1"></script>
+  <script src="src/modules/opexReview/opexReviewViews.js?v=20261118st1"></script>
+  <script src="src/core/overlayQueue.js?v=20261117opx1"></script>
+  <script src="src/core/modalScrim.js?v=20261118pop1"></script>
+  <script src="src/modules/opexReview/opexReviewPicker.js?v=20261118opx9"></script>
+  <script src="src/modules/opexReview/opexReviewAttachments.js?v=20261118ab1"></script>
+  <script src="src/modules/opexReview/opexReviewActionDetail.js?v=20261118opx9"></script>
+  <script src="src/modules/opexReview/opexReviewPlan.js?v=20261118st1"></script>
+  <script src="src/modules/opexReview/opexReviewMyActions.js?v=20261118st1"></script>
+  <script src="src/modules/opexReview/opexReviewHub.js?v=20261118tp3"></script>
+  <script src="src/modules/opexReview/opexReviewEntry.js?v=20261118ab1"></script>
+  <script src="src/modules/opexReview/opexReviewModule.js?v=20261118tp3"></script>
   <script src="src/modules/dashboard/dashboardCards.js?v=20261021cc3"></script>
   <script src="src/modules/dashboard/dashboardModule.js?v=20261019a"></script>
   <script src="src/modules/dashboard/dashboardVisuals.js?v=20260924clear1"></script>

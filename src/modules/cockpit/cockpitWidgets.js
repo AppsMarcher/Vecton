@@ -150,8 +150,8 @@
   // aplica atributos por linha, ex.: pra abrir um drilldown ao clicar; totalAttrs
   // faz o mesmo só pra linha de Total (sem entrar em conflito com a classe
   // "ger-row-subtotal" que essa linha já carrega).
-  function table(caption, headers, rows, total, rowAttrs = [], totalAttrs = "", tableClass = "") {
-    const renderRow = (cells, totalRow = false, attrs = "") => `<tr${totalRow ? ' class="ger-row-subtotal"' : ""}${attrs}>${cells.map((cell, i) => i === 0 ? `<th scope="row">${cell}</th>` : `<td>${cell}</td>`).join("")}</tr>`;
+  function table(caption, headers, rows, total, rowAttrs = [], totalAttrs = "", tableClass = "", rowHeaderIndex = 0) {
+    const renderRow = (cells, totalRow = false, attrs = "") => `<tr${totalRow ? ' class="ger-row-subtotal"' : ""}${attrs}>${cells.map((cell, i) => i === rowHeaderIndex ? `<th scope="row">${cell}</th>` : `<td>${cell}</td>`).join("")}</tr>`;
     return `<div class="reports-table-wrap cockpit-table-scroll" tabindex="0" role="region" aria-label="${e(caption)}"><table class="data-table reports-ger-table cockpit-table${tableClass ? ` ${tableClass}` : ""}"><caption class="cockpit-sr-only">${e(caption)}</caption><thead><tr>${headers.join("")}</tr></thead><tbody>${rows.map((cells, i) => renderRow(cells, false, rowAttrs[i] || "")).join("")}${renderRow(total, true, totalAttrs)}</tbody></table></div>`;
   }
   const th = (label, sortKey, active, dir) => `<th scope="col"${sortKey ? ` data-sort="${sortKey}" class="cockpit-sortable${active ? " cockpit-sort-active" : ""}"` : ""}>${e(label)}${active ? (dir === 1 ? " ↑" : " ↓") : ""}</th>`;
@@ -160,14 +160,20 @@
   // render(); cockpitModule.js só chama setGroupsSort + re-render.
   let groupsSort = { key: null, dir: 1 };
   function setGroupsSort(key) { groupsSort = { key, dir: groupsSort.key === key ? -groupsSort.dir : 1 }; }
-  function sortGroups(list) {
+  function sortGroups(list, review) {
     if (!groupsSort.key) return list;
     const { key, dir } = groupsSort;
+    const V = window.VECTON_OPEX_REVIEW_VIEWS;
+    if (key === "signal" && review && V) return list.slice().sort((a, b) => dir * (V.signalSortValue(review, a.actual, a.budget) - V.signalSortValue(review, b.actual, b.budget)));
     return list.slice().sort((a, b) => typeof a[key] === "string" ? dir * a[key].localeCompare(b[key], "pt-BR") : dir * ((a[key] ?? -Infinity) - (b[key] ?? -Infinity)));
   }
   function expenseGroups(data) {
-    const sorted = sortGroups(data.expenseGroups);
+    const sorted = sortGroups(data.expenseGroups, data.review);
+    const V = window.VECTON_OPEX_REVIEW_VIEWS, review = data.review;
     const row = group => [e(group.name), money(group.actual), money(group.budget), `<span class="kpi-trend ${F.tone(group.variance)}">${F.formatDelta(group.variance)}</span>`, trend(group.variancePercent)];
+    // Acompanhamento de OPEX (módulo opexReview): ícone de registro à esquerda e sinaleira SEMPRE na última coluna.
+    // Sem o módulo ligado (data.review ausente) a tabela fica exatamente como antes.
+    const withControls = (cells, group) => review && V ? [V.recordCell(V.groupPresence(review, group)), ...cells, V.signalCell(review, group.actual, group.budget)] : cells;
     const headers = [
       th("Grupo", "name", groupsSort.key === "name", groupsSort.dir),
       th(`${valueLabel(data)} ${periodLabel(data)}`, "actual", groupsSort.key === "actual", groupsSort.dir),
@@ -175,10 +181,12 @@
       th("Var.", "variance", groupsSort.key === "variance", groupsSort.dir),
       th("Var. %", "variancePercent", groupsSort.key === "variancePercent", groupsSort.dir)
     ];
+    if (review && V) { headers.unshift(V.recHeader); headers.push(V.signalHeader(groupsSort.key === "signal", groupsSort.dir)); }
     // Clique na linha abre o drilldown por conta (lista + Real + comparativo),
     // tratado em cockpitModule.js — aqui só marca a linha.
     const rowAttrs = sorted.map(group => group.accounts.length ? ` class="ger-drillable" data-group="${e(group.name)}"` : "");
-    return table("OPEX por Grupo de Despesa", headers, sorted.map(row), row({ name: "Total", ...data.opex }), rowAttrs, "", "cockpit-table-groups");
+    const totalCells = review && V ? ["", ...row({ name: "Total", ...data.opex }), ""] : row({ name: "Total", ...data.opex });
+    return table("OPEX por Grupo de Despesa", headers, sorted.map(group => withControls(row(group), group)), totalCells, rowAttrs, "", `cockpit-table-groups${review && V ? " cockpit-table-groups--ctl" : ""}`, review && V ? 1 : 0);
   }
   // Mesmo padrão de ordenação clicável do "OPEX por Grupo de Despesa"
   // (groupsSort/setGroupsSort/sortGroups acima), estado próprio pra não
@@ -271,8 +279,10 @@
   // relatório já respeita sozinho os CCs/gestões permitidos do perfil de
   // acesso (getAllowedCcNumbers em app.js), sem precisar repassar filtro.
   const hcLink = '<button type="button" class="ghost-button cockpit-opex-link" data-cockpit-hc-link>Ver Headcount completo</button>';
+  // Acompanhamento de OPEX: botões compactos no cabeçalho do card de grupos (cockpitModule os oculta sem o módulo).
+  const reviewButtons = '<span class="cockpit-card-actions"><button type="button" class="ghost-button cockpit-opex-link" data-opex-hub hidden>Análises e planos de ação</button></span>';
   function shell() {
-    const links = { attainment: opexLink, areas: hcLink };
+    const links = { attainment: opexLink, areas: hcLink, groups: reviewButtons };
     return `<div class="kpi-grid cockpit-kpis" data-cockpit-kpis></div><div class="cockpit-grid">${sections.map(([id, title, symbol]) => `<section class="content-card dashboard-panel cockpit-panel cockpit-${id}-panel"><div class="panel-header"><h3>${icon(symbol)} ${title}</h3>${links[id] || ""}</div><div data-cockpit-widget="${id}"></div></section>`).join("")}</div>`;
   }
   function render(root, data) {

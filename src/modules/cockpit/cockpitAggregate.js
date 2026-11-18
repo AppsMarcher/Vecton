@@ -65,10 +65,11 @@
     // mesma regra do grupo, e ordenadas pelo Real absoluto (maior primeiro).
     // Drilldown: uma linha por conta × centro de custo (conta, CC, Real, Meta, Var., Var.%).
     const ccNames = new Map(costCenters.map(cc => [norm(cc.number), cc.name]));
+    const ccIds = new Map(costCenters.map(cc => [norm(cc.number), cc.id]));
     const accountCcRows = code => {
       const aRows = actualAccounts.get(code) || [], bRows = compareAccounts.get(code) || [];
       const ccs = [...new Set([...aRows, ...bRows].map(ccOf))];
-      return ccs.map(cc => ({ code, name: accountNames.get(code) || code, ccNumber: cc, ccName: ccNames.get(cc) || "",
+      return ccs.map(cc => ({ code, name: accountNames.get(code) || code, ccNumber: cc, ccName: ccNames.get(cc) || "", ccId: ccIds.get(cc) ?? null,
         ...financialPair(aRows.filter(row => ccOf(row) === cc), bRows.filter(row => ccOf(row) === cc)) }));
     };
     const expenseGroups = groups.map(group => {
@@ -119,7 +120,7 @@
     if (opex.budget == null) warnings.push("Comparativo sem cobertura completa do período.");
     if (hcMean == null || hcBudgetMean == null) warnings.push("HC médio indisponível: há competência sem base de pessoas.");
     if (revenue == null) warnings.push("Receita líquida Marcher indisponível ou incompleta no período.");
-    return { ...filters, source: "supabase", comparisonLabel: source.comparisonLabel, valueLabel: periodType === "year" ? "Forecast" : "Real",
+    return { ...filters, source: "supabase", comparisonLabel: source.comparisonLabel, comparisonScenarioId: source.comparisonScenarioId ?? null, comparisonSourceYear: source.comparisonSourceYear ?? null, valueLabel: periodType === "year" ? "Forecast" : "Real",
       areaLabel: filters.management === "Marcher" ? "Gestão" : "CC", warnings, opex, headcount,
       opexPerHeadcount: variance(ratio(ratio(opex.actual, selected.length), hcMean), ratio(ratio(opex.budget, selected.length), hcBudgetMean)),
       monthlyOpex: actual.map((value, i) => ({ month: i + 1, actual: i < month ? value : null, budget: comparison[i], forecast: source.hasForecast || i < month ? forecast[i] : null })),

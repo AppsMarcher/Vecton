@@ -114,6 +114,9 @@ let reportCardLabelsCache = {};
 let currentSession = null;
 let currentUser = null;
 let cockpitService = null;
+let opexReviewService = null;
+let opexReviewModule = null;
+let opexMyActionsAvailable = false;
 let fcDashboardModule = null;
 let fcLoadModule = null;
 let bpModule = null;
@@ -199,6 +202,7 @@ const views = {
   branchPlan: document.querySelector("#branchPlan-view"),
   drePlan: document.querySelector("#drePlan-view"),
   bpPlan: document.querySelector("#bpPlan-view"),
+  opexSignal: document.querySelector("#opexSignal-view"),
   bpLoad: document.querySelector("#bpLoad-view"),
   fcPlan: document.querySelector("#fcPlan-view"),
   fcLoad: document.querySelector("#fcLoad-view"),
@@ -268,7 +272,7 @@ const authModule = createAuthModule({
   hydrateFromSupabase,
   buildAuthHeaders,
   supabaseConfig,
-  onLogoutCleanup: () => { organizationIdCache = null; reportCardLabelsCache = {}; cockpitService?.invalidate(); fcDashboardModule?.reset(); fcLoadModule?.reset(); bpModule?.reset(); },
+  onLogoutCleanup: () => { organizationIdCache = null; reportCardLabelsCache = {}; cockpitService?.invalidate(); opexReviewService?.invalidate(); opexReviewModule?.resetSession(); entryOverlaysQueuedFor = null; fcDashboardModule?.reset(); fcLoadModule?.reset(); bpModule?.reset(); },
   getCurrentSession: () => currentSession,
   setCurrentSession: (value) => { currentSession = value; },
   getCurrentUser: () => currentUser,
@@ -718,6 +722,7 @@ bpModule = window.VECTON_BP.createModule({
 });
 const navigationModule = createNavigationModule({
   renderBpPlan: () => bpPlanModule.render(),
+  renderOpexSignal: view => opexReviewModule?.renderSignalView(view),
   renderBpLoad: () => bpModule.renderLoad(),
   renderFcPlan: () => fcPlanModule.render(),
   renderFcLoad: () => fcLoadModule.render(),
@@ -903,6 +908,12 @@ let pendingDeepLink = readDeepLinkFromUrl();
 function readDeepLinkFromUrl() {
   try {
     const params = new URLSearchParams(window.location.search);
+    // Ação de OPEX (e-mail/sino): ?acao=<uuid opaco>. Só o formato é validado aqui; o acesso é decidido pelo servidor.
+    const actionId = params.get("acao");
+    if (actionId && /^[0-9a-fA-F-]{36}$/.test(actionId)) {
+      history.replaceState(null, "", window.location.pathname);
+      return { actionId };
+    }
     const reportId = params.get("report");
     if (!reportId) return null;
     const link = {
@@ -919,6 +930,12 @@ function readDeepLinkFromUrl() {
 
 function applyPendingDeepLink() {
   if (!pendingDeepLink) return;
+  if (pendingDeepLink.actionId) {
+    const id = pendingDeepLink.actionId;
+    pendingDeepLink = null;
+    opexReviewModule?.openAction(id);
+    return;
+  }
   const { reportId, year, month } = pendingDeepLink;
   pendingDeepLink = null;
   // Só abre id de relatório conhecido (fixo do catálogo ou personalizado).
@@ -928,6 +945,15 @@ function applyPendingDeepLink() {
   // openReportFromNotification já checa canSeeReport: quem não tem acesso cai
   // no catálogo de relatórios em vez de numa tela quebrada.
   openReportFromNotification(reportId, year, month);
+}
+
+// Telas do acompanhamento de OPEX (Análises e planos de ação / Minhas ações), hospedadas na Central de Relatórios.
+function openOpexReviewReport(reportId) {
+  if (reportId === "minhasAcoes" && canSeeReport("opexAnalises")) reportId = "opexAnalises";
+  activeView = "reports";
+  selectedReportId = canSeeReport(reportId) ? reportId : null;
+  renderNavigation();
+  renderReportsView();
 }
 
 function openReportFromNotification(reportId, year, month) {
@@ -999,6 +1025,7 @@ const {
   showToast,
   getCurrentUserId: () => currentUser?.id || null,
   openReportFromNotification,
+  openOpexAction: (id) => opexReviewModule?.openAction(id),
   vpFriendlyError,
   appConfirm,
   messagesTab,
@@ -1841,7 +1868,32 @@ cockpitService = window.VECTON_COCKPIT_SERVICE.createCockpitService({
   getRevenueAccounts: () => [...new Set(["receitaBruta", "impostos", "devolucoes", "descontos"].flatMap(key => DRE_GER_ACCOUNT_MAP[key]))],
   buildDreReport: buildDreGerRealReport
 });
+// Análises e planos de ação de OPEX (acompanhamento orçamentário a partir do card de grupos do Cockpit).
+opexReviewService = window.VECTON_OPEX_REVIEW_SERVICE.createOpexReviewService({
+  rpc: callSupabaseRpc,
+  readRows: fetchSupabaseRows,
+  resolveOrganizationId,
+  getSessionKey: () => currentUser?.id || "",
+  // Bucket privado: upload com a sessão do usuário e URL assinada curta (a policy do Storage repete a autorização).
+  uploadFile: (bucket, path, file) => uploadToStorage(bucket, path, file),
+  signUrl: (bucket, path, expiresIn) => createStorageSignedUrl(bucket, path, expiresIn)
+});
+opexReviewModule = window.VECTON_OPEX_REVIEW.createOpexReviewModule({
+  service: opexReviewService,
+  confirm: message => appConfirm(message, "warn"),
+  toast: message => showToast(message),
+  getCostCenters: () => getCockpitManagementAccess("Marcher", null).tree.flatMap(group => group.ccs),
+  // As telas moram na Central de Relatórios (seção OPEX). "Minhas ações" só aparece para quem tem tarefa e não libera nenhum relatório financeiro.
+  openReport: reportId => openOpexReviewReport(reportId),
+  signalRoot: views.opexSignal,
+  setSignalMenuVisible: visible => { const button = document.querySelector(".submenu-button[data-view='opexSignal']"); if (button) button.style.display = visible ? "" : "none"; },
+  setMyActionsVisible: visible => { opexMyActionsAvailable = Boolean(visible); applyReportAccess(); }
+});
+// Fila de overlays da entrada: pendências de ações ANTES das Novidades, nunca duas janelas juntas nem sobre formulário não salvo.
+const entryOverlayQueue = window.VECTON_OVERLAY_QUEUE.createOverlayQueue({ gate: () => opexReviewModule.hasDirtyForm() });
+let entryOverlaysQueuedFor = null; // chave usuário:organização da sessão já enfileirada (não reabre a cada render/polling)
 const cockpitModule = window.VECTON_COCKPIT.createCockpitModule({
+  review: opexReviewModule,
   getActiveView: () => activeView,
   getPeriod: () => state.currentPeriod,
   canAccess: canAccessDashboard,
@@ -2433,7 +2485,18 @@ async function hydrateFromSupabase() {
     startNotifications();
     applyPendingDeepLink();
     appBootDone = true;
-    void announcementsDisplayModule.checkAndShow();
+    void opexReviewModule.refreshMyActionsVisibility();
+    void opexReviewModule.refreshSignalMenu();
+    // Entrada: pendências de ações (prioridade) e depois Novidades, em fila. Uma vez por sessão autenticada.
+    const entryKey = `${currentUser?.id || ""}:${organizationIdCache || ""}`;
+    if (entryOverlaysQueuedFor !== entryKey) {
+      entryOverlaysQueuedFor = entryKey;
+      entryOverlayQueue.enqueue("opex-pending", 10, () => opexReviewModule.runEntry());
+      entryOverlayQueue.enqueue("announcements", 20, async () => {
+        await announcementsDisplayModule.checkAndShow();
+        if (announcementDialog?.open) await new Promise((resolve) => announcementDialog.addEventListener("close", resolve, { once: true }));
+      });
+    }
   } catch (error) {
     console.error(error);
     if (String(error?.message || "").includes("Sessao")) {
@@ -2648,7 +2711,7 @@ function roleCanSeeReport(role, reportId) {
   }
   if (role === "manager") return !MARKETING_REPORT_IDS.includes(reportId);
   if (role === "marketing") return MARKETING_REPORT_IDS.includes(reportId);
-  if (role === "analyst") return ["opexReal", "opexBudget", "headcountReal", "headcountBudget", "capexBudget"].includes(reportId);
+  if (role === "analyst") return ["opexReal", "opexBudget", "opexAnalises", "headcountReal", "headcountBudget", "capexBudget"].includes(reportId);
   return false; // rps_gestao e outros perfis sem tela de Relatórios própria
 }
 // Relatórios que dependem de escopo (gestão/CC). Quem não é Admin/Gestor/Analista só os vê por
@@ -2656,6 +2719,9 @@ function roleCanSeeReport(role, reportId) {
 // relatório abriria vazio (isAccessRestricted() sem escopo = nada).
 const SCOPED_REPORT_RE = /^(dre|opex|headcount|capex)/;
 function canSeeReport(reportId) {
+  // "Minhas ações": só para quem tem tarefa (ou entrega a validar); independe do perfil de relatórios.
+  // (quem já vê "Análises e planos de ação" tem "Minhas ações" dentro daquela tela; o card próprio é para os demais)
+  if (reportId === "minhasAcoes") return opexMyActionsAvailable && !canSeeReport("opexAnalises");
   // Regra única: DRE, OPEX, Headcount e Capex exigem algum escopo de gestão/CC para quem não é admin.
   if (SCOPED_REPORT_RE.test(reportId) && isAccessRestricted() && !hasAnyScope()) return false;
   if (getAllAccessRoles().some((role) => roleCanSeeReport(role, reportId))) return true;
@@ -3337,7 +3403,9 @@ const REPORT_TITLES = {
   comercialPecasGeo: "Performance de Peças",
   comercialMargens: "Evolutivo de Margens",
   garantiaAtivacoes: "Ativações de Garantia",
-  marcherCampo: "Marcher no Campo"
+  marcherCampo: "Marcher no Campo",
+  opexAnalises: "Análises e planos de ação",
+  minhasAcoes: "Minhas ações"
 };
 
 /*
@@ -3579,6 +3647,7 @@ function renderReportsView() {
     reportsGarantiaAtivacoesModule.renderSelectedGarantiaAtivacoes(detailPanel, selectedReportId) ||
     reportsMarcherCampoModule.renderSelectedMarcherCampo(detailPanel, selectedReportId) ||
     reportsDreModule.renderSelectedDreReport(detailPanel, selectedReportId) ||
+    opexReviewModule?.renderReport(detailPanel, selectedReportId) ||
     reportsOpexModule.renderSelectedOpexReport(detailPanel, selectedReportId) ||
     reportsHeadcountModule.renderSelectedHeadcountReport(selectedReportId) ||
     renderCapexReport(detailPanel, selectedReportId);

@@ -37,6 +37,8 @@
       { section_id: "fallback-dre", report_id: "dreDfsBudget", sort_order: 5 },
       { section_id: "fallback-opex", report_id: "opexReal", sort_order: 0 },
       { section_id: "fallback-opex", report_id: "opexBudget", sort_order: 1 },
+      { section_id: "fallback-opex", report_id: "opexAnalises", sort_order: 2 },
+      { section_id: "fallback-opex", report_id: "minhasAcoes", sort_order: 3 },
       { section_id: "fallback-headcount", report_id: "headcountReal", sort_order: 0 },
       { section_id: "fallback-headcount", report_id: "headcountBudget", sort_order: 1 },
       { section_id: "fallback-capex", report_id: "capexBudget", sort_order: 0 },
