@@ -200,19 +200,41 @@
       }
       // <div role="button"> porque a linha carrega o botão de lida/não lida
       // dentro — botão dentro de botão é HTML inválido.
-      return _items.map((item) => `
+      return _items.map((item) => {
+        const acao = item.is_read ? "Marcar como não lida" : "Marcar como lida";
+        return `
         <div class="notif-item${item.is_read ? "" : " unread"}" role="button" tabindex="0" data-id="${escapeHtml(item.id)}">
           <span class="notif-item-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${iconFor(item.kind)}"></use></svg></span>
           <span class="notif-item-copy">
             <strong>${escapeHtml(item.title || "")}</strong>
-            <span class="notif-item-body">${escapeHtml(item.body || "")}</span>
+            ${bodyMarkup(item.body)}
           </span>
-          <span class="notif-item-time">${escapeHtml(formatRelative(item.created_at))}</span>
-          <button type="button" class="notif-toggle" data-action="alternar-lida" data-id="${escapeHtml(item.id)}"
-                  title="${item.is_read ? "Marcar como não lida" : "Marcar como lida"}"
-                  aria-label="${item.is_read ? "Marcar como não lida" : "Marcar como lida"}">${item.is_read ? "○" : "●"}</button>
-        </div>
-      `).join("");
+          <span class="notif-item-aside">
+            <span class="notif-item-time">${escapeHtml(formatRelative(item.created_at))}</span>
+            <button type="button" class="notif-toggle" data-action="alternar-lida" data-id="${escapeHtml(item.id)}"
+                    aria-label="${acao}">${acao}</button>
+          </span>
+        </div>`;
+      }).join("");
+    }
+
+    // Texto do aviso em duas partes: os fatos (separados por " · ") viram
+    // etiquetas e o "Acesse em: ..." vira uma linha própria com o caminho.
+    // Texto sem esse formato continua como parágrafo simples.
+    function bodyMarkup(body) {
+      const text = String(body || "").trim();
+      if (!text) return "";
+      const [fatos, ...resto] = text.split(/\s*Acesse em:\s*/i);
+      const caminho = resto.join(" ").trim();
+      const partes = fatos.split(" · ").map((p) => p.trim()).filter(Boolean);
+      if (partes.length < 2 && !caminho) return `<span class="notif-item-body">${escapeHtml(text)}</span>`;
+      const chips = partes.length
+        ? `<span class="notif-item-chips">${partes.map((p) => `<span class="notif-chip">${escapeHtml(p)}</span>`).join("")}</span>`
+        : "";
+      const rota = caminho
+        ? `<span class="notif-item-path"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>${escapeHtml(caminho)}</span>`
+        : "";
+      return chips + rota;
     }
 
     function paintPopoverBody() {

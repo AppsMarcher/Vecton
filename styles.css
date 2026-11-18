@@ -10232,7 +10232,7 @@ body.rps-laser-mode .rps-attachment-carousel * {
   /* Tela exclusiva das notificações: 60% x 45%, altura fixa (o correio virou
      painel separado, com dimensões próprias). */
   width: 60vw;
-  height: 45vh;
+  height: 60vh;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -10405,6 +10405,112 @@ body.rps-laser-mode .rps-attachment-carousel * {
 }
 .notif-toggle:hover { color: var(--blue); background: var(--theme-surface-tint, rgba(255, 255, 255, 0.08)); }
 .notif-item.unread .notif-toggle { color: var(--blue); }
+
+/* ── Item da central de notificações (cartão) ─────────────────────────────────
+   Escopado em .notif-popover: o correio reaproveita .notif-item e não muda. */
+.notif-popover .notif-list { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; }
+.notif-popover .notif-item {
+  position: relative;
+  flex: none;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  padding: 14px 16px 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  overflow: hidden;
+  transition: background 0.14s, border-color 0.14s, transform 0.14s;
+}
+.notif-popover .notif-item:hover {
+  background: var(--panel-hover);
+  border-color: var(--blue);
+  transform: translateX(2px);
+}
+/* Não lida: faixa de destaque na borda esquerda + brilho suave, sem bolinhas. */
+.notif-popover .notif-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: transparent;
+}
+.notif-popover .notif-item.unread {
+  background: linear-gradient(90deg, var(--blue-soft), var(--panel) 55%);
+  border-color: var(--blue-soft);
+}
+.notif-popover .notif-item.unread::before { background: var(--blue); }
+.notif-popover .notif-item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--panel-hover);
+  color: var(--text-soft);
+}
+.notif-popover .notif-item-icon svg { width: 18px; height: 18px; }
+.notif-popover .notif-item.unread .notif-item-icon { background: var(--blue); color: #fff; }
+.notif-popover .notif-item.unread .notif-item-icon::after { content: none; }
+.notif-popover .notif-item-copy { gap: 10px; padding-top: 1px; }
+.notif-popover .notif-item-copy strong { font-size: 0.86rem; font-weight: 650; line-height: 1.25; }
+.notif-popover .notif-item:not(.unread) .notif-item-copy strong { color: var(--text-soft); font-weight: 600; }
+.notif-popover .notif-item-body { font-size: 0.74rem; line-height: 1.45; }
+.notif-item-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.notif-chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-hover);
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+.notif-item.unread .notif-chip { background: var(--panel); }
+.notif-item-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--blue);
+  font-size: 0.7rem;
+}
+.notif-item-path svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.notif-popover .notif-item-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.notif-popover .notif-item-time { font-size: 0.68rem; font-weight: 600; }
+.notif-popover .notif-toggle {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 0.64rem;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.14s;
+}
+.notif-popover .notif-item:hover .notif-toggle,
+.notif-popover .notif-item:focus-within .notif-toggle { opacity: 1; }
+.notif-popover .notif-toggle:hover { border-color: var(--blue); color: var(--blue); }
+@media (hover: none) {
+  .notif-popover .notif-toggle { opacity: 1; }
+}
 
 /* ── Correio estilo MSN ───────────────────────────────────────────────────── */
 /* Painel de contatos: 20% x 85%, encostado à direita e centralizado na altura. */
