@@ -13439,3 +13439,30 @@ td.capex-z { color: var(--text-faint); }
 .auto-carga-popover { right: auto; left: 0; top: calc(100% + 6px); }
 .period-nav-button:disabled, .period-month-button:disabled { opacity: 0.35; cursor: not-allowed; }
 .period-month-button:disabled:hover { background: var(--theme-surface-tint, rgba(255, 255, 255, 0.03)); color: var(--text-soft); }
+
+/* ===== Padrão de popover (todo o app) =====
+   Fundo da tela esmaecido e desfocado + cartão branco (cor de superfície do tema), sem faixas ou rodapés coloridos.
+   O esmaecimento dos popovers sem camada própria vem de src/core/modalScrim.js (automático); as camadas dos modais
+   que já têm overlay e o ::backdrop dos <dialog> são uniformizados aqui. Novo popover: usar a classe
+   .ger-audit-popover (ou .vp-popover) ou role="dialog" aria-modal="true" — nada mais a fazer.
+   Se criar um novo overlay próprio, acrescente a classe dele na lista abaixo. */
+.vp-scrim { position: fixed; inset: 0; background: var(--theme-overlay, rgba(15, 23, 42, 0.45)); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.vcr-overlay, .rps-backup-overlay, .rps-attachment-backdrop, .users-invite-overlay, .fc-bridge-backdrop, .sa3-modal-overlay,
+.vp-app-dialog-overlay, .hc-cell-popover-backdrop, .cvp-pop-backdrop, .vmob-period-modal-backdrop {
+  background: var(--theme-overlay, rgba(15, 23, 42, 0.45)) !important;
+  backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important;
+}
+.profile-dialog::backdrop, .announcement-dialog::backdrop, .pl-dialog::backdrop {
+  background: var(--theme-overlay, rgba(15, 23, 42, 0.45)); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.ger-audit-popover, .fc-bridge-popover, .pl-import-pop, .hc-cell-popover, .rps-backup-dialog, .rps-attachment-modal,
+.sa3-modal-card, .vcr-modal, .users-invite-modal, .vp-app-dialog, .profile-dialog, .announcement-dialog, .pl-dialog {
+  background: var(--theme-surface, #14161d) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: 0 24px 60px var(--theme-shadow-color, rgba(15, 23, 42, 0.28));
+}
+.gap-header, .gap-footer, .rps-backup-dialog-head, .vcr-modal-head, .pl-imp-head { background: transparent !important; }
+.gap-footer { border-top: 1px solid var(--line); }
+.gap-table tfoot .gap-total-row td, .cockpit-drill-pop--ctl .gap-table tfoot td:nth-child(10), .cockpit-drill-pop--ctl .gap-table tfoot td:nth-child(1) {
+  background: var(--theme-surface, #14161d) !important; border-top: 1px solid var(--line);
+}
