@@ -32,7 +32,15 @@
     });
   }
 
+  // Só recarrega quando uma versão NOVA assume uma página que já tinha SW.
+  // Na 1ª visita (sem controller) o clients.claim() do sw.js também dispara
+  // "controllerchange" — recarregar aí derrubava a tela de definir senha de
+  // quem abria o convite pela primeira vez: o app já tinha limpado o
+  // token_hash da URL, então o reload caía no login normal.
+  const tinhaControlador = Boolean(navigator.serviceWorker.controller);
+
   navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!tinhaControlador) return;
     if (refreshing) return;
     refreshing = true;
     window.location.reload();
