@@ -8486,6 +8486,7 @@ function validateHcRow(batchId, row) {
 }
 
 async function parseHeadcountFile(file) {
+  await window.VectonLibs?.ensure("xlsx");
   if (!window.XLSX) throw new Error("Leitor de planilha não carregado.");
   const buffer = await file.arrayBuffer();
   const workbook = window.XLSX.read(buffer, { type: "array", dense: true });

@@ -30,6 +30,7 @@
       const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:A4 landscape;margin:7mm}body{font:10px Arial;color:#172033}h1{font-size:20px}table{border-collapse:collapse;width:100%;font-size:8px}th,td{padding:5px;border-bottom:1px solid #ddd;text-align:right;white-space:nowrap}th:first-child{text-align:left;white-space:normal;min-width:160px}thead{display:table-header-group}tr{break-inside:avoid}.chart{display:inline-block;width:48%;vertical-align:top;break-inside:avoid}svg{width:100%;height:auto}svg text{fill:#334155;font:11px Arial}.fc-grid-line{stroke:#ddd}.fc-crosshair{display:none}</style></head><body><h1>${esc(title)}</h1><p>${esc(scenario)} · Valores em R$ · Máquinas vendidas em unidades</p>${charts}${table}</body></html>`;
       try {
         if(button.dataset.fcExport==='excel'){
+          await window.VectonLibs?.ensure("xlsx");
           if(!window.XLSX)throw new Error('O gerador de Excel não está disponível. Atualize a página.');
           const X=window.XLSX, book=X.utils.book_new(),sheet=X.utils.aoa_to_sheet([[title],[scenario],['Valores em R$ · Máquinas vendidas em unidades'],[],data.header,...data.rows]);
           sheet['!cols']=[{wch:48},...data.header.slice(1).map(()=>({wch:22}))];

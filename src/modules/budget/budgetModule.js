@@ -1304,6 +1304,7 @@
         throw new Error(`Arquivo Excel muito grande (${formatFileSize(file.size)}). Exporte para CSV ou reduza o arquivo.`);
       }
 
+      await window.VectonLibs?.ensure("xlsx");
       if (!window.XLSX) throw new Error("Leitor de planilha nao carregado.");
 
       const buffer = await file.arrayBuffer();

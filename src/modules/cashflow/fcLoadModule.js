@@ -68,9 +68,10 @@
       } catch(e) { if(token===version) {failed=true; message=e.message;} }
       finally {if(token===version && target===currentKey()) {busy=false;draw();}}
     }
-    function downloadTemplate() {
+    async function downloadTemplate() {
       if (busy || !context || !canUse()) return;
       try {
+        await window.VectonLibs?.ensure("xlsx");
         const year=Number(deps.getPeriod().year);
         const book=window.VECTON_FC_SERVICE.template(context.plan,year,context.today);
         window.XLSX.writeFile(book,`Modelo-FC-${year}.xlsx`);

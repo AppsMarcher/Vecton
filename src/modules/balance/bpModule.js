@@ -40,7 +40,7 @@
     root.querySelector('[data-back]').onclick=()=>d.navigate(origin);
     const scenarioSel=root.querySelector('select[name="scenario"]');scenarioSel?.addEventListener('change',()=>{scenario=scenarioSel.value;});
     form.elements.file.onchange=()=>{root.querySelector('.vecton-file-name').textContent=form.elements.file.files[0]?.name||'Nenhum arquivo selecionado';feedback.textContent='';};
-    root.querySelector('[data-template]').onclick=()=>{try{if(!plan.some(n=>n.active&&n.node_class==='Analitica'))throw Error('Cadastre as contas analíticas no Plano BP.');const sheet=window.XLSX.utils.aoa_to_sheet([M.headers,...plan.filter(n=>n.active).map(n=>[String(n.account_code||n.source_name||''),n.name,n.node_class==='Analitica'?0:null,n.node_class==='Analitica'?'ANALITICA':'SINTETICA',n.node_class==='Analitica'?n.group_key:null])]);sheet['!cols']=[{wch:28},{wch:55},{wch:20},{wch:16},{wch:38}];const book=window.XLSX.utils.book_new();window.XLSX.utils.book_append_sheet(book,sheet,'BP');window.XLSX.writeFile(book,'modelo-carga-bp.xlsx');}catch(e){feedback.textContent=e.message;}};
+    root.querySelector('[data-template]').onclick=async()=>{try{await window.VectonLibs?.ensure('xlsx');if(!plan.some(n=>n.active&&n.node_class==='Analitica'))throw Error('Cadastre as contas analíticas no Plano BP.');const sheet=window.XLSX.utils.aoa_to_sheet([M.headers,...plan.filter(n=>n.active).map(n=>[String(n.account_code||n.source_name||''),n.name,n.node_class==='Analitica'?0:null,n.node_class==='Analitica'?'ANALITICA':'SINTETICA',n.node_class==='Analitica'?n.group_key:null])]);sheet['!cols']=[{wch:28},{wch:55},{wch:20},{wch:16},{wch:38}];const book=window.XLSX.utils.book_new();window.XLSX.utils.book_append_sheet(book,sheet,'BP');window.XLSX.writeFile(book,'modelo-carga-bp.xlsx');}catch(e){feedback.textContent=e.message;}};
     const ensureScenario=()=>{if(source==='planned'&&!scenario)throw Error('Selecione o cenário de destino.');};
     form.onsubmit=event=>{
      event.preventDefault();
@@ -48,6 +48,7 @@
       ensureScenario();
       const file=form.elements.file.files[0];
       if(!file||file.size>20*1024*1024)throw Error('Selecione um Excel de até 20 MB.');
+      await window.VectonLibs?.ensure("xlsx");
       const book=window.XLSX.read(await file.arrayBuffer(),{type:'array'});
       if(!current())return;
       const rows=M.parseWorkbook(book,plan,window.XLSX);

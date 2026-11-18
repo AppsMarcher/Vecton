@@ -104,6 +104,7 @@
     async function prepare(file, year, ctx) {
       if (ctx.user !== deps.getUserId()) throw new Error("A sessão mudou.");
       if (!/\.xlsx?$/i.test(file.name) || file.size <= 0 || file.size > 20 * 1024 * 1024) throw new Error("Selecione um Excel .xls ou .xlsx de até 20 MB.");
+      await window.VectonLibs?.ensure("xlsx");
       if (!window.XLSX) throw new Error("O leitor de Excel não carregou. Atualize a página.");
       const bytes = new Uint8Array(await file.arrayBuffer());
       const book = window.XLSX.read(bytes, { type: "array", cellDates: false, cellFormula: true });

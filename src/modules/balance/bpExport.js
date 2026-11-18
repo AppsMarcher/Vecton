@@ -122,6 +122,7 @@ col.l{width:56%}h3{margin:12px 0 4px;font-size:${font + .5}px}
         const kind = button.dataset.bpExport, title = `Balanço Patrimonial — ${model.current.date}`, filename = `Balanco-Patrimonial-${model.current.year}-${String(model.current.month).padStart(2, "0")}`;
         try {
           if (kind === "excel") {
+            await window.VectonLibs?.ensure("exceljs");
             if (!window.ExcelJS) throw new Error("O gerador de Excel não está disponível. Atualize a página.");
             const buffer = await buildWorkbook(window.ExcelJS, model).xlsx.writeBuffer();
             const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));

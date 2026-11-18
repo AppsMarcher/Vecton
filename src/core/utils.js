@@ -279,8 +279,10 @@ function sanitizeFilenamePart(value) {
 // já carregado globalmente pelo index.html). `columns` aceita tanto tuplas
 // [chave, rótulo] (lê row[chave]) quanto objetos {label, value(row)} pra casos
 // com dado derivado (ex.: nome do CC vindo de um Map auxiliar).
-function exportRowsToExcel(rows, columns, filenameBase) {
-  if (!window.XLSX || !rows || !rows.length) return;
+async function exportRowsToExcel(rows, columns, filenameBase) {
+  if (!rows || !rows.length) return;
+  try { await window.VectonLibs?.ensure("xlsx"); } catch (_error) { return; }
+  if (!window.XLSX) return;
   const cols = columns.map((col) => (Array.isArray(col)
     ? { label: col[1], value: (row) => row[col[0]] }
     : col));
@@ -313,9 +315,10 @@ global.vpFriendlyError = vpFriendlyError;
 
 // Exporta uma <table> renderizada (cabeçalhos agrupados, subtotais e valores) para .xlsx via ExcelJS.
 // Usada pelo botão "Exportar Excel" dos DREs e dos OPEX; nameParts compõe o nome do arquivo.
-function vpExportTableToExcel(table, title, nameParts = [], extraTables = []) {
+async function vpExportTableToExcel(table, title, nameParts = [], extraTables = []) {
   const toast = (msg, kind) => global.VECTON_DIALOGS?.showToast?.(msg, kind);
   if (!table) { toast("A tabela ainda está carregando.", "warning"); return; }
+  try { await window.VectonLibs?.ensure("exceljs"); } catch (_error) { /* a mensagem abaixo cobre a falha */ }
   if (!global.ExcelJS) { toast("Biblioteca de Excel não carregou. Recarregue a página e tente de novo.", "warning"); return; }
   const parseNumber = (text) => {
     const t = text.replace(/\s/g, "");

@@ -342,6 +342,7 @@
     // ------------------------------------------------------ parse / normalize
 
     async function parseFile(file) {
+      await window.VectonLibs?.ensure("xlsx");
       if (!window.XLSX) throw new Error("Leitor de planilha não carregado no navegador.");
       const buffer = await file.arrayBuffer();
       const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true, dense: true });

@@ -296,6 +296,7 @@ ${autoPrint ? '<script>window.addEventListener("load",function(){setTimeout(func
     async function downloadExcel(snap, btn) {
       if (btn) btn.disabled = true;
       try {
+        await window.VectonLibs?.ensure("exceljs");
         if (!window.ExcelJS) throw new Error("Biblioteca de Excel não carregou. Recarregue a página e tente de novo.");
         const buffer = await buildWorkbook(snap).xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });

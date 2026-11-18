@@ -1208,6 +1208,7 @@
         throw new Error(`Arquivo Excel muito grande para importacao no navegador (${formatFileSize(file.size)}). Para esta primeira versao, exporte a aba para CSV ou quebre o arquivo em partes menores.`);
       }
 
+      await window.VectonLibs?.ensure("xlsx");
       if (!window.XLSX) {
         throw new Error("Leitor de planilha nao carregado no navegador.");
       }

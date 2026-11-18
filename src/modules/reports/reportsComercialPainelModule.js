@@ -1407,6 +1407,7 @@ ${autoPrint ? '<script>window.addEventListener("load", function () { setTimeout(
       const btn = container.querySelector("#cvp-print-toggle");
       if (btn) btn.disabled = true;
       try {
+        await window.VectonLibs?.ensure("exceljs");
         if (!window.ExcelJS) throw new Error("Biblioteca de Excel não carregou. Recarregue a página e tente de novo.");
         const scenarioName = scenarios.find((s) => s.id === scenarioId)?.name || "Budget";
         const mLabel = MONTHS[month - 1];

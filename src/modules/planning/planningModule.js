@@ -520,6 +520,7 @@
       catch (err) { const el = root.querySelector('.pl-error'); el.textContent = 'Bloco recusado: ' + err.message; el.hidden = false; }
     }
     async function exportExcel() {
+      await window.VectonLibs?.ensure("exceljs");
       if (!global.ExcelJS) throw Error('Biblioteca de exportação indisponível');
       if (isCapex()) return exportCapexExcel();
       const workbook = new global.ExcelJS.Workbook(), sheet = workbook.addWorksheet('Planejamento'), values = computed(true);

@@ -69,6 +69,7 @@
 
     // info.columns: [{ key, label, required, aliases? }]; info.slug: nome do arquivo; info.sheet: nome da aba.
     async function download(info) {
+      try { await window.VectonLibs?.ensure("exceljs"); } catch (_error) { /* a mensagem abaixo cobre a falha */ }
       if (!global.ExcelJS) { status([{ state: 'err', text: 'Biblioteca de Excel indisponível' }]); return; }
       const wb = new global.ExcelJS.Workbook(), ws = wb.addWorksheet(info.sheet || 'Importação');
       ws.addRow(info.columns.map(c => c.label)); ws.getRow(1).font = { bold: true };
@@ -81,6 +82,7 @@
 
     // Lê a planilha: cabeçalho por nome (sem acento e sem diferença de maiúsculas), linhas em branco ignoradas.
     async function readRows(info) {
+      await window.VectonLibs?.ensure("exceljs");
       if (!global.ExcelJS) throw Error('Biblioteca de Excel indisponível');
       const wb = new global.ExcelJS.Workbook(); await wb.xlsx.load(await file.arrayBuffer());
       const ws = wb.worksheets[0];

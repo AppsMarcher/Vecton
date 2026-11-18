@@ -934,12 +934,15 @@
     // "carregando" pra sempre; com o timeout, cai pro ícone genérico de PDF.
     const PDF_THUMB_RENDER_TIMEOUT_MS = 8000;
     async function renderPdfThumbnail(signedUrl) {
+      await window.VectonLibs?.ensure("pdfjs");
       const pdfjsLib = window.pdfjsLib;
       if (!pdfjsLib) throw new Error("pdf.js indisponível");
       if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
       }
-      const pdf = await pdfjsLib.getDocument(signedUrl).promise;
+      // isEvalSupported:false fecha a falha CVE-2024-4367 do pdf.js 3.x (execução de código
+      // por fonte maliciosa dentro do PDF); só a 1ª página é desenhada, sem custo perceptível.
+      const pdf = await pdfjsLib.getDocument({ url: signedUrl, isEvalSupported: false }).promise;
       const page = await pdf.getPage(1);
       const baseViewport = page.getViewport({ scale: 1 });
       const scale = 220 / Math.max(baseViewport.width, baseViewport.height);

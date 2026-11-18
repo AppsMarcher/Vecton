@@ -284,6 +284,7 @@
       return wb;
     }
     async function exportExcel() {
+      await window.VectonLibs?.ensure("exceljs");
       if (!global.ExcelJS) throw Error('Biblioteca de exportação indisponível');
       const vm = viewModel(deps.form());
       const buffer = await buildWorkbook(vm).xlsx.writeBuffer();

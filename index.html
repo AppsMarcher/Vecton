@@ -1711,20 +1711,21 @@
   <script src="dre-structure.js?v=20260719r"></script>
   <script src="cc-structure.js?v=20260719r"></script>
   <script src="supabase-config.js?v=20260719r"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <!-- Bibliotecas externas fixas: versão travada + SRI (o navegador recusa o arquivo se o conteúdo mudar). xlsx, ExcelJS e pdf.js
+       NÃO ficam aqui: carregam sob demanda por src/core/libLoader.js (só ao importar/exportar).
+       Ao atualizar uma, recalcular o hash: openssl dgst -sha384 -binary arquivo | openssl base64 -A -->
+  <script src="src/core/libLoader.js?v=20261118lib1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0" integrity="sha384-gnyZit14c5lnGcarmA166QQjjJXpucw25ogZXuwH3HxxY904zHkBqmxVpelsPorb" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js" integrity="sha384-uTYyvsSSUZeaPhb5RbKlQa0zY/WpX/QHfvg2mczXyBQOpkWPEDy9lczyp+w7SKXu" crossorigin="anonymous"></script>
   <script src="src/core/pwa.js?v=20261118a"></script>
   <script src="src/core/constants.js?v=20261022bp1"></script>
-  <script src="src/core/utils.js?v=20261021xl3"></script>
+  <script src="src/core/utils.js?v=20261118lib1"></script>
   <script src="src/core/storage.js?v=20260719r"></script>
   <script src="src/core/scenarioSources.js?v=20261019planning1"></script>
   <script src="src/modules/auth/authSession.js?v=20260902b"></script>
   <script src="src/modules/actuals/cargasAutomatizadasModule.js?v=20261023d"></script>
-  <script src="src/modules/actuals/actualsModule.js?v=20261022bp1"></script>
-  <script src="src/modules/budget/budgetModule.js?v=20261022bp1"></script>
+  <script src="src/modules/actuals/actualsModule.js?v=20261118lib1"></script>
+  <script src="src/modules/budget/budgetModule.js?v=20261118lib1"></script>
   <script src="src/modules/navigation/navigationModule.js?v=20261022bp1"></script>
   <script src="src/modules/ui/headerModule.js?v=20261022bp1"></script>
   <script src="src/modules/ui/branchTreeModule.js?v=20260719r"></script>
@@ -1732,20 +1733,20 @@
   <script src="src/modules/ui/ccTreeModule.js?v=20261023ccplan1"></script>
   <script src="src/modules/ui/renderModule.js?v=20260922a"></script>
   <script src="src/modules/ui/profileDialogModule.js?v=20260924a"></script>
-  <script src="src/modules/reports/dreExport.js?v=20261023dfs1"></script>
+  <script src="src/modules/reports/dreExport.js?v=20261118lib1"></script>
   <script src="src/modules/reports/reportsDreModule.js?v=20261023dfs1"></script>
   <script src="src/modules/reports/opexCcPicker.js?v=20261030imp11"></script>
   <script src="src/modules/reports/reportsOpexModule.js?v=20261021cc1"></script>
   <script src="src/modules/planning/planningCore.js?v=20261019renum1"></script>
   <script src="src/modules/planning/planningFatCore.js?v=20261028fat1"></script>
   <script src="src/modules/planning/planningFatViews.js?v=20261030imp10"></script>
-  <script src="src/modules/planning/planningFatModule.js?v=20261030imp6"></script>
-  <script src="src/modules/planning/planningImportModule.js?v=20261030imp11"></script>
+  <script src="src/modules/planning/planningFatModule.js?v=20261118lib1"></script>
+  <script src="src/modules/planning/planningImportModule.js?v=20261118lib1"></script>
   <script src="src/modules/planning/planningViews.js?v=20261030imp12"></script>
-  <script src="src/modules/planning/planningModule.js?v=20261030imp15"></script>
+  <script src="src/modules/planning/planningModule.js?v=20261118lib1"></script>
   <script src="src/modules/forecast/forecastModule.js?v=20261020d"></script>
   <script src="src/modules/rps/rpsModule.js?v=20261013rps3"></script>
-  <script src="src/modules/rpsComercial/rpsComercialModule.js?v=20260924clear2"></script>
+  <script src="src/modules/rpsComercial/rpsComercialModule.js?v=20261118lib1"></script>
   <script src="src/modules/strategic/strategicDataModule.js?v=20260909b"></script>
   <script src="src/modules/strategic/strategicModule.js?v=20260924clear2"></script>
   <script src="src/modules/reports/reportsHeadcountModule.js?v=20260719r"></script>
@@ -1764,12 +1765,12 @@
   <script src="src/modules/messages/messagesModule.js?v=20260924clear2"></script>
   <script src="src/modules/notifications/notificationsModule.js?v=20261016b"></script>
   <script src="src/modules/comercial/comercialCadastroModule.js?v=20261028uf1"></script>
-  <script src="src/modules/comercial/comercialVendasCargaModule.js?v=20261110inv1"></script>
-  <script src="src/modules/comercial/comercialPlanejadoCargaModule.js?v=20261030imp3"></script>
-  <script src="src/modules/comercial/garantiaAtivacoesCargaModule.js?v=20261014gar6"></script>
+  <script src="src/modules/comercial/comercialVendasCargaModule.js?v=20261118lib1"></script>
+  <script src="src/modules/comercial/comercialPlanejadoCargaModule.js?v=20261118lib1"></script>
+  <script src="src/modules/comercial/garantiaAtivacoesCargaModule.js?v=20261118lib1"></script>
   <script src="src/modules/reports/comercialPainelDataModule.js?v=20260922a"></script>
   <script src="src/modules/reports/reportEmailModal.js?v=20261014em1"></script>
-  <script src="src/modules/reports/reportsComercialPainelModule.js?v=20261026a"></script>
+  <script src="src/modules/reports/reportsComercialPainelModule.js?v=20261118lib1"></script>
   <script src="src/modules/reports/reportsComercialPainelMobileModule.js?v=20261019a"></script>
   <script src="src/modules/strategic/strategicMobileModule.js?v=20260924clear2"></script>
   <script src="src/modules/mobile/mobileShellModule.js?v=20260910d"></script>
@@ -1778,7 +1779,7 @@
   <script src="src/modules/reports/reportsComercialMapaModule.js?v=20260925toggle1"></script>
   <script src="src/modules/reports/reportsComercialMapaGeograficoModule.js?v=20260925toggle1"></script>
   <script src="src/modules/reports/reportsComercialPecasGeoModule.js?v=20260925toggle6"></script>
-  <script src="src/modules/reports/reportsComercialMargensExport.js?v=20261014em1"></script>
+  <script src="src/modules/reports/reportsComercialMargensExport.js?v=20261118lib1"></script>
   <script src="src/modules/reports/reportsComercialMargensModule.js?v=20261110inv1"></script>
   <script src="src/modules/reports/reportsGarantiaAtivacoesModule.js?v=20261014gar23"></script>
   <script src="src/modules/reports/reportsMarcherCampoModule.js?v=20261016mc5"></script>
@@ -1808,16 +1809,16 @@
   <script src="src/modules/params/bpPlanModule.js?v=20261103bporder2"></script>
   <script src="src/modules/balance/bpModel.js?v=20261023bppartial1"></script>
   <script src="src/modules/balance/bpReportModel.js?v=20261110bpcross2"></script>
-  <script src="src/modules/balance/bpExport.js?v=20261023bpexport1"></script>
+  <script src="src/modules/balance/bpExport.js?v=20261118lib1"></script>
   <script src="src/modules/balance/bpReportModule.js?v=20261026bpdrill2"></script>
-  <script src="src/modules/balance/bpModule.js?v=20261023bpcolumns1"></script>
+  <script src="src/modules/balance/bpModule.js?v=20261118lib1"></script>
   <script src="src/modules/params/fcPlanModule.js?v=20261023plan1"></script>
   <script src="src/modules/cashflow/fcStructure.js?v=20260921b"></script>
   <script src="src/modules/cashflow/fcModel.js?v=20260921h"></script>
-  <script src="src/modules/cashflow/fcService.js?v=20260921w"></script>
-  <script src="src/modules/cashflow/fcLoadModule.js?v=20260921p"></script>
-  <script src="src/modules/cashflow/fcExport.js?v=20261014em1"></script>
+  <script src="src/modules/cashflow/fcService.js?v=20261118lib1"></script>
+  <script src="src/modules/cashflow/fcLoadModule.js?v=20261118lib1"></script>
+  <script src="src/modules/cashflow/fcExport.js?v=20261118lib1"></script>
   <script src="src/modules/cashflow/fcDashboard.js?v=20260921x"></script>
-  <script src="app.js?v=20261112inv2"></script>
+  <script src="app.js?v=20261118lib1"></script>
 </body>
 </html>

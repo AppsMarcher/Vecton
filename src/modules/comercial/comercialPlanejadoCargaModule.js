@@ -974,6 +974,7 @@
       if (file.size > MAX_BROWSER_XLSX_BYTES) {
         throw new Error(`Arquivo Excel muito grande para importacao no navegador (${formatFileSize(file.size)}). Exporte a aba para CSV.`);
       }
+      await window.VectonLibs?.ensure("xlsx");
       if (!window.XLSX) throw new Error("Leitor de planilha nao carregado no navegador.");
       const buffer = await file.arrayBuffer();
       const workbook = window.XLSX.read(buffer, { type: "array", cellDates: true, raw: true });

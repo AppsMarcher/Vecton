@@ -177,6 +177,7 @@ td.total{font-weight:700}
           if (!snapshot) throw new Error("Aguarde o relatório terminar de carregar para exportar.");
           const kind = button.dataset.dreExp, title = `${snapshot.title} — ${periodText(snapshot)}`, filename = plainName(snapshot);
           if (kind === "excel") {
+            await window.VectonLibs?.ensure("exceljs");
             if (!window.ExcelJS) throw new Error("O gerador de Excel não está disponível. Atualize a página.");
             const buffer = await buildWorkbook(window.ExcelJS, snapshot).xlsx.writeBuffer();
             const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
