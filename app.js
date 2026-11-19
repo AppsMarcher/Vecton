@@ -159,6 +159,8 @@ let reportsLastLoadedYear = null;
 let reportsLastLoadedAt = null;
 let selectedReportId = null;
 let selectedHeadcountBatchId = null;
+// Lote de outro período aberto pelo histórico (ex.: abril com erro, para excluir). Vale só enquanto o período da tela não muda.
+let pinnedHeadcountBatch = null; // { id, periodKey }
 let headcountRowsPage = 1;
 const HEADCOUNT_ROWS_PER_PAGE = 200;
 let headcountRowsFilter = "";
@@ -7672,6 +7674,7 @@ function bindHeadcountEvents() {
     const item = event.target.closest("[data-batch-id]");
     if (!item) return;
     selectedHeadcountBatchId = item.dataset.batchId;
+    pinnedHeadcountBatch = { id: selectedHeadcountBatchId, periodKey: `${state.currentPeriod?.year}-${state.currentPeriod?.month}` };
     headcountRowsPage = 1;
     headcountRowsFilter = "";
     renderHeadcountView();
@@ -7881,8 +7884,14 @@ function syncSelectedHeadcountBatchWithCurrentPeriod() {
   }
 
   const periodBatches = getCurrentPeriodHcBatches(selectedHeadcountLoadType);
-  const selectedStillValid = periodBatches.some((batch) => batch.id === selectedHeadcountBatchId);
+  const periodKey = `${state.currentPeriod?.year}-${state.currentPeriod?.month}`;
+  const pinnedValid = !!pinnedHeadcountBatch
+    && pinnedHeadcountBatch.id === selectedHeadcountBatchId
+    && pinnedHeadcountBatch.periodKey === periodKey
+    && state.headcountBatches.some((batch) => batch.id === selectedHeadcountBatchId && (!selectedHeadcountLoadType || batch.loadType === selectedHeadcountLoadType));
+  const selectedStillValid = pinnedValid || periodBatches.some((batch) => batch.id === selectedHeadcountBatchId);
   if (!selectedStillValid) {
+    pinnedHeadcountBatch = null;
     selectedHeadcountBatchId = periodBatches[0]?.id || null;
     headcountRowsPage = 1;
     headcountRowsFilter = "";
