@@ -203,7 +203,7 @@
       return _items.map((item) => {
         const acao = item.is_read ? "Marcar como não lida" : "Marcar como lida";
         return `
-        <div class="notif-item${item.is_read ? "" : " unread"}" role="button" tabindex="0" data-id="${escapeHtml(item.id)}">
+        <div class="notif-item${item.is_read ? "" : " unread"}${item.kind === "carga_automatica_erro" ? " erro" : ""}" role="button" tabindex="0" data-id="${escapeHtml(item.id)}">
           <span class="notif-item-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#${iconFor(item.kind)}"></use></svg></span>
           <span class="notif-item-copy">
             <strong>${escapeHtml(item.title || "")}</strong>

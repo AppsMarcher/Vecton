@@ -10452,6 +10452,17 @@ body.rps-laser-mode .rps-attachment-carousel * {
 .notif-popover .notif-item-icon svg { width: 18px; height: 18px; }
 .notif-popover .notif-item.unread .notif-item-icon { background: var(--blue); color: #fff; }
 .notif-popover .notif-item.unread .notif-item-icon::after { content: none; }
+/* Erro de carga automática: não lido fica vermelho (borda, faixa e ícone) em vez de azul. */
+.notif-popover .notif-item.erro:hover { border-color: var(--red); }
+.notif-popover .notif-item.erro.unread {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--red) 12%, transparent), var(--panel) 55%);
+  border-color: var(--red);
+}
+.notif-popover .notif-item.erro.unread::before { background: var(--red); }
+.notif-popover .notif-item.erro.unread .notif-item-icon { background: var(--red); }
+.notif-popover .notif-item.erro.unread .notif-toggle { color: var(--red); }
+.notif-popover .notif-item.erro .notif-chip { white-space: normal; }
+.notif-popover .notif-item.erro .notif-item-path { color: var(--red); }
 .notif-popover .notif-item-copy { gap: 10px; padding-top: 1px; }
 .notif-popover .notif-item-copy strong { font-size: 0.86rem; font-weight: 650; line-height: 1.25; }
 .notif-popover .notif-item:not(.unread) .notif-item-copy strong { color: var(--text-soft); font-weight: 600; }
