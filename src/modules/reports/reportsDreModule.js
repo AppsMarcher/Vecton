@@ -39,6 +39,19 @@
       };
     }
 
+    // "Foto" do DRE Societário (contas em árvore, com cada nível recuado) para Imprimir, E-mail e Excel.
+    function socSnapshot({ title, year, month, report, compareReport, sourceLabel, compareLabel, sheetName }) {
+      const compareByCode = compareReport && month ? new Map(compareReport.rows.map(row => [row.code, row])) : null;
+      return {
+        title, year, month: compareByCode ? month : null, sourceLabel, compareLabel, profile: "soc", sheetName,
+        lines: report.rows.map(row => ({
+          id: row.code, label: `${row.code}  ${row.name}`, kind: row.class === "Sintetica" ? "subtotal" : "value", depth: row.depth,
+          months: row.months || [], total: row.total,
+          compare: compareByCode ? computeDreCompareCell(row, compareByCode.get(row.code), month) : null
+        }))
+      };
+    }
+
     const REPORT_HANDLERS = {
       dreGerReal: renderDreGerReal,
       dreDfsReal: renderDreDfsReal,
@@ -75,10 +88,52 @@
       window.vpExportTableToExcel(detailPanel.querySelector(`#${wrapId} table`), title, [source]);
     }
 
-    function initBudgetShell(detailPanel, wrapId, title, dfs = false) {
+    // Botões Societário / Gerencial / DFs no início da barra: trocam entre os 3 tipos
+    // de DRE do mesmo cenário (Real ou Meta). Cada tipo continua sendo um relatório
+    // próprio (permissão, favorito e rota), só o card do catálogo é um só.
+    const DRE_TYPES = {
+      Real: [["dreSocReal", "Societário"], ["dreGerReal", "Gerencial"], ["dreDfsReal", "DFs"]],
+      Budget: [["dreSocBudget", "Societário"], ["dreGerBudget", "Gerencial"], ["dreDfsBudget", "DFs"]]
+    };
+    function dreTypeToggleHtml(currentId) {
+      const set = DRE_TYPES.Real.some(([id]) => id === currentId) ? DRE_TYPES.Real : DRE_TYPES.Budget;
+      const visible = set.filter(([id]) => id === currentId || !deps.canSeeReport || deps.canSeeReport(id));
+      if (visible.length < 2) return "";
+      return `<div class="dre-type-seg" role="group" aria-label="Tipo de DRE">${visible.map(([id, label]) =>
+        `<button type="button" data-dre-type="${id}" aria-pressed="${id === currentId}">${label}</button>`).join("")}</div>`;
+    }
+    // "Ocultar zeros" (só nos Societário): esconde as contas sem valor em nenhum mês,
+    // nem no comparativo. Vale para a sessão, nos dois Societário (Real e Meta).
+    let _hideZeros = false;
+    function hideZerosBtnHtml(reportId) {
+      if (!/^dreSoc/.test(reportId)) return "";
+      return `<button type="button" class="dre-hide-zeros-btn${_hideZeros ? " is-on" : ""}" data-dre-hide-zeros aria-pressed="${_hideZeros}">Ocultar zeros</button>`;
+    }
+    function applyHideZeros(report, compareReport) {
+      if (!_hideZeros) return report;
+      const cmp = compareReport ? new Map(compareReport.rows.map(r => [r.code, r])) : null;
+      const nz = r => !!r && (Math.abs(r.total || 0) >= 0.005 || (r.months || []).some(v => Math.abs(v) >= 0.005));
+      return { ...report, rows: report.rows.filter(r => nz(r) || nz(cmp?.get(r.code))) };
+    }
+    function bindDreTypeToggle(detailPanel) {
+      detailPanel.querySelector("[data-dre-hide-zeros]")?.addEventListener("click", () => {
+        _hideZeros = !_hideZeros;
+        detailPanel.querySelector("[data-dre-hide-zeros]").classList.toggle("is-on", _hideZeros);
+        detailPanel.querySelector("[data-dre-hide-zeros]").setAttribute("aria-pressed", String(_hideZeros));
+        detailPanel.__dreRerender?.();
+      });
+      detailPanel.querySelectorAll("[data-dre-type]").forEach(btn => btn.addEventListener("click", () => {
+        if (btn.getAttribute("aria-pressed") === "true") return;
+        deps.openDreReport?.(btn.dataset.dreType);
+      }));
+    }
+
+    function initBudgetShell(detailPanel, wrapId, title, dfs = false, reportId = "") {
       detailPanel.classList.add("dre-cmp-shell");
       detailPanel.innerHTML = `
         <div class="vp-source-bar dre-cmp-bar">
+          ${dreTypeToggleHtml(reportId)}
+          ${hideZerosBtnHtml(reportId)}
           <span class="vp-source-label">Fonte</span>
           <select class="vp-source-sel" id="vp-dre-src-sel">
             <option value="">Carregando…</option>
@@ -88,6 +143,7 @@
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
         </div>`;
+      bindDreTypeToggle(detailPanel);
       if (dfs) exporter().bind(detailPanel, () => detailPanel.__dreSnapshot);
       else detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
       return detailPanel.querySelector(`#${wrapId}`);
@@ -136,10 +192,12 @@
 
     // ── Comparador embutido nos relatorios Real (bloco Mes+Acumulado x Real/Cenario/Var) ──
 
-    function initCompareShell(detailPanel, wrapId, title, dfs = false) {
+    function initCompareShell(detailPanel, wrapId, title, dfs = false, reportId = "") {
       detailPanel.classList.add("dre-cmp-shell");
       detailPanel.innerHTML = `
         <div class="vp-source-bar dre-cmp-bar">
+          ${dreTypeToggleHtml(reportId)}
+          ${hideZerosBtnHtml(reportId)}
           <span class="vp-source-label">Comparar com</span>
           <select class="vp-source-sel" id="vp-dre-cmp-sel">
             <option value="">Carregando…</option>
@@ -149,6 +207,7 @@
         <div id="${wrapId}" class="reports-table-wrap">
           <div class="actuals-empty">Preparando relatório...</div>
         </div>`;
+      bindDreTypeToggle(detailPanel);
       if (dfs) exporter().bind(detailPanel, () => detailPanel.__dreSnapshot);
       else detailPanel.querySelector("[data-dre-export]").addEventListener("click", () => exportDreTable(detailPanel, wrapId, title));
       return detailPanel.querySelector(`#${wrapId}`);
@@ -200,7 +259,7 @@
     function renderDreGerReal(detailPanel) {
       const year = getCurrentYear();
       const month = getCurrentPeriodMonth();
-      const tableWrap = initCompareShell(detailPanel, "reports-ger-table-wrap", "DRE Gerencial Real", true);
+      const tableWrap = initCompareShell(detailPanel, "reports-ger-table-wrap", "DRE Gerencial Real", true, "dreGerReal");
       initFloatingScrollbar(tableWrap);
 
       populateCompareSel(detailPanel, year).then(() => {
@@ -252,7 +311,7 @@
     function renderDreDfsReal(detailPanel) {
       const year = getCurrentYear();
       const month = getCurrentPeriodMonth();
-      const tableWrap = initCompareShell(detailPanel, "reports-dfs-table-wrap", "DRE DFs Real", true);
+      const tableWrap = initCompareShell(detailPanel, "reports-dfs-table-wrap", "DRE DFs Real", true, "dreDfsReal");
       // Com o comparativo a tabela fica larga: a barra flutuante espelha a rolagem horizontal
       // enquanto a barra própria do card está fora da tela. Ela só aparece nesse caso
       // (ver realScrollbarOnScreen), então não duplica a barra real.
@@ -308,10 +367,11 @@
     function renderDreSocReal(detailPanel) {
       const year = getCurrentYear();
       const month = getCurrentPeriodMonth();
-      const tableWrap = initCompareShell(detailPanel, "reports-dre-table-wrap", "DRE Societário Real");
+      const tableWrap = initCompareShell(detailPanel, "reports-dre-table-wrap", "DRE Societário Real", true, "dreSocReal");
       initFloatingScrollbar(tableWrap);
       initVerticalScrollBounds(tableWrap);
 
+      detailPanel.__dreRerender = () => doRender();
       populateCompareSel(detailPanel, year).then(() => {
         const sel = detailPanel.querySelector("#vp-dre-cmp-sel");
         if (sel) sel.addEventListener("change", () => { _compareSource = sel.value; doRender(); });
@@ -319,6 +379,7 @@
       });
 
       async function doRender() {
+        detailPanel.__dreSnapshot = null;
         const cacheEntry = reportsLedgerCache.get(year);
         const report = buildDreSocRealReport(year, cacheEntry?.rows || []);
 
@@ -348,7 +409,9 @@
           compareError = e;
         }
         if (compareIsStale(tableWrap, src)) return;
-        tableWrap.innerHTML = buildDreSocRealTableMarkup(report, compareReport, month, compareLabelFor(detailPanel));
+        const shown = applyHideZeros(report, compareReport);
+        tableWrap.innerHTML = buildDreSocRealTableMarkup(shown, compareReport, month, compareLabelFor(detailPanel));
+        detailPanel.__dreSnapshot = socSnapshot({ title: "DRE Societário Real", year, month, report: shown, compareReport, sourceLabel: "real", compareLabel: compareLabelFor(detailPanel), sheetName: "DRE Soc Real" });
         initAllReportTableResizers();
         const drillReal = initDreSocDrilldown(tableWrap, year);
         setTimeout(() => drillReal.prefetch(), 300);
@@ -360,7 +423,7 @@
 
     function renderDreGerBudget(detailPanel) {
       const year = getCurrentYear();
-      const tableWrap = initBudgetShell(detailPanel, "reports-ger-budget-wrap", "DRE Gerencial Meta", true);
+      const tableWrap = initBudgetShell(detailPanel, "reports-ger-budget-wrap", "DRE Gerencial Meta", true, "dreGerBudget");
       initFloatingScrollbar(tableWrap);
 
       populateSourceSel(detailPanel, year).then(() => {
@@ -388,10 +451,11 @@
 
     function renderDreSocBudget(detailPanel) {
       const year = getCurrentYear();
-      const tableWrap = initBudgetShell(detailPanel, "reports-soc-budget-wrap", "DRE Societário Meta");
+      const tableWrap = initBudgetShell(detailPanel, "reports-soc-budget-wrap", "DRE Societário Meta", true, "dreSocBudget");
       initFloatingScrollbar(tableWrap);
       initVerticalScrollBounds(tableWrap);
 
+      detailPanel.__dreRerender = () => doRender();
       populateSourceSel(detailPanel, year).then(() => {
         const sel = detailPanel.querySelector("#vp-dre-src-sel");
         if (sel) sel.addEventListener("change", () => { _budgetSource = sel.value; doRender(); });
@@ -399,6 +463,7 @@
       });
 
       async function doRender() {
+        detailPanel.__dreSnapshot = null;
         tableWrap.innerHTML = `<div class="actuals-empty">Carregando...</div>`;
         let rows;
         try {
@@ -409,7 +474,9 @@
         }
         const report = buildDreSocRealReport(year, rows);
         if (!report.rows.length) { tableWrap.innerHTML = `<div class="actuals-empty">Nenhuma linha de DRE disponivel para ${year}.</div>`; return; }
-        tableWrap.innerHTML = buildDreSocRealTableMarkup(report, null, null, sourceLabelFor(detailPanel));
+        const shown = applyHideZeros(report, null);
+        tableWrap.innerHTML = buildDreSocRealTableMarkup(shown, null, null, sourceLabelFor(detailPanel));
+        detailPanel.__dreSnapshot = socSnapshot({ title: "DRE Societário Meta", year, month: null, report: shown, compareReport: null, sourceLabel: sourceLabelFor(detailPanel), compareLabel: null, sheetName: "DRE Soc Meta" });
         initAllReportTableResizers();
         const drill = initDreSocDrilldown(tableWrap, year, _budgetSource);
         setTimeout(() => drill.prefetch(), 300);
@@ -418,7 +485,7 @@
 
     function renderDreDfsBudget(detailPanel) {
       const year = getCurrentYear();
-      const tableWrap = initBudgetShell(detailPanel, "reports-dfs-budget-wrap", "DRE DFs Meta", true);
+      const tableWrap = initBudgetShell(detailPanel, "reports-dfs-budget-wrap", "DRE DFs Meta", true, "dreDfsBudget");
       // Mesma barra flutuante do DFs Real (ver renderDreDfsReal).
       initFloatingScrollbar(tableWrap);
 

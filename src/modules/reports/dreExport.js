@@ -13,19 +13,21 @@
   const periodText = snapshot => snapshot.month ? `${MONTHS[snapshot.month - 1].replace(/^./, c => c.toUpperCase())}/${snapshot.year}` : `${snapshot.year} · ${snapshot.sourceLabel}`;
   const subtotalLike = kind => ["subtotal", "result", "result-final"].includes(kind);
   const isGer = snapshot => snapshot.profile === "ger";
+  const isSoc = snapshot => snapshot.profile === "soc";
   // Faixa cinza do modelo: DFs nos subtotais; Gerencial nos subtotais e no percentual logo abaixo deles.
   const hasFill = (snapshot, line, previous) => isGer(snapshot)
     ? subtotalLike(line.kind) || (line.kind === "percent" && Boolean(previous) && subtotalLike(previous.kind))
     : line.kind === "subtotal" || line.id === "resultadoExerc";
   // Linhas em branco entre blocos, como nos modelos anexos.
   const spacerBefore = (snapshot, previous, line) => {
-    if (!previous) return false;
+    if (!previous || isSoc(snapshot)) return false;
     if (isGer(snapshot)) return !["percent", "detail"].includes(line.kind) && (subtotalLike(line.kind) || previous.kind !== "deduction");
     return line.kind !== "percent" && (["section", "subtotal", "result"].includes(line.kind) || previous.kind === "subtotal");
   };
   // Estilo de cada tipo de linha, conforme "DRE DFs.xlsx" e "DRE Gerencial.xlsx".
   function lineStyle(snapshot, line, previous) {
     const percent = line.kind === "percent", section = line.kind === "section";
+    if (isSoc(snapshot)) { const bold = line.kind === "subtotal"; return { bold, italic: false, labelSize: 9, valueSize: 9, indent: Math.min(line.depth || 0, 8), filled: bold && (line.depth || 0) <= 2 }; }
     if (isGer(snapshot)) {
       const filled = hasFill(snapshot, line, previous);
       if (percent) return { bold: filled, italic: true, labelSize: 9, valueSize: 9, indent: 0, filled };
@@ -38,7 +40,7 @@
   // Planilha no formato dos modelos "DRE DFs.xlsx" e "DRE Gerencial.xlsx": meses em C:N, total em O,
   // Aptos Display, faixa cinza nos subtotais; os blocos de comparação (Mês e Acumulado) seguem à direita.
   function buildWorkbook(ExcelJS, snapshot) {
-    const ger = isGer(snapshot);
+    const ger = isGer(snapshot), soc = isSoc(snapshot);
     const book = new ExcelJS.Workbook(), sheet = book.addWorksheet(snapshot.sheetName || "DRE DFs", {
       properties: { tabColor: { argb: "FF0070C0" }, defaultRowHeight: 12.75 },
       views: [{ showGridLines: false }],
@@ -46,7 +48,7 @@
     });
     const compare = snapshot.lines.some(line => line.compare);
     const lastColumn = compare ? 25 : 15;
-    const widths = ger ? { 1: 3.3, 2: 33.4, 15: 12.4, 16: 2.5, 21: 2.5 } : { 1: 9.14, 2: 34.4, 15: 12, 16: 2.5, 21: 2.5 };
+    const widths = soc ? { 1: 3.3, 2: 58, 15: 14, 16: 2.5, 21: 2.5 } : ger ? { 1: 3.3, 2: 33.4, 15: 12.4, 16: 2.5, 21: 2.5 } : { 1: 9.14, 2: 34.4, 15: 12, 16: 2.5, 21: 2.5 };
     for (let column = 1; column <= lastColumn; column++) sheet.getColumn(column).width = widths[column] || (ger ? 11.4 : 11.5);
     const font = (size, bold, italic, color) => ({ name: "Aptos Display", size, bold, italic, ...(color ? { color: { argb: color } } : {}) });
     const gray = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
@@ -60,7 +62,7 @@
       if (style.fill) cell.fill = gray;
     };
     const subSize = ger ? 8 : 10;
-    if (!ger) { sheet.getRow(1).height = 19.5; sheet.getRow(2).height = 17.85; sheet.getRow(3).height = 7.5; }
+    if (!ger && !soc) { sheet.getRow(1).height = 19.5; sheet.getRow(2).height = 17.85; sheet.getRow(3).height = 7.5; }
     MONTHS.forEach((month, index) => {
       set(1, 3 + index, month, { bold: true, align: "center" });
       set(2, 3 + index, snapshot.sourceLabel, { italic: true, color: "FF0070C0", align: "center", size: subSize });
@@ -73,15 +75,15 @@
         ["Real", snapshot.compareLabel || "Cenário", "Var R$", "Var %"].forEach((text, index) => set(2, first + index, text, { italic: true, color: "FF0070C0", align: "center", size: subSize }));
       }
     }
-    let row = ger ? 3 : 4, previous = null;
+    let row = ger || soc ? 3 : 4, previous = null;
     for (const line of snapshot.lines) {
       if (spacerBefore(snapshot, previous, line)) { if (!ger) sheet.getRow(row).height = 7.5; row++; }
-      if (!ger) sheet.getRow(row).height = 15.75;
+      if (!ger && !soc) sheet.getRow(row).height = 15.75;
       const look = lineStyle(snapshot, line, previous), filled = look.filled, percent = line.kind === "percent", section = line.kind === "section";
       const { bold, italic } = look;
       set(row, 2, String(line.label).trim(), { bold, italic, size: look.labelSize, indent: look.indent, fill: filled });
       if (!section) {
-        const style = { bold, italic, size: look.valueSize, align: "right", format: percent ? "0.0%" : "#,##0", fill: filled };
+        const style = { bold, italic, size: look.valueSize, align: "right", format: percent ? "0.0%" : soc ? "#,##0.00" : "#,##0", fill: filled };
         for (let index = 0; index < 12; index++) set(row, 3 + index, line.months[index] ?? 0, style);
         set(row, 15, line.total ?? 0, style);
         const cell = line.compare;
@@ -105,7 +107,8 @@
   // Mesma visão da tela, em uma página A4 paisagem, centralizada.
   function printHtml(snapshot, esc) {
     const compare = snapshot.lines.some(line => line.compare);
-    const units = [150, ...Array(13).fill(52), ...(compare ? [8, 52, 52, 52, 52, 8, 52, 52, 52, 52] : [])];
+    const soc = isSoc(snapshot);
+    const units = [soc ? 190 : 150, ...Array(13).fill(52), ...(compare ? [8, 52, 52, 52, 52, 8, 52, 52, 52, 52] : [])];
     const sum = units.reduce((a, b) => a + b, 0);
     const font = compare ? 6.8 : 8.5;
     const label = esc(snapshot.compareLabel || "Cenário");
@@ -123,13 +126,14 @@
       return html;
     };
     const rowClass = line => line.kind === "section" ? "section" : subtotalLike(line.kind) ? "subtotal" : line.kind === "percent" ? "percent" : line.kind === "detail" ? "detail" : "";
-    const pad = snapshot.lines.length > 26 ? 2.6 : 4.5;
-    const body = snapshot.lines.map(line => `<tr class="${rowClass(line)}"><th>${esc(String(line.label).trim())}</th>${cells(line)}</tr>`).join("");
+    const pad = soc ? 2 : snapshot.lines.length > 26 ? 2.6 : 4.5;
+    const body = snapshot.lines.map(line => `<tr class="${rowClass(line)}"><th${soc ? ` style="padding-left:${6 + Math.min(line.depth || 0, 8) * 7}px"` : ""}>${esc(String(line.label).trim())}</th>${cells(line)}</tr>`).join("");
     const title = `${snapshot.title} — ${periodText(snapshot)}`;
     return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
-@page{size:A4 landscape;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}
-body{font:${font}px Arial,sans-serif;color:#172033;display:flex;justify-content:center;padding-top:10mm}
-.sheet{width:100%;max-width:277mm;margin:0 auto;break-inside:avoid;page-break-inside:avoid}
+@page{size:A4 landscape;margin:${soc ? "10mm 0" : "0"}}*{box-sizing:border-box}html,body{margin:0;padding:0}
+body{font:${font}px Arial,sans-serif;color:#172033;display:flex;justify-content:center;padding-top:${soc ? 0 : 10}mm}
+.sheet{width:100%;max-width:277mm;margin:0 auto;${soc ? "" : "break-inside:avoid;page-break-inside:avoid"}}
+tr{break-inside:avoid}thead{display:table-header-group}
 .intro{text-align:center;margin-bottom:10px;line-height:1.5}.intro p{margin:0;font-weight:700;font-size:${font + 2}px}.intro small{color:#475569;font-size:${font + .5}px}
 table{width:100%;border-collapse:collapse;table-layout:fixed}
 col.gap{width:${(8 / sum * 100).toFixed(2)}%}
@@ -144,10 +148,10 @@ tr.detail th{padding-left:14px}
 tr.subtotal th,tr.subtotal td{background:#eaf0ff;font-weight:700;border-top:1px solid #c9d8f5;border-bottom:1px solid #c9d8f5}
 tr.percent th,tr.percent td{font-style:italic;color:#475569}
 td.total{font-weight:700}
-.signature{position:fixed;left:0;right:0;bottom:15mm;text-align:center;font-size:${font + 2}px;font-weight:700;line-height:1.45}
+.signature{${soc ? "margin-top:14mm;break-inside:avoid;" : "position:fixed;left:0;right:0;bottom:15mm;"}text-align:center;font-size:${font + 2}px;font-weight:700;line-height:1.45}
 </style></head><body><div class="sheet"><div class="intro"><p>MARCHER BRASIL AGROINDUSTRIAL S.A.</p><p>${esc(title)}</p></div>
 <table><colgroup>${units.map(unit => unit === 8 ? '<col class="gap">' : `<col style="width:${(unit / sum * 100).toFixed(2)}%">`).join("")}</colgroup>
-<thead><tr><th class="line" rowspan="2">${esc(isGer(snapshot) ? "Linha Gerencial" : "Linha DFs")}</th><th class="group" colspan="13">${esc(snapshot.month ? "Realizado" : snapshot.sourceLabel)}</th>${compare ? `<th class="gap" rowspan="2"></th><th class="group" colspan="4">Mês</th><th class="gap" rowspan="2"></th><th class="group" colspan="4">Acumulado</th>` : ""}</tr>
+<thead><tr><th class="line" rowspan="2">${esc(soc ? "Conta contábil" : isGer(snapshot) ? "Linha Gerencial" : "Linha DFs")}</th><th class="group" colspan="13">${esc(snapshot.month ? "Realizado" : snapshot.sourceLabel)}</th>${compare ? `<th class="gap" rowspan="2"></th><th class="group" colspan="4">Mês</th><th class="gap" rowspan="2"></th><th class="group" colspan="4">Acumulado</th>` : ""}</tr>
 <tr class="sub">${MONTHS.map(month => `<th>${month.toUpperCase()}</th>`).join("")}<th>TOTAL</th>${compare ? `<th>Real</th><th>${label}</th><th>Var R$</th><th>Var %</th><th>Real</th><th>${label}</th><th>Var R$</th><th>Var %</th>` : ""}</tr></thead>
 <tbody>${body}</tbody></table><div class="signature">__________________________<br>Ricardo Guimarães Filho<br>Contador</div></div></body></html>`;
   }

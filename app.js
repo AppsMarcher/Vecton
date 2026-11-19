@@ -1623,6 +1623,8 @@ const reportsDreModule = createReportsDreModule({
   fetchRealYears,
   rowsForSource,
   computeDreCompareCell,
+  canSeeReport,
+  openDreReport: (reportId) => { selectedReportId = reportId; renderNavigation(); renderReportsView(); },
   alert: message => appAlert(message, "warn"),
   sendEmail: payload => callEdgeFunction("send-report-email", payload),
   getUserId: () => currentUser?.id || null,
@@ -2154,8 +2156,16 @@ function applyReportLabels() {
 // quando nenhum card dela sobra visível — senão fica um grupo vazio, sem
 // nenhum relatório embaixo, pra quem não tem acesso a nada daquele grupo.
 function applyReportAccess() {
+  // Os cards "DRE Real" e "DRE Meta" abrem o Societário e dão acesso ao Gerencial/DFs por botões:
+  // aparecem se o perfil enxerga qualquer um dos três tipos.
+  const DRE_CARD_TYPES = {
+    dreSocReal: ["dreSocReal", "dreGerReal", "dreDfsReal"],
+    dreSocBudget: ["dreSocBudget", "dreGerBudget", "dreDfsBudget"],
+  };
   document.querySelectorAll(".reports-report-card[data-report-id]").forEach((card) => {
-    card.style.display = canSeeReport(card.dataset.reportId) ? "" : "none";
+    const id = card.dataset.reportId;
+    const ids = DRE_CARD_TYPES[id] || [id];
+    card.style.display = ids.some(canSeeReport) ? "" : "none";
   });
   document.querySelectorAll("#reports-card-grid .reports-section").forEach((section) => {
     const hasVisibleCard = [...section.querySelectorAll(".reports-report-card[data-report-id]")]
