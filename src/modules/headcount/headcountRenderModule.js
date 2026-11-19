@@ -135,14 +135,21 @@
         return;
       }
 
-      getSelectedHcRows()
-        .filter((row) => row.validationStatus === "error")
-        .forEach((row) => {
-          const item = document.createElement("div");
-          item.className = "actuals-error-item";
-          item.innerHTML = `<strong>Linha ${row.rowNumber}</strong><span>${escapeHtml((row.validationErrors || []).join(" • "))}</span>`;
-          container.append(item);
-        });
+      // Lote todo com erro (ex.: 8.676 linhas) travava a tela ao desenhar uma linha por erro: mostra só as primeiras.
+      const MAX_ERROS_VISIVEIS = 50;
+      const comErro = getSelectedHcRows().filter((row) => row.validationStatus === "error");
+      comErro.slice(0, MAX_ERROS_VISIVEIS).forEach((row) => {
+        const item = document.createElement("div");
+        item.className = "actuals-error-item";
+        item.innerHTML = `<strong>Linha ${row.rowNumber}</strong><span>${escapeHtml((row.validationErrors || []).join(" • "))}</span>`;
+        container.append(item);
+      });
+      if (comErro.length > MAX_ERROS_VISIVEIS) {
+        const mais = document.createElement("div");
+        mais.className = "actuals-error-item";
+        mais.innerHTML = `<strong>e mais ${comErro.length - MAX_ERROS_VISIVEIS} linhas com erro</strong>`;
+        container.append(mais);
+      }
     }
 
     function renderHcRowsTable() {
