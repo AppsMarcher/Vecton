@@ -7453,7 +7453,7 @@ function ensureHeadcountViewShell() {
               </select>
             </div>
           </div>
-          <a href="https://jwjnvxshtdekzcprmsyl.supabase.co/storage/v1/object/public/Vecton_Templates/modelo-carga-headcount.xlsx" download="modelo-carga-headcount.xlsx" title="Baixar modelo de carga" class="ghost-button hc-template-button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Modelo</a>
+          <a href="https://jwjnvxshtdekzcprmsyl.supabase.co/storage/v1/object/public/Vecton_Templates/modelo-carga-headcount.xlsx" download="modelo-carga-headcount.xlsx" class="ghost-button hc-template-button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Modelo</a>
         </div>
         <form id="hc-upload-form" class="form-grid actuals-upload-form">
           <label class="full-span vecton-file-field">
@@ -7739,11 +7739,13 @@ function bindHeadcountEvents() {
   document.querySelector("#hc-delete-batch")?.addEventListener("click", async () => {
     const batch = getSelectedHcBatch();
     if (!batch) return;
-    if (!await appConfirm("Deseja excluir este lote de headcount e todas as suas linhas? Esta ação não pode ser desfeita.", "danger")) return;
+    if (!await appConfirm("Deseja excluir este lote e todas as suas linhas? Esta acao nao pode ser desfeita.", "danger")) return;
     try {
       if (isSupabaseConfigured()) {
-        await deleteSupabaseRows("headcount_import_rows", `batch_id=eq.${encodeURIComponent(batch.id)}`);
-        await deleteSupabaseRows("headcount_import_batches", `id=eq.${encodeURIComponent(batch.id)}`);
+        // Sempre via RPC, como as demais cargas: desfaz a aplicação (remove os colaboradores do lote) e exclui o lote sem o limite de 8s.
+        await callSupabaseRpc("delete_headcount_import_batch", { target_batch_id: batch.id });
+        hcDashCache.clear();
+        if (batch.loadType?.startsWith("cenario:")) invalidateScenarioCachesFor(batch.loadType.slice("cenario:".length), batch.referenceYear);
       }
       state.headcountBatches = state.headcountBatches.filter(b => b.id !== batch.id);
       delete state.headcountRowsByBatch[batch.id];
@@ -8320,6 +8322,7 @@ async function autoApplyHeadcountBatch(batchId, { auto = false } = {}) {
           id: crypto.randomUUID(),
           organization_id: organizationId,
           scenario_id: scenarioId,
+          batch_id: batchId,
           reference_year: refreshed.referenceYear,
           reference_month: refreshed.referenceMonth,
           branch_code: r.branchCode,
@@ -8345,6 +8348,7 @@ async function autoApplyHeadcountBatch(batchId, { auto = false } = {}) {
         await upsertSupabaseRows("headcount_entries", chunk.map(r => ({
           id: crypto.randomUUID(),
           organization_id: organizationId,
+          batch_id: batchId,
           reference_year: refreshed.referenceYear,
           reference_month: refreshed.referenceMonth,
           load_type: refreshed.loadType,
@@ -8374,9 +8378,26 @@ async function autoApplyHeadcountBatch(batchId, { auto = false } = {}) {
     applied_at: new Date().toISOString()
   }], ["id"]);
 
+  await removeReplacedHcBatches(refreshed);
   await refreshHeadcountBatch(batchId);
   setSyncStatus(auto ? "Carga de headcount aplicada no BD" : "Lote de headcount aplicado no BD", "ok");
   return true;
+}
+
+// Carga completa substitui o mês: os lotes aplicados anteriores do mesmo mês e tipo saem do histórico.
+async function removeReplacedHcBatches(applied) {
+  if (applied.loadMode !== "complete") return;
+  const antigos = state.headcountBatches.filter((item) => item.id !== applied.id && item.status === "applied"
+    && item.referenceYear === applied.referenceYear && item.referenceMonth === applied.referenceMonth && item.loadType === applied.loadType);
+  for (const old of antigos) {
+    try {
+      await callSupabaseRpc("delete_headcount_import_batch", { target_batch_id: old.id });
+      delete state.headcountRowsByBatch[old.id];
+      state.headcountBatches = state.headcountBatches.filter((item) => item.id !== old.id);
+    } catch (error) {
+      console.error("Não foi possível remover o lote substituído", old.id, error);
+    }
+  }
 }
 
 

@@ -80,7 +80,7 @@
                   <option value="additional">Carga adicional</option>
                 </select>
               </div>
-              <a href="${TEMPLATE_URL}" download="modelo-carga-vendas.xlsx" title="Baixar modelo de carga" style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-alt);color:var(--text-faint);font-size:0.72rem;text-decoration:none;flex-shrink:0;transition:color .15s,border-color .15s" onmouseover="this.style.color='var(--blue)';this.style.borderColor='var(--blue)'" onmouseout="this.style.color='var(--text-faint)';this.style.borderColor='var(--line)'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Modelo</a>
+              <a href="${TEMPLATE_URL}" download="modelo-carga-vendas.xlsx" style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel-alt);color:var(--text-faint);font-size:0.72rem;text-decoration:none;flex-shrink:0;transition:color .15s,border-color .15s" onmouseover="this.style.color='var(--blue)';this.style.borderColor='var(--blue)'" onmouseout="this.style.color='var(--text-faint)';this.style.borderColor='var(--line)'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Modelo</a>
             </div>
             <form id="comven-upload-form" class="form-grid actuals-upload-form">
               <label class="full-span vecton-file-field">
@@ -89,7 +89,7 @@
                   <span class="vecton-file-btn">Selecionar arquivo</span>
                   <span class="vecton-file-name" data-file-name>Nenhum arquivo selecionado</span>
                 </span>
-                <input id="comven-file-input" name="file" type="file" accept=".xlsx,.xls,.csv,.txt" class="vecton-file-native">
+                <input id="comven-file-input" name="file" type="file" accept=".xlsx,.xls,.csv" class="vecton-file-native">
               </label>
               <div class="editor-actions full-span">
                 <button class="primary-button" type="submit">Importar arquivo</button>
@@ -342,6 +342,22 @@
       }
       if (batch.errorRows === 0) {
         container.innerHTML = `<div class="actuals-success-box">Lote sem erros. O resumo fica concentrado no cabecalho do lote.</div>`;
+        return;
+      }
+      // Padrão de todas as cargas: lista as primeiras linhas com erro (lote todo com erro travaria a tela).
+      const MAX_ERROS_VISIVEIS = 50;
+      const comErro = getSelectedRows().filter((row) => row.validationStatus === "error");
+      comErro.slice(0, MAX_ERROS_VISIVEIS).forEach((row) => {
+        const item = document.createElement("div");
+        item.className = "actuals-error-item";
+        item.innerHTML = `<strong>Linha ${row.rowNumber}</strong><span>${escapeHtml((row.validationErrors || []).join(" • "))}</span>`;
+        container.append(item);
+      });
+      if (comErro.length > MAX_ERROS_VISIVEIS) {
+        const mais = document.createElement("div");
+        mais.className = "actuals-error-item";
+        mais.innerHTML = `<strong>e mais ${comErro.length - MAX_ERROS_VISIVEIS} linhas com erro</strong>`;
+        container.append(mais);
       }
     }
 
@@ -639,12 +655,9 @@
       if (!confirmed) return;
       try {
         if (isSupabaseConfigured()) {
-          if (batch.status === "applied") {
-            await callSupabaseRpc("delete_comercial_realizado_import_batch", { target_batch_id: batch.id });
-            onRealizadoChanged?.(batch.referenceYear);
-          } else {
-            await deleteSupabaseRows("comercial_realizado_import_batches", `id=eq.${encodeURIComponent(batch.id)}`);
-          }
+          // Sempre via RPC (statement_timeout=0): o DELETE direto de lote grande estoura o limite de 8s do banco.
+          await callSupabaseRpc("delete_comercial_realizado_import_batch", { target_batch_id: batch.id });
+          if (batch.status === "applied") onRealizadoChanged?.(batch.referenceYear);
         }
         delete state.comercialRealizadoRowsByBatch[batch.id];
         state.comercialRealizadoBatches = state.comercialRealizadoBatches.filter((item) => item.id !== batch.id);
