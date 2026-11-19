@@ -779,6 +779,10 @@
       const confirmed = await appConfirm("Deseja excluir este lote e todas as suas linhas? Esta acao nao pode ser desfeita.", "danger");
       if (!confirmed) return;
 
+      // Lote grande leva mais de 1 minuto: trava o botão (um 2º clique esbarra no bloqueio do 1º e dá erro) e avisa.
+      const deleteButton = document.querySelector("#actuals-delete-batch");
+      if (deleteButton) deleteButton.disabled = true;
+      setUploadFeedback("Excluindo lote… em lotes grandes pode levar mais de 1 minuto. Não clique de novo.", "warn");
       try {
         if (isSupabaseConfigured()) {
           // Sempre via RPC (statement_timeout=0): o DELETE direto do lote não aplicado, com muitas linhas
@@ -797,7 +801,10 @@
         setUploadFeedback("Lote excluido com sucesso.", "ok");
       } catch (error) {
         console.error(error);
-        setUploadFeedback(vpFriendlyError(error, "Falha ao excluir lote."), "error");
+        if (deleteButton) deleteButton.disabled = false;
+        setUploadFeedback(/lock timeout|statement timeout|canceling statement/i.test(String(error?.message || error))
+          ? "O banco ainda está processando a exclusão deste lote. Aguarde cerca de 2 minutos e atualize a página (F5) para conferir."
+          : vpFriendlyError(error, "Falha ao excluir lote."), "error");
       }
     }
 

@@ -7740,6 +7740,10 @@ function bindHeadcountEvents() {
     const batch = getSelectedHcBatch();
     if (!batch) return;
     if (!await appConfirm("Deseja excluir este lote e todas as suas linhas? Esta acao nao pode ser desfeita.", "danger")) return;
+    // Lote grande leva mais de 1 minuto: trava o botão (um 2º clique esbarra no bloqueio do 1º e dá erro) e avisa.
+    const deleteButton = document.querySelector("#hc-delete-batch");
+    if (deleteButton) deleteButton.disabled = true;
+    setHcFeedback("Excluindo lote… em lotes grandes pode levar mais de 1 minuto. Não clique de novo.", "warn");
     try {
       if (isSupabaseConfigured()) {
         // Sempre via RPC, como as demais cargas: desfaz a aplicação (remove os colaboradores do lote) e exclui o lote sem o limite de 8s.
@@ -7753,7 +7757,10 @@ function bindHeadcountEvents() {
       if (selectedHeadcountBatchId) await loadHeadcountRows(selectedHeadcountBatchId, true);
       renderHeadcountView();
     } catch (error) {
-      setHcFeedback(vpFriendlyError(error, "Falha ao excluir lote."), "error");
+      if (deleteButton) deleteButton.disabled = false;
+      setHcFeedback(/lock timeout|statement timeout|canceling statement/i.test(String(error?.message || error))
+        ? "O banco ainda está processando a exclusão deste lote. Aguarde cerca de 2 minutos e atualize a página (F5) para conferir."
+        : vpFriendlyError(error, "Falha ao excluir lote."), "error");
     }
   });
 
