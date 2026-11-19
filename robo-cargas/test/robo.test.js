@@ -159,7 +159,7 @@ test("mensagemErros: agrupa por cliente e por produto e diz onde cadastrar", () 
   assert.ok(m.includes("informe a cultura"), "Máquinas exige cultura no cadastro do produto");
   assert.ok(!m.includes("Produtos sem cultura"), "sem cultura e consequencia do produto faltando, nao um grupo a parte");
   assert.ok(!/Linha 22\d/.test(m) && !m.includes("validation"), "sem jargao tecnico");
-  assert.ok(m.includes("1dd62b68"), "id curto do lote para consulta");
+  assert.ok(!m.includes("1dd62b68") && !m.includes("guardado"), "sem aviso de lote guardado: o lote com erro é apagado na próxima carga");
   assert.ok(m.length < 1300, `mensagem com ${m.length} caracteres (o sino corta em 1500)`);
 });
 test("mensagemErros: produto que existe mas esta sem cultura vira grupo proprio", () => {

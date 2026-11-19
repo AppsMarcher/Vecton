@@ -85,8 +85,7 @@ export function mensagemErros(reprovadas, { batchId } = {}) {
     secao("Produtos sem cultura (edite o produto em Parâmetros > Comercial > Produtos e informe a cultura)", grupos.semCultura, "produtos", (c, g) => base(c, g, { tipo: true })),
     secao("Outros problemas", grupos.outros, "problemas", (c, g) => base(c, g, { valor: false }))
   ].filter(Boolean);
-  const rodape = `Nada foi aplicado. Depois de cadastrar, use "Carregar agora" em Parâmetros > Carga de Realizado, ou aguarde a próxima carga automática.`
-    + (batchId ? ` O lote com problema fica guardado para consulta (${String(batchId).slice(0, 8)}).` : "");
+  const rodape = `Nada foi aplicado. Depois de cadastrar, use "Carregar agora" em Parâmetros > Carga de Realizado, ou aguarde a próxima carga automática.`;
   return [titulo, ...blocos, rodape].join("\n\n");
 }
 
