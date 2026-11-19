@@ -85,7 +85,13 @@ Deno.serve(async (req) => {
     const { error: updateErr } = await admin.auth.admin.updateUserById(targetUserId, {
       password: newPassword,
     });
-    if (updateErr) return json({ error: updateErr.message || "Falha ao definir a nova senha" }, 400);
+    if (updateErr) {
+      // Proteção contra senhas vazadas do Supabase Auth: a mensagem original vem em inglês.
+      if ((updateErr as { code?: string }).code === "weak_password") {
+        return json({ error: "Essa senha é fraca ou já apareceu em vazamentos públicos. Escolha outra, de preferência mais longa." }, 400);
+      }
+      return json({ error: updateErr.message || "Falha ao definir a nova senha" }, 400);
+    }
 
     return json({ ok: true });
   } catch (e) {

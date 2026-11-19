@@ -326,7 +326,12 @@
             renderUserProfile();
           } catch (error) {
             console.error(error);
-            feedback.textContent = "Não foi possível definir a senha. O link pode ter expirado — peça um novo convite.";
+            // Com a proteção contra senhas vazadas ligada no Supabase Auth, a resposta é 422 weak_password.
+            let errorCode = "";
+            try { errorCode = JSON.parse(String(error?.message || ""))?.error_code || ""; } catch (_parseError) { /* resposta não era JSON */ }
+            feedback.textContent = errorCode === "weak_password"
+              ? "Essa senha é fraca ou já apareceu em vazamentos públicos. Escolha outra, de preferência mais longa."
+              : "Não foi possível definir a senha. O link pode ter expirado — peça um novo convite.";
             feedback.classList.add("is-error");
             btn.disabled = false;
           }
